@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doc2Loc — Dépôt de dossier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--text:#0b1020;--muted:#5b6476;--border:rgba(15,23,42,.12);--blue:#0a84ff;--r:18px;}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:920px;margin:0 auto;padding:22px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .brand{font-weight:900;letter-spacing:-.02em}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:0 10px 30px rgba(2,8,23,.06)}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+    h1{margin:6px 0 0;font-size:26px;letter-spacing:-.02em}
+    .muted{color:var(--muted)}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    input,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;font:inherit;background:#fff}
+    textarea{min-height:100px;resize:vertical}
+    .row2{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:680px){.row2{grid-template-columns:1fr 1fr}}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;display:none;max-width:92vw}
+    .files{font-size:12px;color:var(--muted);margin-top:6px}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--border);background:#fff;border-radius:999px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">Doc2Loc</div>
+      <div class="pill">Dépôt de dossier candidat</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h1>Dépose ton dossier</h1>
+        <p class="muted" id="sub">Chargement du bien…</p>
+
+        <div class="row2">
+          <div><label>Prénom</label><input id="firstName" placeholder="Ex: Sarah"></div>
+          <div><label>Nom</label><input id="lastName" placeholder="Ex: Martin"></div>
+        </div>
+
+        <div class="row2">
+          <div><label>Email (obligatoire)</label><input id="email" type="email" placeholder="sarah@email.com" required></div>
+          <div><label>Téléphone</label><input id="phone" placeholder="06…"></div>
+        </div>
+
+        <label>Message</label>
+        <textarea id="message" placeholder="Quelques mots (optionnel)…"></textarea>
+
+        <label>Documents (PDF/JPG/PNG)</label>
+        <input id="documents" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+        <div class="files">Astuce : tu peux sélectionner plusieurs fichiers d’un coup.</div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn primary" id="btnSend">Envoyer le dossier</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <b>Bien concerné</b>
+        <div class="muted" id="propBox" style="margin-top:8px">—</div>
+        <div style="margin-top:14px">
+          <b>Confidentialité</b>
+          <p class="muted" style="margin:8px 0 0">Ton dossier est transmis uniquement au bailleur.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  function toast(msg, ok=true){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    t.style.background = ok ? "#111827" : "#7f1d1d";
+    clearTimeout(window.__tmo);
+    window.__tmo = setTimeout(()=>t.style.display="none", 2800);
+  }
+
+  const token = new URLSearchParams(location.search).get("token");
+  if(!token){
+    $("sub").textContent = "Lien invalide (token manquant).";
+    $("btnSend").disabled = true;
+    return;
+  }
+
+  async function loadProperty(){
+    try{
+      const r = await fetch("/api/public/apply/" + encodeURIComponent(token));
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){
+        $("sub").textContent = j.msg || "Lien invalide.";
+        $("btnSend").disabled = true;
+        return;
+      }
+      const p = j.property || {};
+      const addr = (p.addressLine && p.zipCode && p.city) ? (p.addressLine + ", " + p.zipCode + " " + p.city) : (p.address || "—");
+      $("sub").textContent = "Le bailleur recevra ton dossier pour : " + (p.name || "ce bien");
+      $("propBox").innerHTML = "<div><b>" + (p.name||"—") + "</b></div>"
+        + "<div class='muted' style='margin-top:6px'>" + addr + "</div>";
+    }catch(e){
+      $("sub").textContent = "Impossible de charger le bien (réseau).";
+    }
+  }
+
+  $("btnSend").addEventListener("click", async ()=>{
+    const email = ($("email").value || "").trim();
+    if(!email || !email.includes("@")){ toast("Email obligatoire", false); return; }
+
+    const files = $("documents").files;
+    if(!files || files.length === 0){ toast("Ajoute au moins 1 document", false); return; }
+
+    const fd = new FormData();
+    fd.append("firstName", ($("firstName").value||"").trim());
+    fd.append("lastName", ($("lastName").value||"").trim());
+    fd.append("email", email);
+    fd.append("phone", ($("phone").value||"").trim());
+    fd.append("message", ($("message").value||"").trim());
+    for(const f of files) fd.append("documents", f);
+
+    const btn = $("btnSend");
+    btn.disabled = true;
+    try{
+      const r = await fetch("/api/public/apply/" + encodeURIComponent(token), { method:"POST", body: fd });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Envoi impossible", false); return; }
+      toast(j.msg || "Dossier envoyé ✅");
+      $("documents").value = "";
+    }catch(e){
+      toast("Erreur réseau", false);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  loadProperty();
+})();
+</script>
+</body>
+</html>

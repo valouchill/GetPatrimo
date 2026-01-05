@@ -1,0 +1,73 @@
+(function(){
+  function ensureOverlay(){
+    let o = document.getElementById("navOverlay");
+    if(!o){
+      o = document.createElement("div");
+      o.id = "navOverlay";
+      o.className = "nav-overlay";
+      document.body.appendChild(o);
+    }
+    return o;
+  }
+
+  function initBurger(){
+    const nav = document.querySelector("nav");
+    if(!nav) return;
+
+    nav.classList.add("topnav");
+
+    // Menu container id
+    const menu = nav.querySelector("#navMenu") || nav.querySelector(".nav-menu") || nav.querySelector(".nav-nav");
+    if(menu && !menu.id) menu.id = "navMenu";
+
+    // Burger button
+    let burger = document.getElementById("navBurger");
+    if(!burger){
+      burger = document.createElement("button");
+      burger.id = "navBurger";
+      burger.className = "nav-burger";
+      burger.type = "button";
+      burger.setAttribute("aria-label","Menu");
+      burger.innerHTML = "<i data-lucide='menu'></i>";
+      const logo = nav.querySelector(".logo");
+      if(logo && logo.parentElement === nav){
+        logo.insertAdjacentElement("afterend", burger);
+      }else{
+        nav.insertAdjacentElement("afterbegin", burger);
+      }
+    }
+
+    const overlay = ensureOverlay();
+
+    function close(){
+      nav.classList.remove("open");
+      overlay.classList.remove("show");
+      burger.setAttribute("aria-expanded","false");
+    }
+    function toggle(){
+      const open = !nav.classList.contains("open");
+      nav.classList.toggle("open", open);
+      overlay.classList.toggle("show", open);
+      burger.setAttribute("aria-expanded", open ? "true" : "false");
+      try{ if(window.lucide && typeof lucide.createIcons==="function") lucide.createIcons(); }catch(e){}
+    }
+
+    burger.addEventListener("click", toggle);
+    overlay.addEventListener("click", close);
+    document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") close(); });
+
+    // fermer quand on clique un lien dans le menu
+    nav.addEventListener("click", (e)=>{
+      const a = e.target && e.target.closest ? e.target.closest("a.nav-link") : null;
+      if(a) close();
+    });
+
+    // si on repasse desktop, on ferme
+    window.addEventListener("resize", ()=>{ if(window.innerWidth > 768) close(); });
+
+    // lucide icons
+    try{ if(window.lucide && typeof lucide.createIcons==="function") lucide.createIcons(); }catch(e){}
+  }
+
+  document.addEventListener("DOMContentLoaded", initBurger);
+})();

@@ -1,0 +1,175 @@
+/* Doc2Loc Elite — Harmonize (v1)
+   Chargé APRES les styles inline pour écraser les incohérences legacy sans casser la structure.
+*/
+
+:root{
+  /* force la palette claire + alias */
+  --bg:#F8FAFC !important;
+  --card:#FFFFFF !important;
+  --text: #0F172A !important;
+  --muted:#475569 !important;
+  --border:#E2E8F0 !important;
+  --shadow:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03) !important;
+
+  --text-dark:#0F172A !important;
+  --text-gray:#475569 !important;
+  --primary:#4F46E5 !important;
+  --primary-hover:#4338CA !important;
+  --primary-light:rgba(79,70,229,.10) !important;
+}
+
+/* pages dark -> repasse en clair */
+body{
+  background:var(--bg) !important;
+  color:var(--text) !important;
+}
+
+/* titres / hiérarchie */
+h1,h2,h3{ letter-spacing:-0.02em; }
+h1{ font-weight:900; }
+h2,h3{ font-weight:800; }
+
+/* cartes : mêmes arrondis + ombres soft */
+.glass-card, .card-premium, .stat-card{
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:var(--shadow) !important;
+}
+
+/* badges / pills */
+.ai-badge{
+  background: rgba(79,70,229,.10) !important;
+  color: #3730A3 !important;
+  border:1px solid rgba(79,70,229,.18) !important;
+}
+
+/* tables: évite “écrasement” mobile */
+.table-wrap, .table-responsive{
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+  border-radius:16px;
+}
+
+/* responsive grids (générique) */
+@media (max-width:1024px){
+  .stats-grid{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .content-grid{ grid-template-columns: 1fr !important; }
+}
+@media (max-width:768px){
+  .stats-grid{ grid-template-columns: 1fr !important; }
+  .content-grid{ grid-template-columns: 1fr !important; }
+  table{ min-width: 720px; }
+}
+
+/* DOC2LOC_RESPONSIVE_TYPE_V1_START */
+/* Responsive: Typo + cartes (global) */
+:root{
+  --fs-body: clamp(14px, 0.35vw + 13px, 16px);
+  --fs-h1: clamp(20px, 2.2vw + 10px, 34px);
+  --fs-h2: clamp(18px, 1.4vw + 10px, 24px);
+  --fs-h3: clamp(16px, 1.1vw + 9px, 20px);
+
+  --fs-stat: clamp(20px, 1.8vw + 10px, 30px);
+  --pad-card: clamp(14px, 1.2vw + 10px, 22px);
+  --pad-card-lg: clamp(16px, 1.6vw + 10px, 30px);
+  --radius-card: clamp(16px, 2vw + 10px, 24px);
+}
+
+body{ font-size: var(--fs-body) !important; }
+h1{ font-size: var(--fs-h1) !important; }
+h2{ font-size: var(--fs-h2) !important; }
+h3{ font-size: var(--fs-h3) !important; }
+
+/* Titres usuels des pages (dashboard/property/tenant) */
+.section-title{ font-size: var(--fs-h2) !important; }
+.stat-value{ font-size: var(--fs-stat) !important; }
+
+/* Densité cartes (global) */
+.glass-card, .card-premium, .stat-card{
+  border-radius: var(--radius-card) !important;
+}
+.stat-card{ padding: var(--pad-card) !important; }
+.glass-card, .card-premium{ padding: var(--pad-card-lg) !important; }
+
+/* List items / rows (ex: bien / locataire) */
+.property-item, .tenant-item, .list-item{
+  padding: var(--pad-card) !important;
+  border-radius: clamp(14px, 2vw, 18px) !important;
+}
+
+/* Sur mobile: on évite le “trop d’air” */
+@media (max-width: 768px){
+  main{ padding: clamp(12px, 3.2vw, 18px) !important; }
+  .btn, .btn-indigo, .btn-primary, .btn-secondary{ width: 100%; justify-content:center; }
+  .actions{ flex-wrap: wrap !important; }
+}
+
+/* Respecte les utilisateurs sensibles aux animations */
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; animation: none !important; }
+}
+/* /Responsive: Typo + cartes (global) */
+/* DOC2LOC_RESPONSIVE_TYPE_V1_END */
+
+/* DOC2LOC_FULLWIDTH_V1_START */
+/* Force full-width (anti héritage sidebar/desktop) */
+html, body{ width:100% !important; overflow-x:hidden !important; }
+main{ width:100% !important; max-width:100% !important; margin:0 !important; }
+nav.topnav{ width:100% !important; max-width:100% !important; margin:0 !important; }
+/* wrappers fréquents */
+.container, .wrapper, .app, .page, .layout, .content, .dashboard, .main, .root{
+  max-width:100% !important;
+  width:100% !important;
+  margin:0 !important;
+}
+/* DOC2LOC_FULLWIDTH_V1_END */
+
+/* DOC2LOC_DASH_SPACING_V1_START */
+/* Dashboard spacing premium */
+body.page-dashboard h1{ margin: 6px 0 14px !important; }
+body.page-dashboard main{ padding: 14px 12px !important; }
+body.page-dashboard .stats-grid{ gap: 12px !important; margin-bottom: 14px !important; }
+body.page-dashboard .stat-card{ padding: 12px 14px !important; }
+body.page-dashboard .glass-card,
+body.page-dashboard .card-premium{ padding: 14px 14px !important; }
+
+body.page-dashboard .glass-card + .glass-card,
+body.page-dashboard .card-premium + .card-premium{ margin-top: 12px !important; }
+
+body.page-dashboard .section-title{ margin: 16px 0 10px !important; }
+
+/* Portefeuille : actions compactes et alignées */
+body.page-dashboard .property-item,
+body.page-dashboard .tenant-item{
+  padding: 12px 12px !important;
+}
+body.page-dashboard .btn-icon{
+  width: 38px !important; height: 38px !important;
+  border-radius: 12px !important;
+}
+body.page-dashboard .btn-icon i{
+  width: 18px !important; height: 18px !important;
+}
+
+@media (min-width: 769px){
+  body.page-dashboard main{ padding: 26px 26px !important; }
+  body.page-dashboard .stats-grid{ gap: 16px !important; margin-bottom: 18px !important; }
+}
+/* DOC2LOC_DASH_SPACING_V1_END */
+
+/* DOC2LOC_DASH_SPACING_V2_START */
+/* Dashboard: rythme vertical premium + alignements */
+body.page-dashboard h1{ margin: 8px 0 14px !important; }
+body.page-dashboard .stats-grid{ gap: 12px !important; margin: 10px 0 16px !important; }
+body.page-dashboard .stat-card{ padding: 12px 14px !important; }
+body.page-dashboard .glass-card, body.page-dashboard .card-premium{ padding: 14px 14px !important; }
+body.page-dashboard .glass-card + .glass-card,
+body.page-dashboard .card-premium + .card-premium{ margin-top: 12px !important; }
+/* Portefeuille rows: actions compactes */
+body.page-dashboard .btn-icon{ width:38px !important; height:38px !important; border-radius:12px !important; }
+@media (min-width: 769px){
+  body.page-dashboard .stats-grid{ gap: 16px !important; margin: 14px 0 18px !important; }
+  body.page-dashboard .stat-card{ padding: 16px 18px !important; }
+  body.page-dashboard .glass-card, body.page-dashboard .card-premium{ padding: 18px 18px !important; }
+}
+/* DOC2LOC_DASH_SPACING_V2_END */

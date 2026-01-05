@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doc2Loc — Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/ui.css?v=200">
+  <link rel="stylesheet" href="/harmonize.css?v=200">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/ui.js?v=200" defer></script>
+
+  <style>
+    :root{ --max: 1120px; }
+    *{ box-sizing:border-box; min-width:0; }
+    html, body{ width:100%; max-width:100%; overflow-x:hidden; }
+    main{ overflow-x:hidden; }
+
+    .container{ width:100%; max-width:var(--max); margin:0 auto; padding: 0 12px; }
+    .page-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin: 8px 0 14px; }
+    .page-top h1{ margin:0; font-size: clamp(22px, 3.2vw, 32px); letter-spacing:-.02em; }
+    .sub{ color: var(--gray-text); font-weight:600; font-size:14px; margin-top:6px; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      background:var(--white); border:1px solid var(--border);
+      border-radius:999px; padding:8px 12px; box-shadow: var(--shadow);
+      font-weight:800; white-space:nowrap;
+    }
+    .pill small{ color:var(--gray-text); font-weight:800; }
+
+    .stats-grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; margin: 12px 0 16px; }
+    .main-grid{ display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .95fr); gap:16px; align-items:start; }
+    @media (max-width: 980px){
+      .stats-grid{ grid-template-columns: 1fr; }
+      .main-grid{ grid-template-columns: 1fr; }
+      .pill{ width:100%; justify-content:space-between; }
+    }
+
+    .card{
+      background:var(--white);
+      border:1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding:16px;
+      overflow:hidden;
+      width:100%;
+      max-width:100%;
+    }
+    .card h2{ margin:0; font-size:16px; letter-spacing:-.01em; }
+    .card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .card-head .left{ display:flex; align-items:center; gap:10px; }
+    .card-head .left span{ font-weight:900; }
+    .card-head .right{ display:flex; gap:8px; align-items:center; flex:0 0 auto; }
+
+    .btn-link{
+      border:1px solid var(--border);
+      background:var(--bg);
+      border-radius: 12px;
+      padding:8px 10px;
+      font-weight:900;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    /* Insights */
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--bg);
+      font-weight:900; font-size:12px;
+      white-space:nowrap;
+    }
+    .chip b{ font-weight:900; }
+    .ins-list{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+    .ins-row{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+      padding:10px 12px; border:1px solid var(--border); background: #fff;
+      border-radius: 16px;
+    }
+    .ins-row .t{ font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ins-row .m{ color:var(--gray-text); font-weight:700; font-size:12px; margin-top:4px; }
+    .ins-row .k{ font-weight:900; color:var(--primary); white-space:nowrap; flex:0 0 auto; }
+
+    /* Portfolio list */
+    .list{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .item{
+      border:1px solid var(--border);
+      border-radius: 18px;
+      padding:12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      overflow:hidden;
+      background: #fff;
+    }
+    .item .info{ min-width:0; }
+    .item .name{ font-weight:900; }
+    .item .addr{
+      color:var(--gray-text); font-weight:700; font-size:12px; margin-top:3px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+    }
+    .item .meta{ color:var(--gray-text); font-weight:800; font-size:12px; margin-top:6px; }
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border); background: var(--bg);
+      font-weight:900; font-size:12px;
+      margin-top:10px;
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .actions{
+      display:grid;
+      grid-template-columns: 1fr auto auto;
+      gap:8px;
+      align-items:center;
+      width: 300px;
+      max-width: 300px;
+      position:relative;
+    }
+    .actions .btn-indigo{ width:100%; padding:10px 12px; border-radius: 14px; font-weight:900; }
+    .actions .btn-icon{ width:38px; height:38px; border-radius:12px; }
+    .actions .btn-icon i{ width:18px; height:18px; }
+
+    @media (max-width: 520px){
+      .item{ flex-direction:column; align-items:stretch; }
+      .actions{ width:100%; max-width:100%; }
+    }
+
+    /* Menu ⋯ */
+    .menu{
+      position:absolute;
+      right:0;
+      top:46px;
+      min-width: 240px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 14px 30px rgba(15,23,42,.14);
+      padding: 8px;
+      display:none;
+      z-index: 2000;
+    }
+    .menu.open{ display:block; }
+    .menu button{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: var(--bg);
+      font-weight:900;
+      cursor:pointer;
+      margin:6px 0;
+      text-align:left;
+    }
+    .menu button:hover{ background: rgba(79,70,229,.08); border-color: rgba(79,70,229,.18); }
+    .menu button.danger{
+      color: var(--danger);
+      background: rgba(244,63,94,.06);
+      border-color: rgba(244,63,94,.18);
+    }
+
+    /* Forms */
+    form{ margin-top:12px; }
+    .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+    .field label{ font-weight:900; font-size:12px; letter-spacing:.05em; text-transform:uppercase; }
+    .row2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; }
+    @media (max-width: 520px){ .row2{ grid-template-columns: 1fr; } }
+    .help{ color:var(--gray-text); font-weight:700; font-size:12px; margin-top:6px; }
+
+    /* Toast */
+    #toast{
+      position: fixed; right: 14px; bottom: 14px; z-index: 3000;
+      background: var(--dark); color:#fff;
+      padding: 12px 14px; border-radius: 16px; box-shadow: 0 14px 30px rgba(15,23,42,.18);
+      display:none; max-width: min(92vw, 360px);
+      font-weight:800;
+    }
+
+    /* Modal */
+    .backdrop{ position:fixed; inset:0; background: rgba(15,23,42,.45); z-index: 2500; display:none; }
+    .modal{
+      position:fixed; left:50%; top:50%;
+      transform: translate(-50%,-50%);
+      width: min(780px, 92vw);
+      max-height: min(78vh, 680px);
+      overflow:auto;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 22px 60px rgba(15,23,42,.25);
+      z-index: 2600;
+      display:none;
+    }
+    .modal .m-head{
+      position: sticky; top:0;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .modal .m-head .title{ font-weight:900; }
+    .modal .m-body{ padding: 12px 14px; display:flex; flex-direction:column; gap:12px; }
+    .modal .x{ border:1px solid var(--border); background:var(--bg); border-radius: 12px; padding:8px 10px; font-weight:900; cursor:pointer; }
+
+    .section-title{ font-weight:900; margin: 4px 0 6px; }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <a class="logo" href="/dashboard.html"><i data-lucide="layers"></i><span>Doc2Loc</span></a>
+    <div class="nav-nav">
+      <a class="nav-link active" href="/dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+      <a class="nav-link" href="/dashboard.html#portfolio"><i data-lucide="home"></i> Biens</a>
+      <a class="nav-link" href="/dashboard.html#assign"><i data-lucide="users"></i> Locataires</a>
+      <a class="nav-link" href="/security.html"><i data-lucide="shield-check"></i> Sécurité</a>
+      <a class="nav-link" id="adminLink" href="/admin-leads.html" style="display:none;"><i data-lucide="shield"></i> Admin</a>
+    </div>
+    <a class="nav-link logout" href="#" id="btnLogout"><i data-lucide="log-out"></i> Déconnexion</a>
+  </nav>
+
+  <main>
+    <div class="container">
+      <div class="page-top">
+        <div>
+          <h1>Vue d’ensemble</h1>
+          <div class="sub">Pilotage rapide : portefeuille, quittances, relances, signaux importants.</div>
+        </div>
+        <div class="pill">
+          <span id="userName">Bailleur</span>
+          <small id="planBadge" style="display:none;"></small>
+        </div>
+      </div>
+
+
+<section class="card" id="upgradeBanner" style="display:none; margin: 10px 0 14px;">
+  <div class="card-head">
+    <div class="left"><i data-lucide="zap"></i><span>Débloquer Doc2Loc PRO</span></div>
+    <div class="right">
+      <a class="btn-link" id="upgradeLink" href="/pricing.html">Voir les offres</a>
+    </div>
+  </div>
+  <div class="sub" id="upgradeText" style="margin-top:10px">
+    Passez à PRO pour lever les limites et activer les automatisations mensuelles.
+  </div>
+</section>
+
+      <section class="stats-grid">
+        <div class="card">
+          <div class="card-head">
+            <div class="left"><i data-lucide="euro"></i><span>Revenus estimés</span></div>
+          </div>
+          <div style="margin-top:10px; font-size:28px; font-weight:900;" id="statRevenue">0 €</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="left"><i data-lucide="home"></i><span>Biens</span></div>
+          </div>
+          <div style="margin-top:10px; font-size:28px; font-weight:900;" id="statProps">0</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="left"><i data-lucide="users"></i><span>Locataires</span></div>
+          </div>
+          <div style="margin-top:10px; font-size:28px; font-weight:900;" id="statTenants">0</div>
+        </div>
+      </section>
+
+      <section class="main-grid">
+        <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+          <!-- INSIGHTS -->
+          <section class="card" id="insightsCard">
+            <div class="card-head">
+              <div class="left"><i data-lucide="sparkles"></i><span>Insights</span></div>
+              <div class="right">
+                <button class="btn-link" id="btnInsights">Voir tout</button>
+              </div>
+            </div>
+
+            <div class="chips" id="insChips">
+              <span class="chip"><b id="cCrit">–</b> Critiques</span>
+              <span class="chip"><b id="cWatch">–</b> À surveiller</span>
+              <span class="chip"><b id="cInfo">–</b> Infos</span>
+            </div>
+
+            <div class="ins-list" id="insTop">
+              <div class="ins-row">
+                <div style="min-width:0;">
+                  <div class="t">Chargement…</div>
+                  <div class="m">Analyse des alertes et activité</div>
+                </div>
+                <div class="k">—</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- PORTFOLIO -->
+          <section class="card" id="portfolio">
+            <div class="card-head">
+              <div class="left"><i data-lucide="list-checks"></i><span>Portefeuille</span></div>
+              <div class="right">
+                <button class="btn-link" id="btnRefresh">Rafraîchir</button>
+              </div>
+            </div>
+            <div class="list" id="propList"></div>
+          </section>
+        </div>
+
+        <aside style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+          <!-- NEW PROPERTY -->
+          <section class="card">
+            <div class="card-head">
+              <div class="left"><i data-lucide="plus-circle"></i><span>Nouveau bien</span></div>
+            </div>
+
+            <form id="formProperty">
+              <div class="field">
+                <label>Nom du bien</label>
+                <input id="pName" required placeholder="Studio République, T3, …">
+              </div>
+
+              <div class="row2">
+                <div class="field">
+                  <label>Loyer HC (€)</label>
+                  <input id="pRent" type="number" required placeholder="850">
+                </div>
+                <div class="field">
+                  <label>Charges (€)</label>
+                  <input id="pCharges" type="number" placeholder="50">
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="field">
+                  <label>Surface (m²)</label>
+                  <input id="pSurface" type="number" placeholder="32">
+                </div>
+                <div class="field">
+                  <label>Code postal</label>
+                  <input id="pZip" required placeholder="75003" inputmode="numeric">
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Adresse (rue + n°)</label>
+                <input id="pAddrLine" required placeholder="1 rue des Minimes">
+              </div>
+
+              <div class="field">
+                <label>Commune</label>
+                <select id="pCity" required>
+                  <option value="">— Choisir une commune —</option>
+                </select>
+                <div class="help" id="pCityHelp"></div>
+              </div>
+
+              <button class="btn-indigo" type="submit"><i data-lucide="sparkles"></i> Créer le bien</button>
+            </form>
+          </section>
+
+          <!-- ASSIGN TENANT -->
+          <section class="card" id="assign">
+            <div class="card-head">
+              <div class="left"><i data-lucide="user-plus"></i><span>Assigner un locataire</span></div>
+            </div>
+
+            <form id="formTenant">
+              <div class="row2">
+                <div class="field">
+                  <label>Prénom</label>
+                  <input id="tFirst" required>
+                </div>
+                <div class="field">
+                  <label>Nom</label>
+                  <input id="tLast" required>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Email</label>
+                <input id="tEmail" type="email" required placeholder="locataire@email.com">
+              </div>
+
+              <div class="field">
+                <label>Bien associé</label>
+                <select id="tProperty" required></select>
+              </div>
+
+              <button class="btn-secondary" type="submit"><i data-lucide="link-2"></i> Lier le dossier</button>
+            </form>
+          </section>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <!-- MODAL -->
+  <div class="backdrop" id="backdrop"></div>
+  <div class="modal" id="modal">
+    <div class="m-head">
+      <div class="title">Insights — détails</div>
+      <button class="x" id="btnCloseModal">Fermer</button>
+    </div>
+    <div class="m-body" id="modalBody"></div>
+  </div>
+
+<script>
+(function(){
+  const token = localStorage.getItem("token");
+  if(!token){ location.href="/login.html"; return; }
+
+  const $ = (id)=>document.getElementById(id);
+
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(window.__tmo);
+    window.__tmo = setTimeout(()=>t.style.display="none", 2600);
+  }
+
+  async function api(path, opts={}){
+    const headers = Object.assign({}, opts.headers||{}, { "x-auth-token": token });
+    return fetch(path, Object.assign({}, opts, { headers }));
+  }
+
+  function safeIcons(){
+    try{ if(window.lucide && typeof lucide.createIcons==="function") lucide.createIcons(); }catch(e){}
+  }
+
+  function eur(n){
+    const v = Number(n||0);
+    return v.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+  }
+
+  function escapeHtml(str){
+    return String(str||"").replace(/[&<>"']/g, (m)=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // ---------- Modal ----------
+  const backdrop = $("backdrop");
+  const modal = $("modal");
+  function openModal(html){
+    $("modalBody").innerHTML = html;
+    backdrop.style.display = "block";
+    modal.style.display = "block";
+  }
+  function closeModal(){
+    backdrop.style.display = "none";
+    modal.style.display = "none";
+  }
+  backdrop.addEventListener("click", closeModal);
+  $("btnCloseModal").addEventListener("click", closeModal);
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+
+  // ---------- Logout ----------
+  $("btnLogout").addEventListener("click", (e)=>{
+    e.preventDefault();
+    localStorage.clear();
+    location.href="/login.html";
+  });
+
+  // ---------- Admin link ----------
+  (async ()=>{
+    try{
+      const r = await api("/api/admin/leads?limit=1");
+      if(r.ok) $("adminLink").style.display = "flex";
+      safeIcons();
+    }catch(_){}
+  })();
+
+  
+// ---------- Billing badge + paywall banner ----------
+(async ()=>{
+  try{
+    const r = await api("/api/billing/status");
+    if(!r.ok) return;
+    const j = await r.json().catch(()=>null);
+    if(j && j.plan){
+      const b = $("planBadge");
+      b.style.display = "inline";
+      b.textContent = j.plan;
+
+      const banner = $("upgradeBanner");
+      const link = $("upgradeLink");
+      const txt = $("upgradeText");
+
+      if (banner && j.plan === "FREE") {
+        banner.style.display = "block";
+        if (link) link.href = j.upgradeUrl || "/pricing.html";
+
+        const rem = (j.remaining && typeof j.remaining.receiptEmail === "number") ? j.remaining.receiptEmail : null;
+        const lim = (j.limits && typeof j.limits.receiptEmailPerMonth === "number") ? j.limits.receiptEmailPerMonth : null;
+
+        if (txt) {
+          if (rem !== null && lim !== null) {
+            txt.textContent = "Plan FREE : " + lim + " emails de quittance / mois. Il vous reste " + rem + " envoi(s) ce mois-ci. Passez à PRO pour l'illimité.";
+          } else {
+            txt.textContent = "Plan FREE : des limites s'appliquent. Passez à PRO pour lever les limites.";
+          }
+        }
+        safeIcons();
+      } else if (banner) {
+        banner.style.display = "none";
+      }
+    }
+  }catch(_){}
+})();
+
+  // ---------- Profile ----------
+  (async ()=>{
+    try{
+      const r = await api("/api/auth/profile");
+      if(!r.ok) return;
+      const u = await r.json().catch(()=>null);
+      if(u && (u.name || u.email)) $("userName").textContent = u.name || u.email;
+    }catch(_){}
+  })();
+
+  // ---------- Communes ----------
+  let zipTimer = null;
+  async function loadCommunes(zip){
+    const select = $("pCity");
+    const help = $("pCityHelp");
+    help.textContent = "";
+    select.innerHTML = "<option value=''>— Choisir une commune —</option>";
+    if(!zip || zip.length < 4) return;
+
+    try{
+      const url = "https://geo.api.gouv.fr/communes?codePostal=" + encodeURIComponent(zip) + "&fields=nom&format=json&geometry=centre";
+      const r = await fetch(url);
+      const arr = await r.json().catch(()=>[]);
+      if(!Array.isArray(arr) || !arr.length){
+        help.textContent = "Aucune commune trouvée pour ce code postal.";
+        return;
+      }
+      for(const c of arr){
+        const opt = document.createElement("option");
+        opt.value = c.nom;
+        opt.textContent = c.nom;
+        select.appendChild(opt);
+      }
+      help.textContent = arr.length + " commune(s) proposée(s).";
+    }catch(e){
+      help.textContent = "Impossible de charger les communes (réseau).";
+    }
+  }
+  $("pZip").addEventListener("input", (e)=>{
+    const v = e.target.value.trim();
+    clearTimeout(zipTimer);
+    zipTimer = setTimeout(()=>loadCommunes(v), 250);
+  });
+
+  // ---------- Data ----------
+  let lastInsights = null;
+  let lastEvents = null;
+
+  async function loadInsights(){
+    try{
+      const r = await api("/api/alerts/overview");
+      if(!r.ok) throw new Error("bad");
+      const j = await r.json().catch(()=>null);
+      lastInsights = j;
+
+      const counts = (j && j.counts) ? j.counts : {};
+      $("cCrit").textContent = counts.critical ?? counts.criticals ?? "0";
+      $("cWatch").textContent = counts.watch ?? counts.warning ?? "0";
+      $("cInfo").textContent = counts.info ?? "0";
+
+      const top = (j && Array.isArray(j.top) && j.top.length) ? j.top : (j && Array.isArray(j.alerts) ? j.alerts : []);
+      const box = $("insTop");
+      box.innerHTML = "";
+
+      if(!top.length){
+        box.innerHTML = "<div class='ins-row'><div style='min-width:0;'><div class='t'>Aucun signal pour le moment</div><div class='m'>Tout est calme ✅</div></div><div class='k'>OK</div></div>";
+        return;
+      }
+
+      for(const a of top.slice(0,3)){
+        const title = a.title || a.label || a.type || "Signal";
+        const meta  = a.hint || a.message || a.detail || "";
+        const sev   = (a.severity || a.level || "").toString().toUpperCase();
+        box.insertAdjacentHTML("beforeend", `
+          <div class="ins-row">
+            <div style="min-width:0;">
+              <div class="t">${escapeHtml(title)}</div>
+              <div class="m">${escapeHtml(meta)}</div>
+            </div>
+            <div class="k">${escapeHtml(sev || "INFO")}</div>
+          </div>
+        `);
+      }
+    }catch(e){
+      $("insTop").innerHTML = "<div class='ins-row'><div style='min-width:0;'><div class='t'>Insights indisponibles</div><div class='m'>Impossible de charger /api/alerts/overview</div></div><div class='k'>—</div></div>";
+      $("cCrit").textContent = "—";
+      $("cWatch").textContent = "—";
+      $("cInfo").textContent = "—";
+    }
+  }
+
+  async function loadEvents(){
+    // On tente plusieurs endpoints possibles (selon ton backend)
+    const candidates = [
+      "/api/events?limit=25",
+      "/api/events/recent?limit=25",
+      "/api/activity?limit=25"
+    ];
+    for(const url of candidates){
+      try{
+        const r = await api(url);
+        if(!r.ok) continue;
+        const j = await r.json().catch(()=>null);
+        if(Array.isArray(j)) { lastEvents = j; return; }
+        if(j && Array.isArray(j.events)) { lastEvents = j.events; return; }
+      }catch(_){}
+    }
+    lastEvents = null;
+  }
+
+  function fmtEvent(e){
+    const type = e.type || e.name || e.event || "event";
+    const at = e.createdAt || e.at || e.date || e.ts;
+    const when = at ? new Date(at).toLocaleString("fr-FR") : "";
+    const label = e.label || e.title || type;
+    return `<div class="ins-row">
+      <div style="min-width:0;">
+        <div class="t">${escapeHtml(label)}</div>
+        <div class="m">${escapeHtml(when)}</div>
+      </div>
+      <div class="k">${escapeHtml((type||"").toString().toUpperCase())}</div>
+    </div>`;
+  }
+
+  function closeAllMenus(){
+    document.querySelectorAll(".menu.open").forEach(m=>m.classList.remove("open"));
+    document.querySelectorAll("[data-menu-open='1']").forEach(b=>b.dataset.menuOpen="0");
+  }
+  document.addEventListener("click", (e)=>{
+    const inside = e.target && e.target.closest && e.target.closest(".menu, .btnMenu");
+    if(!inside) closeAllMenus();
+  });
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeAllMenus(); });
+
+  async function openPdf(propertyId){
+    try{
+      const r = await api("/api/documents/quittance/"+encodeURIComponent(propertyId));
+      if(!r.ok){
+        const j = await r.json().catch(()=>({}));
+        toast(j.msg || "PDF impossible");
+        return;
+      }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(()=>URL.revokeObjectURL(url), 20000);
+      // optionnel: reload events si ton backend loggue
+      await loadEvents();
+    }catch(e){
+      toast("Erreur réseau (PDF)");
+    }
+  }
+
+  async function sendEmail(propertyId){
+    try{
+      const r = await api("/api/documents/email/"+encodeURIComponent(propertyId), { method:"POST" });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Email impossible"); return; }
+      toast(j.msg || "Email envoyé ✅");
+      await Promise.all([loadInsights(), loadEvents()]);
+    }catch(e){
+      toast("Erreur réseau (Email)");
+    }
+  }
+
+  async function sendReminder(tenantId){
+    try{
+      const r = await api("/api/reminders/tenant/"+encodeURIComponent(tenantId), { method:"POST" });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Relance impossible"); return; }
+      toast(j.msg || "Relance envoyée ✅");
+      await Promise.all([loadInsights(), loadEvents()]);
+    }catch(e){
+      toast("Erreur réseau (Relance)");
+    }
+  }
+
+  async function deleteProperty(propertyId){
+    if(!confirm("Supprimer ce bien ? (irréversible)")) return;
+    try{
+      const r = await api("/api/properties/"+encodeURIComponent(propertyId), { method:"DELETE" });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Suppression impossible"); return; }
+      toast(j.msg || "Bien supprimé ✅");
+      await loadPortfolio();
+      await Promise.all([loadInsights(), loadEvents()]);
+    }catch(e){
+      toast("Erreur réseau (Suppression)");
+    }
+  }
+
+  async function loadPortfolio(){
+    const list = $("propList");
+    list.innerHTML = "";
+
+    const [rP, rT] = await Promise.all([api("/api/properties"), api("/api/tenants")]);
+    const props = await rP.json().catch(()=>[]);
+    const tenants = await rT.json().catch(()=>[]);
+
+    const pArr = Array.isArray(props) ? props : [];
+    const tArr = Array.isArray(tenants) ? tenants : [];
+
+    $("statProps").textContent = String(pArr.length);
+    $("statTenants").textContent = String(tArr.length);
+
+    const rev = pArr.reduce((sum,p)=>sum + Number(p.rentAmount||0), 0);
+    $("statRevenue").textContent = eur(rev);
+
+    // select tenant form
+    const sel = $("tProperty");
+    sel.innerHTML = pArr.length ? "<option value=''>— Choisir un bien —</option>" : "<option value=''>Aucun bien</option>";
+    for(const p of pArr){
+      const opt = document.createElement("option");
+      opt.value = p._id;
+      opt.textContent = p.name || "Bien";
+      sel.appendChild(opt);
+    }
+
+    if(!pArr.length){
+      list.innerHTML = "<div class='ins-row'><div style='min-width:0;'><div class='t'>Aucun bien</div><div class='m'>Crée ton premier bien à droite.</div></div><div class='k'>+</div></div>";
+      return;
+    }
+
+    // map tenant by property
+    const tenantByProp = new Map();
+    for(const t of tArr){
+      const pid = t.property && (t.property._id || t.property);
+      if(pid) tenantByProp.set(String(pid), t);
+    }
+
+    for(const p of pArr){
+      const addr = p.address || [p.addressLine, p.zipCode, p.city].filter(Boolean).join(" ");
+      const charges = Number(p.chargesAmount||0);
+      const surface = p.surfaceM2 ? (" • " + p.surfaceM2 + " m²") : "";
+      const meta = "Loyer " + eur(p.rentAmount||0) + (charges ? (" • Charges " + eur(charges)) : "") + surface;
+
+      const t = tenantByProp.get(String(p._id)) || null;
+      const tenantLabel = t ? ( (t.firstName||"") + " " + (t.lastName||"") ).trim() : "Aucun locataire";
+      const tenantLine = t ? ("Locataire : " + tenantLabel + (t.email ? (" • " + t.email) : "")) : "Locataire : Aucun";
+
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `
+        <div class="info">
+          <div class="name">${escapeHtml(p.name || "Bien")}</div>
+          <div class="addr">${escapeHtml(addr || "")}</div>
+          <div class="meta">${escapeHtml(meta)}</div>
+          <div class="tag"><i data-lucide="users"></i><span>${escapeHtml(tenantLine)}</span></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-indigo" data-act="pdf"><i data-lucide="file-text"></i> Quittance</button>
+          <button class="btn-icon" data-act="open" title="Ouvrir"><i data-lucide="arrow-up-right"></i></button>
+          <button class="btn-icon btnMenu" data-act="menu" title="Plus"><i data-lucide="more-vertical"></i></button>
+
+          <div class="menu" data-menu>
+            <button type="button" data-act="email"><i data-lucide="send"></i> Envoyer quittance par mail</button>
+            <button type="button" data-act="remind" ${t ? "" : "disabled"}><i data-lucide="bell"></i> Relancer le locataire</button>
+            <button type="button" class="danger" data-act="delete"><i data-lucide="trash-2"></i> Supprimer le bien</button>
+          </div>
+        </div>
+      `;
+
+      // actions
+      el.querySelector('[data-act="open"]').addEventListener("click", ()=>location.href="/property.html?id="+encodeURIComponent(p._id));
+      el.querySelector('[data-act="pdf"]').addEventListener("click", ()=>openPdf(p._id));
+
+      const btnMenu = el.querySelector('.btnMenu');
+      const menu = el.querySelector('[data-menu]');
+      btnMenu.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const open = !menu.classList.contains("open");
+        closeAllMenus();
+        menu.classList.toggle("open", open);
+      });
+
+      el.querySelector('[data-act="email"]').addEventListener("click", async (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        closeAllMenus();
+        await sendEmail(p._id);
+      });
+
+      el.querySelector('[data-act="delete"]').addEventListener("click", async (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        closeAllMenus();
+        await deleteProperty(p._id);
+      });
+
+      const remindBtn = el.querySelector('[data-act="remind"]');
+      if(t && t._id){
+        remindBtn.addEventListener("click", async (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          closeAllMenus();
+          await sendReminder(t._id);
+        });
+      }
+
+      list.appendChild(el);
+    }
+
+    safeIcons();
+  }
+
+  // ---------- Forms ----------
+  $("formProperty").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    const name = $("pName").value.trim();
+    const rentAmount = Number($("pRent").value || 0);
+    const chargesAmount = Number($("pCharges").value || 0);
+    const surfaceM2 = Number($("pSurface").value || 0) || undefined;
+    const addressLine = $("pAddrLine").value.trim();
+    const zipCode = $("pZip").value.trim();
+    const city = $("pCity").value;
+
+    if(!city){ toast("Choisis une commune (liste auto)"); return; }
+
+    const address = `${addressLine}, ${zipCode} ${city}`;
+
+    try{
+      const body = { name, rentAmount, chargesAmount, surfaceM2, addressLine, zipCode, city, address };
+      const r = await api("/api/properties", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Erreur création bien"); return; }
+
+      e.target.reset();
+      $("pCity").innerHTML = "<option value=''>— Choisir une commune —</option>";
+      $("pCityHelp").textContent = "";
+      toast("Bien ajouté ✅");
+      await loadPortfolio();
+      await Promise.all([loadInsights(), loadEvents()]);
+    }catch(e2){
+      toast("Erreur réseau (création bien)");
+    }
+  });
+
+  $("formTenant").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    const firstName = $("tFirst").value.trim();
+    const lastName = $("tLast").value.trim();
+    const email = $("tEmail").value.trim();
+    const property = $("tProperty").value;
+
+    try{
+      const r = await api("/api/tenants", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ firstName, lastName, email, property })
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ toast(j.msg || "Erreur liaison locataire"); return; }
+
+      e.target.reset();
+      toast("Locataire lié ✅");
+      await loadPortfolio();
+      await Promise.all([loadInsights(), loadEvents()]);
+    }catch(e2){
+      toast("Erreur réseau (locataire)");
+    }
+  });
+
+  // ---------- Insights modal ----------
+  $("btnInsights").addEventListener("click", ()=>{
+    const j = lastInsights;
+    const events = Array.isArray(lastEvents) ? lastEvents : [];
+
+    let html = "";
+
+    if(j){
+      const counts = j.counts || {};
+      html += `
+        <div class="ins-row">
+          <div>
+            <div class="t">Résumé</div>
+            <div class="m">Critiques: ${escapeHtml(String(counts.critical ?? counts.criticals ?? "0"))} • À surveiller: ${escapeHtml(String(counts.watch ?? counts.warning ?? "0"))} • Infos: ${escapeHtml(String(counts.info ?? "0"))}</div>
+          </div>
+          <div class="k">${escapeHtml(new Date(j.computedAt||Date.now()).toLocaleString("fr-FR"))}</div>
+        </div>
+      `;
+
+      const alerts = Array.isArray(j.alerts) ? j.alerts : [];
+      const top = Array.isArray(j.top) ? j.top : [];
+
+      const show = (arr, title)=> {
+        if(!arr.length) return `<div class="ins-row"><div><div class="t">${escapeHtml(title)}</div><div class="m">Aucun élément.</div></div><div class="k">OK</div></div>`;
+        return `
+          <div class="section-title">${escapeHtml(title)}</div>
+          ${arr.slice(0,12).map(a=>{
+            const t = a.title || a.label || a.type || "Signal";
+            const m = a.hint || a.message || a.detail || "";
+            const sev = (a.severity || a.level || "INFO").toString().toUpperCase();
+            return `<div class="ins-row"><div style="min-width:0;"><div class="t">${escapeHtml(t)}</div><div class="m">${escapeHtml(m)}</div></div><div class="k">${escapeHtml(sev)}</div></div>`;
+          }).join("")}
+        `;
+      };
+
+      html += show(top, "Top priorités");
+      html += show(alerts, "Toutes les alertes");
+    } else {
+      html += `<div class="ins-row"><div><div class="t">Insights non chargés</div><div class="m">Rafraîchis la page.</div></div><div class="k">—</div></div>`;
+    }
+
+    // Activité récente
+    if(events && events.length){
+      html += `<div class="section-title">Activité récente</div>`;
+      html += events.slice(0,12).map(fmtEvent).join("");
+    } else {
+      html += `<div class="section-title">Activité récente</div>
+               <div class="ins-row"><div><div class="t">Indisponible</div><div class="m">Endpoint events non trouvé ou vide.</div></div><div class="k">—</div></div>`;
+    }
+
+    openModal(html);
+  });
+
+  $("btnRefresh").addEventListener("click", async ()=>{
+    await Promise.all([loadPortfolio(), loadInsights(), loadEvents()]);
+    toast("Rafraîchi ✅");
+  });
+
+  // Init
+  safeIcons();
+  Promise.all([loadPortfolio(), loadInsights(), loadEvents()]).then(()=>safeIcons());
+})();
+</script>
+
+</body>
+</html>

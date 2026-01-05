@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doc2Loc — Fiche locataire</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#101a2f;
+      --muted:#94a3b8;
+      --text:#e5e7eb;
+      --border:rgba(148,163,184,.18);
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --blue:#4F46E5;
+      --green:#22c55e;
+      --red:#ef4444;
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(900px 500px at 15% 0%, rgba(79,70,229,.25), transparent 60%), var(--bg);color:var(--text)}
+    a{color:inherit}
+    .wrap{max-width:1050px;margin:0 auto;padding:22px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900}
+    .dot{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,#4F46E5,#93c5fd);box-shadow:0 18px 44px rgba(79,70,229,.28)}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:10px 12px;border-radius:999px;border:1px solid var(--border);
+      background:rgba(255,255,255,.06);color:var(--text);font-weight:800;cursor:pointer;text-decoration:none
+    }
+    .btn:hover{filter:brightness(1.05)}
+    .btn.primary{background:var(--blue);border-color:rgba(79,70,229,.45)}
+    .btn.green{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.25)}
+    .btn.red{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25)}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(16,26,47,.88);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+    .card h2{margin:0;font-size:16px}
+    .card .head{padding:14px 14px;border-bottom:1px solid rgba(148,163,184,.10);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .card .body{padding:14px}
+    .muted{color:var(--muted);font-weight:650}
+    .k{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px}
+    .v{font-weight:900}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:720px){.row{grid-template-columns:1fr}}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.04);font-weight:850;font-size:12px;color:rgba(229,231,235,.9)}
+    .toast{position:fixed;right:16px;bottom:16px;display:none;background:rgba(16,26,47,.92);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-weight:900}
+    .empty{padding:14px;border:1px dashed rgba(148,163,184,.25);border-radius:14px;background:rgba(255,255,255,.03);color:rgba(229,231,235,.85);font-weight:800}
+    input{width:100%;padding:10px 10px;border-radius:14px;border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.05);color:var(--text);font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>Doc2Loc — Fiche locataire</div>
+        <span class="pill" id="pillStatus">Chargement…</span>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn" href="/dashboard.html">← Retour Dashboard</a>
+        <a class="btn" id="btnGoProperty" href="#" style="display:none">Voir le bien</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="head">
+          <h2>Informations locataire</h2>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn green" id="btnEmail" disabled>Envoyer la quittance</button>
+            <button class="btn" id="btnPdf" disabled>Télécharger la quittance</button>
+          </div>
+        </div>
+        <div class="body">
+          <div class="row">
+            <div>
+              <div class="k">Nom complet</div>
+              <div class="v" id="t_name">—</div>
+            </div>
+            <div>
+              <div class="k">Email</div>
+              <div class="v" id="t_email">—</div>
+              <div class="muted" id="t_email_hint" style="margin-top:6px"></div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="row">
+            <div>
+              <div class="k">Bien loué</div>
+              <div class="v" id="p_name">—</div>
+              <div class="muted" id="p_addr" style="margin-top:6px"></div>
+            </div>
+            <div>
+              <div class="k">Loyer / Charges</div>
+              <div class="v" id="p_amounts">—</div>
+              <div class="muted" style="margin-top:6px">Quittance auto : prêt pour sprint futur (encaissement)</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="empty">
+            <b>Dossier locataire (à venir)</b><br/>
+            <span class="muted">Ajout au sprint scoring : pièces, cohérence, shortlist, rapport.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <div class="head">
+          <h2>Actions rapides</h2>
+        </div>
+        <div class="body" style="display:grid; gap:10px">
+          <div class="empty">
+            <b>Micro-check</b><br/>
+            <span class="muted">Si l’email est vide, le bouton “Envoyer” reste grisé.</span>
+          </div>
+
+          <div>
+            <div class="k">Changer l’email (optionnel)</div>
+            <input id="edit_email" placeholder="nom@domaine.com">
+            <div class="muted" style="margin-top:6px">On mettra l’édition complète au sprint suivant.</div>
+          </div>
+
+          <button class="btn primary" id="btnSaveEmail" disabled>Enregistrer l’email</button>
+
+          <button class="btn red" id="btnDeleteTenant" disabled>Supprimer ce locataire</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const qs = new URLSearchParams(location.search);
+  const id = qs.get('id');
+
+  const tok = localStorage.getItem('token');
+  if(!tok){ location.href='/login.html'; }
+
+  const toast = (m)=>{
+    const t=document.getElementById('toast');
+    t.textContent=m;
+    t.style.display='block';
+    setTimeout(()=>t.style.display='none',2000);
+  };
+
+  function setStatus(text){
+    document.getElementById('pillStatus').textContent = text;
+  }
+
+  async function api(path, opts={}){
+    const r = await fetch(path, {
+      ...opts,
+      headers: { ...(opts.headers||{}), 'x-auth-token': tok }
+    });
+    const j = await r.json().catch(()=>({}));
+    return { ok:r.ok, status:r.status, data:j };
+  }
+
+  function money(n){
+    const x = Number(n||0);
+    return x.toFixed(2).replace('.',',') + " €";
+  }
+
+  let tenant=null, prop=null;
+
+  async function load(){
+    if(!id){
+      setStatus("ID manquant");
+      toast("ID locataire manquant");
+      return;
+    }
+
+    setStatus("Chargement…");
+
+    // 1) Récupérer ce locataire (on prend via /api/tenants puis filtre, pour éviter de patch backend)
+    const lt = await api('/api/tenants');
+    if(!lt.ok){
+      setStatus("Erreur");
+      toast(lt.data.msg || "Erreur chargement locataires");
+      return;
+    }
+
+    tenant = (lt.data || []).find(x => x && x._id === id);
+    if(!tenant){
+      setStatus("Introuvable");
+      toast("Locataire introuvable");
+      return;
+    }
+
+    // 2) Récupérer les biens et retrouver le sien
+    const lp = await api('/api/properties');
+    prop = (lp.ok ? (lp.data||[]) : []).find(p => p && tenant.property && (p._id === (tenant.property._id || tenant.property)));
+
+    // UI
+    document.getElementById('t_name').textContent = (tenant.firstName||"") + " " + (tenant.lastName||"");
+    document.getElementById('t_email').textContent = tenant.email || "—";
+    document.getElementById('edit_email').value = tenant.email || "";
+
+    if(!tenant.email){
+      document.getElementById('t_email_hint').textContent = "Email recommandé : pour envoyer quittances et relances.";
+    }else{
+      document.getElementById('t_email_hint').textContent = "OK ✅";
+    }
+
+    if(prop){
+      document.getElementById('p_name').textContent = prop.name || "—";
+      document.getElementById('p_addr').textContent = prop.address || "";
+      const rent = money(prop.rentAmount);
+      const ch = money(prop.chargesAmount || 0);
+      document.getElementById('p_amounts').textContent = rent + " + " + ch;
+
+      const link = document.getElementById('btnGoProperty');
+      link.style.display = "inline-flex";
+      link.href = "/property.html?id=" + encodeURIComponent(prop._id);
+
+      // actions pdf/email
+      document.getElementById('btnPdf').disabled = false;
+      document.getElementById('btnPdf').onclick = ()=> window.open('/api/documents/quittance/' + prop._id, '_blank');
+
+      if(tenant.email){
+        document.getElementById('btnEmail').disabled = false;
+        document.getElementById('btnEmail').onclick = async()=>{
+          document.getElementById('btnEmail').disabled = true;
+          const r = await api('/api/documents/email/' + prop._id, { method:'POST' });
+          if(r.ok) toast("Email envoyé ✅");
+          else toast(r.data.detail || r.data.msg || "Erreur envoi email");
+          document.getElementById('btnEmail').disabled = false;
+        };
+      }
+    }else{
+      document.getElementById('p_name').textContent = "—";
+      document.getElementById('p_addr').textContent = "Ce locataire n’est pas lié à un bien.";
+      document.getElementById('p_amounts').textContent = "—";
+    }
+
+    // Save email (simple patch via PUT minimal)
+    const btnSave = document.getElementById('btnSaveEmail');
+    btnSave.disabled = false;
+    btnSave.onclick = async()=>{
+      const email = document.getElementById('edit_email').value.trim();
+      if(email && !email.includes("@")){
+        toast("Email invalide");
+        return;
+      }
+      // PATCH minimal: on réutilise POST /api/tenants? non. Donc on ajoute une route backend au sprint suivant.
+      toast("Sprint suivant : édition locataire complète");
+    };
+
+    // Delete
+    const btnDel = document.getElementById('btnDeleteTenant');
+    btnDel.disabled = false;
+    btnDel.onclick = async()=>{
+      if(!confirm("Supprimer ce locataire ?")) return;
+      const r = await api('/api/tenants/' + tenant._id, { method:'DELETE' });
+      if(r.ok){ toast("Supprimé"); location.href="/dashboard.html"; }
+      else toast(r.data.msg || "Erreur suppression");
+    };
+
+    setStatus("OK ✅");
+  }
+
+  load();
+</script>
+</body>
+</html>

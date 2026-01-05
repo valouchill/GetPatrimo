@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Doc2Loc — Détail du bien</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{--bg:#F6F7FB;--card:#fff;--border:#E5E7EB;--text:#0F172A;--muted:#64748B;--action:#4F46E5;--danger:#EF4444;--shadow:0 12px 28px rgba(15,23,42,.08);--r:18px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+    header{background:#fff;border-bottom:1px solid var(--border)}
+    .container{max-width:1100px;margin:0 auto;padding:16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:#fff;font-weight:800;cursor:pointer;text-decoration:none;color:var(--text)}
+    .btn.primary{background:var(--action);border-color:var(--action);color:#fff}
+    .btn.danger{border-color:#fecaca;color:#b91c1c}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+    h1{margin:0;font-size:22px;letter-spacing:-.02em}
+    h2{margin:0 0 10px 0;font-size:16px}
+    .muted{color:var(--muted);font-size:13px;font-weight:700}
+    .kv{display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280}
+    input,select{padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:#fff;font-weight:700;min-width:220px}
+    #toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:10px 12px;border-radius:14px;display:none;font-weight:800}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container top">
+    <div class="row">
+      <a class="btn" href="/dashboard.html"><i data-lucide="arrow-left"></i> Retour</a>
+      <span class="muted">Fiche bien</span>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnPdf"><i data-lucide="file-text"></i> PDF quittance</button>
+      <button class="btn primary" id="btnEmail"><i data-lucide="send"></i> Envoyer quittance</button>
+      <button class="btn" id="btnEdit"><i data-lucide="pencil"></i> Modifier</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="grid">
+    <div class="card">
+      <h1 id="title">Chargement…</h1>
+      <div class="muted" id="subtitle" style="margin-top:6px"></div>
+
+      <div style="margin-top:12px" class="kv">
+        <b>Adresse</b> <div id="addr">—</div>
+        <b>Loyer HC</b> <div id="rent">—</div>
+        <b>Charges</b> <div id="charges">—</div>
+        <b>Total</b> <div id="total">—</div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #eef2f7;margin:14px 0"/>
+
+      <h2>Locataire</h2>
+      <div id="tenantBox" class="muted">Chargement…</div>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter un document</h2>
+      <div class="muted" style="margin-bottom:10px">PDF/PNG/JPEG — 10 Mo max</div>
+      <div class="row">
+        <select id="docType">
+          <option value="bail">Contrat de bail</option>
+          <option value="etat_des_lieux">État des lieux</option>
+          <option value="diagnostic">Diagnostic</option>
+          <option value="dossier_locataire">Dossier locataire</option>
+          <option value="autre">Autre</option>
+        </select>
+        <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg" />
+        <button class="btn primary" id="btnUpload"><i data-lucide="upload"></i> Upload</button>
+      </div>
+      <div class="muted" style="margin-top:10px">Tout est centralisé, retrouvé en 2 secondes.</div>
+    </div>
+  </div>
+
+  
+  <div class="card" id="editCard" style="margin-top:14px; display:none">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">Modifier le bien</h2>
+      <span class="muted">Modifie l’adresse/loyer ici puis “Enregistrer”.</span>
+    </div>
+
+    <div style="margin-top:12px" class="kv" id="editKv">
+      <b>Nom</b> <input id="editName" placeholder="Nom du bien" />
+      <b>Rue</b> <input id="editAddressLine" placeholder="12 rue de …" />
+      <b>Code postal</b> <input id="editZip" placeholder="75001" maxlength="5" />
+      <b>Commune</b>
+      <select id="editCity">
+        <option value="">—</option>
+      </select>
+      <b>Loyer HC (€)</b> <input id="editRent" type="number" step="0.01" placeholder="0.00" />
+      <b>Charges (€)</b> <input id="editCharges" type="number" step="0.01" placeholder="0.00" />
+      <b>Surface (m²)</b> <input id="editSurface" type="number" step="0.1" placeholder="Optionnel" />
+    </div>
+
+    <div class="row" style="margin-top:12px; justify-content:flex-end">
+      <button class="btn" id="btnCancelEdit">Annuler</button>
+      <button class="btn primary" id="btnSaveEdit"><i data-lucide="save"></i> Enregistrer</button>
+    </div>
+  </div>
+
+<div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Documents du bien</h2>
+      <span class="muted" id="docCount"></span>
+    </div>
+
+    <div style="overflow:auto;margin-top:10px">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Nom</th>
+            <th>Taille</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="docsTbody">
+          <tr><td colspan="5" class="muted">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  safeIcons();
+const tok = localStorage.getItem("token");
+  if(!tok){ location.href="/login.html"; }
+
+  const qs = new URLSearchParams(location.search);
+  const propertyId = qs.get("id");
+  if(!propertyId){ alert("ID bien manquant"); location.href="/dashboard.html"; }
+
+  const $ = (id)=>document.getElementById(id);
+  function safeIcons(){
+    try{
+      if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
+}catch(e){
+      // no-op
+    }
+  }
+
+  // Debug visible: si un script crash, tu le vois tout de suite
+  window.addEventListener("error", (e)=>{
+    try{
+      console.error("JS error:", e && (e.error || e.message));
+      const msg = (e && e.message) ? e.message : "Erreur JS";
+      toast("Erreur JS: " + msg, false);
+    }catch(_){}
+  });
+  window.addEventListener("unhandledrejection", (e)=>{
+  try{
+    console.error("Unhandled promise:", e && e.reason);
+    const msg = (e && e.reason && e.reason.message) ? e.reason.message : String(e && e.reason ? e.reason : "Erreur async");
+    if (typeof toast === "function") toast("Erreur JS: " + msg, false);
+  }catch(_){ }
+});
+const toast = (msg, ok=true)=>{
+    const t=$("toast");
+    t.textContent=msg;
+    t.style.background = ok ? "#111827" : "#b91c1c";
+    t.style.display="block";
+    setTimeout(()=>t.style.display="none", 2200);
+  };
+
+  function fmtDate(iso){ try { return new Date(iso).toLocaleString('fr-FR'); } catch(e){ return iso||''; } }
+  function fmtBytes(n){ if(n===undefined||n===null) return ""; const u=["B","KB","MB","GB"]; let i=0,v=n; while(v>=1024 && i<u.length-1){v/=1024;i++;} return (Math.round(v*10)/10)+" "+u[i];}
+  function typeLabel(t){
+    const map={bail:"Contrat de bail",etat_des_lieux:"État des lieux",diagnostic:"Diagnostic",quittance:"Quittance",dossier_locataire:"Dossier locataire",autre:"Autre"};
+    return map[t] || t;
+  }
+  async function api(url, opts={}){
+    return fetch(url, {...opts, headers:{...(opts.headers||{}),"x-auth-token":tok}});
+  }
+
+
+  let currentProperty = null;
+
+  function guessAddressParts(p){
+    const line = String((p && (p.addressLine || "")) || "").trim();
+    const zip = String((p && (p.zipCode || "")) || "").trim();
+    const city = String((p && (p.city || "")) || "").trim();
+    if(line && zip && city) return { line, zip, city };
+
+    const a = String((p && (p.address || "")) || "").trim();
+    const m = a.match(/^(.*?),\s*(\d{5})\s+(.+)$/);
+    if(m) return { line: m[1].trim(), zip: m[2].trim(), city: m[3].trim() };
+
+    return { line: a, zip: "", city: "" };
+  }
+
+  function toggleEdit(show){
+    const card = $("editCard");
+    if(!card) return;
+    card.style.display = show ? "block" : "none";
+    if(show) card.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  function debounce(fn, wait=350){
+    let t;
+    return (...args)=>{
+      clearTimeout(t);
+      t = setTimeout(()=>fn(...args), wait);
+    };
+  }
+
+  async function refreshCityOptions(zip, selectedCity){
+    const sel = $("editCity");
+    if(!sel) return;
+    sel.innerHTML = "<option value=''>—</option>";
+
+    if(!/^\d{5}$/.test(zip||"")) return;
+
+    try{
+      const url = "https://geo.api.gouv.fr/communes?codePostal=" + encodeURIComponent(zip) + "&fields=nom&format=json&geometry=centre";
+      const r = await fetch(url);
+      const arr = await r.json().catch(()=>[]);
+      const names = (Array.isArray(arr) ? arr : []).map(x=>x.nom).filter(Boolean);
+
+      for(const n of names){
+        const opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = n;
+        sel.appendChild(opt);
+      }
+      if(selectedCity) sel.value = selectedCity;
+    } catch(e){
+      console.warn("refreshCityOptions error", e);
+    }
+  }
+
+  function fillEditForm(p){
+    if(!$("editName")) return;
+    currentProperty = p || currentProperty;
+
+    const parts = guessAddressParts(p||{});
+    $("editName").value = (p?.name || "");
+    $("editAddressLine").value = parts.line || "";
+    $("editZip").value = parts.zip || "";
+    $("editRent").value = (p?.rentAmount ?? "");
+    $("editCharges").value = (p?.chargesAmount ?? 0);
+    $("editSurface").value = (p?.surfaceM2 ?? "");
+
+    refreshCityOptions(parts.zip || "", parts.city || "");
+  }
+
+  async function saveEdit(){
+    const name = $("editName")?.value.trim();
+    const addressLine = $("editAddressLine")?.value.trim();
+    const zipCode = $("editZip")?.value.trim();
+    const city = $("editCity")?.value || "";
+    const rentAmount = $("editRent")?.value;
+    const chargesAmount = $("editCharges")?.value;
+    const surfaceM2 = $("editSurface")?.value;
+
+    if(!name){ toast("Nom requis", false); return; }
+    if(!addressLine){ toast("Rue requise", false); return; }
+    if(!/^\d{5}$/.test(zipCode)){ toast("Code postal invalide", false); return; }
+    if(!city){ toast("Choisis une commune", false); return; }
+    const rent = Number(rentAmount);
+    if(!Number.isFinite(rent) || rent<=0){ toast("Loyer invalide", false); return; }
+
+    const payload = { name, addressLine, zipCode, city, rentAmount: rent, chargesAmount, surfaceM2 };
+    const r = await api("/api/properties/"+propertyId, {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.msg||"Sauvegarde impossible", false); return; }
+
+    toast("Bien mis à jour ✅");
+    toggleEdit(false);
+    await loadProperty();
+  }
+
+
+  async function loadProperty(){
+    const r = await api("/api/properties/"+propertyId);
+    if(!r.ok){ toast("Impossible de charger le bien", false); return; }
+    const p = await r.json();
+    currentProperty = p;
+    try{ fillEditForm(p); }catch(e){}
+    $("title").textContent = p.name || "Bien";
+    $("subtitle").textContent = p._id ? ("ID: "+p._id) : "";
+    const fullAddr = (p.addressLine || p.address || '').trim() + ((p.zipCode && p.city) ? (', ' + p.zipCode + ' ' + p.city) : '');
+    $("addr").textContent = fullAddr || "—";
+    const rent = (p.rentAmount!==undefined ? Number(p.rentAmount) : null);
+    const charges = (p.chargesAmount!==undefined ? Number(p.chargesAmount) : 0);
+    $("rent").textContent = (rent!==null && !Number.isNaN(rent)) ? (rent + " €") : "—";
+    $("charges").textContent = (!Number.isNaN(charges)) ? (charges + " €") : "—";
+    const total = (rent!==null && !Number.isNaN(rent) && !Number.isNaN(charges)) ? (rent + charges) : null;
+    $("total").textContent = (total!==null) ? (total + " €") : "—";
+  }
+
+  async function loadTenant(){
+  const r = await api("/api/tenants/by-property/"+propertyId);
+
+  if(r.status===404){
+    $("tenantBox").innerHTML = `
+      <div class="muted">Aucun locataire lié à ce bien.</div>
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn" href="/dashboard.html">Assigner un locataire</a>
+      </div>`;
+    return;
+  }
+
+  if(!r.ok){
+    const j = await r.json().catch(()=>({}));
+    $("tenantBox").innerHTML = `<span class='muted'>${(j.msg||"Erreur chargement locataire")}</span>`;
+    return;
+  }
+
+  const t = await r.json();
+  $("tenantBox").innerHTML = `
+    <div><b>${t.firstName||""} ${t.lastName||""}</b></div>
+    <div class="muted">${t.email||"Email non renseigné"}</div>
+    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">
+      <a class="btn primary" href="/tenant.html?id=${t._id}">Ouvrir fiche locataire</a>
+    </div>`;
+}
+
+  async function loadDocs(){
+    const r = await api("/api/property-documents/"+propertyId);
+    if(!r.ok){ $("docsTbody").innerHTML="<tr><td colspan='5' class='muted'>Erreur chargement documents</td></tr>"; return; }
+    const docs = await r.json();
+    $("docCount").textContent = docs.length + " document(s)";
+
+    if(docs.length===0){
+      $("docsTbody").innerHTML="<tr><td colspan='5' class='muted'>Aucun document pour l’instant. Ajoute ton bail, état des lieux, diagnostics…</td></tr>";
+      return;
+    }
+
+    $("docsTbody").innerHTML = docs.map(d=>`
+      <tr>
+        <td>${fmtDate(d.createdAt)}</td>
+        <td>${typeLabel(d.type)}</td>
+        <td><b>${(d.originalName||d.filename||"")}</b></td>
+        <td class="muted">${fmtBytes(d.size||0)}</td>
+        <td>
+          <button class="btn" onclick="downloadDoc('${d._id}')"><i data-lucide="download"></i> Télécharger</button>
+          <button class="btn danger" onclick="deleteDoc('${d._id}')"><i data-lucide="trash-2"></i> Supprimer</button>
+        </td>
+      </tr>
+    `).join("");
+    safeIcons();
+}
+
+  async function downloadDoc(id){
+    const r = await api("/api/property-documents/file/"+id);
+    if(!r.ok){ const j=await r.json().catch(()=>({})); toast(j.msg||"Download impossible", false); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "document-"+id;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function deleteDoc(id){
+    if(!confirm("Supprimer ce document ?")) return;
+    const r = await api("/api/property-documents/"+id, {method:"DELETE"});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.msg||"Erreur suppression", false); return; }
+    toast("Document supprimé ✅");
+    loadDocs();
+  }
+
+  $("btnUpload").addEventListener("click", async ()=>{
+    const f = $("file").files[0];
+    if(!f){ toast("Choisis un fichier", false); return; }
+
+    const fd = new FormData();
+    fd.append("file", f);
+    fd.append("type", $("docType").value);
+
+    const r = await fetch("/api/property-documents/upload/"+propertyId, {
+      method:"POST",
+      headers:{ "x-auth-token": tok },
+      body: fd
+    });
+
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.msg || "Upload impossible", false); return; }
+
+    toast("Upload OK ✅");
+    $("file").value = "";
+    loadDocs();
+  });
+
+  $("btnPdf").addEventListener("click", async ()=>{
+  const btn = $("btnPdf");
+  const prev = btn.innerHTML;
+  btn.disabled = true;
+  try{
+    const r = await api("/api/documents/quittance/"+propertyId);
+    if(!r.ok){
+      const j = await r.json().catch(()=>({}));
+      toast(j.msg||"PDF impossible", false);
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = prev;
+  }
+});
+
+  $("btnEmail").addEventListener("click", async ()=>{
+  const btn = $("btnEmail");
+  const prev = btn.innerHTML;
+  btn.disabled = true;
+  try{
+    const r = await api("/api/documents/email/"+propertyId, {method:"POST"});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.msg||"Email impossible", false); return; }
+    toast(j.msg||"Email envoyé ✅");
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = prev;
+  }
+});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.msg||"Email impossible", false); return; }
+    toast(j.msg||"Email envoyé ✅");
+  });
+
+
+  $("btnEdit")?.addEventListener("click", ()=>toggleEdit(true));
+  $("btnCancelEdit")?.addEventListener("click", ()=>toggleEdit(false));
+  $("btnSaveEdit")?.addEventListener("click", saveEdit);
+
+  const zipInput = $("editZip");
+  if(zipInput){
+    zipInput.addEventListener("input", debounce(()=>refreshCityOptions(zipInput.value.trim(), $("editCity")?.value), 350));
+  }
+
+
+  (async()=>{ await loadProperty(); await loadTenant(); await loadDocs(); })();
+</script>
+</body>
+</html>

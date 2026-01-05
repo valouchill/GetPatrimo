@@ -1,0 +1,534 @@
+/* Doc2Loc Elite — Harmonize (v1)
+   Chargé APRES les styles inline pour écraser les incohérences legacy sans casser la structure.
+*/
+
+:root{
+  /* force la palette claire + alias */
+  --bg:#F8FAFC !important;
+  --card:#FFFFFF !important;
+  --text: #0F172A !important;
+  --muted:#475569 !important;
+  --border:#E2E8F0 !important;
+  --shadow:0 4px 6px -1px rgba(0,0,0,.05),0 2px 4px -1px rgba(0,0,0,.03) !important;
+
+  --text-dark:#0F172A !important;
+  --text-gray:#475569 !important;
+  --primary:#4F46E5 !important;
+  --primary-hover:#4338CA !important;
+  --primary-light:rgba(79,70,229,.10) !important;
+}
+
+/* pages dark -> repasse en clair */
+body{
+  background:var(--bg) !important;
+  color:var(--text) !important;
+}
+
+/* titres / hiérarchie */
+h1,h2,h3{ letter-spacing:-0.02em; }
+h1{ font-weight:900; }
+h2,h3{ font-weight:800; }
+
+/* cartes : mêmes arrondis + ombres soft */
+.glass-card, .card-premium, .stat-card{
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  box-shadow:var(--shadow) !important;
+}
+
+/* badges / pills */
+.ai-badge{
+  background: rgba(79,70,229,.10) !important;
+  color: #3730A3 !important;
+  border:1px solid rgba(79,70,229,.18) !important;
+}
+
+/* tables: évite “écrasement” mobile */
+.table-wrap, .table-responsive{
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+  border-radius:16px;
+}
+
+/* responsive grids (générique) */
+@media (max-width:1024px){
+  .stats-grid{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .content-grid{ grid-template-columns: 1fr !important; }
+}
+@media (max-width:768px){
+  .stats-grid{ grid-template-columns: 1fr !important; }
+  .content-grid{ grid-template-columns: 1fr !important; }
+  table{ min-width: 720px; }
+}
+
+/* DOC2LOC_RESPONSIVE_TYPE_V1_START */
+/* Responsive: Typo + cartes (global) */
+:root{
+  --fs-body: clamp(14px, 0.35vw + 13px, 16px);
+  --fs-h1: clamp(20px, 2.2vw + 10px, 34px);
+  --fs-h2: clamp(18px, 1.4vw + 10px, 24px);
+  --fs-h3: clamp(16px, 1.1vw + 9px, 20px);
+
+  --fs-stat: clamp(20px, 1.8vw + 10px, 30px);
+  --pad-card: clamp(14px, 1.2vw + 10px, 22px);
+  --pad-card-lg: clamp(16px, 1.6vw + 10px, 30px);
+  --radius-card: clamp(16px, 2vw + 10px, 24px);
+}
+
+body{ font-size: var(--fs-body) !important; }
+h1{ font-size: var(--fs-h1) !important; }
+h2{ font-size: var(--fs-h2) !important; }
+h3{ font-size: var(--fs-h3) !important; }
+
+/* Titres usuels des pages (dashboard/property/tenant) */
+.section-title{ font-size: var(--fs-h2) !important; }
+.stat-value{ font-size: var(--fs-stat) !important; }
+
+/* Densité cartes (global) */
+.glass-card, .card-premium, .stat-card{
+  border-radius: var(--radius-card) !important;
+}
+.stat-card{ padding: var(--pad-card) !important; }
+.glass-card, .card-premium{ padding: var(--pad-card-lg) !important; }
+
+/* List items / rows (ex: bien / locataire) */
+.property-item, .tenant-item, .list-item{
+  padding: var(--pad-card) !important;
+  border-radius: clamp(14px, 2vw, 18px) !important;
+}
+
+/* Sur mobile: on évite le “trop d’air” */
+@media (max-width: 768px){
+  main{ padding: clamp(12px, 3.2vw, 18px) !important; }
+  .btn, .btn-indigo, .btn-primary, .btn-secondary{ width: 100%; justify-content:center; }
+  .actions{ flex-wrap: wrap !important; }
+}
+
+/* Respecte les utilisateurs sensibles aux animations */
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; animation: none !important; }
+}
+/* /Responsive: Typo + cartes (global) */
+/* DOC2LOC_RESPONSIVE_TYPE_V1_END */
+
+/* DOC2LOC_FULLWIDTH_V1_START */
+/* Force full-width (anti héritage sidebar/desktop) */
+html, body{ width:100% !important; overflow-x:hidden !important; }
+main{ width:100% !important; max-width:100% !important; margin:0 !important; }
+nav.topnav{ width:100% !important; max-width:100% !important; margin:0 !important; }
+/* wrappers fréquents */
+.container, .wrapper, .app, .page, .layout, .content, .dashboard, .main, .root{
+  max-width:100% !important;
+  width:100% !important;
+  margin:0 !important;
+}
+/* DOC2LOC_FULLWIDTH_V1_END */
+
+/* DOC2LOC_DASH_SPACING_V1_START */
+/* Dashboard spacing premium */
+body.page-dashboard h1{ margin: 6px 0 14px !important; }
+body.page-dashboard main{ padding: 14px 12px !important; }
+body.page-dashboard .stats-grid{ gap: 12px !important; margin-bottom: 14px !important; }
+body.page-dashboard .stat-card{ padding: 12px 14px !important; }
+body.page-dashboard .glass-card,
+body.page-dashboard .card-premium{ padding: 14px 14px !important; }
+
+body.page-dashboard .glass-card + .glass-card,
+body.page-dashboard .card-premium + .card-premium{ margin-top: 12px !important; }
+
+body.page-dashboard .section-title{ margin: 16px 0 10px !important; }
+
+/* Portefeuille : actions compactes et alignées */
+body.page-dashboard .property-item,
+body.page-dashboard .tenant-item{
+  padding: 12px 12px !important;
+}
+body.page-dashboard .btn-icon{
+  width: 38px !important; height: 38px !important;
+  border-radius: 12px !important;
+}
+body.page-dashboard .btn-icon i{
+  width: 18px !important; height: 18px !important;
+}
+
+@media (min-width: 769px){
+  body.page-dashboard main{ padding: 26px 26px !important; }
+  body.page-dashboard .stats-grid{ gap: 16px !important; margin-bottom: 18px !important; }
+}
+/* DOC2LOC_DASH_SPACING_V1_END */
+
+/* DOC2LOC_DASH_SPACING_V2_START */
+/* Dashboard: rythme vertical premium + alignements */
+body.page-dashboard h1{ margin: 8px 0 14px !important; }
+body.page-dashboard .stats-grid{ gap: 12px !important; margin: 10px 0 16px !important; }
+body.page-dashboard .stat-card{ padding: 12px 14px !important; }
+body.page-dashboard .glass-card, body.page-dashboard .card-premium{ padding: 14px 14px !important; }
+body.page-dashboard .glass-card + .glass-card,
+body.page-dashboard .card-premium + .card-premium{ margin-top: 12px !important; }
+/* Portefeuille rows: actions compactes */
+body.page-dashboard .btn-icon{ width:38px !important; height:38px !important; border-radius:12px !important; }
+@media (min-width: 769px){
+  body.page-dashboard .stats-grid{ gap: 16px !important; margin: 14px 0 18px !important; }
+  body.page-dashboard .stat-card{ padding: 16px 18px !important; }
+  body.page-dashboard .glass-card, body.page-dashboard .card-premium{ padding: 18px 18px !important; }
+}
+/* DOC2LOC_DASH_SPACING_V2_END */
+
+/* DOC2LOC_POPOVER_V1_START */
+/* Popover actions (mobile portefeuille) */
+.d2l-popover{
+  position:absolute;
+  right:0;
+  top:46px;
+  min-width: 160px;
+  background: var(--white);
+  border:1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(15,23,42,.12);
+  padding: 8px;
+  display:none;
+  z-index: 1200;
+}
+.d2l-popover .btn-icon{ width:42px; height:42px; }
+.d2l-popover a, .d2l-popover button{ width:100%; justify-content:flex-start; }
+.d2l-popover > *{ margin: 6px 0; }
+
+@media (max-width:768px){
+  /* Rythme + alignements portefeuille */
+  .property-item, .tenant-item{
+    gap: 10px !important;
+  }
+}
+/* DOC2LOC_POPOVER_V1_END */
+
+/* DOC2LOC_MOBILE_FIX_V5_START */
+/* Mobile Fix V5: menu burger + grids/forms responsive */
+@media (max-width:768px){
+  nav.topnav{ position:sticky !important; top:0 !important; }
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; } /* safe */
+
+  nav.topnav{ position:sticky !important; } /* safe */
+  nav.topnav{ position:sticky !important; } /* safe */
+
+  nav.topnav{ position:sticky !important; } /* ok */
+  nav.topnav{ position:sticky !important; } /* ok */
+
+  nav.topnav{ position:sticky !important; } /* ok */
+
+  nav.topnav{ position:sticky !important; } /* ok */
+
+  nav.topnav{ position:sticky !important; } /* ok */
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; }
+  nav.topnav{ position:sticky !important; }
+
+  nav.topnav{ position:sticky !important; } /* done */
+
+  /* Z-INDEX: menu au-dessus de l’overlay */
+  nav.topnav{ z-index:999 !important; }
+  #navOverlay.nav-overlay{ z-index:998 !important; }
+  nav.topnav #navMenu{ z-index:1001 !important; }
+
+  /* Verrou: menu caché par défaut, visible uniquement quand open */
+  nav.topnav #navMenu{
+    display:none !important;
+    position:absolute !important;
+    left:0 !important; right:0 !important;
+    top:100% !important;
+    background: var(--white) !important;
+    border-bottom:1px solid var(--border) !important;
+    padding:10px 10px 12px !important;
+    border-radius: 0 0 18px 18px !important;
+  }
+  nav.topnav.open #navMenu{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:6px !important;
+  }
+
+  /* Forms / grids inline -> 1 colonne */
+  .glass-card [style*="grid-template-columns"],
+  .card-premium [style*="grid-template-columns"]{
+    grid-template-columns: 1fr !important;
+  }
+  /* Cas fréquent: 1fr 1fr écrit avec espaces ou non */
+  .glass-card [style*="1fr 1fr"],
+  .glass-card [style*="1fr  1fr"],
+  .glass-card [style*="1fr, 1fr"]{
+    grid-template-columns: 1fr !important;
+  }
+
+  /* content-grid -> 1 colonne (si présent) */
+  .content-grid{ grid-template-columns: 1fr !important; }
+
+  /* gap trop grand sur mobile */
+  [style*="gap: 32px"], [style*="gap:32px"]{ gap: 16px !important; }
+}
+/* DOC2LOC_MOBILE_FIX_V5_END */
+
+/* DOC2LOC_PORTFOLIO_MOBILE_PREMIUM_CSS_V1_START */
+/* Premium mobile (dashboard): portefeuille + actions (GRID FIX hors-cadre) */
+@media (max-width:768px){
+  body.page-dashboard #lP,
+  body.page-dashboard .content-grid,
+  body.page-dashboard .glass-card{
+    max-width:100% !important;
+    overflow-x:hidden !important;
+  }
+
+  /* Chaque item = mini card */
+  body.page-dashboard .property-item,
+  body.page-dashboard .tenant-item{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 12px 12px !important;
+    margin: 0 0 12px 0 !important;
+
+    overflow:hidden !important; /* stop débordements */
+    box-sizing:border-box !important;
+  }
+
+  body.page-dashboard .prop-name{ font-size:16px !important; }
+  body.page-dashboard .prop-addr{ font-size:12px !important; }
+
+  /* Actions -> GRID (fiable) */
+  body.page-dashboard .property-item .actions,
+  body.page-dashboard .tenant-item .actions{
+    width:100% !important;
+    max-width:100% !important;
+    margin-top: 10px !important;
+
+    display:grid !important;
+    grid-template-columns: 1fr auto auto !important;
+    gap: 8px !important;
+    align-items:center !important;
+
+    position:relative !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Bouton principal: ligne 1 full width */
+  body.page-dashboard .d2l-primary-action{
+    grid-column: 1 / -1 !important;
+    width:100% !important;
+    max-width:100% !important;
+
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+
+    padding: 11px 14px !important;
+    border-radius: 16px !important;
+    font-weight: 900 !important;
+    min-height: 42px !important;
+
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+  body.page-dashboard .d2l-primary-action span{
+    display:inline-block !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    min-width:0 !important;
+  }
+  body.page-dashboard .d2l-primary-action i{ width:18px; height:18px; flex:0 0 auto; }
+
+  /* Ligne 2: détails + kebab alignés à droite */
+  body.page-dashboard .property-item .actions .btn-icon{ 
+    grid-column: 2 !important;
+    justify-self:end !important;
+    width:38px !important; height:38px !important;
+    border-radius:12px !important;
+  }
+  body.page-dashboard .property-item .actions .d2l-kebab{
+    grid-column: 3 !important;
+    justify-self:end !important;
+    width:38px !important; height:38px !important;
+    border-radius:12px !important;
+  }
+
+  /* Sheet (⋯) */
+  body.page-dashboard .d2l-sheet{
+    position:absolute !important;
+    right:0 !important;
+    top:46px !important;
+    min-width: 210px !important;
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 14px 30px rgba(15,23,42,.14) !important;
+    padding: 10px !important;
+    display:none !important;
+    z-index: 1500 !important;
+  }
+  body.page-dashboard .d2l-sheet.open{ display:block !important; }
+
+  body.page-dashboard .d2l-sheet-btn{
+    width:100% !important;
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    padding:10px 12px !important;
+    border-radius:14px !important;
+    border:1px solid var(--border) !important;
+    background: var(--bg) !important;
+    font-weight:900 !important;
+    cursor:pointer !important;
+  }
+  body.page-dashboard .d2l-sheet-btn.danger{
+    color: var(--danger) !important;
+    background: rgba(244,63,94,.06) !important;
+    border-color: rgba(244,63,94,.18) !important;
+  }
+}
+/* DOC2LOC_PORTFOLIO_MOBILE_PREMIUM_CSS_V1_END */
+
+/* DOC2LOC_MOBILE_OVERFLOW_CSS_V1_START */
+/* Mobile Overflow Safety Net (Dashboard) */
+@media (max-width:768px){
+  /* Sur mobile, 90% des "hors cadre" viennent du min-width:auto en flex */
+  body.page-dashboard .glass-card *,
+  body.page-dashboard .card-premium *,
+  body.page-dashboard .stat-card * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  body.page-dashboard .glass-card,
+  body.page-dashboard .card-premium,
+  body.page-dashboard .stat-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* Liens/CTA (ex "Voir tout") */
+  body.page-dashboard .d2l-insights-cta{
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+  }
+
+  /* Quand on est sur une ligne serrée, on autorise le wrap global */
+  body.page-dashboard .glass-card [style*="display:flex"],
+  body.page-dashboard .card-premium [style*="display:flex"]{
+    flex-wrap: wrap !important;
+  }
+
+  /* Bonus: évite les paddings qui poussent hors cadre */
+  body.page-dashboard main{ overflow-x:hidden !important; }
+}
+/* DOC2LOC_MOBILE_OVERFLOW_CSS_V1_END */
+
+/* DOC2LOC_MOBILE_FRAME_FIX_V1_START */
+/* Mobile: empêcher les contenus internes de sortir du cadre */
+@media (max-width:768px){
+  body.page-dashboard main{ overflow-x:hidden !important; }
+  body.page-dashboard .glass-card,
+  body.page-dashboard .card-premium,
+  body.page-dashboard .stat-card{
+    width:100% !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Le vrai fix: les enfants flex doivent pouvoir shrink */
+  body.page-dashboard .glass-card * ,
+  body.page-dashboard .card-premium * ,
+  body.page-dashboard .stat-card * {
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Insights: cadre + padding cohérent */
+  body.page-dashboard .d2l-insights-card{
+    width:100% !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+  }
+
+  /* CTA header "Voir tout" */
+  body.page-dashboard .d2l-insights-header-cta{
+    margin-left:auto !important;
+    border:none !important;
+    background:transparent !important;
+    color: var(--primary) !important;
+    font-weight:900 !important;
+    padding: 6px 8px !important;
+    border-radius: 12px !important;
+    cursor:pointer !important;
+    white-space:nowrap !important;
+  }
+  body.page-dashboard .d2l-insights-header-cta:hover{
+    background: rgba(79,70,229,.08) !important;
+  }
+
+  /* Chips compactes (micro-sprint suivant inclus) */
+  body.page-dashboard .d2l-chip{
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:8px !important;
+    padding: 6px 10px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    max-width: 100% !important;
+    white-space:nowrap !important;
+  }
+
+  /* Portfolio: empêche n'importe quel bouton/cta de dépasser */
+  body.page-dashboard .property-item,
+  body.page-dashboard .tenant-item{
+    width:100% !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+  }
+  body.page-dashboard .property-item button,
+  body.page-dashboard .property-item a{
+    max-width:100% !important;
+  }
+}
+/* DOC2LOC_MOBILE_FRAME_FIX_V1_END */

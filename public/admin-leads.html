@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Doc2Loc — Admin Leads</title>
+  
+    <link rel='stylesheet' href='/ui.css?v=10'>
+<style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#f6f7fb;color:#111}
+    header{padding:14px 18px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;min-width:320px}
+    button,a.btn{padding:10px 12px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-weight:700;text-decoration:none;color:#111}
+    button.primary{background:#4F46E5;color:#fff;border-color:#4F46E5}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280}
+    .muted{color:#6b7280;font-size:13px}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:800;font-size:12px}
+    .err{color:#b91c1c;font-weight:700}
+    .ok{color:#047857;font-weight:700}
+  </style>
+
+  <link rel="stylesheet" href="/elite.css"/>
+    <script defer src='/ui.js?v=10'></script>
+    <link rel='stylesheet' href='/harmonize.css?v=6'>
+</head>
+<body>
+<header>
+  <div><b>Doc2Loc</b> <span class="pill">Admin Leads</span></div>
+  <div class="muted">Accès protégé par token + ADMIN_EMAILS</div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div style="flex:1;min-width:280px">
+        <div class="muted">Token (JWT)</div>
+        <input id="token" placeholder="Colle ton token ici (ou il est auto via localStorage.token)" />
+        <div class="muted" style="margin-top:6px">Astuce : si tu es connecté, on tente <code>localStorage.getItem("token")</code> automatiquement.</div>
+      </div>
+      <div>
+        <div class="muted">Actions</div>
+        <button class="primary" id="loadBtn">Charger</button>
+        <a class="btn" id="csvBtn" href="#" target="_blank" rel="noopener">Exporter CSV</a>
+      </div>
+    </div>
+    <div id="status" class="muted" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><b>Leads</b> <span id="count" class="muted"></span></div>
+      <div class="muted">Affichage : 200 derniers</div>
+    </div>
+    <div style="overflow:auto;margin-top:10px">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Email</th>
+            <th>Source</th>
+            <th>UTM</th>
+            <th>IP</th>
+            <th>User-Agent</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="muted">Clique “Charger”.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const tokenInput = $('token');
+  const statusEl = $('status');
+  const tbody = $('tbody');
+  const countEl = $('count');
+  const csvBtn = $('csvBtn');
+
+  function setStatus(msg, ok=true){
+    statusEl.className = ok ? 'ok' : 'err';
+    statusEl.textContent = msg;
+  }
+
+  function getToken(){
+    const t = tokenInput.value.trim();
+    if (t) return t;
+    try {
+      const ls = localStorage.getItem("token");
+      if (ls) return ls;
+    } catch(e){}
+    return "";
+  }
+
+  function fmtDate(iso){
+    if(!iso) return '';
+    try { return new Date(iso).toLocaleString('fr-FR'); } catch(e){ return iso; }
+  }
+
+  function safe(v){
+    if (v === null || v === undefined) return '';
+    return String(v);
+  }
+
+  async function loadLeads(){
+    const t = getToken();
+    if(!t){
+      setStatus("Token manquant. Colle-le dans le champ.", false);
+      return;
+    }
+
+    setStatus("Chargement…");
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Chargement…</td></tr>';
+
+    // prépare lien CSV
+    csvBtn.href = '/api/admin/leads.csv?limit=5000';
+
+    try{
+      const r = await fetch('/api/admin/leads?limit=200', {
+        headers: { 'x-auth-token': t }
+      });
+      if(!r.ok){
+        const txt = await r.text();
+        setStatus("Erreur API: " + r.status + " " + txt, false);
+        tbody.innerHTML = '<tr><td colspan="6" class="err">Accès refusé ou erreur.</td></tr>';
+        return;
+      }
+      const data = await r.json();
+      const items = data.items || [];
+      countEl.textContent = `(${items.length} affichés / total ${data.total || '?'})`;
+
+      if(items.length === 0){
+        tbody.innerHTML = '<tr><td colspan="6" class="muted">Aucun lead.</td></tr>';
+        setStatus("OK — aucun lead pour l’instant.");
+        return;
+      }
+
+      tbody.innerHTML = items.map(x => {
+        const utm = x.utm ? (typeof x.utm === 'string' ? x.utm : JSON.stringify(x.utm)) : '';
+        return `
+          <tr>
+            <td>${fmtDate(x.createdAt)}</td>
+            <td><b>${safe(x.email)}</b></td>
+            <td>${safe(x.source)}</td>
+            <td class="muted">${safe(utm)}</td>
+            <td class="muted">${safe(x.ip)}</td>
+            <td class="muted">${safe(x.userAgent)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      setStatus("OK — leads chargés.");
+    }catch(e){
+      setStatus("Erreur réseau: " + e.message, false);
+      tbody.innerHTML = '<tr><td colspan="6" class="err">Erreur réseau.</td></tr>';
+    }
+  }
+
+  // auto-prefill
+  try {
+    const ls = localStorage.getItem("token");
+    if(ls) tokenInput.value = ls;
+  } catch(e){}
+
+  $('loadBtn').addEventListener('click', loadLeads);
+
+  // Export CSV : ouvre la route, le token sera demandé par API.
+  // On ne peut pas ajouter le header x-auth-token via <a>.
+  // Donc on fait un fetch et on télécharge.
+  csvBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const t = getToken();
+    if(!t){
+      setStatus("Token manquant. Colle-le dans le champ.", false);
+      return;
+    }
+    setStatus("Export CSV…");
+    try{
+      const r = await fetch('/api/admin/leads.csv?limit=20000', { headers: { 'x-auth-token': t } });
+      if(!r.ok){
+        const txt = await r.text();
+        setStatus("Erreur export: " + r.status + " " + txt, false);
+        return;
+      }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'doc2loc-leads.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus("OK — export téléchargé.");
+    }catch(e){
+      setStatus("Erreur export: " + e.message, false);
+    }
+  });
+</script>
+</body>
+</html>

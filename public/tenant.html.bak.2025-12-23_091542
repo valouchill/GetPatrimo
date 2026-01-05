@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doc2Loc — Fiche locataire</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2f; --muted:#94a3b8; --text:#e5e7eb;
+      --border:rgba(148,163,184,.18); --shadow:0 18px 50px rgba(0,0,0,.35);
+      --blue:#4F46E5; --green:#22c55e; --red:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(900px 600px at 20% -10%,rgba(79,70,229,.35),transparent 55%),
+                    radial-gradient(900px 700px at 120% 10%,rgba(34,197,94,.18),transparent 55%),var(--bg);
+         color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .title{display:flex;align-items:center;gap:12px}
+    h1{margin:0;font-size:20px;letter-spacing:.2px}
+    .pill{font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,rgba(16,26,47,.92),rgba(16,26,47,.80));
+          border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    h2{margin:0;font-size:15px;color:#fff}
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:600px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 0}
+    input,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+                 background:#0b1326;color:var(--text);outline:none}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:12px;
+         border:1px solid var(--border);background:#0b1326;color:var(--text);cursor:pointer;text-decoration:none}
+    .btn.primary{background:var(--blue);border-color:var(--blue)}
+    .btn.green{background:var(--green);border-color:var(--green);color:#06210f}
+    .btn.red{background:transparent;border-color:rgba(239,68,68,.45);color:#fecaca}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    .hr{height:1px;background:var(--border);margin:14px 0}
+    .kv{display:flex;flex-direction:column;gap:3px}
+    .kv b{font-size:14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:600;text-align:left}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;border:1px solid var(--border);
+           padding:10px 12px;border-radius:12px;display:none;max-width:320px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">
+        <h1>Fiche locataire</h1>
+        <span id="pillStatus" class="pill">Chargement…</span>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/dashboard.html">← Dashboard</a>
+        <a class="btn" id="btnGoProperty" href="#" style="display:none">Voir le bien</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="head">
+          <h2>Identité & rattachement</h2>
+          <div class="actions">
+            <button class="btn green" id="btnEmail" disabled>Envoyer quittance</button>
+            <button class="btn" id="btnPdf" disabled>Ouvrir PDF</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Prénom</label>
+            <input id="edit_firstName" placeholder="Ex: Sarah">
+          </div>
+          <div>
+            <label>Nom</label>
+            <input id="edit_lastName" placeholder="Ex: Martin">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Email</label>
+            <input id="edit_email" placeholder="sarah@email.com">
+          </div>
+          <div>
+            <label>Bien associé</label>
+            <select id="edit_property"></select>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:12px">
+          <button class="btn primary" id="btnSave">Enregistrer</button>
+          <button class="btn red" id="btnDeleteTenant">Supprimer</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="kv">
+          <div class="muted">Résumé</div>
+          <b id="t_name">—</b>
+          <div class="muted" id="t_email">—</div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <div class="head">
+          <h2>Bien & dossier locataire</h2>
+          <div class="muted" id="docCount">—</div>
+        </div>
+
+        <div class="kv" style="margin-bottom:10px">
+          <di
+
+

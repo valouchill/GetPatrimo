@@ -1,0 +1,987 @@
+/**
+ * Doc2Loc - server.js (version stable)
+ * - Auth JWT
+ * - CRUD Properties / Tenants
+ * - Génération PDF + Email (Brevo SMTP via env)
+ * - Admin Leads (JSON + CSV)
+ * - Documents par Bien (upload/list/download/delete)
+ */
+
+try { require('dotenv').config(); } catch (e) {}
+
+const express = require('express');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const PDFDocument = require('pdfkit');
+const nodemailer = require('nodemailer');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const User = require('./models/User');
+const Property = require('./models/Property');
+const Tenant = require('./models/Tenant');
+const Document = require('./models/Document');
+const Lead = require('./models/Lead');
+const Event = require('./models/Event');
+
+const app = express();
+app.use(express.json());
+app.use(express.static('public'));
+
+// --- Event logging (Historique) ---
+async function logEvent(userId, { property = null, tenant = null, type, meta = {} }) {
+  try {
+    await Event.create({ user: userId, property, tenant, type, meta });
+  } catch (e) {
+    // ne bloque jamais le flow produit
+    console.error("logEvent error:", e && e.message);
+  }
+}
+
+
+
+// --- CONFIG ---
+const JWT_SECRET = process.env.JWT_SECRET || 'mon_secret_tres_securise_12345';
+const mongoURI = process.env.MONGO_URI;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+const GEO_VALIDATION = process.env.GEO_VALIDATION !== '0'; // mets GEO_VALIDATION=0 pour désactiver si besoin
+
+async function validateFrenchCommune(zipCode, city) {
+  // Validation via API officielle : https://geo.api.gouv.fr
+  // Retourne true/false. Si l’API est KO, on renvoie false (strict).
+  const z = String(zipCode || '').trim();
+  const c = String(city || '').trim();
+  if (!/^\d{5}$/.test(z)) return false;
+  if (!c) return false;
+
+  const url =
+    "https://geo.api.gouv.fr/communes?nom=" +
+    encodeURIComponent(c) +
+    "&codePostal=" +
+    encodeURIComponent(z) +
+    "&fields=nom,codesPostaux&limit=5";
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 3500);
+
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "accept": "application/json" } });
+    if (!r.ok) return false;
+    const arr = await r.json();
+    return Array.isArray(arr) && arr.length > 0;
+  } catch (e) {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+
+if (!mongoURI) {
+  console.error("❌ MONGO_URI manquant (dans /opt/doc2loc/.env injecté via --env-file)");
+  process.exit(1);
+}
+
+// --- Upload dirs (persistés via volume Docker /app/uploads) ---
+const uploadsDir = path.join(__dirname, 'uploads');
+const propertyDocUploadDir = path.join(uploadsDir, 'property-documents');
+const candidatsUploadDir = path.join(uploadsDir, 'candidats');
+
+fs.mkdirSync(propertyDocUploadDir, { recursive: true });
+fs.mkdirSync(candidatsUploadDir, { recursive: true });
+
+// --- Mongo ---
+mongoose
+  .connect(mongoURI)
+  .then(() => console.log('✅ MongoDB Connecté'))
+  .catch((err) => {
+    console.error('❌ MongoDB error:', err && err.message);
+    process.exit(1);
+  });
+
+// --- Auth middleware ---
+function auth(req, res, next) {
+  const token = req.header('x-auth-token');
+  if (!token) return res.status(401).json({ msg: 'Pas de token, autorisation refusée' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded.user; // { id: ... }
+    return next();
+  } catch (e) {
+    return res.status(401).json({ msg: 'Token non valide' });
+  }
+}
+
+// --- Admin middleware (env ADMIN_EMAILS="a@b.com,c@d.com") ---
+async function adminOnly(req, res, next) {
+  try {
+    const raw = process.env.ADMIN_EMAILS || '';
+    const admins = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (admins.length === 0) return res.status(403).json({ msg: 'Admin non configuré' });
+
+    const u = await User.findById(req.user.id);
+    if (!u) return res.status(401).json({ msg: 'Utilisateur introuvable' });
+
+    const ok = admins.includes(String(u.email || '').toLowerCase());
+    if (!ok) return res.status(403).json({ msg: 'Accès refusé' });
+    return next();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+}
+
+// --- Email (Brevo) ---
+const BREVO_USER = process.env.BREVO_USER;
+const BREVO_PASS = process.env.BREVO_PASS;
+
+let transporter = null;
+if (BREVO_USER && BREVO_PASS) {
+  transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
+    auth: { user: BREVO_USER, pass: BREVO_PASS }
+  });
+
+  transporter.verify().then(
+    () => console.log('✅ SMTP Brevo OK'),
+    (e) => console.error('⚠️ SMTP verify fail:', e && e.message)
+  );
+} else {
+  console.warn("⚠️ BREVO_USER/BREVO_PASS manquant: l'envoi d'email sera indisponible");
+}
+
+// --- PDF ---
+function createPdfBuffer(property, tenant, owner) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      const formatName = (email) => String(email || '').split('@')[0].toUpperCase();
+      const ownerName = (owner && owner.firstName && owner.lastName) ? (owner.firstName + ' ' + owner.lastName) : formatName(owner?.email);
+      const ownerAddr = owner?.address || 'Adresse à compléter';
+      const ownerCity = (owner?.zipCode && owner?.city) ? (owner.zipCode + ' ' + owner.city) : '';
+
+      const date = new Date();
+      const f = new Date(date.getFullYear(), date.getMonth(), 1).toLocaleDateString('fr-FR');
+      const l = new Date(date.getFullYear(), date.getMonth() + 1, 0).toLocaleDateString('fr-FR');
+      const today = date.toLocaleDateString('fr-FR');
+
+      doc.rect(0, 0, 600, 120).fill('#f8f9fa');
+      doc.fillColor('#333');
+      doc.fontSize(22).font('Helvetica-Bold').text('QUITTANCE DE LOYER', 40, 40);
+      doc.fontSize(10).font('Helvetica').text('Période du ' + f + ' au ' + l, 40, 70);
+      doc.fontSize(10).font('Helvetica-Bold').text('DOC2LOC', 450, 40, { align: 'right' });
+
+      const y = 150;
+      doc.font('Helvetica-Bold').fontSize(9).text('BAILLEUR', 40, y);
+      doc.font('Helvetica').fontSize(10).text(ownerName || 'Bailleur', 40, y + 15);
+      doc.text(ownerAddr, 40, y + 30);
+      doc.text(ownerCity, 40, y + 45);
+
+      doc.font('Helvetica-Bold').fontSize(9).text('LOCATAIRE', 350, y);
+      doc.font('Helvetica').fontSize(10);
+      if (tenant) {
+        doc.text((tenant.firstName || '') + ' ' + (tenant.lastName || ''), 350, y + 15);
+        doc.text('Bien : ' + (property?.name || ''), 350, y + 30);
+        doc.text(property?.address || '', 350, y + 45, { width: 200 });
+      } else {
+        doc.text('---', 350, y + 15);
+      }
+
+      const yt = 260;
+      doc.rect(40, yt, 515, 25).fill('#333');
+      doc.fillColor('#fff').font('Helvetica-Bold').text('DÉSIGNATION', 50, yt + 8);
+      doc.text('MONTANT', 450, yt + 8, { align: 'right', width: 90 });
+
+      doc.fillColor('#333').font('Helvetica');
+      let cy = yt + 40;
+
+      const rent = Number(property?.rentAmount || 0) || 0;
+      const charges = Number(property?.chargesAmount || 0) || 0;
+      const total = rent + charges;
+
+      doc.text('Loyer mensuel', 50, cy);
+      doc.text(rent.toFixed(2) + ' EUR', 450, cy, { align: 'right', width: 90 });
+      doc.moveTo(40, cy + 15).lineTo(555, cy + 15).strokeColor('#e0e0e0').stroke();
+
+      cy += 25;
+      doc.text('Provision charges', 50, cy);
+      doc.text(charges.toFixed(2) + ' EUR', 450, cy, { align: 'right', width: 90 });
+      doc.moveTo(40, cy + 15).lineTo(555, cy + 15).strokeColor('#e0e0e0').stroke();
+
+
+      cy += 35;
+      doc.font('Helvetica-Bold').fontSize(12).text('TOTAL PAYÉ', 50, cy);
+      doc.text(rent.toFixed(2) + ' EUR', 450, cy, { align: 'right', width: 90 });
+
+      doc.font('Helvetica').fontSize(10).text(
+        'Je soussigné(e) ' + (ownerName || 'Votre Bailleur') + ', certifie avoir reçu le montant total.',
+        40, 460, { align: 'justify', width: 515 }
+      );
+
+      doc.text('Fait à ' + (owner?.city || 'Paris') + ', le ' + today, 40, 530);
+      doc.rect(380, 520, 150, 60).strokeColor('#333').stroke();
+      doc.fontSize(8).text('Signature', 390, 525);
+
+      doc.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// --- Upload config: candidature (public) ---
+const candidatureStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, candidatsUploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    cb(null, 'candidat-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
+  }
+});
+const candidatureUpload = multer({
+  storage: candidatureStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// --- Upload config: documents bien (protégé) ---
+const docStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, propertyDocUploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const safeExt = (ext && ext.length <= 8) ? ext : '';
+    cb(null, 'doc-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + safeExt);
+  }
+});
+const docUpload = multer({
+  storage: docStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = ['application/pdf', 'image/png', 'image/jpeg'].includes(file.mimetype);
+    if (!ok) return cb(new Error('Type de fichier non autorisé'));
+    cb(null, true);
+  }
+});
+
+// --- ROUTES AUTH ---
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ msg: 'Champs manquants' });
+
+    let u = await User.findOne({ email });
+    if (u) return res.status(400).json({ msg: 'Email déjà utilisé' });
+
+    const s = await bcrypt.genSalt(10);
+    u = new User({ email, password: await bcrypt.hash(password, s) });
+    await u.save();
+    return res.json({ msg: 'OK' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const u = await User.findOne({ email });
+    if (!u) return res.status(400).json({ msg: 'Identifiants invalides' });
+
+    const isMatch = await bcrypt.compare(password, u.password);
+    if (!isMatch) return res.status(400).json({ msg: 'Identifiants invalides' });
+
+    const token = jwt.sign({ user: { id: u.id } }, JWT_SECRET, { expiresIn: '24h' });
+    return res.json({ token });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/auth/profile', auth, async (req, res) => {
+  try {
+    const u = await User.findById(req.user.id).select('-password');
+    return res.json(u);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.put('/api/auth/profile', auth, async (req, res) => {
+  try {
+    const u = await User.findById(req.user.id);
+    if (!u) return res.status(404).json({ msg: 'Utilisateur introuvable' });
+    Object.assign(u, req.body || {});
+    await u.save();
+    const safe = await User.findById(req.user.id).select('-password');
+    return res.json(safe);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+
+// --- BILLING STATUS (UI badge) ---
+app.get('/api/billing/status', auth, async (req, res) => {
+  try {
+    const u = await User.findById(req.user.id).select('plan usage credits');
+    const plan = (u && u.plan) ? u.plan : 'FREE';
+    const sent = (u && u.usage && u.usage.receipts && Number.isFinite(u.usage.receipts.sent)) ? u.usage.receipts.sent : 0;
+
+    return res.json({
+      plan,
+      usage: { receiptsSent: sent },
+      limits: { receiptEmailPerMonth: { FREE: 3, PRO: 999999 } }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// --- ROUTES PROPERTIES ---
+app.post('/api/properties', auth, async (req, res) => {
+  try {
+    const {
+      name,
+      rentAmount,
+      chargesAmount,
+      address,       // compat legacy
+      addressLine,   // v2
+      zipCode,       // v2
+      city,          // v2
+      surfaceM2      // optionnel
+    } = req.body;
+
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ msg: 'Dénomination obligatoire' });
+    }
+
+    const rent = Number(rentAmount);
+    if (!Number.isFinite(rent) || rent <= 0) {
+      return res.status(400).json({ msg: 'Loyer invalide' });
+    }
+
+    const line = String(addressLine || '').trim();
+    const zip = String(zipCode || '').trim();
+    const cty = String(city || '').trim();
+
+    // ✅ Compat: si pas de champs v2, on accepte "address"
+    let fullAddress = String(address || '').trim();
+
+    // ✅ Si champs v2 présents, on construit une adresse propre
+    if (line && zip && cty) {
+      if (!/^\d{5}$/.test(zip)) {
+        return res.status(400).json({ msg: 'Code postal invalide (5 chiffres)' });
+      }
+      fullAddress = `${line}, ${zip} ${cty}`;
+    } else {
+      // sinon on exige au moins address legacy
+      if (!fullAddress) {
+        return res.status(400).json({ msg: 'Adresse incomplète : rue + code postal + commune' });
+      }
+    }
+
+    const ch = Number(chargesAmount);
+    const charges = Number.isFinite(ch) && ch >= 0 ? ch : 0;
+
+    const s = Number(surfaceM2);
+    const surface = Number.isFinite(s) && s > 0 ? s : undefined;
+
+    const prop = new Property({
+      user: req.user.id,
+      name: String(name).trim(),
+      address: fullAddress,
+      addressLine: line,
+      zipCode: zip,
+      city: cty,
+      rentAmount: rent,
+      chargesAmount: charges,
+      surfaceM2: surface
+    });
+
+    await prop.save();
+    return res.json(prop);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/properties', auth, async (req, res) => {
+  try {
+    const ps = await Property.find({ user: req.user.id }).sort({ createdAt: -1 });
+    return res.json(ps);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/properties/:id', auth, async (req, res) => {
+  try {
+    const p = await Property.findOne({ _id: req.params.id, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+    return res.json(p);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+
+app.put('/api/properties/:id', auth, async (req, res) => {
+  try {
+    const { name, address, addressLine, zipCode, city, rentAmount, chargesAmount, surfaceM2 } = req.body || {};
+
+    if (!name) return res.status(400).json({ msg: 'Nom du bien requis' });
+
+    const rent = Number(rentAmount);
+    if (!Number.isFinite(rent) || rent <= 0) {
+      return res.status(400).json({ msg: 'Loyer invalide' });
+    }
+
+    const line = String(addressLine || '').trim();
+    const zip = String(zipCode || '').trim();
+    const cty = String(city || '').trim();
+    let fullAddress = String(address || '').trim();
+
+    // v2: si on a rue + cp + commune -> adresse propre
+    if (line && zip && cty) {
+      if (!/^\d{5}$/.test(zip)) {
+        return res.status(400).json({ msg: 'Code postal invalide (5 chiffres)' });
+      }
+      fullAddress = `${line}, ${zip} ${cty}`;
+    } else {
+      if (!fullAddress) {
+        return res.status(400).json({ msg: 'Adresse incomplète : rue + code postal + commune' });
+      }
+    }
+
+    const ch = Number(chargesAmount);
+    const charges = Number.isFinite(ch) && ch >= 0 ? ch : 0;
+
+    const srf = Number(surfaceM2);
+    const surface = Number.isFinite(srf) && srf > 0 ? srf : null;
+
+    const prop = await Property.findOne({ _id: req.params.id, user: req.user.id });
+    if (!prop) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    prop.name = String(name).trim();
+    prop.address = fullAddress;
+    prop.addressLine = line;
+    prop.zipCode = zip;
+    prop.city = cty;
+    prop.rentAmount = rent;
+    prop.chargesAmount = charges;
+    prop.surfaceM2 = surface;
+
+    await prop.save();
+    return res.json(prop);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.delete('/api/properties/:id', auth, async (req, res) => {
+  try {
+    const deleted = await Property.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!deleted) return res.status(404).json({ msg: 'Bien introuvable' });
+    return res.json({ msg: 'Supprimé' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// --- ROUTES TENANTS ---
+app.post('/api/tenants', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, property } = req.body || {};
+    if (!firstName || !lastName || !email) return res.status(400).json({ msg: 'Champs manquants' });
+
+    // si property fourni, vérifier appartenance
+    if (property) {
+      const p = await Property.findOne({ _id: property, user: req.user.id });
+      if (!p) return res.status(400).json({ msg: 'Bien invalide (ou pas à toi)' });
+    }
+
+    const t = new Tenant({
+      user: req.user.id,
+      firstName,
+      lastName,
+      email,
+      property: property || undefined
+    });
+
+    await t.save();
+    return res.json(t);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/tenants', auth, async (req, res) => {
+  try {
+    const ts = await Tenant.find({ user: req.user.id }).populate('property').sort({ createdAt: -1 });
+    return res.json(ts);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/tenants/by-property/:propertyId', auth, async (req, res) => {
+  try {
+    const t = await Tenant.findOne({ user: req.user.id, property: req.params.propertyId });
+    if (!t) return res.status(404).json({ msg: 'Aucun locataire' });
+    return res.json(t);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/tenants/:id', auth, async (req, res) => {
+  try {
+    const t = await Tenant.findOne({ _id: req.params.id, user: req.user.id }).populate('property');
+    if (!t) return res.status(404).json({ msg: 'Locataire introuvable' });
+    return res.json(t);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.put('/api/tenants/:id', auth, async (req, res) => {
+  try {
+    const t = await Tenant.findOne({ _id: req.params.id, user: req.user.id });
+    if (!t) return res.status(404).json({ msg: 'Locataire introuvable' });
+
+    const { firstName, lastName, email, property } = req.body || {};
+
+    if (typeof firstName === 'string') t.firstName = firstName.trim();
+    if (typeof lastName === 'string') t.lastName = lastName.trim();
+    if (typeof email === 'string') t.email = email.trim().toLowerCase();
+
+    // property: ""/null -> unlink
+    if (property === '' || property === null) {
+      t.property = undefined;
+    } else if (property) {
+      const p = await Property.findOne({ _id: property, user: req.user.id });
+      if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+      const other = await Tenant.findOne({ user: req.user.id, property: p._id, _id: { $ne: t._id } });
+      if (other) return res.status(409).json({ msg: 'Ce bien a déjà un locataire' });
+
+      t.property = p._id;
+    }
+
+    await t.save();
+    const populated = await Tenant.findById(t._id).populate('property');
+    return res.json(populated);
+  } catch (e) {
+    if (e && e.code === 11000) return res.status(409).json({ msg: 'Ce bien a déjà un locataire' });
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.delete('/api/tenants/:id', auth, async (req, res) => {
+  try {
+    const deleted = await Tenant.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!deleted) return res.status(404).json({ msg: 'Locataire introuvable' });
+    return res.json({ msg: 'Supprimé' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// --- PDF / EMAIL ---
+app.get('/api/documents/quittance/:id', auth, async (req, res) => {
+  try {
+    const p = await Property.findOne({ _id: req.params.id, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    const t = await Tenant.findOne({ user: req.user.id, property: p._id });
+    const u = await User.findById(req.user.id);
+
+    const buffer = await createPdfBuffer(p, t, u);
+    res.setHeader('Content-Type', 'application/pdf');
+    await logEvent(req.user.id, { property: p._id, tenant: (t ? t._id : null), type: 'pdf_quittance_generated' });
+    return res.send(buffer);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur PDF' });
+  }
+});
+
+app.post('/api/documents/email/:id', auth, async (req, res) => {
+  try {
+    if (!transporter) return res.status(400).json({ msg: "Email non configuré (BREVO_USER/BREVO_PASS)" });
+
+    const p = await Property.findOne({ _id: req.params.id, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    const t = await Tenant.findOne({ user: req.user.id, property: p._id });
+    if (!t) return res.status(400).json({ msg: 'Aucun locataire lié à ce bien' });
+    if (!t.email) return res.status(400).json({ msg: "Le locataire n'a pas d'email" });
+
+    const u = await User.findById(req.user.id);
+
+    const pdfBuffer = await createPdfBuffer(p, t, u);
+
+    const mailOptions = {
+      from: '"Doc2Loc" <no-reply@doc2loc.com>',
+      to: t.email,
+      subject: 'Quittance de loyer - ' + (p.name || ''),
+      text:
+        'Bonjour ' +
+        (t.firstName || '') +
+        ',\n\nVeuillez trouver ci-joint votre quittance de loyer.\n\nCordialement,\n' +
+        (u?.firstName || 'Votre Bailleur'),
+      attachments: [{ filename: 'Quittance.pdf', content: pdfBuffer }]
+    };
+
+    await transporter.sendMail(mailOptions);
+    await logEvent(req.user.id, { property: p._id, tenant: t._id, type: 'email_quittance_sent', meta: { to: t.email } });
+    return res.json({ msg: 'Email envoyé avec succès !' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur envoi email' });
+  }
+});
+
+// --- DOCS PAR BIEN (Sprint 1) ---
+
+// Télécharger un document (protégé) — IMPORTANT : avant /api/property-documents/:propertyId
+app.get('/api/property-documents/file/:docId', auth, async (req, res) => {
+  try {
+    const d = await Document.findOne({ _id: req.params.docId, user: req.user.id });
+    if (!d) return res.status(404).json({ msg: 'Document introuvable' });
+
+    const absPath = path.join(uploadsDir, d.relPath);
+    if (!fs.existsSync(absPath)) return res.status(404).json({ msg: 'Fichier introuvable' });
+
+    return res.download(absPath, d.originalName || d.filename || 'document');
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.post('/api/property-documents/upload/:propertyId', auth, docUpload.single('file'), async (req, res) => {
+  try {
+    const p = await Property.findOne({ _id: req.params.propertyId, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    if (!req.file) return res.status(400).json({ msg: 'Fichier manquant' });
+
+    const type = (req.body && req.body.type) ? String(req.body.type) : 'autre';
+
+    const doc = new Document({
+      user: req.user.id,
+      property: p._id,
+      type,
+      originalName: req.file.originalname || '',
+      filename: req.file.filename,
+      mimeType: req.file.mimetype || '',
+      size: req.file.size || 0,
+      relPath: 'property-documents/' + req.file.filename
+    });
+
+    await doc.save();
+    const tt = await Tenant.findOne({ user: req.user.id, property: p._id });
+    await logEvent(req.user.id, { property: p._id, tenant: (tt ? tt._id : null), type: 'document_uploaded', meta: { docType: type, name: doc.originalName } });
+    return res.json(doc);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur upload' });
+  }
+});
+
+app.get('/api/property-documents/:propertyId', auth, async (req, res) => {
+  try {
+    const p = await Property.findOne({ _id: req.params.propertyId, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    const docs = await Document.find({ user: req.user.id, property: p._id }).sort({ createdAt: -1 });
+    return res.json(docs);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.delete('/api/property-documents/:docId', auth, async (req, res) => {
+  try {
+    const d = await Document.findOne({ _id: req.params.docId, user: req.user.id });
+    if (!d) return res.status(404).json({ msg: 'Document introuvable' });
+
+    const absPath = path.join(uploadsDir, d.relPath);
+    try {
+      if (fs.existsSync(absPath)) fs.unlinkSync(absPath);
+    } catch (e) {
+      console.error("unlink error:", e && e.message);
+    }
+
+    const tt = await Tenant.findOne({ user: req.user.id, property: d.property });
+    await logEvent(req.user.id, { property: d.property, tenant: (tt ? tt._id : null), type: 'document_deleted', meta: { docType: d.type, name: d.originalName } });
+    await Document.deleteOne({ _id: d._id, user: req.user.id });
+    return res.json({ msg: 'Supprimé' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+
+// --- EVENTS (Historique) ---
+app.get('/api/events/property/:propertyId', auth, async (req, res) => {
+  try {
+    const p = await Property.findOne({ _id: req.params.propertyId, user: req.user.id });
+    if (!p) return res.status(404).json({ msg: 'Bien introuvable' });
+
+    const limit = Math.min(Number(req.query.limit || 20), 50);
+    const ev = await Event.find({ user: req.user.id, property: p._id }).sort({ createdAt: -1 }).limit(limit);
+    return res.json(ev);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/events/tenant/:tenantId', auth, async (req, res) => {
+  try {
+    const t = await Tenant.findOne({ _id: req.params.tenantId, user: req.user.id });
+    if (!t) return res.status(404).json({ msg: 'Locataire introuvable' });
+
+    const limit = Math.min(Number(req.query.limit || 20), 50);
+    const q = { user: req.user.id, $or: [{ tenant: t._id }] };
+    if (t.property) q.$or.push({ property: t.property });
+
+    const ev = await Event.find(q).sort({ createdAt: -1 }).limit(limit);
+    return res.json(ev);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+
+// --- REMINDERS (Relances v1) ---
+app.post('/api/reminders/tenant/:tenantId', auth, async (req, res) => {
+  try {
+    if (!transporter) return res.status(400).json({ msg: "Email non configuré (BREVO_USER/BREVO_PASS)" });
+
+    const { template } = req.body || {};
+    const tpl = String(template || "rent_reminder");
+
+    const t = await Tenant.findOne({ _id: req.params.tenantId, user: req.user.id }).populate('property');
+    if (!t) return res.status(404).json({ msg: 'Locataire introuvable' });
+    if (!t.email) return res.status(400).json({ msg: "Email locataire manquant" });
+    if (!t.property) return res.status(400).json({ msg: "Aucun bien associé au locataire" });
+
+    const pty = t.property;
+
+    const fullName = [t.firstName, t.lastName].filter(Boolean).join(" ").trim() || "Bonjour";
+    const propName = pty.name || "votre logement";
+    const addr = [pty.addressLine, pty.zipCode, pty.city].filter(Boolean).join(", ") || (pty.address || "");
+
+    const subjects = {
+      rent_reminder: "Rappel — Quittance / loyer",
+      missing_docs: "Rappel — Documents à fournir",
+      late_payment: "Relance — Paiement en attente"
+    };
+
+    const bodies = {
+      rent_reminder:
+`Bonjour ${fullName},
+
+Petit rappel concernant la quittance / le loyer pour ${propName}${addr ? " ("+addr+")" : ""}.
+Si vous avez déjà effectué le règlement, vous pouvez ignorer ce message.
+
+Cordialement,
+Doc2Loc`,
+      missing_docs:
+`Bonjour ${fullName},
+
+Pour finaliser votre dossier concernant ${propName}${addr ? " ("+addr+")" : ""}, il nous manque certains documents.
+Pouvez-vous les transmettre dès que possible ?
+
+Cordialement,
+Doc2Loc`,
+      late_payment:
+`Bonjour ${fullName},
+
+Nous n'avons pas constaté le règlement attendu pour ${propName}${addr ? " ("+addr+")" : ""}.
+Merci de nous indiquer votre situation ou de procéder au paiement dès que possible.
+
+Cordialement,
+Doc2Loc`
+    };
+
+    const subject = subjects[tpl] || subjects.rent_reminder;
+    const text = bodies[tpl] || bodies.rent_reminder;
+
+
+    console.log('REMINDER_DEBUG_START', { tenant: String(t._id), to: t.email, property: String(pty._id), template: tpl });
+    // transporter is already configured in your file (used for quittance email)
+    await transporter.sendMail({
+      from: (process.env.MAIL_FROM || '"Doc2Loc" <no-reply@doc2loc.com>'),
+      to: t.email,
+      subject,
+      text
+    });
+
+    await logEvent(req.user.id, { property: pty._id, tenant: t._id, type: 'reminder_sent', meta: { template: tpl, to: t.email } });
+
+    return res.json({ msg: "Relance envoyée ✅" });
+  }
+  catch (e) {
+    console.error('REMINDER_ERROR', e && (e.stack || e));
+    return res.status(500).json({ msg: 'Erreur serveur (relance)', detail: (e && e.message) || String(e) });
+  }
+});
+
+
+// --- EVENTS (Cockpit Dashboard) ---
+app.get('/api/events/summary', auth, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit || 10), 20);
+
+    const last = await Event.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(limit);
+
+    // month stats
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const monthEmail = await Event.countDocuments({ user: req.user.id, type: 'email_quittance_sent', createdAt: { $gte: start } });
+    const monthPdf   = await Event.countDocuments({ user: req.user.id, type: 'pdf_quittance_generated', createdAt: { $gte: start } });
+    const monthDocs  = await Event.countDocuments({ user: req.user.id, type: 'document_uploaded', createdAt: { $gte: start } });
+    const monthRem   = await Event.countDocuments({ user: req.user.id, type: 'reminder_sent', createdAt: { $gte: start } });
+
+    return res.json({
+      last,
+      month: {
+        email_quittance_sent: monthEmail,
+        pdf_quittance_generated: monthPdf,
+        document_uploaded: monthDocs,
+        reminder_sent: monthRem
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// --- PUBLIC: candidature (upload) ---
+app.post('/api/public/candidature', candidatureUpload.array('documents', 5), async (req, res) => {
+  try {
+    return res.json({ msg: "Dossier bien reçu ! L'analyse IA sera ajoutée ensuite." });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur lors du dépôt' });
+  }
+});
+
+// --- PUBLIC: Lead capture ---
+app.post('/api/public/lead', async (req, res) => {
+  try {
+    const { email, source, utm } = req.body || {};
+    if (!email || !String(email).includes('@')) {
+      return res.status(400).json({ msg: 'Email invalide' });
+    }
+
+    const lead = new Lead({
+      email: String(email).trim().toLowerCase(),
+      source: source ? String(source) : 'landing',
+      utm: utm && typeof utm === 'object' ? utm : {},
+      ip: req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : (req.ip || ''),
+      userAgent: String(req.headers['user-agent'] || '')
+    });
+
+    await lead.save();
+    return res.json({ msg: 'OK' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// --- ADMIN: Leads ---
+app.get('/api/admin/leads', auth, adminOnly, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit || 200), 5000);
+    const total = await Lead.countDocuments({});
+    const items = await Lead.find({}).sort({ createdAt: -1 }).limit(limit);
+    return res.json({ total, items });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+function csvEscape(v) {
+  const s = String(v ?? '');
+  if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+app.get('/api/admin/leads.csv', auth, adminOnly, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit || 20000), 50000);
+    const items = await Lead.find({}).sort({ createdAt: -1 }).limit(limit);
+
+    const header = ['createdAt','email','source','utm','ip','userAgent'];
+    const lines = [header.join(',')];
+
+    for (const x of items) {
+      const row = [
+        x.createdAt ? x.createdAt.toISOString() : '',
+        x.email || '',
+        x.source || '',
+        x.utm ? JSON.stringify(x.utm) : '',
+        x.ip || '',
+        x.userAgent || ''
+      ].map(csvEscape).join(',');
+      lines.push(row);
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="doc2loc-leads.csv"');
+    return res.send(lines.join('\n'));
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send('Erreur CSV');
+  }
+});
+
+// --- Multer errors (docs) ---
+app.use((err, req, res, next) => {
+  if (err && err.message === 'Type de fichier non autorisé') {
+    return res.status(400).json({ msg: 'Type de fichier non autorisé (PDF/PNG/JPEG)' });
+  }
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ msg: 'Fichier trop lourd : limite 10 Mo' });
+  }
+  return next(err);
+});
+
+app.listen(PORT, () => console.log('🚀 Serveur OK'));

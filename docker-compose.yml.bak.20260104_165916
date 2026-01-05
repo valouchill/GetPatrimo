@@ -1,0 +1,28 @@
+services:
+  app:
+    container_name: doc2loc
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # si MONGO_URI est déjà dans .env, il sera utilisé.
+      # sinon fallback vers le hostname docker "mongodb"
+      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/doc2loc}
+      - NODE_ENV=production
+    volumes:
+      # bind-mount: tes modifs sur /opt/doc2loc sont instantanément visibles dans le container
+      - ./:/usr/src/app
+      # évite d'écraser node_modules du container par le bind-mount
+      - node_modules:/usr/src/app/node_modules
+    networks:
+      - doc2loc-net
+    restart: unless-stopped
+
+networks:
+  doc2loc-net:
+    external: true
+
+volumes:
+  node_modules:

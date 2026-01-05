@@ -1,0 +1,2 @@
+createdAt,email,source,utm,ip,userAgent
+"2025-12-22T09:58:16.507Z","test@example.com","landing_test","{""utm_source"":""seo""}","::ffff:172.19.0.1","curl/8.5.0"

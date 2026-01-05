@@ -1,0 +1,47 @@
+const mongoose = require('mongoose');
+
+const CandidatureSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },      // bailleur
+  property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
+
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  email: { type: String, required: true, trim: true, lowercase: true },
+  phone: { type: String, default: '' },
+  message: { type: String, default: '' },
+
+  // ---- Form V1 (déclaratif) ----
+  monthlyNetIncome: { type: Number, default: 0 },      // € net / mois
+  contractType: { type: String, default: '' },         // CDI/CDD/FREELANCE/ETUDIANT/RETRAITE/AUTRE
+  hasGuarantor: { type: Boolean, default: false },
+  guarantorType: { type: String, default: '' },        // VISALE/PHYSIQUE/AUTRE
+
+  docs: [{
+    originalName: String,
+    filename: String,
+    mimeType: String,
+    size: Number,
+    relPath: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+  status: { type: String, enum: ['NEW','REVIEWED','ACCEPTED','REJECTED'], default: 'NEW' },
+
+  // ---- Scoring V1 (règles + explicabilité) ----
+  scoring: {
+    version: { type: String, default: 'v1' },
+    total: { type: Number, default: 0 },               // 0..100
+    grade: { type: String, default: '' },              // A..E
+    ratio: { type: Number, default: 0 },               // income / (rent+charges)
+    breakdown: [{
+      key: String,
+      label: String,
+      points: Number,
+      detail: String
+    }],
+    flags: [{ type: String }]
+  },
+  scoredAt: { type: Date }
+}, { timestamps: true });
+
+module.exports = mongoose.model('Candidature', CandidatureSchema);

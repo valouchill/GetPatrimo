@@ -1,0 +1,49 @@
+const mongoose = require('mongoose');
+
+const CandidatureSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
+
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  email: { type: String, required: true, trim: true, lowercase: true },
+  phone: { type: String, default: '' },
+  message: { type: String, default: '' },
+
+  monthlyNetIncome: { type: Number, default: 0 },
+  contractType: { type: String, default: '' },
+  hasGuarantor: { type: Boolean, default: false },
+  guarantorType: { type: String, default: '' },
+
+  docs: [{
+    originalName: String,
+    filename: String,
+    mimeType: String,
+    size: Number,
+    relPath: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+  status: { type: String, enum: ['NEW','REVIEWED','ACCEPTED','REJECTED'], default: 'NEW' },
+
+  shortlisted: { type: Boolean, default: false },
+  internalNote: { type: String, default: '' },
+
+
+  scoring: {
+    version: { type: String, default: 'v1' },
+    total: { type: Number, default: 0 },
+    grade: { type: String, default: '' },
+    ratio: { type: Number, default: 0 },
+    breakdown: [{
+      key: String,
+      label: String,
+      points: Number,
+      detail: String
+    }],
+    flags: [{ type: String }]
+  },
+  scoredAt: { type: Date }
+}, { timestamps: true });
+
+module.exports = mongoose.model('Candidature', CandidatureSchema);

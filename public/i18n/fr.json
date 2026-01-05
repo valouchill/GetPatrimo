@@ -1,0 +1,106 @@
+{
+  "onboarding": {
+    "title": "Que veux-tu faire en premier ?",
+    "options": {
+      "already_rented": "✅ Mon bien est déjà loué (encaissement + quittances)",
+      "looking_tenant": "🔎 Je cherche un locataire (dossiers + scoring)",
+      "just_document": "📄 Juste générer un document"
+    },
+    "micro": "Tu pourras tout activer plus tard, sans perdre tes infos.",
+    "checklist": {
+      "1": "1/3 Ajouter un bien",
+      "2": "2/3 Ajouter un locataire (ou lien de candidature)",
+      "3": "3/3 Générer / activer l’automatisation"
+    }
+  },
+  "forms": {
+    "property": {
+      "placeholders": {
+        "address": "Ex : 12 rue Victor Hugo, 75015 Paris",
+        "rent": "Ex : 850",
+        "charges": "Ex : 50"
+      },
+      "help": {
+        "editable": "Tu peux modifier plus tard.",
+        "currency": "Montants en €."
+      },
+      "errors": {
+        "address_incomplete": "Adresse incomplète : ajoute la ville et le code postal.",
+        "amount_invalid": "Montant invalide : utilise uniquement des chiffres."
+      },
+      "buttons": {
+        "continue": "Continuer",
+        "save_exit": "Enregistrer et quitter"
+      }
+    },
+    "tenant": {
+      "micro": "On s’en sert pour pré-remplir les quittances et automatiser l’encaissement.",
+      "help": {
+        "email_recommended": "Email recommandé : pour envoyer quittances et relances.",
+        "later": "Tu pourras activer l’envoi automatique plus tard."
+      }
+    }
+  },
+  "doc_generator": {
+    "title": "Quittance prête en 30 secondes.",
+    "steps": {
+      "1": "Étape 1/2 — Informations",
+      "2": "Étape 2/2 — Aperçu"
+    },
+    "buttons": {
+      "preview": "Voir l’aperçu",
+      "download": "Télécharger le PDF",
+      "email": "Envoyer par email"
+    },
+    "capture": {
+      "title": "Où on l’envoie ?",
+      "cta": "Recevoir le lien + accéder à l’historique",
+      "micro": "Pas de spam. Uniquement pour ton document."
+    }
+  },
+  "paywall": {
+    "title": "Finaliser le document",
+    "sub": "Choisis l’option la plus simple pour toi.",
+    "badges": ["Recommandé", "Le plus rentable", "Sans engagement"],
+    "micro": "Paiement sécurisé. Facture disponible."
+  },
+  "applications": {
+    "landlord": {
+      "create_title": "Créer un lien de candidature",
+      "create_micro": "Partage ce lien. Les candidats déposent leur dossier, tu reçois une shortlist.",
+      "create_btn": "Créer le lien",
+      "create_hint": "Tu pourras ajuster les critères après."
+    },
+    "candidate": {
+      "title": "Dépose ton dossier en 3 minutes",
+      "micro": "Ton dossier restera réutilisable pour d’autres logements.",
+      "trust": "Tes documents sont privés et partagés uniquement si tu valides.",
+      "nudge": "Ton dossier est presque prêt ✅ Il manque : …"
+    }
+  },
+  "scoring": {
+    "micro": "Aide à la décision : tu gardes la main.",
+    "labels": ["Dossier complet", "Pièce manquante", "Incohérence détectée"],
+    "actions": ["Ajouter à la shortlist", "Demander une pièce manquante", "Choisir ce locataire"],
+    "upsell": {
+      "text": "Parfait ✅ On automatise les loyers maintenant ?",
+      "cta": "Activer encaissement"
+    }
+  },
+  "collection": {
+    "title": "Activer l’encaissement automatique",
+    "micro": "Paiement récurrent + quittance automatique chaque mois.",
+    "status": ["Programmé", "Payé ✅", "Échec — relance envoyée", "En retard — action recommandée"]
+  },
+  "vault": {
+    "empty": "Aucun document pour l’instant. Ajoute ton bail, état des lieux, diagnostics…",
+    "btn": "Ajouter un document",
+    "micro": "Tout est centralisé, retrouvé en 2 secondes."
+  },
+  "errors_generic": [
+    "Oups, ce champ est obligatoire.",
+    "Email invalide : vérifie le format (ex : nom@domaine.com).",
+    "Fichier trop lourd : limite 10 Mo.",
+    "Impossible de générer le PDF. Réessaie dans 10 secondes."
+  ]
+}

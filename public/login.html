@@ -1,0 +1,120 @@
+<html lang='fr'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Connexion Doc2Loc</title>
+  
+    <link rel='stylesheet' href='/ui.css?v=10'>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css'>
+
+  <link rel="stylesheet" href="/elite.css"/>
+    <script defer src='/ui.js?v=10'></script>
+    <link rel='stylesheet' href='/harmonize.css?v=6'>
+</head>
+<body>
+  <main class='container'>
+    <article>
+      <header><h1>🔐 Connexion</h1></header>
+
+      <div id="draftNote" style="display:none; padding:.75rem 1rem; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:1rem;">
+        ✅ Un brouillon a été trouvé. Après connexion, on l’importe automatiquement.
+      </div>
+
+      <form id='loginForm'>
+        <input type='text' id='email' placeholder='Email' required>
+        <input type='password' id='password' placeholder='Mot de passe' required>
+        <button type='submit'>Se connecter</button>
+      </form>
+
+      <footer>
+        <small>Pas encore de compte ? <a href='/register.html'>S'inscrire</a></small><br/>
+        <small><a href='/'>← Retour à la landing</a></small>
+      </footer>
+    </article>
+  </main>
+
+  <script>
+    const DRAFT_KEY = "doc2loc_draft_v1";
+    try{
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if(raw){ document.getElementById("draftNote").style.display="block"; }
+    }catch(e){}
+
+    async function importDraftAndRedirect() {
+      const tok = localStorage.getItem("token");
+      if(!tok){ window.location.href="/dashboard.html"; return; }
+
+      let draft = null;
+      try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); }catch(e){ draft=null; }
+      if(!draft || !draft.property){ window.location.href="/dashboard.html"; return; }
+
+      const p = draft.property || {};
+      const payload = {
+        name: p.name,
+        rentAmount: p.rentAmount,
+        chargesAmount: p.chargesAmount,
+        addressLine: p.addressLine,
+        zipCode: p.zipCode,
+        city: p.city
+      };
+
+      try{
+        const r = await fetch("/api/properties", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json", "x-auth-token": tok },
+          body: JSON.stringify(payload)
+        });
+        const created = await r.json().catch(()=>({}));
+        if(!r.ok){
+          // on ne supprime pas le draft si erreur
+          window.location.href="/dashboard.html";
+          return;
+        }
+
+        const t = (draft.tenant || {});
+        if(t.email && String(t.email).includes("@")){
+          await fetch("/api/tenants", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", "x-auth-token": tok },
+            body: JSON.stringify({
+              firstName: t.firstName || "Locataire",
+              lastName: t.lastName || "",
+              email: t.email,
+              property: created._id
+            })
+          }).catch(()=>{});
+        }
+
+        localStorage.removeItem(DRAFT_KEY);
+        window.location.href = "/property.html?id=" + encodeURIComponent(created._id);
+      }catch(e){
+        window.location.href="/dashboard.html";
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json().catch(()=>({}));
+
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          await importDraftAndRedirect();
+        } else {
+          alert('Erreur : ' + (data.msg || 'Inconnue'));
+        }
+      } catch (err) {
+        alert('Erreur de connexion au serveur');
+      }
+    });
+  </script>
+</body>
+</html>

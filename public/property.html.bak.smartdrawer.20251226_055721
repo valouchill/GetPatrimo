@@ -1,0 +1,2051 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doc2Loc — Fiche bien</title>
+  
+    <link rel='stylesheet' href='/ui.css?v=10'>
+<style>
+    :root{
+      --bg:#0b1220; --card:#101a2f; --muted:#94a3b8; --text:#e5e7eb;
+      --border:rgba(148,163,184,.18); --shadow:0 18px 50px rgba(0,0,0,.35);
+      --blue:#4F46E5; --green:#22c55e; --red:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(900px 600px at 20% -10%,rgba(79,70,229,.35),transparent 55%),
+                    radial-gradient(900px 700px at 120% 10%,rgba(34,197,94,.18),transparent 55%),var(--bg);
+         color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    a{color:inherit}
+    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    h1{margin:0;font-size:20px}
+    .pill{font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,rgba(16,26,47,.92),rgba(16,26,47,.80));
+          border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    h2{margin:0;font-size:15px}
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:600px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 0}
+    input,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+                 background:#0b1326;color:var(--text);outline:none}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:12px;
+         border:1px solid var(--border);background:#0b1326;color:var(--text);cursor:pointer;text-decoration:none}
+    .btn.primary{background:var(--blue);border-color:var(--blue)}
+    .btn.green{background:var(--green);border-color:var(--green);color:#06210f}
+    .btn.red{background:transparent;border-color:rgba(239,68,68,.45);color:#fecaca}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    .hr{height:1px;background:var(--border);margin:14px 0}
+    .kv{display:flex;flex-direction:column;gap:3px}
+    .kv b{font-size:14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:600;text-align:left}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;border:1px solid var(--border);
+           padding:10px 12px;border-radius:12px;display:none;max-width:360px}
+    .small{font-size:12px}
+  </style>
+
+  <link rel="stylesheet" href="/elite.css"/>
+    <script defer src='/ui.js?v=10'></script>
+    <link rel='stylesheet' href='/harmonize.css?v=6'>
+<style>
+/* Cand Drawer */
+#candDrawerOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:50}
+#candDrawer{position:fixed;top:0;right:0;height:100vh;width:min(520px,92vw);background:var(--card,#fff);
+  border-left:1px solid var(--border, rgba(15,23,42,.12)); box-shadow: -20px 0 50px rgba(2,8,23,.25);
+  transform:translateX(105%); transition:transform .22s ease; z-index:51; display:flex; flex-direction:column}
+#candDrawer.open{transform:translateX(0)}
+.cd-head{padding:16px;border-bottom:1px solid var(--border, rgba(15,23,42,.12));display:flex;justify-content:space-between;gap:10px}
+.cd-title{font-weight:900;letter-spacing:-.02em}
+.cd-sub{font-size:12px;color:var(--muted,#5b6476);margin-top:3px}
+.cd-body{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.cd-card{border:1px solid var(--border, rgba(15,23,42,.12));border-radius:14px;padding:12px;background:rgba(255,255,255,.7)}
+.cd-row{display:flex;gap:10px;flex-wrap:wrap}
+.cd-kpi{flex:1;min-width:170px}
+.cd-kpi b{font-size:18px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border, rgba(15,23,42,.12));
+  border-radius:999px;font-size:12px;color:var(--muted,#5b6476);background:#fff;margin:4px 6px 0 0}
+.cd-list{margin:0;padding-left:16px}
+.cd-actions{padding:14px;border-top:1px solid var(--border, rgba(15,23,42,.12));display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+</style>
+<style>
+/* DrawerV2 */
+#candDrawerOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:9998}
+#candDrawer{position:fixed;top:0;right:0;height:100vh;width:min(560px,94vw);background:#fff;
+  border-left:1px solid rgba(15,23,42,.12); box-shadow:-20px 0 50px rgba(2,8,23,.25);
+  transform:translateX(105%); transition:transform .22s ease; z-index:9999; display:flex; flex-direction:column}
+#candDrawer.open{transform:translateX(0)}
+.cdh{padding:16px;border-bottom:1px solid rgba(15,23,42,.12);display:flex;justify-content:space-between;gap:10px}
+.cdt{font-weight:900;letter-spacing:-.02em}
+.cds{font-size:12px;color:#5b6476;margin-top:3px}
+.cdb{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.cdc{border:1px solid rgba(15,23,42,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.7)}
+.cdr{display:flex;gap:10px;flex-wrap:wrap}
+.cdk{flex:1;min-width:170px}
+.cdk b{font-size:18px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(15,23,42,.12);
+  border-radius:999px;font-size:12px;color:#5b6476;background:#fff;margin:4px 6px 0 0}
+.cdlist{margin:0;padding-left:16px}
+.cda{padding:14px;border-top:1px solid rgba(15,23,42,.12);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+</style>
+
+<style>
+/* CompareUI V1 */
+#cmpOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:9996}
+#cmpModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1100px,96vw);max-height:92vh;
+  background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:18px;box-shadow:0 30px 80px rgba(2,8,23,.35);
+  display:none;z-index:9997;overflow:hidden}
+.cmpHead{padding:14px 16px;border-bottom:1px solid rgba(15,23,42,.12);display:flex;justify-content:space-between;gap:12px;align-items:center}
+.cmpTitle{font-weight:900;letter-spacing:-.02em}
+.cmpBody{padding:16px;overflow:auto;max-height:calc(92vh - 64px)}
+.cmpGrid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:920px){.cmpGrid{grid-template-columns:1fr 1fr}}
+.cmpCard{border:1px solid rgba(15,23,42,.12);border-radius:14px;padding:12px}
+.cmpKpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.cmpTag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(15,23,42,.12);
+  border-radius:999px;font-size:12px;color:#5b6476;background:#fff;margin:4px 6px 0 0}
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div style="display:flex;align-items:center;gap:10px">
+        <h1>Fiche bien</h1>
+        <span id="status" class="pill">Chargement…</span>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/dashboard.html">← Dashboard</a>
+        <a class="btn" id="btnTenant" href="#" style="display:none">Fiche locataire</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="head">
+          <h2>Résumé</h2>
+          <div class="actions">
+            <button class="btn" id="btnEdit">Modifier</button>
+            <button class="btn" id="btnPdf" disabled>PDF quittance</button>
+            <button class="btn green" id="btnEmail" disabled>Envoyer quittance</button>
+          </div>
+        </div>
+
+        <div class="kv">
+          <b id="p_name">Chargement…</b>
+          <div class="muted" id="p_addr">Chargement…</div>
+          <div class="muted" id="p_amounts">Chargement…</div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div id="tenantBox">
+          <div class="muted">Chargement…</div>
+        </div>
+
+        <div id="editCard" class="card" style="margin-top:14px;display:none">
+          <div class="head">
+            <h2>Modifier le bien</h2>
+            <span class="muted small">Adresse v2 + loyer + charges</span>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Nom</label>
+              <input id="editName" placeholder="Nom du bien">
+            </div>
+            <div>
+              <label>Surface (m²)</label>
+              <input id="editSurface" type="number" step="0.1" placeholder="Optionnel">
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Rue</label>
+              <input id="editAddressLine" placeholder="12 rue de ...">
+            </div>
+            <div>
+              <label>Code postal</label>
+              <input id="editZip" maxlength="5" placeholder="75001">
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Commune</label>
+              <select id="editCity">
+                <option value="">—</option>
+              </select>
+              <div class="muted small" id="cityHint" style="margin-top:6px"></div>
+            </div>
+            <div></div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>Loyer HC (€)</label>
+              <input id="editRent" type="number" step="0.01" placeholder="0.00">
+            </div>
+            <div>
+              <label>Charges (€)</label>
+              <input id="editCharges" type="number" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="actions" style="justify-content:flex-end;margin-top:12px">
+            <button class="btn" id="btnCancelEdit">Annuler</button>
+            <button class="btn primary" id="btnSaveEdit">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <div class="head">
+          <h2>Documents du bien</h2>
+          <div class="muted" id="docCount">—</div>
+        </div>
+
+        <div class="muted" style="margin-bottom:10px">
+          Bail, état des lieux, diagnostics, quittances, dossier locataire…
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Type</label>
+            <select id="docType">
+              <option value="bail">Bail</option>
+              <option value="edl">État des lieux</option>
+              <option value="diag">Diagnostics</option>
+              <option value="quittance">Quittance</option>
+              <option value="dossier_locataire">Dossier locataire</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div>
+            <label>Fichier</label>
+            <input id="file" type="file">
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px">
+          <button class="btn primary" id="btnUpload" disabled>Uploader</button>
+        </div>
+
+        <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Fichier</th>
+                <th>Taille</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="docsTbody">
+              <tr><td colspan="5" class="muted">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        
+<div class="hr"></div>
+
+        <div class="head">
+          <h2>Candidatures</h2>
+          <div class="muted" id="candCount">—</div>
+        </div>
+        <div class="muted" style="margin-top:-6px;margin-bottom:10px">Génère un lien public et partage-le au candidat pour déposer son dossier.</div>
+
+        <div class="row">
+          <div style="flex:1;min-width:220px">
+            <label>Lien public</label>
+            <input id="applyLinkInput" readonly placeholder="Clique sur Générer…">
+          </div>
+        </div>
+        <div class="actions" style="justify-content:flex-end;margin-top:10px">
+          <button class="btn" id="btnApplyLink">Générer</button>
+          <button class="btn" id="btnCopyApplyLink" disabled>Copier</button>
+          <a class="btn" id="btnOpenApplyLink" target="_blank" style="display:none">Ouvrir</a>
+        </div>
+
+        <div style="margin-top:12px;overflow:auto;border:1px solid var(--border);border-radius:12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Candidat</th>
+                <th>Email</th>
+                <th>Docs</th>
+                <th style="text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="candTbody">
+              <tr><td colspan="5" class="muted">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+<div class="hr"></div>
+
+        <div class="head">
+          <h2>Historique</h2
+          <div class="muted" id="evCount">—</div>
+        </div>
+
+        <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:12px">
+          <table>
+            <thead><tr><th>Date</th><th>Événement</th></tr></thead>
+            <tbody id="eventsTbody">
+              <tr><td colspan="2" class="muted">Chargement…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const tok = localStorage.getItem("token");
+  if(!tok) location.href="/login.html";
+
+  const qs = new URLSearchParams(location.search);
+  const propertyId = qs.get("id");
+  if(!propertyId) location.href="/dashboard.html";
+
+  const $ = (id)=>document.getElementById(id);
+
+  function toast(msg, ok=true){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.background = ok ? "#111827" : "#7f1d1d";
+    t.style.display = "block";
+    setTimeout(()=>t.style.display="none", 2400);
+  }
+
+  async function apiJson(url, opts={}){
+    const r = await fetch(url, {
+      ...opts,
+      headers: { "x-auth-token": tok, ...(opts.headers||{}) }
+    });
+    const ct = (r.headers.get("content-type")||"").toLowerCase();
+    const data = ct.includes("application/json") ? await r.json().catch(()=>null) : await r.text().catch(()=>null);
+
+    if(r.status===401 || r.status===403){
+      localStorage.clear();
+      location.href="/login.html";
+      return { ok:false, status:r.status, data };
+    }
+    return { ok:r.ok, status:r.status, data };
+  }
+
+  function fmtDate(d){ try{ return new Date(d).toLocaleDateString("fr-FR"); }catch(e){ return "—"; } }
+  function fmtDT(d){ try{ return new Date(d).toLocaleString("fr-FR"); }catch(e){ return "—"; } }
+  function fmtBytes(n){
+    n = Number(n||0);
+    if(n < 1024) return n+" B";
+    if(n < 1024*1024) return (n/1024).toFixed(1)+" KB";
+    return (n/1024/1024).toFixed(1)+" MB";
+  }
+  function esc(s){ return String(s||"").replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  let currentProperty = null;
+
+  function setStatus(txt){ $("status").textContent = txt; }
+
+  function addrStr(p){
+    const v2 = [p?.addressLine, p?.zipCode, p?.city].filter(Boolean).join(", ");
+    return (v2 && v2.includes(",")) ? v2 : (p?.address || v2 || "—");
+  }
+
+  function eventLabel(e){
+    const t = e && e.type;
+    if(t==='reminder_sent'){
+      const tpl = e && e.meta && e.meta.template;
+      const map = { rent_reminder:'Rappel quittance / loyer', missing_docs:'Documents manquants', late_payment:'Paiement en attente' };
+      return 'Relance envoyée' + (tpl ? (' — ' + (map[tpl] || tpl)) : '');
+    }
+    if(t==='pdf_quittance_generated') return 'PDF quittance généré';
+    if(t==='reminder_failed') return 'Échec relance (email)';
+    if(t==='email_quittance_sent') return 'Quittance envoyée par email';
+    if(t==='email_quittance_failed') return 'Échec envoi quittance (email)';
+    if(t==='document_uploaded') return 'Document uploadé';
+    if(t==='document_deleted') return 'Document supprimé';
+    return t || '—';
+  }
+
+
+function eventDetail(e){
+  const t = e && e.type;
+  const m = (e && e.meta) ? e.meta : {};
+  const parts = [];
+  if (m.to) parts.push("À: " + m.to);
+  if (m.subject) parts.push("Sujet: " + m.subject);
+  if (m.messageId) parts.push("ID: " + m.messageId);
+  if ((t === 'email_quittance_failed' || t === 'reminder_failed') && m.error) parts.push("Erreur: " + m.error);
+
+  if (!parts.length) return "";
+  return `<div class="muted" style="margin-top:2px">${esc(parts.join(" • "))}</div>`;
+}
+
+  async function loadEvents(){
+    const body = $("eventsTbody");
+    if(!body) return;
+
+    body.innerHTML = `<tr><td colspan="2" class="muted">Chargement…</td></tr>`;
+    $("evCount").textContent = "—";
+
+    const r = await apiJson("/api/events/property/" + propertyId + "?limit=15");
+    if(!r.ok){
+      const msg = (r.data && r.data.msg) ? r.data.msg : ("Erreur API ("+r.status+")");
+      body.innerHTML = `<tr><td colspan="2" class="muted">Historique indisponible : ${esc(msg)}</td></tr>`;
+      $("evCount").textContent = "—";
+      return;
+    }
+
+    const ev = Array.isArray(r.data) ? r.data : [];
+    $("evCount").textContent = ev.length + " evt(s)";
+
+    if(ev.length===0){
+      body.innerHTML = `<tr><td colspan="2" class="muted">Aucun événement.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = ev.map(e=>`
+      <tr>
+        <td class="muted">${fmtDT(e.createdAt)}</td>
+        <td><b>${esc(eventLabel(e))}</b>${eventDetail(e)}</td>
+      </tr>
+    `).join("");
+  }
+
+  async function loadProperty(){
+    setStatus("Chargement…");
+    const r = await apiJson("/api/properties/" + propertyId);
+    if(!r.ok){
+      toast((r.data && r.data.msg) || "Bien introuvable", false);
+      setStatus("Erreur");
+      return;
+    }
+    currentProperty = r.data;
+
+    // Prefill lien candidature si existant
+    try{
+      if(currentProperty && currentProperty.applyToken){
+        setApplyLinkUrl(applyUrlFromToken(currentProperty.applyToken));
+      }
+    }catch(_){ }
+
+    $("p_name").textContent = currentProperty?.name || "—";
+    $("p_addr").textContent = addrStr(currentProperty);
+
+    const rent = Number(currentProperty?.rentAmount||0);
+    const charges = Number(currentProperty?.chargesAmount||0);
+    $("p_amounts").textContent = `Loyer: ${rent.toFixed(2)}€ • Charges: ${charges.toFixed(2)}€ • Total: ${(rent+charges).toFixed(2)}€`;
+
+    $("btnPdf").disabled = false;
+    $("btnEmail").disabled = false;
+    $("btnUpload").disabled = false;
+
+    fillEditForm(currentProperty);
+    setStatus("OK ✅");
+  }
+
+  async function loadTenant(){
+    const r = await apiJson("/api/tenants/by-property/" + propertyId);
+    if(r.status === 404){
+      $("tenantBox").innerHTML = `
+        <div class="muted">Aucun locataire lié à ce bien.</div>
+        <div style="margin-top:10px">
+          <a class="btn" href="/dashboard.html">Assigner un locataire</a>
+        </div>`;
+      $("btnTenant").style.display = "none";
+      return;
+    }
+    if(!r.ok){
+      $("tenantBox").innerHTML = `<div class="muted">Erreur chargement locataire</div>`;
+      $("btnTenant").style.display = "none";
+      return;
+    }
+    const t = r.data;
+    $("tenantBox").innerHTML = `
+      <div><b>${esc((t.firstName||"") + " " + (t.lastName||""))}</b></div>
+      <div class="muted">${esc(t.email || "Email non renseigné")}</div>`;
+    $("btnTenant").href = "/tenant.html?id=" + encodeURIComponent(t._id);
+    $("btnTenant").style.display = "inline-flex";
+  }
+
+  async function loadDocs(){
+    const r = await apiJson("/api/property-documents/" + propertyId);
+    if(!r.ok){
+      $("docsTbody").innerHTML = `<tr><td colspan="5" class="muted">Erreur chargement documents</td></tr>`;
+      $("docCount").textContent = "—";
+      return;
+    }
+    const docs = Array.isArray(r.data) ? r.data : [];
+    $("docCount").textContent = docs.length + " doc(s)";
+
+    if(docs.length===0){
+      $("docsTbody").innerHTML = `<tr><td colspan="5" class="muted">Aucun document. Uploade ton premier fichier.</td></tr>`;
+      return;
+    }
+
+    $("docsTbody").innerHTML = docs.map(d=>`
+      <tr>
+        <td>${fmtDate(d.createdAt)}</td>
+        <td class="muted">${esc(d.type || "—")}</td>
+        <td><b>${esc(d.originalName || d.filename || "document")}</b></td>
+        <td class="muted">${fmtBytes(d.size)}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn" onclick="downloadDoc('${d._id}','${esc(d.originalName||"document")}')">Télécharger</button>
+          <button class="btn red" onclick="deleteDoc('${d._id}')">Suppr.</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function downloadBlob(url, filename){
+    const r = await fetch(url, { headers: { "x-auth-token": tok } });
+    if(!r.ok){ toast("Téléchargement impossible", false); return; }
+    const blob = await r.blob();
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = filename || "document";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u), 15000);
+  }
+
+  window.downloadDoc = async (id, name)=> downloadBlob("/api/property-documents/file/" + id, name);
+
+  window.deleteDoc = async (id)=>{
+    if(!confirm("Supprimer ce document ?")) return;
+    const r = await apiJson("/api/property-documents/" + id, { method:"DELETE" });
+    if(r.ok){
+      toast("Document supprimé ✅");
+      await loadDocs();
+      await loadEvents();
+    } else toast((r.data && r.data.msg) || "Erreur suppression", false);
+  };
+
+  function toggleEdit(show){
+    $("editCard").style.display = show ? "block" : "none";
+    if(show) $("editCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  function guessParts(p){
+    const line = String(p?.addressLine||"").trim();
+    const zip = String(p?.zipCode||"").trim();
+    const city = String(p?.city||"").trim();
+    if(line && zip && city) return { line, zip, city };
+    const a = String(p?.address||"").trim();
+    const m = a.match(/^(.*?),\s*(\d{5})\s+(.+)$/);
+    if(m) return { line:m[1].trim(), zip:m[2].trim(), city:m[3].trim() };
+    return { line:a, zip:"", city:"" };
+  }
+
+  async function refreshCity(zip, selected){
+    $("editCity").innerHTML = `<option value="">—</option>`;
+    $("cityHint").textContent = "";
+    if(!/^\d{5}$/.test(zip||"")) return;
+
+    try{
+      const url = "https://geo.api.gouv.fr/communes?codePostal="+encodeURIComponent(zip)+"&fields=nom&format=json&geometry=centre";
+      const rr = await fetch(url);
+      const arr = await rr.json().catch(()=>[]);
+      const names = (Array.isArray(arr)?arr:[]).map(x=>x.nom).filter(Boolean);
+      names.forEach(n=>{
+        const opt = document.createElement("option");
+        opt.value = n; opt.textContent = n;
+        $("editCity").appendChild(opt);
+      });
+      if(selected) $("editCity").value = selected;
+      $("cityHint").textContent = names.length ? "Sélectionne ta commune" : "Aucune commune trouvée";
+    }catch(e){
+      $("cityHint").textContent = "Suggestion communes indisponible (réseau).";
+    }
+  }
+
+  function fillEditForm(p){
+    const parts = guessParts(p||{});
+    $("editName").value = p?.name || "";
+    $("editSurface").value = (p?.surfaceM2 ?? "");
+    $("editAddressLine").value = parts.line || "";
+    $("editZip").value = parts.zip || "";
+    $("editRent").value = (p?.rentAmount ?? "");
+    $("editCharges").value = (p?.chargesAmount ?? 0);
+    refreshCity(parts.zip || "", parts.city || "");
+  }
+
+  async function saveEdit(){
+    const btn = $("btnSaveEdit");
+    btn.disabled = true;
+    try{
+      const name = $("editName").value.trim();
+      const addressLine = $("editAddressLine").value.trim();
+      const zipCode = $("editZip").value.trim();
+      const city = $("editCity").value || "";
+      const rentAmount = Number($("editRent").value);
+      const chargesAmount = Number($("editCharges").value || 0);
+      const surfaceM2 = $("editSurface").value ? Number($("editSurface").value) : null;
+
+      if(!name){ toast("Nom requis", false); return; }
+      if(!addressLine){ toast("Rue requise", false); return; }
+      if(!/^\d{5}$/.test(zipCode)){ toast("Code postal invalide", false); return; }
+      if(!city){ toast("Choisis une commune", false); return; }
+      if(!Number.isFinite(rentAmount) || rentAmount<=0){ toast("Loyer invalide", false); return; }
+      if(!Number.isFinite(chargesAmount) || chargesAmount<0){ toast("Charges invalides", false); return; }
+
+      const payload = { name, addressLine, zipCode, city, rentAmount, chargesAmount, surfaceM2 };
+
+      const r = await apiJson("/api/properties/" + propertyId, {
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if(!r.ok){ toast((r.data && r.data.msg) || "Sauvegarde impossible", false); return; }
+
+      toast("Bien mis à jour ✅");
+      toggleEdit(false);
+      await loadProperty();
+      await loadEvents();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  
+  function escAttr(s){ return String(s||"").replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+  function applyUrlFromToken(token){ return location.origin + "/apply.html?token=" + encodeURIComponent(token); }
+
+  function setApplyLinkUrl(url){
+    const inp = $("applyLinkInput");
+    if(!inp) return;
+    inp.value = url || "";
+    const ok = !!(url && url.length > 10);
+    $("btnCopyApplyLink").disabled = !ok;
+    const a = $("btnOpenApplyLink");
+    if(ok){ a.href = url; a.style.display = "inline-flex"; }
+    else { a.style.display = "none"; }
+  }
+
+  async function generateApplyLink(){
+    const btn = $("btnApplyLink");
+    btn.disabled = true;
+    try{
+      const r = await apiJson("/api/properties/" + propertyId + "/apply-link", { method:"POST" });
+      if(!r.ok){ toast((r.data && r.data.msg) || "Impossible de générer le lien", false); return; }
+      const url = (r.data && r.data.url) ? r.data.url : "";
+      setApplyLinkUrl(url);
+      toast("Lien de candidature prêt ✅");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function copyApplyLink(){
+    const url = ($("applyLinkInput").value || "").trim();
+    if(!url){ toast("Génère le lien d’abord", false); return; }
+    try{
+      await navigator.clipboard.writeText(url);
+      toast("Lien copié ✅");
+    }catch(e){
+      const inp = $("applyLinkInput");
+      inp.focus(); inp.select();
+      document.execCommand("copy");
+      toast("Lien copié ✅");
+    }
+  }
+
+  function shortDocName(name){
+    name = String(name||"doc");
+    if(name.length <= 14) return name;
+    const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : "";
+    return name.slice(0,10) + "…" + ext;
+  }
+
+  
+// ---------- Drawer Candidature (UX Pro) ----------
+function _qs(id){ return document.getElementById(id); }
+
+function closeCandDrawer(){
+  const ov = _qs("candDrawerOverlay");
+  const dr = _qs("candDrawer");
+  if(!ov || !dr) return;
+  ov.style.display = "none";
+  dr.classList.remove("open");
+  dr.setAttribute("aria-hidden","true");
+  ov.setAttribute("aria-hidden","true");
+  document.body.style.overflow = "";
+}
+
+async function openCandDrawer(candId, candFallback){
+  const ov = _qs("candDrawerOverlay");
+  const dr = _qs("candDrawer");
+  const body = _qs("cdBody");
+  if(!ov || !dr || !body) return;
+
+  ov.style.display = "block";
+  ov.setAttribute("aria-hidden","false");
+  dr.setAttribute("aria-hidden","false");
+  dr.classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  body.innerHTML = `<div class="muted">Chargement…</div>`;
+
+  let cand = candFallback || null;
+  // fetch détail si endpoint présent
+  try{
+    const r = await apiJson("/api/candidatures/" + encodeURIComponent(candId));
+    if(r && r.ok) cand = r.data;
+  }catch(_){}
+
+  if(!cand){
+    body.innerHTML = `<div class="muted">Détails indisponibles.</div>`;
+    return;
+  }
+
+  // checklist
+  let checklist = null;
+  try{
+    const rc = await apiJson("/api/candidatures/" + encodeURIComponent(candId) + "/checklist");
+    if(rc && rc.ok) checklist = rc.data;
+  }catch(_){}
+
+  const name = ((cand.firstName||"") + " " + (cand.lastName||"")).trim() || "Candidat";
+  const created = cand.createdAt || cand.scoredAt || cand.updatedAt;
+  const sc = cand.scoring || {};
+  const grade = sc.grade || "—";
+  const total = (typeof sc.total === "number") ? sc.total : null;
+  const ratio = (typeof sc.ratio === "number" && sc.ratio>0) ? sc.ratio : null;
+  const flags = Array.isArray(sc.flags) ? sc.flags : [];
+
+  _qs("cdTitle").textContent = name;
+  _qs("cdSub").textContent = (cand.email||"") + (created ? (" • " + fmtDate(created)) : "");
+
+  const missing = (checklist && Array.isArray(checklist.missing)) ? checklist.missing : [];
+  const breakdown = Array.isArray(sc.breakdown) ? sc.breakdown : [];
+
+  body.innerHTML = `
+    <div class="cd-card">
+      <div class="cd-row">
+        <div class="cd-kpi">
+          <div class="muted">Score</div>
+          <b>${esc(grade)}${total!==null?` <span class="muted">(${total})</span>`:""}</b>
+          ${ratio!==null?`<div class="muted" style="margin-top:4px">Ratio loyer/revenus: ${ratio.toFixed(2)}</div>`:""}
+        </div>
+        <div class="cd-kpi">
+          <div class="muted">Statut</div>
+          <select id="cdStatus">
+            <option value="NEW" ${cand.status==='NEW'?'selected':''}>Nouveau</option>
+            <option value="REVIEWED" ${cand.status==='REVIEWED'?'selected':''}>Vu</option>
+            <option value="ACCEPTED" ${cand.status==='ACCEPTED'?'selected':''}>Accepté</option>
+            <option value="REJECTED" ${cand.status==='REJECTED'?'selected':''}>Refusé</option>
+          </select>
+          <div class="muted" style="margin-top:6px">${esc(cand.phone||"")}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cd-card">
+      <b>Message</b>
+      <div class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(cand.message||"—")}</div>
+    </div>
+
+    <div class="cd-card">
+      <b>Checklist documents</b>
+      <div class="muted" style="margin-top:6px">${missing.length ? "Manquants :" : "OK (règles V1)"}</div>
+      ${missing.length ? `<ul class="cd-list">${missing.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    </div>
+
+    <div class="cd-card">
+      <b>Explications du score</b>
+      ${breakdown.length ? `<ul class="cd-list">${breakdown.map(x=>`<li><b>${esc(x.label||x.key)}</b> : ${(x.points>=0?'+':'') + String(x.points||0)} <span class="muted">${esc(x.detail||"")}</span></li>`).join("")}</ul>` : `<div class="muted" style="margin-top:6px">—</div>`}
+    </div>
+
+    <div class="cd-card">
+      <b>Flags</b>
+      <div style="margin-top:6px">
+        ${(flags.length?flags:["—"]).map(f=>`<span class="tag">${esc(f)}</span>`).join("")}
+      </div>
+    </div>
+  `;
+
+  // Actions drawer
+  const sel = _qs("cdStatus");
+  if(sel){
+    sel.addEventListener("change", async ()=>{
+      const r = await apiJson("/api/candidatures/" + encodeURIComponent(candId) + "/status", { method:"PATCH", body:{ status: sel.value } });
+      if(!r.ok){ toast((r.data && r.data.msg) || "Statut impossible", false); return; }
+      toast("Statut mis à jour ✅");
+      // refresh list if available
+      try{ await loadCandidatures(); }catch(_){}
+    });
+  }
+
+  // Download all
+  _qs("cdDownloadAll").onclick = ()=>{
+    const docs = Array.isArray(cand.docs) ? cand.docs : [];
+    if(!docs.length){ toast("Aucun document", false); return; }
+    if(!confirm("Télécharger tous les documents ?")) return;
+    docs.forEach((d,i)=>{
+      setTimeout(()=>{
+        const url = "/api/candidatures/" + encodeURIComponent(candId) + "/file/" + encodeURIComponent(d._id);
+        downloadBlob(url, d.originalName || ("document-"+(i+1)));
+      }, i*350);
+    });
+  };
+
+  // Recompute score
+  _qs("cdRecompute").onclick = async ()=>{
+    const r = await apiJson("/api/candidatures/" + encodeURIComponent(candId) + "/recompute-score", { method:"POST" });
+    if(!r.ok){ toast((r.data && r.data.msg) || "Recalcul impossible", false); return; }
+    toast("Score recalculé ✅");
+    try{ await loadCandidatures(); }catch(_){}
+    // reopen to refresh view
+    openCandDrawer(candId, candFallback);
+  };
+        // Pipeline décision
+        qs("cdRequestDocs").onclick = async ()=>{
+          if(!confirm("Envoyer un email pour demander les pièces manquantes ?")) return;
+          const rr = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/request-docs", { method:"POST" });
+          if(!rr.ok) return toastSafe((rr.data && rr.data.msg) || "Action impossible", false);
+          toastSafe(rr.data.msg || "Email envoyé ✅");
+          try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+        };
+
+        qs("cdReject").onclick = async ()=>{
+          const reason = prompt("Motif (optionnel) :");
+          if(!confirm("Refuser la candidature et envoyer un email ?")) return;
+          const rr = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/reject", { method:"POST", body:{ reason: reason || "" } });
+          if(!rr.ok) return toastSafe((rr.data && rr.data.msg) || "Refus impossible", false);
+          toastSafe(rr.data.msg || "Refus ✅");
+          try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+          closeDrawer();
+        };
+
+        qs("cdAccept").onclick = async ()=>{
+          if(!confirm("Accepter ce candidat (statut ACCEPTED + shortlist ⭐) ?")) return;
+          const rr = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/accept", { method:"POST" });
+          if(!rr.ok) return toastSafe((rr.data && rr.data.msg) || "Acceptation impossible", false);
+          toastSafe(rr.data.msg || "Accepté ✅");
+          try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+          closeDrawer();
+        };
+
+}
+
+// Close bindings
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeCandDrawer(); });
+_qs("candDrawerOverlay")?.addEventListener("click", closeCandDrawer);
+_qs("cdClose")?.addEventListener("click", closeCandDrawer);
+_qs("cdClose2")?.addEventListener("click", closeCandDrawer);
+
+async function loadCandidatures(){
+    const body = $("candTbody");
+    if(!body) return;
+
+    body.innerHTML = `<tr><td colspan="5" class="muted">Chargement…</td></tr>`;
+    $("candCount").textContent = "—";
+
+    const r = await apiJson("/api/properties/" + propertyId + "/candidatures");
+    if(!r.ok){
+      const msg = (r.data && r.data.msg) ? r.data.msg : ("Erreur API ("+r.status+")");
+      body.innerHTML = `<tr><td colspan="5" class="muted">Candidatures indisponibles : ${esc(msg)}</td></tr>`;
+      $("candCount").textContent = "—";
+      return;
+    }
+
+    const items = Array.isArray(r.data) ? r.data : [];
+    $("candCount").textContent = items.length + " candidature(s)";
+
+    if(items.length === 0){
+      body.innerHTML = `<tr><td colspan="5" class="muted">Aucune candidature pour le moment.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = items.map(c=>{
+      const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
+      const docs = Array.isArray(c.docs) ? c.docs : [];
+      const buttons = docs.slice(0,4).map(d => (
+        `<button class="btn" data-cdl="1" data-cand="${c._id}" data-doc="${d._id}" data-name="${escAttr(d.originalName||"document")}">${esc(shortDocName(d.originalName||"doc"))}</button>`
+      )).join(" ");
+      const more = (docs.length > 4) ? `<span class="muted">+${docs.length-4}</span>` : "";
+      return `
+        <tr>
+          <td class="muted">${fmtDate(c.createdAt)}</td>
+          <td><b>${esc(name)}</b></td>
+          <td class="muted">${esc(c.email||"—")}</td>
+          <td style="white-space:nowrap">${buttons} ${more}</td>
+          <td style="text-align:right;white-space:nowrap">
+            <button class="btn" data-cdet="1" data-cand="${c._id}">Détails</button> <button class="btn" data-call="all" data-cand="${c._id}">Tout</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    document.querySelectorAll("[data-cdl='1']").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const url = "/api/candidatures/file/" + encodeURIComponent(b.dataset.cand) + "/" + encodeURIComponent(b.dataset.doc);
+        downloadBlob(url, b.dataset.name || "document");
+      });
+    });
+
+    
+    document.querySelectorAll("[data-cdet='1']").forEach(b=>{
+      b.addEventListener("click", async ()=>{
+        const candId = b.dataset.cand;
+        // Utilise les données déjà en mémoire si présentes, sinon fetch détail
+        let cand = items.find(x=>String(x._id)===String(candId));
+        if(!cand || !cand.scoring){
+          const r = await apiJson("/api/candidatures/" + encodeURIComponent(candId));
+          if(!r.ok){ toast((r.data && r.data.msg) || "Détails indisponibles", false); return; }
+          cand = r.data;
+        }
+        const sc = cand.scoring || {};
+        const lines = [];
+        lines.push("Score: " + (sc.grade || "—") + (typeof sc.total==="number" ? (" ("+sc.total+")") : ""));
+        if (typeof sc.ratio === "number" && sc.ratio > 0) lines.push("Ratio loyer/revenus: " + sc.ratio.toFixed(2));
+        lines.push("");
+        (sc.breakdown || []).forEach(x=>{
+          lines.push((x.label||x.key) + " : " + (x.points>=0?"+":"") + x.points + (x.detail ? (" — " + x.detail) : ""));
+        });
+        if((sc.flags||[]).length){
+          lines.push("");
+          lines.push("Flags: " + sc.flags.join(", "));
+        }
+        openCandDrawer(candId, cand);
+      });
+    });
+
+document.querySelectorAll("[data-call='all']").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const candId = b.dataset.cand;
+        const cand = items.find(x=>String(x._id)===String(candId));
+        if(!cand) return;
+        const docs = Array.isArray(cand.docs) ? cand.docs : [];
+        if(!docs.length){ toast("Aucun document", false); return; }
+        if(!confirm("Télécharger tous les documents ?")) return;
+        docs.forEach((d,i)=>{
+          setTimeout(()=>{
+            const url = "/api/candidatures/file/" + encodeURIComponent(candId) + "/" + encodeURIComponent(d._id);
+            downloadBlob(url, d.originalName || ("document-"+(i+1)));
+          }, i*350);
+        });
+      });
+    });
+  }
+
+  $("btnApplyLink").addEventListener("click", generateApplyLink);
+  $("btnCopyApplyLink").addEventListener("click", copyApplyLink);
+
+
+$("btnPdf").addEventListener("click", async ()=>{
+    const btn = $("btnPdf");
+    btn.disabled = true;
+    try{
+      const r = await fetch("/api/documents/quittance/" + propertyId, { headers:{ "x-auth-token": tok } });
+      if(!r.ok){
+        const j = await r.json().catch(()=>({}));
+        toast(j.msg || "PDF impossible", false);
+        return;
+      }
+      const blob = await r.blob();
+      const u = URL.createObjectURL(blob);
+      window.open(u, "_blank");
+      setTimeout(()=>URL.revokeObjectURL(u), 60000);
+
+      // refresh historique (le backend logge l'event)
+      await loadEvents();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("btnEmail").addEventListener("click", async ()=>{
+    const btn = $("btnEmail");
+    btn.disabled = true;
+    try{
+      const r = await apiJson("/api/documents/email/" + propertyId, { method:"POST" });
+
+if(r.ok) {
+  toast((r.data && r.data.msg) || "Email envoyé ✅");
+} else if (r.status === 402) {
+  toast((r.data && r.data.msg) || "Limite atteinte — upgrade requis", false);
+  const url = (r.data && r.data.upgradeUrl) ? r.data.upgradeUrl : "/pricing.html";
+  setTimeout(()=>{
+    if(confirm("Limite atteinte sur votre plan actuel. Voir les offres PRO ?")) location.href = url;
+  }, 80);
+} else {
+  toast((r.data && r.data.msg) || "Email impossible", false);
+}
+
+      // refresh historique (le backend logge l'event)
+      await loadEvents();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("btnUpload").addEventListener("click", async ()=>{
+    const btn = $("btnUpload");
+    const f = $("file").files[0];
+    if(!f){ toast("Choisis un fichier", false); return; }
+
+    btn.disabled = true;
+    try{
+      const fd = new FormData();
+      fd.append("file", f);
+      fd.append("type", $("docType").value || "autre");
+
+      const r = await fetch("/api/property-documents/upload/" + propertyId, {
+        method:"POST",
+        headers:{ "x-auth-token": tok },
+        body: fd
+      });
+      const j = await r.json().catch(()=>({}));
+
+      if(!r.ok){ toast(j.msg || "Upload impossible", false); return; }
+
+      toast("Upload OK ✅");
+      $("file").value = "";
+      await loadDocs();
+      await loadEvents();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("btnEdit").addEventListener("click", ()=>toggleEdit(true));
+  $("btnCancelEdit").addEventListener("click", ()=>toggleEdit(false));
+  $("btnSaveEdit").addEventListener("click", saveEdit);
+
+  let zipTimer = null;
+  $("editZip").addEventListener("input", ()=>{
+    clearTimeout(zipTimer);
+    zipTimer = setTimeout(()=>refreshCity($("editZip").value.trim(), $("editCity").value), 350);
+  });
+
+  (async ()=>{
+    await loadProperty();
+    await loadTenant();
+    await loadDocs();
+    await loadCandidatures();
+    await loadEvents();
+  })();
+</script>
+<div id="candDrawerOverlay" aria-hidden="true"></div>
+<aside id="candDrawer" aria-hidden="true">
+  <div class="cd-head">
+    <div>
+      <div class="cd-title" id="cdTitle">Candidature</div>
+      <div class="cd-sub" id="cdSub">—</div>
+    </div>
+    <button class="btn" id="cdClose">Fermer</button>
+  </div>
+
+  <div class="cd-body" id="cdBody">
+    <div class="muted">Chargement…</div>
+  </div>
+
+  <div class="cd-actions">
+    <button class="btn" id="cdRequestDocs">Demander pièces</button>
+        <button class="btn" id="cdReject">Refuser</button>
+        <button class="btn" id="cdAccept">Accepter</button>
+        <button class="btn" id="cdRecompute">Recalculer score</button>
+    <button class="btn" id="cdDownloadAll">Télécharger tous</button>
+    <button class="btn" id="cdClose2">Fermer</button>
+  </div>
+</aside>
+<script>
+/* DrawerV2 JS */
+(function(){
+  const qs = (id)=>document.getElementById(id);
+
+  function esc(s){
+    return String(s??"").replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]));
+  }
+  function fmtDateSafe(x){
+    try{ return (typeof fmtDate==="function") ? fmtDate(x) : new Date(x).toLocaleString(); }catch(_){ return ""; }
+  }
+  function toastSafe(msg, ok=true){
+    try{ return (typeof toast==="function") ? toast(msg, ok) : console.log(msg); }catch(_){ console.log(msg); }
+  }
+  function token(){ return localStorage.getItem("token") || ""; }
+
+  async function downloadPdfWithToken(url, filename){
+    try{
+      const t = token();
+      if(!t){ toastSafe("Pas de token (déconnecté ?)", false); return; }
+
+      const r = await fetch(url, { headers: { "x-auth-token": t } });
+      if(!r.ok){
+        const txt = await r.text().catch(()=> "");
+        toastSafe("Export PDF impossible (" + r.status + ")", false);
+        console.log(txt);
+        return;
+      }
+      const blob = await r.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || "doc2loc-compare.pdf";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+    }catch(e){
+      toastSafe("Erreur export PDF", false);
+      console.error(e);
+    }
+  }
+
+  async function api(path, opt){
+    opt = opt || {};
+    opt.headers = opt.headers || {};
+    opt.headers["x-auth-token"] = token();
+    if(opt.body && typeof opt.body === "object" && !(opt.body instanceof FormData)){
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(opt.body);
+    }
+    const r = await fetch(path, opt);
+    const data = await r.json().catch(()=>null);
+    return { ok:r.ok, status:r.status, data };
+  }
+
+  async function downloadBlob(path, filename){
+    try{
+      const r = await fetch(path, { headers: { "x-auth-token": token() } });
+      if(!r.ok) return toastSafe("Téléchargement impossible", false);
+      const blob = await r.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || "document";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }catch(e){
+      toastSafe("Erreur téléchargement", false);
+    }
+  }
+
+  function openDrawer(){
+    const ov = qs("candDrawerOverlay");
+    const dr = qs("candDrawer");
+    if(!ov || !dr) return;
+    ov.style.display = "block";
+    dr.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeDrawer(){
+    const ov = qs("candDrawerOverlay");
+    const dr = qs("candDrawer");
+    if(!ov || !dr) return;
+    ov.style.display = "none";
+    dr.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  async function renderDrawer(candId){
+    openDrawer();
+    qs("cdBody").innerHTML = `<div class="muted">Chargement…</div>`;
+
+    const r = await api("/api/candidatures/" + encodeURIComponent(candId));
+    if(!r.ok || !r.data){
+      qs("cdBody").innerHTML = `<div class="muted">Détails indisponibles.</div>`;
+      return;
+    }
+    const cand = r.data;
+
+    
+        // bind candId to drawer for global action buttons
+        try{ const drEl = qs("candDrawer"); if(drEl) drEl.dataset.candId = String(candId); }catch(_){}
+let checklist = null;
+    const rc = await api("/api/candidatures/" + encodeURIComponent(candId) + "/checklist");
+    if(rc.ok) checklist = rc.data;
+
+    const name = ((cand.firstName||"") + " " + (cand.lastName||"")).trim() || "Candidat";
+    const sc = cand.scoring || {};
+    const grade = sc.grade || "—";
+    const total = (typeof sc.total === "number") ? sc.total : null;
+    const ratio = (typeof sc.ratio === "number" && sc.ratio>0) ? sc.ratio : null;
+    const breakdown = Array.isArray(sc.breakdown) ? sc.breakdown : [];
+    const flags = Array.isArray(sc.flags) ? sc.flags : [];
+
+    qs("cdTitle").textContent = name;
+    qs("cdSub").textContent = (cand.email||"") + (cand.createdAt ? (" • " + fmtDateSafe(cand.createdAt)) : "");
+
+    const missing = (checklist && Array.isArray(checklist.missing)) ? checklist.missing : [];
+    const docs = Array.isArray(cand.docs) ? cand.docs : [];
+
+    qs("cdBody").innerHTML = `
+      <div class="cdc">
+        <div class="cdr">
+          <div class="cdk">
+            <div class="muted">Score</div>
+            <b>${esc(grade)}${total!==null?` <span class="muted">(${total})</span>`:""}</b>
+            ${ratio!==null?`<div class="muted" style="margin-top:4px">Ratio loyer/revenus: ${ratio.toFixed(2)}</div>`:""}
+          </div>
+          <div class="cdk">
+            <div class="muted">Statut</div>
+            <select id="cdStatus">
+              <option value="NEW" ${cand.status==='NEW'?'selected':''}>Nouveau</option>
+              <option value="REVIEWED" ${cand.status==='REVIEWED'?'selected':''}>Vu</option>
+              <option value="ACCEPTED" ${cand.status==='ACCEPTED'?'selected':''}>Accepté</option>
+              <option value="REJECTED" ${cand.status==='REJECTED'?'selected':''}>Refusé</option>
+            </select>
+            <div class="muted" style="margin-top:6px">${esc(cand.phone||"")}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cdc">
+        <b>Checklist documents</b>
+        <div class="muted" style="margin-top:6px">${missing.length ? "Manquants :" : "OK (règles V1)"}</div>
+        ${missing.length ? `<ul class="cdlist">${missing.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      </div>
+
+      <div class="cdc">
+        <b>Explications du score</b>
+        ${breakdown.length ? `<ul class="cdlist">${breakdown.map(x=>`<li><b>${esc(x.label||x.key)}</b> : ${(x.points>=0?'+':'') + String(x.points||0)} <span class="muted">${esc(x.detail||"")}</span></li>`).join("")}</ul>` : `<div class="muted" style="margin-top:6px">—</div>`}
+      </div>
+
+      <div class="cdc">
+        <b>Flags</b>
+        <div style="margin-top:6px">${(flags.length?flags:["—"]).map(f=>`<span class="tag">${esc(f)}</span>`).join("")}</div>
+      </div>
+    `;
+
+    // Bind status change
+    const sel = qs("cdStatus");
+    sel && sel.addEventListener("change", async ()=>{
+      const up = await api("/api/candidatures/" + encodeURIComponent(candId) + "/status", { method:"PATCH", body:{ status: sel.value } });
+      if(!up.ok) return toastSafe((up.data && up.data.msg) || "Statut impossible", false);
+      toastSafe("Statut mis à jour ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+    });
+
+    // Bind download all
+    qs("cdDownloadAll").onclick = ()=>{
+      if(!docs.length) return toastSafe("Aucun document", false);
+      if(!confirm("Télécharger tous les documents ?")) return;
+      docs.forEach((d,i)=>{
+        setTimeout(()=>{
+          const url = "/api/candidatures/" + encodeURIComponent(candId) + "/file/" + encodeURIComponent(d._id);
+          downloadBlob(url, d.originalName || ("document-"+(i+1)));
+        }, i*350);
+      });
+    };
+
+    // Bind recompute
+    qs("cdRecompute").onclick = async ()=>{
+      const rr = await api("/api/candidatures/" + encodeURIComponent(candId) + "/recompute-score", { method:"POST" });
+      if(!rr.ok) return toastSafe((rr.data && rr.data.msg) || "Recalcul impossible", false);
+      toastSafe("Score recalculé ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+      renderDrawer(candId);
+    };
+  }
+
+  // Close hooks
+  qs("candDrawerOverlay")?.addEventListener("click", closeDrawer);
+  qs("cdClose")?.addEventListener("click", closeDrawer);
+  qs("cdClose2")?.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
+
+  // Event delegation: intercept clicks on Détails / Recalculer
+  document.addEventListener("click", async (e)=>{
+    const det = e.target.closest("[data-cdet]");
+    const rec = e.target.closest("[data-crec]");
+    if(det){
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      const candId = det.dataset.cand;
+      if(candId) renderDrawer(candId);
+      return;
+    }
+    if(rec){
+      e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      const candId = rec.dataset.cand;
+      if(!candId) return;
+      const rr = await api("/api/candidatures/" + encodeURIComponent(candId) + "/recompute-score", { method:"POST" });
+      if(!rr.ok) return toastSafe((rr.data && rr.data.msg) || "Recalcul impossible", false);
+      toastSafe("Score recalculé ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+      return;
+    }
+  }, true);
+})();
+</script>
+<script>
+/* CandBoard V1 */
+(function(){
+  const qs = (sel)=>document.querySelector(sel);
+  const qsa = (sel)=>Array.from(document.querySelectorAll(sel));
+  const byId = (id)=>document.getElementById(id);
+
+  function esc(s){
+    return String(s??"").replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]));
+  }
+  function token(){ return localStorage.getItem("token") || ""; }
+
+  async function api(path, opt){
+    opt = opt || {};
+    opt.headers = opt.headers || {};
+    opt.headers["x-auth-token"] = token();
+    if(opt.body && typeof opt.body === "object" && !(opt.body instanceof FormData)){
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(opt.body);
+    }
+    const r = await fetch(path, opt);
+    const data = await r.json().catch(()=>null);
+    return { ok:r.ok, status:r.status, data };
+  }
+
+  function getPropertyId(){
+    try{
+      if(typeof propertyId !== "undefined" && propertyId) return propertyId;
+    }catch(_){}
+    return new URLSearchParams(location.search).get("id") || "";
+  }
+
+  function ensureFilterBar(){
+    if(byId("candFilterBar")) return;
+
+    const tbody = byId("candTbody");
+    if(!tbody) return;
+
+    // remonte au container table
+    let container = tbody.closest("div");
+    if(!container) container = tbody.parentElement;
+
+    const bar = document.createElement("div");
+    bar.id = "candFilterBar";
+    bar.style.display = "flex";
+    bar.style.gap = "10px";
+    bar.style.flexWrap = "wrap";
+    bar.style.alignItems = "center";
+    bar.style.marginTop = "12px";
+
+    bar.innerHTML = `
+      <input id="candSearch" placeholder="Rechercher (nom/email)..." style="min-width:220px;flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:12px">
+      <select id="candSort" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px">
+        <option value="score_desc">Tri: Score ↓</option>
+        <option value="score_asc">Tri: Score ↑</option>
+        <option value="date_desc">Tri: Date ↓</option>
+      </select>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px">
+        <input type="checkbox" id="onlyShortlisted"> Shortlist ⭐
+      </label>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px">
+        <input type="checkbox" id="onlyMissing"> Docs manquants
+      </label>
+      <div style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px">
+        Grade:
+        ${["A","B","C","D","E"].map(g=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="gradeChk" value="${g}" checked> ${g}</label>`).join("")}
+      </div>
+    `;
+
+    // inject juste au-dessus du tableau (container)
+    container.parentElement.insertBefore(bar, container);
+  }
+
+  function missingCountFromFlags(sc){
+    const flags = (sc && Array.isArray(sc.flags)) ? sc.flags : [];
+    return flags.filter(f => String(f).startsWith("missing_")).length;
+  }
+
+  function fmtDateSafe(x){
+    try{ return (typeof fmtDate==="function") ? fmtDate(x) : new Date(x).toLocaleString(); }catch(_){ return ""; }
+  }
+
+  function getFilters(){
+    const grades = qsa(".gradeChk").filter(x=>x.checked).map(x=>x.value);
+    return {
+      q: (byId("candSearch")?.value || "").trim().toLowerCase(),
+      sort: byId("candSort")?.value || "score_desc",
+      onlyShortlisted: !!byId("onlyShortlisted")?.checked,
+      onlyMissing: !!byId("onlyMissing")?.checked,
+      grades
+    };
+  }
+
+  function applyFilters(items){
+    const f = getFilters();
+    let out = items.slice();
+
+    if(f.q){
+      out = out.filter(c=>{
+        const name = ((c.firstName||"") + " " + (c.lastName||"")).trim().toLowerCase();
+        const email = String(c.email||"").toLowerCase();
+        return name.includes(f.q) || email.includes(f.q);
+      });
+    }
+
+    out = out.filter(c=>{
+      const g = (c.scoring && c.scoring.grade) ? c.scoring.grade : "—";
+      return f.grades.includes(g);
+    });
+
+    if(f.onlyShortlisted){
+      out = out.filter(c=>!!c.shortlisted);
+    }
+
+    if(f.onlyMissing){
+      out = out.filter(c=>missingCountFromFlags(c.scoring) > 0);
+    }
+
+    if(f.sort === "score_desc"){
+      out.sort((a,b)=>(Number(b.scoring?.total||0) - Number(a.scoring?.total||0)));
+    } else if(f.sort === "score_asc"){
+      out.sort((a,b)=>(Number(a.scoring?.total||0) - Number(b.scoring?.total||0)));
+    } else {
+      out.sort((a,b)=>new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    }
+    return out;
+  }
+
+  function shortName(s){
+    s = String(s||"doc");
+    if(s.length <= 18) return s;
+    const dot = s.lastIndexOf(".");
+    const ext = dot > 0 ? s.slice(dot) : "";
+    return s.slice(0,14) + "…" + ext;
+  }
+
+  async function downloadBlob(url, filename){
+    try{
+      const r = await fetch(url, { headers: { "x-auth-token": token() } });
+      if(!r.ok) return (typeof toast==="function" ? toast("Téléchargement impossible", false) : null);
+      const blob = await r.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || "document";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 600);
+    }catch(_){}
+  }
+
+  let __candCache = [];
+
+  async function candLoad(){
+    ensureFilterBar();
+    const pid = getPropertyId();
+    const tbody = byId("candTbody");
+    if(!pid || !tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">Chargement…</td></tr>`;
+    const r = await api("/api/properties/" + encodeURIComponent(pid) + "/candidatures");
+    if(!r.ok){
+      tbody.innerHTML = `<tr><td colspan="7" class="muted">Erreur candidatures</td></tr>`;
+      return;
+    }
+    __candCache = Array.isArray(r.data) ? r.data : [];
+    render();
+  }
+
+  function render(){
+    const tbody = byId("candTbody");
+    if(!tbody) return;
+
+    const items = applyFilters(__candCache);
+    if(!items.length){
+      tbody.innerHTML = `<tr><td colspan="7" class="muted">Aucun résultat.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(c=>{
+      const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
+      const sc = c.scoring || {};
+      const grade = sc.grade || "—";
+      const total = (typeof sc.total==="number") ? sc.total : null;
+      const miss = missingCountFromFlags(sc);
+
+      const docs = Array.isArray(c.docs) ? c.docs : [];
+      const docBtns = docs.slice(0,3).map(d=>(
+        `<button class="btn" data-cdl="1" data-cand="${c._id}" data-doc="${d._id}" data-name="${esc(d.originalName||"document")}">${esc(shortName(d.originalName||"doc"))}</button>`
+      )).join(" ");
+      const more = docs.length > 3 ? `<span class="muted">+${docs.length-3}</span>` : "";
+
+      const star = c.shortlisted ? "⭐" : "☆";
+
+      return `
+        <tr>
+          <td class="muted">${fmtDateSafe(c.createdAt)}</td>
+          <td><button class="btn" data-star="1" data-cand="${c._id}" title="Shortlist">${star}</button> <b>${esc(name)}</b></td>
+          <td class="muted">${esc(c.email||"—")}</td>
+          <td style="white-space:nowrap">${docBtns} ${more}</td>
+          <td><b>${esc(grade)}</b>${total!==null?` <span class="muted">(${total})</span>`:""}${miss?` <span class="muted">• ${miss} manquant(s)</span>`:""}</td>
+          <td>
+            <select class="candStatus" data-cand="${c._id}">
+              <option value="NEW" ${c.status==='NEW'?'selected':''}>Nouveau</option>
+              <option value="REVIEWED" ${c.status==='REVIEWED'?'selected':''}>Vu</option>
+              <option value="ACCEPTED" ${c.status==='ACCEPTED'?'selected':''}>Accepté</option>
+              <option value="REJECTED" ${c.status==='REJECTED'?'selected':''}>Refusé</option>
+            </select>
+          </td>
+          <td style="text-align:right;white-space:nowrap">
+            <button class="btn" data-cdet="1" data-cand="${c._id}">Détails</button>
+            <button class="btn" data-crec="1" data-cand="${c._id}">Recalculer</button>
+            <button class="btn" data-call="all" data-cand="${c._id}">Tout</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="7">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <span class="muted" style="font-size:12px">Note interne :</span>
+              <input class="candNote" data-cand="${c._id}" value="${esc(c.internalNote||"")}" placeholder="Ex: bon profil, attendre garant..." style="flex:1;min-width:240px;padding:10px 12px;border:1px solid var(--border);border-radius:12px">
+              <button class="btn" data-save-note="1" data-cand="${c._id}">Enregistrer</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    // bind doc download
+    qsa("[data-cdl='1']").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const url = "/api/candidatures/" + encodeURIComponent(b.dataset.cand) + "/file/" + encodeURIComponent(b.dataset.doc);
+        downloadBlob(url, b.dataset.name || "document");
+      });
+    });
+
+    // bind status
+    qsa(".candStatus").forEach(sel=>{
+      sel.addEventListener("change", async ()=>{
+        const r = await api("/api/candidatures/" + encodeURIComponent(sel.dataset.cand) + "/status", { method:"PATCH", body:{ status: sel.value } });
+        if(!r.ok) return (typeof toast==="function" ? toast((r.data&&r.data.msg)||"Statut impossible", false) : null);
+        if(typeof toast==="function") toast("Statut mis à jour ✅");
+        // update cache
+        const it = __candCache.find(x=>String(x._id)===String(sel.dataset.cand));
+        if(it) it.status = sel.value;
+      });
+    });
+
+    // bind download all
+    qsa("[data-call='all']").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const candId = btn.dataset.cand;
+        const cand = __candCache.find(x=>String(x._id)===String(candId));
+        const docs = cand && Array.isArray(cand.docs) ? cand.docs : [];
+        if(!docs.length){ if(typeof toast==="function") toast("Aucun document", false); return; }
+        if(!confirm("Télécharger tous les documents ?")) return;
+        docs.forEach((d,i)=>{
+          setTimeout(()=>{
+            const url = "/api/candidatures/" + encodeURIComponent(candId) + "/file/" + encodeURIComponent(d._id);
+            downloadBlob(url, d.originalName || ("document-"+(i+1)));
+          }, i*350);
+        });
+      });
+    });
+
+    // bind star shortlist
+    qsa("[data-star='1']").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const candId = btn.dataset.cand;
+        const cand = __candCache.find(x=>String(x._id)===String(candId));
+        const target = !(cand && cand.shortlisted);
+        const r = await api("/api/candidatures/" + encodeURIComponent(candId) + "/shortlist", { method:"PATCH", body:{ shortlisted: target } });
+        if(!r.ok) return (typeof toast==="function" ? toast((r.data&&r.data.msg)||"Shortlist impossible", false) : null);
+        if(cand) cand.shortlisted = !!r.data.shortlisted;
+        if(typeof toast==="function") toast(r.data.msg || "OK");
+        render();
+      });
+    });
+
+    // bind save note
+    qsa("[data-save-note='1']").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const candId = btn.dataset.cand;
+        const inp = qs(".candNote[data-cand='"+candId+"']");
+        const note = (inp?.value || "").trim();
+        const r = await api("/api/candidatures/" + encodeURIComponent(candId) + "/note", { method:"PATCH", body:{ note } });
+        if(!r.ok) return (typeof toast==="function" ? toast((r.data&&r.data.msg)||"Note impossible", false) : null);
+        const cand = __candCache.find(x=>String(x._id)===String(candId));
+        if(cand) cand.internalNote = note;
+        if(typeof toast==="function") toast("Note enregistrée ✅");
+      });
+    });
+  }
+
+  function bindFilters(){
+    ["candSearch","candSort","onlyShortlisted","onlyMissing"].forEach(id=>{
+      byId(id)?.addEventListener("input", render);
+      byId(id)?.addEventListener("change", render);
+    });
+    qsa(".gradeChk").forEach(chk=>chk.addEventListener("change", render));
+  }
+
+  // expose loadCandidatures so other features (drawer) can refresh
+  window.loadCandidatures = candLoad;
+
+  // init
+  window.addEventListener("load", ()=>{
+    setTimeout(()=>{
+      ensureFilterBar();
+      bindFilters();
+      candLoad();
+    }, 80);
+  });
+})();
+</script>
+
+<div id="cmpOverlay"></div>
+<div id="cmpModal" role="dialog" aria-modal="true">
+  <div class="cmpHead">
+    <div>
+      <div class="cmpTitle">Comparaison candidats</div>
+      <div class="muted" id="cmpSub" style="font-size:12px;margin-top:2px">—</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="cmpExport">Exporter PDF</button>
+      <button class="btn" id="cmpClose">Fermer</button>
+    </div>
+  </div>
+  <div class="cmpBody" id="cmpBody"><div class="muted">—</div></div>
+</div>
+
+<script>
+/* CompareUI V1 */
+(function(){
+  const byId = (id)=>document.getElementById(id);
+  const qsa = (sel)=>Array.from(document.querySelectorAll(sel));
+
+  function token(){ return localStorage.getItem("token") || ""; }
+  async function api(path, opt){
+    opt = opt || {};
+    opt.headers = opt.headers || {};
+    opt.headers["x-auth-token"] = token();
+    if(opt.body && typeof opt.body === "object" && !(opt.body instanceof FormData)){
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(opt.body);
+    }
+    const r = await fetch(path, opt);
+    const data = await r.json().catch(()=>null);
+    return { ok:r.ok, status:r.status, data };
+  }
+  function esc(s){
+    return String(s??"").replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]));
+  }
+  function toastSafe(msg, ok=true){
+    try{ if(typeof toast==="function") return toast(msg, ok); }catch(_){}
+    console.log(msg);
+  }
+
+  let selected = [];
+  let lastCompareIds = null;
+
+  function openModal(){
+    byId("cmpOverlay").style.display = "block";
+    byId("cmpModal").style.display = "block";
+    document.body.style.overflow = "hidden";
+  }
+  function closeModal(){
+    byId("cmpOverlay").style.display = "none";
+    byId("cmpModal").style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  function ensureCompareBar(){
+    if(byId("cmpBar")) return;
+    const bar = document.createElement("div");
+    bar.id = "cmpBar";
+    bar.style.display = "flex";
+    bar.style.gap = "10px";
+    bar.style.flexWrap = "wrap";
+    bar.style.alignItems = "center";
+    bar.style.margin = "12px 0";
+
+    bar.innerHTML = `
+      <span class="muted" style="font-size:12px">Sélection: <b id="cmpCount">0</b>/2</span>
+      <button class="btn" id="cmpBtn" disabled>Comparer</button>
+      <button class="btn" id="cmpClear" disabled>Reset</button>
+      <span class="muted" style="font-size:12px">Astuce: coche 2 candidats dans le tableau</span>
+    `;
+
+    const tbody = document.getElementById("candTbody");
+    if(!tbody) return;
+    const container = tbody.closest("div") || tbody.parentElement;
+    container.parentElement.insertBefore(bar, container);
+
+    byId("cmpBtn").addEventListener("click", runCompare);
+    byId("cmpClear").addEventListener("click", ()=>{
+      selected = [];
+      syncChecks();
+      updateBar();
+    });
+  }
+
+  function updateBar(){
+    const n = selected.length;
+    byId("cmpCount").textContent = String(n);
+    byId("cmpBtn").disabled = (n !== 2);
+    byId("cmpClear").disabled = (n === 0);
+  }
+
+  function syncChecks(){
+    qsa("[data-cmpchk='1']").forEach(ch=>{
+      ch.checked = selected.includes(ch.dataset.cand);
+    });
+  }
+
+  function attachCheckboxes(){
+    // Ajoute une checkbox dans chaque ligne "candidat" (si CandBoard rend déjà le tableau)
+    const tbody = document.getElementById("candTbody");
+    if(!tbody) return;
+
+    // Pour éviter de casser ton rendu, on se contente d’injecter une checkbox dans la cellule NOM si pas déjà présente.
+    qsa("tr").forEach(tr=>{
+      if(tr.dataset && tr.dataset.cmpRow === "1") return;
+      const detBtn = tr.querySelector("[data-cdet]");
+      if(!detBtn) return;
+      const candId = detBtn.dataset.cand;
+      // trouve une cellule contenant le nom : on prend la 2e td si possible
+      const tds = tr.querySelectorAll("td");
+      if(!tds || tds.length < 2) return;
+      const nameCell = tds[1];
+      if(nameCell.querySelector("[data-cmpchk='1']")) return;
+
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.setAttribute("data-cmpchk","1");
+      chk.dataset.cand = candId;
+      chk.style.marginRight = "10px";
+
+      chk.addEventListener("change", ()=>{
+        const id = chk.dataset.cand;
+        if(chk.checked){
+          if(selected.length >= 2){
+            chk.checked = false;
+            toastSafe("Sélection limitée à 2 candidats", false);
+            return;
+          }
+          selected.push(id);
+        }else{
+          selected = selected.filter(x=>x!==id);
+        }
+        updateBar();
+      });
+
+      nameCell.prepend(chk);
+      tr.dataset.cmpRow = "1";
+    });
+
+    syncChecks();
+    updateBar();
+  }
+
+  async function runCompare(){
+    if(selected.length !== 2) return;
+    const ids = selected.slice(0,2);
+    lastCompareIds = ids.join(",");
+
+    const r = await api("/api/candidatures/compare", { method:"POST", body:{ ids } });
+    if(!r.ok){
+      toastSafe((r.data && r.data.msg) || "Compare impossible", false);
+      return;
+    }
+
+    const prop = r.data.property;
+    const cands = r.data.candidatures || [];
+    if(cands.length !== 2){
+      toastSafe("Compare impossible (données)", false);
+      return;
+    }
+
+    const pName = prop?.name || "Bien";
+    byId("cmpSub").textContent = pName;
+
+    function card(c){
+      const sc = c.scoring || {};
+      const flags = Array.isArray(sc.flags) ? sc.flags : [];
+      const missing = flags.filter(f=>String(f).startsWith("missing_"));
+      const bd = Array.isArray(sc.breakdown) ? sc.breakdown : [];
+
+      const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
+      const total = (typeof sc.total==="number") ? sc.total : null;
+      const ratio = (typeof sc.ratio==="number" && sc.ratio>0) ? sc.ratio : null;
+
+      return `
+        <div class="cmpCard">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div>
+              <div style="font-weight:900">${esc(name)}</div>
+              <div class="muted" style="font-size:12px;margin-top:3px">${esc(c.email||"—")} • ${esc(c.phone||"—")}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:900;font-size:16px">${esc(sc.grade||"—")}${total!==null?` <span class="muted">(${total})</span>`:""}</div>
+              ${ratio!==null?`<div class="muted" style="font-size:12px">Ratio ${ratio.toFixed(2)}</div>`:""}
+              <div class="muted" style="font-size:12px">Statut: ${esc(c.status||"—")}</div>
+              <div class="muted" style="font-size:12px">Shortlist: ${c.shortlisted ? "⭐" : "—"}</div>
+            </div>
+          </div>
+
+          <div class="cmpKpi">
+            <span class="cmpTag">Docs manquants: <b>${missing.length}</b></span>
+            <span class="cmpTag">Docs total: <b>${(c.docs||[]).length}</b></span>
+          </div>
+
+          <div style="margin-top:10px">
+            <b>Note interne</b>
+            <div class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(c.internalNote||"—")}</div>
+          </div>
+
+          <div style="margin-top:10px">
+            <b>Explications (top)</b>
+            ${bd.length ? `<ul style="margin:6px 0 0;padding-left:18px">${bd.slice(0,6).map(x=>`<li><b>${esc(x.label||x.key)}</b> : ${(x.points>=0?'+':'')+String(x.points||0)} <span class="muted">${esc(x.detail||"")}</span></li>`).join("")}</ul>` : `<div class="muted" style="margin-top:6px">—</div>`}
+          </div>
+
+          <div style="margin-top:10px">
+            <b>Flags</b>
+            <div style="margin-top:6px">${(flags.length?flags:["—"]).map(f=>`<span class="cmpTag">${esc(f)}</span>`).join("")}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    byId("cmpBody").innerHTML = `<div class="cmpGrid">${card(cands[0])}${card(cands[1])}</div>`;
+    openModal();
+  }
+
+  byId("cmpOverlay")?.addEventListener("click", closeModal);
+  byId("cmpClose")?.addEventListener("click", closeModal);
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+
+  byId("cmpExport")?.addEventListener("click", ()=>{
+    if(!lastCompareIds){
+      toastSafe("Sélectionne 2 candidats", false);
+      return;
+    }
+    const url = "/api/candidatures/compare.pdf?ids=" + encodeURIComponent(lastCompareIds);
+    downloadPdfWithToken(url, "doc2loc-compare.pdf");
+  });
+// hook: après chaque rendu de candidatures, on injecte les checkboxes
+  // On poll légèrement car CandBoard refait parfois le DOM.
+  window.addEventListener("load", ()=>{
+    ensureCompareBar();
+    setInterval(()=>{
+      attachCheckboxes();
+    }, 800);
+  });
+})();
+</script>
+<script>
+/* ExportPDF Fix V2 */
+(function(){
+  function getToken(){ return localStorage.getItem("token") || ""; }
+
+  async function downloadPdfWithToken(url, filename){
+    const t = getToken();
+    if(!t){ alert("Pas de token (déconnecté ?)"); return; }
+
+    const r = await fetch(url, { headers: { "x-auth-token": t } });
+    if(!r.ok){
+      const txt = await r.text().catch(()=> "");
+      console.log("PDF error", r.status, txt);
+      alert("Export PDF impossible (" + r.status + ")");
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename || "doc2loc-compare.pdf";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  }
+
+  // Capture le clic même si le handler CompareUI a été cassé
+  document.addEventListener("click", (e)=>{
+    const btn = e.target && (e.target.id === "cmpExport" ? e.target : e.target.closest && e.target.closest("#cmpExport"));
+    if(!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // On récupère les 2 IDs sélectionnés depuis l'URL du PDF si CompareUI l'a construite,
+    // sinon on lit un cache global "lastCompareIds" si présent.
+    let ids = null;
+
+    try{
+      if(typeof lastCompareIds !== "undefined" && lastCompareIds) ids = String(lastCompareIds);
+    }catch(_){}
+
+    // Fallback : si CompareUI a mis un data-ids (optionnel) — sinon laisse null
+    if(!ids && btn.dataset && btn.dataset.ids) ids = String(btn.dataset.ids);
+
+    // Fallback: lis directement les 2 checkboxes cochées (CompareUI coche data-cmpchk="1")
+    if(!ids){
+      const chks = Array.from(document.querySelectorAll('[data-cmpchk="1"]:checked'));
+      if(chks.length === 2){
+        ids = chks.map(x => x.dataset.cand).join(',');
+      }
+    }
+
+    if(!ids){
+      alert("Je n'arrive pas à trouver les 2 candidats sélectionnés. Coche 2 candidats puis clique sur Comparer.");
+      return;
+    }
+
+    const url = "/api/candidatures/compare.pdf?ids=" + encodeURIComponent(ids);
+    downloadPdfWithToken(url, "doc2loc-compare.pdf");
+  }, true);
+})();
+</script>
+<script>
+/* ExportPDF Fix V4 */
+(function(){
+  function getToken(){ return localStorage.getItem("token") || ""; }
+
+  async function exportPdf(){
+    console.log("[ExportPDF] click");
+    const ids = Array.from(document.querySelectorAll('[data-cmpchk="1"]:checked')).map(x=>x.dataset.cand);
+    console.log("[ExportPDF] selected ids:", ids);
+
+    if(ids.length !== 2){
+      alert("Coche 2 candidats (cases à gauche du nom) avant d’exporter.");
+      return;
+    }
+
+    const t = getToken();
+    if(!t){
+      alert("Pas de token (déconnecté ?). Reconnecte-toi.");
+      return;
+    }
+
+    const url = "/api/candidatures/compare.pdf?ids=" + encodeURIComponent(ids.join(","));
+    console.log("[ExportPDF] GET", url);
+
+    const r = await fetch(url, { headers: { "x-auth-token": t } });
+    console.log("[ExportPDF] status:", r.status, "content-type:", r.headers.get("content-type"));
+
+    if(!r.ok){
+      const txt = await r.text().catch(()=> "");
+      console.log("[ExportPDF] body:", txt);
+      alert("Export PDF impossible (" + r.status + ")");
+      return;
+    }
+
+    const blob = await r.blob();
+    console.log("[ExportPDF] blob bytes:", blob.size);
+
+    const blobUrl = URL.createObjectURL(blob);
+
+    // tentative download
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = "doc2loc-compare.pdf";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // fallback: ouvre dans un nouvel onglet si le navigateur bloque le download
+    setTimeout(()=>{
+      try{ window.open(blobUrl, "_blank"); }catch(_){}
+      setTimeout(()=>{ URL.revokeObjectURL(blobUrl); }, 5000);
+    }, 600);
+  }
+
+  document.addEventListener("click", (e)=>{
+    const btn = e.target && (e.target.id === "cmpExport" ? e.target : (e.target.closest ? e.target.closest("#cmpExport") : null));
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    exportPdf();
+  }, true);
+})();
+</script>
+<script>
+/* Drawer Actions Fix V2 */
+(function(){
+  function getToken(){ return localStorage.getItem("token") || ""; }
+
+  async function api(path, method, body){
+    const t = getToken();
+    const headers = { "x-auth-token": t };
+    const opt = { method: method || "GET", headers };
+    if(body){
+      headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(body);
+    }
+    const r = await fetch(path, opt);
+    const data = await r.json().catch(()=>null);
+    return { ok:r.ok, status:r.status, data };
+  }
+
+  function msg(text, ok=true){
+    try{ if(typeof toast==="function") return toast(text, ok); }catch(_){}
+    alert(text);
+  }
+
+  function currentCandId(){
+    const dr = document.getElementById("candDrawer");
+    return (dr && dr.dataset && dr.dataset.candId) ? String(dr.dataset.candId) : "";
+  }
+
+  function clickClose(){
+    const b = document.getElementById("cdClose") || document.getElementById("cdClose2");
+    if(b) b.click();
+  }
+
+  document.addEventListener("click", async (e)=>{
+    const btn = e.target && (e.target.closest ? e.target.closest("#cdRequestDocs,#cdReject,#cdAccept") : null);
+    if(!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const candId = currentCandId();
+    if(!candId){
+      msg("Impossible d’identifier la candidature. Ferme/ré-ouvre le drawer puis réessaie.", false);
+      return;
+    }
+
+    if(btn.id === "cdRequestDocs"){
+      if(!confirm("Envoyer un email pour demander les pièces manquantes ?")) return;
+      const r = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/request-docs", "POST");
+      if(!r.ok) return msg((r.data && r.data.msg) || ("Action impossible ("+r.status+")"), false);
+      msg(r.data.msg || "Email envoyé ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+      return;
+    }
+
+    if(btn.id === "cdReject"){
+      const reason = prompt("Motif (optionnel) :") || "";
+      if(!confirm("Refuser la candidature et envoyer un email ?")) return;
+      const r = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/reject", "POST", { reason });
+      if(!r.ok) return msg((r.data && r.data.msg) || ("Refus impossible ("+r.status+")"), false);
+      msg(r.data.msg || "Refus ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+      clickClose();
+      return;
+    }
+
+    if(btn.id === "cdAccept"){
+      if(!confirm("Accepter ce candidat (statut ACCEPTED + shortlist ⭐) ?")) return;
+      const r = await api("/api/candidatures/" + encodeURIComponent(candId) + "/actions/accept", "POST");
+      if(!r.ok) return msg((r.data && r.data.msg) || ("Acceptation impossible ("+r.status+")"), false);
+      msg(r.data.msg || "Accepté ✅");
+      try{ if(typeof loadCandidatures==="function") await loadCandidatures(); }catch(_){}
+      clickClose();
+      return;
+    }
+  }, true);
+})();
+</script>
+</body>
+</html>
