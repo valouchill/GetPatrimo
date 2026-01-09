@@ -911,7 +911,7 @@ nextApp.prepare().then(() => {
     return handle(req, res);
   });
 
-  app.listen(PORT, () => console.log(`🚀 Serveur (Express + Next.js) démarré sur le port ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Serveur (Express + Next.js) démarré sur le port ${PORT}`));
 }).catch((err) => {
   console.error("❌ Erreur au démarrage de Next.js:", err);
   process.exit(1);
