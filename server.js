@@ -9,6 +9,11 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const next = require('next');
+
+const dev = process.env.NODE_ENV !== 'production';
+const nextApp = next({ dev });
+const handle = nextApp.getRequestHandler();
 
 const User = require('./models/User');
 const Property = require('./models/Property');
@@ -900,4 +905,14 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-app.listen(PORT, () => console.log('🚀 Serveur OK'));
+nextApp.prepare().then(() => {
+  // Gestionnaire Next.js pour toutes les autres routes (Page d'accueil, etc.)
+  app.all('*', (req, res) => {
+    return handle(req, res);
+  });
+
+  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Serveur (Express + Next.js) démarré sur le port ${PORT}`));
+}).catch((err) => {
+  console.error("❌ Erreur au démarrage de Next.js:", err);
+  process.exit(1);
+});
