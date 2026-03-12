@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Fiscalité</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;
+      --emerald:#10B981;
+      --cobalt:#3B82F6;
+      --slate-bg:#F8FAFC;
+      --slate-border:#E2E8F0;
+      --text:#0F172A;
+      --muted:#64748B;
+      --white:#FFFFFF;
+      --radius:12px;
+      --alert-red:#EF4444;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--slate-bg);
+      color:var(--text);
+      display:flex;
+      min-height:100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar{
+      width:260px;
+      background:var(--navy);
+      color:#fff;
+      position:fixed;
+      left:0;
+      top:0;
+      height:100vh;
+      overflow-y:auto;
+      z-index:1000;
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar-logo{
+      padding:24px 20px;
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-0.02em;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-nav{
+      flex:1;
+      padding:16px 0;
+    }
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 20px;
+      color:rgba(255,255,255,0.7);
+      text-decoration:none;
+      transition:all 0.2s;
+      border-left:3px solid transparent;
+    }
+    .nav-item:hover{
+      background:rgba(255,255,255,0.05);
+      color:#fff;
+    }
+    .nav-item.active{
+      background:rgba(16,185,129,0.15);
+      color:#fff;
+      border-left-color:var(--emerald);
+      border-left-width:4px;
+      font-weight:600;
+    }
+    .nav-item i{width:20px;height:20px;flex-shrink:0}
+    
+    /* Breadcrumbs */
+    .breadcrumbs{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:24px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .breadcrumbs a{
+      color:var(--muted);
+      text-decoration:none;
+      transition:color 0.2s;
+    }
+    .breadcrumbs a:hover{
+      color:var(--navy);
+    }
+    .breadcrumbs .separator{
+      color:var(--muted);
+    }
+    .breadcrumbs .current{
+      color:var(--navy);
+      font-weight:600;
+    }
+    
+    /* Main Content */
+    .main-content{
+      flex:1;
+      margin-left:260px;
+      padding:32px;
+      min-height:100vh;
+      animation:fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    
+    /* Checklist de Complétude */
+    .completeness-checklist{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:var(--radius);
+      padding:24px;
+      margin-bottom:32px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    }
+    .checklist-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .checklist-title{
+      font-size:18px;
+      font-weight:700;
+      color:var(--navy);
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .progress-bar{
+      width:100%;
+      height:8px;
+      background:#E2E8F0;
+      border-radius:999px;
+      overflow:hidden;
+      margin-bottom:20px;
+    }
+    .progress-fill{
+      height:100%;
+      background:linear-gradient(90deg,var(--emerald),var(--cobalt));
+      transition:width 0.5s ease;
+      border-radius:999px;
+    }
+    .checklist-items{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .checklist-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px;
+      border-radius:8px;
+      transition:background 0.2s;
+    }
+    .checklist-item:hover{
+      background:#F8FAFC;
+    }
+    .checklist-item.completed{
+      opacity:0.7;
+    }
+    .checklist-icon{
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+    }
+    .checklist-icon.pending{
+      background:#FEE2E2;
+      color:var(--alert-red);
+    }
+    .checklist-icon.completed{
+      background:#D1FAE5;
+      color:var(--emerald);
+    }
+    
+    /* Cards */
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:20px;
+      margin-bottom:32px;
+    }
+    .stat-card{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:var(--radius);
+      padding:24px;
+      box-shadow:0 10px 15px -3px rgba(0,0,0,0.05);
+      transition:all 0.3s ease;
+    }
+    .stat-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .stat-label{
+      font-size:14px;
+      font-weight:600;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+    .stat-value{
+      font-size:32px;
+      font-weight:800;
+      color:var(--navy);
+    }
+    
+    /* Section Documents */
+    .documents-section{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:var(--radius);
+      padding:24px;
+      margin-bottom:32px;
+    }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .section-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .btn-primary{
+      padding:10px 20px;
+      background:var(--emerald);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      font-weight:600;
+      font-size:14px;
+      cursor:pointer;
+      transition:all 0.3s ease;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn-primary:hover{
+      background:#059669;
+      transform:translateY(-1px);
+      box-shadow:0 10px 15px -3px rgba(16,185,129,0.2);
+    }
+    
+    /* Badge PatrimoTrust */
+    .patrimo-trust-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 12px;
+      background:rgba(16,185,129,0.1);
+      border:1px solid var(--emerald);
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+      color:var(--emerald);
+    }
+    
+    /* Slide-over */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.5);
+      z-index:1999;
+      display:none;
+      transition:opacity 0.3s;
+    }
+    .overlay.show{
+      display:block;
+      opacity:1;
+    }
+    .slide-over{
+      position:fixed;
+      top:0;
+      right:0;
+      width:600px;
+      max-width:90vw;
+      height:100vh;
+      background:var(--white);
+      box-shadow:-4px 0 24px rgba(0,0,0,0.15);
+      transform:translateX(100%);
+      transition:transform 0.3s ease;
+      z-index:2000;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .slide-over.open{
+      transform:translateX(0);
+    }
+    .slide-over-header{
+      padding:24px;
+      border-bottom:1px solid var(--slate-border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .slide-over-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .slide-over-close{
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      border:1px solid var(--slate-border);
+      background:var(--white);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.2s;
+    }
+    .slide-over-close:hover{
+      background:#F8FAFC;
+    }
+    .slide-over-body{
+      flex:1;
+      overflow-y:auto;
+      padding:24px;
+    }
+    
+    /* RGPD Message */
+    .rgpd-message{
+      background:rgba(16,185,129,0.1);
+      border:1px solid var(--emerald);
+      border-radius:8px;
+      padding:16px;
+      margin-bottom:24px;
+      display:flex;
+      align-items:start;
+      gap:12px;
+    }
+    .rgpd-icon{
+      width:24px;
+      height:24px;
+      color:var(--emerald);
+      flex-shrink:0;
+    }
+    
+    @media(max-width:1024px){
+      .sidebar{transform:translateX(-100%);transition:transform 0.3s}
+      .sidebar.open{transform:translateX(0)}
+      .main-content{margin-left:0;padding:16px}
+      .stats-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">GetPatrimo</div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <a href="/property.html" class="nav-item" data-page="properties">
+        <i data-lucide="home"></i>
+        <span>Mes Biens</span>
+      </a>
+      <a href="/dashboard.html" class="nav-item" data-page="candidatures">
+        <i data-lucide="file-text"></i>
+        <span>Candidatures</span>
+      </a>
+      <a href="/fiscalite.html" class="nav-item active" data-page="fiscalite">
+        <i data-lucide="receipt"></i>
+        <span>Fiscalité</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings" onclick="alert('Paramètres - À venir'); return false;">
+        <i data-lucide="settings"></i>
+        <span>Paramètres</span>
+      </a>
+    </nav>
+    <div style="padding:20px;border-top:1px solid rgba(255,255,255,0.1)">
+      <a href="#" id="btnLogout" class="nav-item" style="border-left:none">
+        <i data-lucide="log-out"></i>
+        <span>Déconnexion</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs">
+      <a href="/dashboard.html">Dashboard</a>
+      <span class="separator">/</span>
+      <span class="current">Fiscalité</span>
+    </nav>
+    
+    <div style="margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <h1 style="font-size:28px;font-weight:800;color:var(--navy);margin-bottom:8px">Fiscalité</h1>
+        <p style="color:var(--muted);font-size:14px">Gestion fiscale et optimisation de vos revenus locatifs</p>
+      </div>
+      <span class="patrimo-trust-badge">
+        <i data-lucide="shield-check"></i>
+        <span>PatrimoTrust™</span>
+      </span>
+    </div>
+    
+    <!-- Message RGPD -->
+    <div class="rgpd-message">
+      <i data-lucide="lock" class="rgpd-icon"></i>
+      <div>
+        <div style="font-weight:600;color:var(--navy);margin-bottom:4px">Sécurité & Confidentialité</div>
+        <div style="font-size:13px;color:var(--muted)">Vos documents fiscaux sont chiffrés et stockés de manière sécurisée. Conformité RGPD garantie.</div>
+      </div>
+    </div>
+    
+    <!-- Checklist de Complétude -->
+    <div class="completeness-checklist">
+      <div class="checklist-header">
+        <div class="checklist-title">
+          <i data-lucide="check-circle-2"></i>
+          <span>Checklist de Complétude Fiscale</span>
+        </div>
+        <span id="completenessScore" style="font-size:24px;font-weight:800;color:var(--emerald)">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="checklist-items" id="checklistItems">
+        <!-- Chargé dynamiquement -->
+      </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Revenus Bruts</div>
+        <div class="stat-value" id="statRevenusBruts">0 €</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Revenus Nets</div>
+        <div class="stat-value" id="statRevenusNets">0 €</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Régime Recommandé</div>
+        <div class="stat-value" id="statRegime" style="font-size:18px">—</div>
+      </div>
+    </div>
+    
+    <!-- Section Documents -->
+    <div class="documents-section">
+      <div class="section-header">
+        <div class="section-title">Documents Fiscaux</div>
+        <button class="btn-primary" onclick="openDocumentSlideOver()">
+          <i data-lucide="plus"></i>
+          <span>Ajouter un document</span>
+        </button>
+      </div>
+      <div id="documentsList">
+        <!-- Chargé dynamiquement -->
+      </div>
+    </div>
+    
+    <!-- Section Déclaration -->
+    <div class="documents-section">
+      <div class="section-header">
+        <div class="section-title">Déclaration 2042C PRO</div>
+        <button class="btn-primary" onclick="generateDeclaration()">
+          <i data-lucide="file-text"></i>
+          <span>Générer la déclaration</span>
+        </button>
+      </div>
+      <div id="declarationContent">
+        <!-- Chargé dynamiquement -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Slide-over Ajout Document -->
+  <div class="overlay" id="overlay"></div>
+  <div class="slide-over" id="slideOver">
+    <div class="slide-over-header">
+      <h3 class="slide-over-title">Ajouter un document fiscal</h3>
+      <button class="slide-over-close" id="slideOverClose">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="slide-over-body" id="slideOverBody">
+      <!-- Formulaire d'upload -->
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const token = localStorage.getItem('token') || '';
+  
+  if(!token){
+    location.href = '/login.html';
+    return;
+  }
+
+  // Utilitaires
+  function api(path, opts={}){
+    const headers = Object.assign({}, opts.headers||{}, { "x-auth-token": token });
+    return fetch(path, Object.assign({}, opts, { headers }));
+  }
+  
+  async function apiJson(path, opts={}){
+    try {
+      const r = await api(path, opts);
+      const j = await r.json().catch(() => ({}));
+      return { ok: r.ok, data: j, status: r.status };
+    } catch (e) {
+      console.error("Erreur API:", path, e);
+      return { ok: false, data: { msg: "Erreur réseau" }, status: 0 };
+    }
+  }
+  
+  function eur(n){
+    const v = Number(n||0);
+    return v.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+  }
+  
+  function esc(s){
+    return String(s||"").replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  // Slide-over
+  function openDocumentSlideOver(){
+    $("overlay").classList.add("show");
+    $("slideOver").classList.add("open");
+    
+    $("slideOverBody").innerHTML = `
+      <form id="documentForm" onsubmit="return false">
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--navy)">Type de document</label>
+          <select id="docType" style="width:100%;padding:12px;border:1px solid var(--slate-border);border-radius:8px;background:var(--white)">
+            <option value="facture_travaux">Facture de travaux</option>
+            <option value="facture_mobilier">Facture mobilier</option>
+            <option value="taxe_fonciere">Taxe foncière</option>
+            <option value="quittance">Quittance de loyer</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--navy)">Fichier</label>
+          <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="width:100%;padding:12px;border:1px solid var(--slate-border);border-radius:8px">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button type="button" onclick="closeSlideOver()" style="padding:10px 20px;border:1px solid var(--slate-border);background:var(--white);border-radius:8px;cursor:pointer;font-weight:600">Annuler</button>
+          <button type="submit" style="padding:10px 20px;background:var(--emerald);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Uploader</button>
+        </div>
+      </form>
+    `;
+    
+    if(window.lucide) lucide.createIcons();
+    
+    $("documentForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = $("fileInput").files[0];
+      if(!file) return alert("Sélectionnez un fichier");
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", $("docType").value);
+      
+      try{
+        const r = await api("/api/tax/documents/upload", {
+          method: "POST",
+          body: formData
+        });
+        
+        if(r.ok){
+          closeSlideOver();
+          loadFiscalData();
+        } else {
+          alert("Erreur lors de l'upload");
+        }
+      }catch(e){
+        console.error("Erreur upload:", e);
+        alert("Erreur réseau");
+      }
+    });
+  }
+  
+  function closeSlideOver(){
+    $("overlay").classList.remove("show");
+    $("slideOver").classList.remove("open");
+  }
+  
+  $("slideOverClose").addEventListener("click", closeSlideOver);
+  $("overlay").addEventListener("click", closeSlideOver);
+  window.openDocumentSlideOver = openDocumentSlideOver;
+  window.closeSlideOver = closeSlideOver;
+
+  // Checklist de complétude
+  function updateChecklist(items){
+    const checklistItems = $("checklistItems");
+    const completed = items.filter(i => i.completed).length;
+    const total = items.length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    $("completenessScore").textContent = percentage + "%";
+    $("progressFill").style.width = percentage + "%";
+    
+    checklistItems.innerHTML = items.map(item => `
+      <div class="checklist-item ${item.completed ? 'completed' : ''}">
+        <div class="checklist-icon ${item.completed ? 'completed' : 'pending'}">
+          <i data-lucide="${item.completed ? 'check' : 'x'}"></i>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:600;color:var(--navy)">${esc(item.title)}</div>
+          <div style="font-size:12px;color:var(--muted)">${esc(item.description)}</div>
+        </div>
+      </div>
+    `).join("");
+    
+    if(window.lucide) lucide.createIcons();
+  }
+
+  // Chargement des données fiscales
+  async function loadFiscalData(){
+    try{
+      const r = await apiJson("/api/tax/summary");
+      if(!r.ok) return;
+      
+      const data = r.data;
+      
+      // Stats
+      $("statRevenusBruts").textContent = eur(data.revenusBruts || 0);
+      $("statRevenusNets").textContent = eur(data.revenusNets || 0);
+      $("statRegime").textContent = data.regimeRecommandé || "—";
+      
+      // Checklist
+      const checklist = [
+        {
+          title: "Documents fiscaux uploadés",
+          description: "Au moins 3 documents (factures, taxe foncière, quittances)",
+          completed: (data.documentsCount || 0) >= 3
+        },
+        {
+          title: "Compte de résultat généré",
+          description: "Calcul automatique des recettes, charges et amortissements",
+          completed: data.compteResultatGenerated || false
+        },
+        {
+          title: "Déclaration pré-remplie",
+          description: "Formulaire 2042C PRO prêt à être déclaré",
+          completed: data.declarationGenerated || false
+        },
+        {
+          title: "Optimisation analysée",
+          description: "Comparaison Réel vs Micro-BIC effectuée",
+          completed: data.optimizationAnalyzed || false
+        }
+      ];
+      
+      updateChecklist(checklist);
+      
+      // Documents
+      loadDocuments();
+    }catch(e){
+      console.error("Erreur chargement fiscal:", e);
+    }
+  }
+  
+  async function loadDocuments(){
+    try{
+      const r = await apiJson("/api/tax/documents");
+      if(!r.ok) return;
+      
+      const docs = Array.isArray(r.data) ? r.data : [];
+      
+      $("documentsList").innerHTML = docs.length === 0 
+        ? '<div style="text-align:center;padding:40px;color:var(--muted)">Aucun document fiscal</div>'
+        : docs.map(d => `
+          <div style="padding:16px;border:1px solid var(--slate-border);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-weight:600;color:var(--navy)">${esc(d.type || 'Document')}</div>
+              <div style="font-size:12px;color:var(--muted)">${esc(d.filename || '')}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              ${d.processed ? '<span style="padding:4px 8px;background:#D1FAE5;color:var(--emerald);border-radius:4px;font-size:12px;font-weight:600">Traité</span>' : ''}
+              <button onclick="deleteDocument('${d._id}')" style="padding:6px 12px;border:1px solid var(--slate-border);background:var(--white);border-radius:6px;cursor:pointer;font-size:12px">Supprimer</button>
+            </div>
+          </div>
+        `).join("");
+    }catch(e){
+      console.error("Erreur chargement documents:", e);
+    }
+  }
+  
+  async function generateDeclaration(){
+    try{
+      const r = await apiJson("/api/tax/declaration", { method: "POST" });
+      if(!r.ok) return alert("Erreur génération déclaration");
+      
+      const decl = r.data;
+      $("declarationContent").innerHTML = `
+        <div style="padding:24px;background:#F8FAFC;border-radius:8px">
+          <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:16px">Déclaration 2042C PRO - ${decl.annee}</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px">
+            <div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Case 5NA - Revenus bruts</div>
+              <div style="font-size:24px;font-weight:700;color:var(--navy)">${eur(decl.section5.revenusBruts)}</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Case 5NF - Revenus nets</div>
+              <div style="font-size:24px;font-weight:700;color:var(--emerald)">${eur(decl.section5.revenusNets)}</div>
+            </div>
+          </div>
+          <div style="margin-top:24px">
+            <div style="font-weight:600;color:var(--navy);margin-bottom:12px">Guide de saisie</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${decl.guide.map(g => `
+                <div style="padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--slate-border)">
+                  <div style="font-weight:600;color:var(--navy);margin-bottom:4px">Étape ${g.etape}: ${esc(g.titre)}</div>
+                  <div style="font-size:13px;color:var(--muted)">${esc(g.instruction)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }catch(e){
+      console.error("Erreur génération déclaration:", e);
+    }
+  }
+  
+  window.generateDeclaration = generateDeclaration;
+  window.deleteDocument = async (docId) => {
+    if(!confirm("Supprimer ce document ?")) return;
+    try{
+      const r = await apiJson(`/api/tax/documents/${docId}`, { method: "DELETE" });
+      if(r.ok) loadFiscalData();
+    }catch(e){
+      console.error("Erreur suppression:", e);
+    }
+  };
+
+  // Logout
+  $("btnLogout").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    location.href = '/login.html';
+  });
+
+  // Initialisation
+  if(window.lucide) lucide.createIcons();
+  loadFiscalData();
+})();
+</script>
+</body>
+</html>

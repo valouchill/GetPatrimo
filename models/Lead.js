@@ -11,4 +11,5 @@ const LeadSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Lead', LeadSchema);
+// Éviter la recompilation du modèle dans Next.js
+module.exports = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);

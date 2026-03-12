@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Connexion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;
+      --emerald:#10B981;
+      --cobalt:#3B82F6;
+      --slate-bg:#F8FAFC;
+      --slate-border:#E2E8F0;
+      --text:#0F172A;
+      --muted:#64748B;
+      --white:#FFFFFF;
+      --radius:16px;
+      --shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);
+      --glow:0 0 20px rgba(16,185,129,0.3);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--white);
+      color:var(--text);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+    
+    /* Split Screen Layout */
+    .auth-container{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      min-height:100vh;
+    }
+    
+    /* Visual Column */
+    .auth-visual{
+      position:relative;
+      background-image:url('https://images.unsplash.com/photo-1514075221398-a72e4c114a01?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+    }
+    .auth-visual::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(15,23,42,0.2);
+      z-index:1;
+    }
+    .auth-visual-content{
+      position:relative;
+      z-index:2;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      padding:48px;
+      color:#fff;
+    }
+    .auth-visual-logo{
+      font-size:48px;
+      font-weight:800;
+      letter-spacing:-0.02em;
+      margin-bottom:24px;
+    }
+    .auth-visual-tagline{
+      font-size:20px;
+      font-weight:400;
+      opacity:0.9;
+      text-align:center;
+      max-width:400px;
+    }
+    
+    /* Action Column */
+    .auth-action{
+      background:var(--slate-bg);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:48px;
+      overflow-y:auto;
+    }
+    .auth-form-container{
+      width:100%;
+      max-width:440px;
+      background:var(--white);
+      border-radius:var(--radius);
+      padding:48px 40px;
+      box-shadow:var(--shadow-lg);
+      animation:slideIn 0.5s ease;
+    }
+    @keyframes slideIn{
+      from{opacity:0;transform:translateX(20px)}
+      to{opacity:1;transform:none}
+    }
+    
+    /* Form Header */
+    .auth-header{
+      text-align:center;
+      margin-bottom:32px;
+    }
+    .auth-title{
+      font-size:32px;
+      font-weight:700;
+      color:var(--text);
+      letter-spacing:-0.02em;
+      margin-bottom:8px;
+    }
+    .auth-subtitle{
+      font-size:15px;
+      color:var(--muted);
+      font-weight:400;
+    }
+    
+    /* Social Buttons */
+    .auth-social{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      margin-bottom:32px;
+    }
+    .btn-social{
+      width:100%;
+      padding:14px 20px;
+      border:1px solid var(--slate-border);
+      border-radius:12px;
+      background:var(--white);
+      color:var(--text);
+      font-size:15px;
+      font-weight:500;
+      font-family:inherit;
+      cursor:pointer;
+      transition:all 0.2s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+    }
+    .btn-social:hover{
+      border-color:var(--text);
+      background:var(--slate-bg);
+      transform:translateY(-1px);
+      box-shadow:var(--shadow);
+    }
+    .btn-social i{
+      width:20px;
+      height:20px;
+    }
+    
+    /* Divider */
+    .auth-divider{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin:32px 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .auth-divider::before,
+    .auth-divider::after{
+      content:'';
+      flex:1;
+      height:1px;
+      background:var(--slate-border);
+    }
+    
+    /* Form Groups */
+    .form-group{
+      position:relative;
+      margin-bottom:24px;
+    }
+    .form-input{
+      width:100%;
+      padding:16px 16px 16px 16px;
+      border:1.5px solid var(--slate-border);
+      border-radius:12px;
+      font-size:15px;
+      font-family:inherit;
+      color:var(--text);
+      background:var(--white);
+      transition:all 0.2s ease;
+    }
+    .form-input:focus{
+      outline:none;
+      border-color:var(--emerald);
+      box-shadow:0 0 0 4px rgba(16,185,129,0.1);
+    }
+    .form-label{
+      position:absolute;
+      left:16px;
+      top:16px;
+      font-size:15px;
+      color:var(--muted);
+      font-weight:400;
+      pointer-events:none;
+      transition:all 0.2s ease;
+      background:var(--white);
+      padding:0 4px;
+    }
+    .form-input:focus + .form-label,
+    .form-input:not(:placeholder-shown) + .form-label,
+    .form-input.has-value + .form-label{
+      top:-8px;
+      font-size:12px;
+      color:var(--emerald);
+      font-weight:500;
+    }
+    .form-input::placeholder{
+      color:transparent;
+    }
+    .form-validation{
+      position:absolute;
+      right:16px;
+      top:50%;
+      transform:translateY(-50%);
+      width:20px;
+      height:20px;
+      opacity:0;
+      transition:opacity 0.2s ease;
+    }
+    .form-validation.show{
+      opacity:1;
+    }
+    .form-validation i{
+      width:20px;
+      height:20px;
+      color:var(--emerald);
+    }
+    
+    /* Magic Link */
+    .auth-magic-link{
+      text-align:center;
+      margin-bottom:24px;
+    }
+    .btn-magic-link{
+      background:transparent;
+      border:none;
+      color:var(--cobalt);
+      font-size:14px;
+      font-weight:500;
+      cursor:pointer;
+      text-decoration:none;
+      transition:color 0.2s ease;
+    }
+    .btn-magic-link:hover{
+      color:var(--navy);
+      text-decoration:underline;
+    }
+    
+    /* Primary Button */
+    .btn-primary{
+      width:100%;
+      padding:16px 24px;
+      background:var(--navy);
+      color:var(--white);
+      border:none;
+      border-radius:12px;
+      font-size:15px;
+      font-weight:600;
+      font-family:inherit;
+      cursor:pointer;
+      transition:all 0.3s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .btn-primary::before{
+      content:'';
+      position:absolute;
+      top:50%;
+      left:50%;
+      width:0;
+      height:0;
+      border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      transform:translate(-50%,-50%);
+      transition:width 0.6s ease,height 0.6s ease;
+    }
+    .btn-primary:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 20px rgba(15,23,42,0.2),var(--glow);
+    }
+    .btn-primary:hover::before{
+      width:300px;
+      height:300px;
+    }
+    .btn-primary:active{
+      transform:translateY(0);
+    }
+    
+    /* Footer Links */
+    .auth-footer{
+      text-align:center;
+      margin-top:32px;
+      padding-top:24px;
+      border-top:1px solid var(--slate-border);
+    }
+    .auth-footer a{
+      color:var(--muted);
+      text-decoration:none;
+      font-size:14px;
+      font-weight:400;
+      transition:color 0.2s ease;
+    }
+    .auth-footer a:hover{
+      color:var(--navy);
+    }
+    .auth-footer .separator{
+      color:var(--slate-border);
+      margin:0 8px;
+    }
+    
+    /* Error Message */
+    .error-message{
+      background:#FEE2E2;
+      color:#991B1B;
+      padding:12px 16px;
+      border-radius:12px;
+      font-size:14px;
+      margin-bottom:24px;
+      display:none;
+      animation:shake 0.3s ease;
+    }
+    .error-message.show{
+      display:block;
+    }
+    @keyframes shake{
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-4px)}
+      75%{transform:translateX(4px)}
+    }
+    
+    /* Page Transition */
+    .auth-page{
+      animation:fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateX(20px)}
+      to{opacity:1;transform:none}
+    }
+    
+    /* Responsive */
+    @media (max-width:1024px){
+      .auth-container{
+        grid-template-columns:1fr;
+      }
+      .auth-visual{
+        display:none;
+      }
+      .auth-action{
+        padding:24px;
+      }
+      .auth-form-container{
+        padding:40px 32px;
+      }
+    }
+    @media (max-width:640px){
+      .auth-form-container{
+        padding:32px 24px;
+      }
+      .auth-title{
+        font-size:28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <!-- Visual Column -->
+    <div class="auth-visual">
+      <div class="auth-visual-content">
+        <div class="auth-visual-logo">GetPatrimo</div>
+        <div class="auth-visual-tagline">Gestion locative sécurisée par IA</div>
+      </div>
+    </div>
+    
+    <!-- Action Column -->
+    <div class="auth-action">
+      <div class="auth-form-container auth-page" id="loginPage">
+        <div class="auth-header">
+          <h1 class="auth-title">Connexion</h1>
+          <p class="auth-subtitle">Accédez à votre espace GetPatrimo</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <!-- Social Buttons -->
+        <div class="auth-social">
+          <button class="btn-social" onclick="loginWithGoogle()">
+            <i data-lucide="chrome"></i>
+            <span>Continuer avec Google</span>
+          </button>
+          <button class="btn-social" onclick="loginWithApple()">
+            <i data-lucide="apple"></i>
+            <span>Continuer avec Apple</span>
+          </button>
+        </div>
+        
+        <div class="auth-divider">ou</div>
+        
+        <!-- Magic Link -->
+        <div class="auth-magic-link">
+          <button class="btn-magic-link" onclick="showMagicLink()">
+            Recevoir un lien de connexion par email
+          </button>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <input 
+              type="email" 
+              id="email" 
+              class="form-input" 
+              placeholder=" "
+              autocomplete="email"
+              required
+              oninput="validateEmail(this)"
+            >
+            <label for="email" class="form-label">Email</label>
+            <div class="form-validation" id="emailValidation">
+              <i data-lucide="check-circle"></i>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <input 
+              type="password" 
+              id="password" 
+              class="form-input" 
+              placeholder=" "
+              autocomplete="current-password"
+              required
+            >
+            <label for="password" class="form-label">Mot de passe</label>
+          </div>
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer">
+              <input type="checkbox" style="width:16px;height:16px;cursor:pointer">
+              <span>Se souvenir de moi</span>
+            </label>
+            <a href="/forgot-password-luxe.html" style="color:var(--cobalt);text-decoration:none;font-size:14px;font-weight:500">Mot de passe oublié ?</a>
+          </div>
+          
+          <button type="submit" class="btn-primary">
+            Se connecter
+          </button>
+        </form>
+        
+        <div class="auth-footer">
+          <span>Pas encore de compte ?</span>
+          <a href="/register-luxe.html">Créer un compte</a>
+        </div>
+      </div>
+      
+      <!-- Magic Link Page (hidden by default) -->
+      <div class="auth-form-container auth-page" id="magicLinkPage" style="display:none">
+        <div class="auth-header">
+          <button onclick="showLogin()" style="position:absolute;top:24px;left:24px;background:transparent;border:none;cursor:pointer;color:var(--muted)">
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <h1 class="auth-title">Lien de connexion</h1>
+          <p class="auth-subtitle">Nous vous enverrons un lien de connexion par email</p>
+        </div>
+        
+        <form id="magicLinkForm" onsubmit="handleMagicLink(event)">
+          <div class="form-group">
+            <input 
+              type="email" 
+              id="magicEmail" 
+              class="form-input" 
+              placeholder=" "
+              autocomplete="email"
+              required
+              oninput="validateEmail(this)"
+            >
+            <label for="magicEmail" class="form-label">Email</label>
+            <div class="form-validation" id="magicEmailValidation">
+              <i data-lucide="check-circle"></i>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn-primary">
+            Envoyer le lien
+          </button>
+        </form>
+        
+        <div class="auth-footer">
+          <a href="#" onclick="showLogin();return false">Retour à la connexion</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    
+    // Check for Magic Link token in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const magicToken = urlParams.get('token');
+    
+    // Initialize Lucide icons
+    if(window.lucide) lucide.createIcons();
+    
+    // Handle Magic Link token if present
+    if(magicToken){
+      handleMagicLinkToken(magicToken);
+    }
+    
+    // Handle Magic Link token authentication
+    async function handleMagicLinkToken(token){
+      try{
+        const res = await fetch('/api/auth/magic-link/verify', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({token})
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if(res.ok && data.token){
+          // Token valide, connexion automatique
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard-luxe.html';
+        }else{
+          // Token invalide ou expiré
+          showError(data.msg || 'Lien de connexion invalide ou expiré');
+          // Nettoie l'URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }catch(err){
+        showError('Erreur lors de la vérification du lien de connexion');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+    
+    // Email validation
+    function validateEmail(input){
+      const email = input.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isValid = emailRegex.test(email);
+      
+      if(isValid && email.length > 0){
+        input.classList.add('has-value');
+        const validationEl = input.id === 'email' ? $('emailValidation') : $('magicEmailValidation');
+        if(validationEl) validationEl.classList.add('show');
+      }else{
+        input.classList.remove('has-value');
+        const validationEl = input.id === 'email' ? $('emailValidation') : $('magicEmailValidation');
+        if(validationEl) validationEl.classList.remove('show');
+      }
+      
+      // Update icons
+      if(window.lucide) lucide.createIcons();
+    }
+    
+    // Show error
+    function showError(msg){
+      const errorEl = $('errorMessage');
+      errorEl.textContent = msg;
+      errorEl.classList.add('show');
+      setTimeout(() => errorEl.classList.remove('show'), 5000);
+    }
+    
+    // Handle login
+    async function handleLogin(e){
+      e.preventDefault();
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      
+      if(!email || !password){
+        showError('Veuillez remplir tous les champs');
+        return;
+      }
+      
+      try{
+        const res = await fetch('/api/auth/login', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({email,password})
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if(res.ok && data.token){
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard-luxe.html';
+        }else{
+          showError(data.msg || 'Email ou mot de passe incorrect');
+        }
+      }catch(err){
+        showError('Erreur de connexion au serveur');
+      }
+    }
+    
+    // Handle magic link
+    async function handleMagicLink(e){
+      e.preventDefault();
+      const email = $('magicEmail').value.trim();
+      
+      if(!email){
+        showError('Veuillez entrer votre email');
+        return;
+      }
+      
+      try{
+        const res = await fetch('/api/auth/magic-link', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({email})
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if(res.ok){
+          alert('Un lien de connexion a été envoyé à votre adresse email.');
+          showLogin();
+        }else{
+          showError(data.msg || 'Erreur lors de l\'envoi du lien');
+        }
+      }catch(err){
+        showError('Erreur de connexion au serveur');
+      }
+    }
+    
+    // Social login
+    async function loginWithGoogle(){
+      try{
+        // TODO: Intégrer Google OAuth 2.0 SDK
+        // Pour l'instant, redirige vers l'API backend
+        const res = await fetch('/api/oauth/google', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({idToken:'placeholder'})
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if(res.ok && data.token){
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard-luxe.html';
+        }else{
+          showError(data.msg || 'Connexion Google non disponible. Utilisez la connexion classique.');
+        }
+      }catch(err){
+        showError('Erreur lors de la connexion avec Google');
+      }
+    }
+    
+    async function loginWithApple(){
+      try{
+        // TODO: Intégrer Apple Sign In SDK
+        // Pour l'instant, redirige vers l'API backend
+        const res = await fetch('/api/oauth/apple', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({identityToken:'placeholder'})
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if(res.ok && data.token){
+          localStorage.setItem('token', data.token);
+          window.location.href = '/dashboard-luxe.html';
+        }else{
+          showError(data.msg || 'Connexion Apple non disponible. Utilisez la connexion classique.');
+        }
+      }catch(err){
+        showError('Erreur lors de la connexion avec Apple');
+      }
+    }
+    
+    // Show magic link page
+    function showMagicLink(){
+      $('loginPage').style.display = 'none';
+      $('magicLinkPage').style.display = 'block';
+      if(window.lucide) lucide.createIcons();
+    }
+    
+    // Show login page
+    function showLogin(){
+      $('magicLinkPage').style.display = 'none';
+      $('loginPage').style.display = 'block';
+      if(window.lucide) lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

@@ -24,7 +24,7 @@ const CandidatureSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   }],
 
-  status: { type: String, enum: ['NEW','REVIEWED','ACCEPTED','REJECTED'], default: 'NEW' },
+  status: { type: String, enum: ['NEW','REVIEWED','ACCEPTED','REJECTED','SELECTED_FOR_LEASE','ARCHIVED_REFUSED'], default: 'NEW' },
 
   shortlisted: { type: Boolean, default: false },
   internalNote: { type: String, default: '' },
@@ -39,11 +39,47 @@ const CandidatureSchema = new mongoose.Schema({
       key: String,
       label: String,
       points: Number,
-      detail: String
+      detail: String,
+      category: String
     }],
-    flags: [{ type: String }]
+    flags: [{ type: String }],
+    alerts: [{
+      code: String,
+      type: String,
+      severity: String,
+      message: String
+    }]
   },
-  scoredAt: { type: Date }
+
+  // Moteur PatrimoTrust™
+  trustAnalysis: {
+    score: { type: Number, default: 0 }, // 0-100
+    status: { type: String, enum: ['PENDING', 'VALIDATED', 'WARNING', 'REJECTED'], default: 'PENDING' },
+    summary: { type: String, default: '' }, // AI Insight
+    checks: [{
+      id: String, // ex: 'effort_rate', 'id_mrz', 'photoshop_detect'
+      label: String,
+      status: { type: String, enum: ['PASS', 'WARNING', 'FAIL'] },
+      details: String,
+      metadata: mongoose.Schema.Types.Mixed
+    }],
+    analyzedAt: Date
+  },
+  identityVerification: {
+    status: { type: String, enum: ['PENDING', 'CERTIFIEE'], default: 'PENDING' },
+    provider: { type: String, default: 'didit' },
+    firstName: { type: String, default: '' },
+    lastName: { type: String, default: '' },
+    birthDate: { type: String, default: '' },
+    humanVerified: { type: Boolean, default: false },
+    verifiedAt: { type: Date }
+  },
+  scoredAt: { type: Date },
+  
+  // RGPD
+  rgpdPurged: { type: Boolean, default: false },
+  rgpdPurgedAt: { type: Date }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Candidature', CandidatureSchema);
+// Éviter la recompilation du modèle dans Next.js
+module.exports = mongoose.models.Candidature || mongoose.model('Candidature', CandidatureSchema);

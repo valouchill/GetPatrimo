@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Gestion des Candidatures</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;
+      --emerald:#10B981;
+      --cobalt:#3B82F6;
+      --emerald-light:#D1FAE5;
+      --emerald-dark:#059669;
+      --navy-light:#1E293B;
+      --navy-lighter:#334155;
+      --bg:#F8FAFC;
+      --card:#FFFFFF;
+      --text:#0F172A;
+      --muted:#64748B;
+      --border:#E2E8F0;
+      --error:#EF4444;
+      --warning:#F59E0B;
+      --success:#10B981;
+      --radius:12px;
+      --shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.6;
+      min-height:100vh;
+      display:flex;
+    }
+    
+    /* Sidebar */
+    .sidebar{
+      width:260px;
+      background:var(--navy);
+      color:#fff;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      padding:24px 0;
+      display:flex;
+      flex-direction:column;
+      box-shadow:var(--shadow-lg);
+      z-index:1000;
+    }
+    .sidebar-logo{
+      padding:0 24px 32px;
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:-0.02em;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+      margin-bottom:24px;
+    }
+    .sidebar-nav{
+      flex:1;
+      padding:0 12px;
+    }
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 16px;
+      border-radius:8px;
+      color:rgba(255,255,255,0.7);
+      text-decoration:none;
+      transition:all 0.2s ease;
+      margin-bottom:4px;
+    }
+    .nav-item:hover{
+      background:rgba(255,255,255,0.1);
+      color:#fff;
+    }
+    .nav-item.active{
+      background:var(--emerald);
+      color:#fff;
+    }
+    .nav-item i{
+      width:20px;
+      height:20px;
+    }
+    .sidebar-footer{
+      padding:24px;
+      border-top:1px solid rgba(255,255,255,0.1);
+    }
+    .btn-logout{
+      width:100%;
+      padding:10px;
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:8px;
+      color:#fff;
+      cursor:pointer;
+      font-size:14px;
+      transition:all 0.2s ease;
+    }
+    .btn-logout:hover{
+      background:rgba(255,255,255,0.1);
+    }
+    
+    /* Main Content */
+    .main-content{
+      margin-left:260px;
+      flex:1;
+      padding:32px;
+      min-height:100vh;
+    }
+    
+    /* Header */
+    .page-header{
+      margin-bottom:32px;
+    }
+    .page-title{
+      font-size:32px;
+      font-weight:800;
+      color:var(--navy);
+      margin-bottom:8px;
+    }
+    .page-subtitle{
+      font-size:16px;
+      color:var(--muted);
+    }
+    
+    /* Filtres */
+    .filters-section{
+      display:flex;
+      gap:12px;
+      margin-bottom:24px;
+      flex-wrap:wrap;
+    }
+    .filter-btn{
+      padding:10px 20px;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:8px;
+      font-size:14px;
+      font-weight:600;
+      color:var(--navy);
+      cursor:pointer;
+      transition:all 0.2s ease;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .filter-btn:hover{
+      border-color:var(--emerald);
+      color:var(--emerald);
+    }
+    .filter-btn.active{
+      background:var(--emerald);
+      border-color:var(--emerald);
+      color:#fff;
+    }
+    .filter-btn i{
+      width:16px;
+      height:16px;
+    }
+    
+    /* Table */
+    .candidatures-table-wrapper{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .candidatures-table{
+      width:100%;
+      border-collapse:collapse;
+    }
+    .candidatures-table thead{
+      background:#F8FAFC;
+      border-bottom:2px solid var(--border);
+    }
+    .candidatures-table th{
+      padding:16px;
+      text-align:left;
+      font-size:12px;
+      font-weight:700;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+    }
+    .candidatures-table tbody tr{
+      border-bottom:1px solid var(--border);
+      cursor:pointer;
+      transition:all 0.2s ease;
+    }
+    .candidatures-table tbody tr:hover{
+      background:#F8FAFC;
+    }
+    .candidatures-table td{
+      padding:16px;
+      font-size:14px;
+    }
+    .candidat-name{
+      font-weight:600;
+      color:var(--navy);
+      margin-bottom:4px;
+    }
+    .candidat-email{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .score-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 12px;
+      border-radius:20px;
+      font-size:13px;
+      font-weight:700;
+      background:var(--emerald-light);
+      color:var(--emerald-dark);
+    }
+    .status-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 12px;
+      border-radius:20px;
+      font-size:12px;
+      font-weight:600;
+    }
+    .status-badge.status-new{
+      background:#DBEAFE;
+      color:#1E40AF;
+    }
+    .status-badge.status-reviewing{
+      background:#FEF3C7;
+      color:#92400E;
+    }
+    .status-badge.status-accepted{
+      background:var(--emerald-light);
+      color:var(--emerald-dark);
+    }
+    .status-badge.status-rejected{
+      background:#FEE2E2;
+      color:#991B1B;
+    }
+    
+    /* Slide-over */
+    .slide-over{
+      position:fixed;
+      right:0;
+      top:0;
+      bottom:0;
+      width:600px;
+      max-width:90vw;
+      background:var(--card);
+      box-shadow:-4px 0 24px rgba(0,0,0,0.15);
+      z-index:2000;
+      transform:translateX(100%);
+      transition:transform 0.3s ease;
+      display:flex;
+      flex-direction:column;
+    }
+    .slide-over.open{
+      transform:translateX(0);
+    }
+    .slide-over-header{
+      padding:24px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .slide-over-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .slide-over-close{
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.2s ease;
+    }
+    .slide-over-close:hover{
+      background:#F8FAFC;
+    }
+    .slide-over-body{
+      flex:1;
+      overflow-y:auto;
+      padding:24px;
+    }
+    .slide-over-footer{
+      padding:24px;
+      border-top:1px solid var(--border);
+      display:flex;
+      gap:12px;
+    }
+    .btn-action{
+      flex:1;
+      padding:14px 24px;
+      border-radius:8px;
+      font-size:16px;
+      font-weight:700;
+      cursor:pointer;
+      transition:all 0.2s ease;
+      border:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+    .btn-accept{
+      background:var(--emerald);
+      color:#fff;
+    }
+    .btn-accept:hover{
+      background:var(--emerald-dark);
+      transform:translateY(-2px);
+      box-shadow:0 4px 12px rgba(16,185,129,0.3);
+    }
+    .btn-reject{
+      background:var(--error);
+      color:#fff;
+    }
+    .btn-reject:hover{
+      background:#DC2626;
+      transform:translateY(-2px);
+      box-shadow:0 4px 12px rgba(239,68,68,0.3);
+    }
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.5);
+      z-index:1500;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.3s ease;
+    }
+    .overlay.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+    
+    /* Score Breakdown */
+    .score-section{
+      margin-bottom:24px;
+      padding:20px;
+      background:#F8FAFC;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+    }
+    .score-total{
+      font-size:48px;
+      font-weight:800;
+      color:var(--emerald);
+      margin-bottom:8px;
+    }
+    .score-grade{
+      font-size:18px;
+      color:var(--muted);
+      margin-bottom:16px;
+    }
+    .score-breakdown{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .breakdown-item{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px;
+      background:#fff;
+      border-radius:8px;
+    }
+    .breakdown-label{
+      font-weight:600;
+      color:var(--navy);
+    }
+    .breakdown-points{
+      font-weight:700;
+      color:var(--emerald);
+    }
+    
+    /* Documents Viewer */
+    .documents-section{
+      margin-top:24px;
+    }
+    .documents-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .doc-thumbnail{
+      aspect-ratio:1;
+      border-radius:8px;
+      overflow:hidden;
+      border:2px solid var(--border);
+      cursor:pointer;
+      transition:all 0.2s ease;
+      position:relative;
+    }
+    .doc-thumbnail:hover{
+      border-color:var(--emerald);
+      transform:scale(1.05);
+    }
+    .doc-thumbnail img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+    .doc-thumbnail .doc-icon{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#F8FAFC;
+      color:var(--muted);
+      font-size:32px;
+    }
+    .doc-name{
+      position:absolute;
+      bottom:0;
+      left:0;
+      right:0;
+      background:rgba(15,23,42,0.9);
+      color:#fff;
+      padding:6px 8px;
+      font-size:11px;
+      text-overflow:ellipsis;
+      overflow:hidden;
+      white-space:nowrap;
+    }
+    
+    @media(max-width:1024px){
+      .sidebar{
+        transform:translateX(-100%);
+      }
+      .main-content{
+        margin-left:0;
+      }
+      .slide-over{
+        width:100vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">GetPatrimo</div>
+    <div class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <a href="/property.html" class="nav-item">
+        <i data-lucide="home"></i>
+        <span>Mes Biens</span>
+      </a>
+      <a href="/candidatures.html" class="nav-item active">
+        <i data-lucide="users"></i>
+        <span>Candidatures</span>
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <i data-lucide="log-out"></i>
+        Déconnexion
+      </button>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Gestion des Candidatures</h1>
+      <p class="page-subtitle">Traitement rapide et efficace de vos dossiers</p>
+    </div>
+    
+    <!-- Filtres -->
+    <div class="filters-section">
+      <button class="filter-btn" data-filter="all" onclick="applyFilter('all')">
+        <i data-lucide="list"></i>
+        <span>Tous</span>
+      </button>
+      <button class="filter-btn" data-filter="best-scores" onclick="applyFilter('best-scores')">
+        <i data-lucide="award"></i>
+        <span>Meilleurs Scores</span>
+      </button>
+      <button class="filter-btn" data-filter="high-income" onclick="applyFilter('high-income')">
+        <i data-lucide="trending-up"></i>
+        <span>Revenus > 3x Loyer</span>
+      </button>
+      <button class="filter-btn" data-filter="complete" onclick="applyFilter('complete')">
+        <i data-lucide="check-circle"></i>
+        <span>Dossiers Complets</span>
+      </button>
+      <button class="filter-btn" data-filter="new" onclick="applyFilter('new')">
+        <i data-lucide="clock"></i>
+        <span>Nouveaux</span>
+      </button>
+    </div>
+    
+    <!-- Table -->
+    <div class="candidatures-table-wrapper">
+      <table class="candidatures-table">
+        <thead>
+          <tr>
+            <th>Candidat</th>
+            <th>Score</th>
+            <th>Revenus</th>
+            <th>Type de contrat</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="candidaturesBody">
+          <tr>
+            <td colspan="5" style="text-align:center;padding:40px">
+              <div class="skeleton-loader" style="width:100%;height:20px;margin-bottom:12px"></div>
+              <div class="skeleton-loader" style="width:80%;height:20px;margin:0 auto"></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  
+  <!-- Slide-over -->
+  <div class="overlay" id="overlay" onclick="closeSlideOver()"></div>
+  <div class="slide-over" id="slideOver">
+    <div class="slide-over-header">
+      <h2 class="slide-over-title" id="slideOverTitle">Détail du candidat</h2>
+      <button class="slide-over-close" onclick="closeSlideOver()">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="slide-over-body" id="slideOverBody">
+      <div style="text-align:center;padding:40px">Chargement…</div>
+    </div>
+    <div class="slide-over-footer">
+      <button class="btn-action btn-accept" onclick="acceptCandidat()">
+        <i data-lucide="check"></i>
+        <span>Accepter (Générer le bail)</span>
+      </button>
+      <button class="btn-action btn-reject" onclick="rejectCandidat()">
+        <i data-lucide="x"></i>
+        <span>Refuser (Envoyer mail)</span>
+      </button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let token = localStorage.getItem('token');
+  let currentFilter = 'all';
+  let currentCandidatId = null;
+  let allCandidatures = [];
+  
+  if(!token){
+    location.href = '/login.html';
+    return;
+  }
+  
+  // Initialize icons
+  if(window.lucide) lucide.createIcons();
+  
+  // Helper functions
+  function esc(str){
+    if(!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  
+  function eur(n){
+    return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n||0);
+  }
+  
+  function getStatusBadge(status, hasFraud){
+    if(hasFraud) return {class:'status-rejected',text:'Alerte Fraude'};
+    switch(status){
+      case 'NEW': return {class:'status-new',text:'Nouveau'};
+      case 'REVIEWED': return {class:'status-reviewing',text:'En cours'};
+      case 'ACCEPTED': return {class:'status-accepted',text:'Accepté'};
+      case 'REJECTED': return {class:'status-rejected',text:'Refusé'};
+      default: return {class:'status-new',text:'Nouveau'};
+    }
+  }
+  
+  // API calls
+  async function api(path, opts={}){
+    return fetch(path, {
+      ...opts,
+      headers: {
+        'x-auth-token': token,
+        'Content-Type': 'application/json',
+        ...opts.headers
+      }
+    });
+  }
+  
+  async function apiJson(path, opts={}){
+    try{
+      console.log('🌐 Appel API:', path, opts.method || 'GET');
+      const r = await api(path, opts);
+      
+      // Vérifie si la réponse est du HTML (erreur 404/500)
+      const contentType = r.headers.get('content-type') || '';
+      if(contentType.includes('text/html')){
+        const text = await r.text();
+        console.error('❌ Réponse HTML reçue (erreur serveur):', text.substring(0, 200));
+        return {ok: false, data: {msg: 'Erreur serveur: route non trouvée'}, status: r.status};
+      }
+      
+      const j = await r.json().catch(() => {
+        console.error('❌ Erreur parsing JSON pour', path);
+        return { msg: 'Réponse invalide du serveur' };
+      });
+      
+      console.log('📡 Réponse brute:', {
+        status: r.status,
+        ok: r.ok,
+        dataType: typeof j,
+        hasData: !!j
+      });
+      
+      return {ok: r.ok, data: j, status: r.status};
+    }catch(e){
+      console.error('❌ Erreur API:', path, e);
+      return {ok: false, data: {msg: 'Erreur réseau: ' + (e.message || 'Erreur inconnue')}, status: 0};
+    }
+  }
+  
+  // Load candidatures
+  async function loadCandidatures(){
+    try{
+      console.log('🔄 Chargement candidatures...');
+      const r = await apiJson('/api/candidatures');
+      
+      console.log('📡 Réponse API:', {
+        ok: r.ok,
+        status: r.status,
+        dataType: Array.isArray(r.data) ? 'array' : typeof r.data,
+        dataLength: Array.isArray(r.data) ? r.data.length : 'N/A',
+        error: r.data?.msg || r.data?.error
+      });
+      
+      if(!r.ok){
+        const errorMsg = r.data?.msg || r.data?.error || `Erreur ${r.status}`;
+        console.error('❌ Erreur API:', errorMsg);
+        $('candidaturesBody').innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center;padding:40px;color:#EF4444">
+              <div style="margin-bottom:8px">Erreur lors du chargement</div>
+              <div style="font-size:12px;color:var(--muted)">${errorMsg}</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      // Vérifie que c'est bien un tableau
+      if(!Array.isArray(r.data)){
+        console.error('❌ Réponse API n\'est pas un tableau:', typeof r.data, r.data);
+        $('candidaturesBody').innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center;padding:40px;color:#EF4444">
+              Format de réponse invalide
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      allCandidatures = r.data.map(c => ({
+        ...c,
+        propertyRent: c.propertyRent || c.property?.rentAmount || 0
+      }));
+      
+      console.log(`✅ ${allCandidatures.length} candidature(s) chargée(s)`);
+      applyFilter(currentFilter);
+    }catch(e){
+      console.error('❌ Erreur chargement:', e);
+      $('candidaturesBody').innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align:center;padding:40px;color:#EF4444">
+            <div style="margin-bottom:8px">Erreur réseau</div>
+            <div style="font-size:12px;color:var(--muted)">${e.message || 'Erreur inconnue'}</div>
+          </td>
+        </tr>
+      `;
+    }
+  }
+  
+  // Filters
+  function applyFilter(filter){
+    currentFilter = filter;
+    
+    // Update filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if(btn.dataset.filter === filter) btn.classList.add('active');
+    });
+    
+    let filtered = [...allCandidatures];
+    
+    switch(filter){
+      case 'best-scores':
+        filtered = filtered.filter(c => (c.scoring?.total || 0) >= 80).sort((a,b) => (b.scoring?.total || 0) - (a.scoring?.total || 0));
+        break;
+      case 'high-income':
+        filtered = filtered.filter(c => {
+          const income = c.monthlyNetIncome || 0;
+          const rent = c.propertyRent || c.property?.rentAmount || 0;
+          return rent > 0 && income >= rent * 3;
+        });
+        break;
+      case 'complete':
+        filtered = filtered.filter(c => {
+          const docsCount = Array.isArray(c.docs) ? c.docs.length : 0;
+          return docsCount >= 5 && c.scoring && c.scoring.total > 0;
+        });
+        break;
+      case 'new':
+        filtered = filtered.filter(c => c.status === 'NEW');
+        break;
+    }
+    
+    renderCandidatures(filtered);
+  }
+  
+  // Render candidatures
+  function renderCandidatures(candidatures){
+    if(candidatures.length === 0){
+      $('candidaturesBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted)">Aucune candidature</td></tr>';
+      return;
+    }
+    
+    $('candidaturesBody').innerHTML = candidatures.map(c => {
+      const name = ((c.firstName||'') + ' ' + (c.lastName||'')).trim() || 'Candidat';
+      const score = c.scoring?.total || 0;
+      const grade = c.scoring?.grade || '—';
+      const income = c.monthlyNetIncome || 0;
+      const contractType = c.contractType || '—';
+      const status = getStatusBadge(c.status, score === 0 && c.scoring?.alerts?.some(a => a.type === 'critical'));
+      
+      return `
+        <tr onclick="openSlideOver('${c._id}')">
+          <td>
+            <div class="candidat-name">${esc(name)}</div>
+            <div class="candidat-email">${esc(c.email||'')}</div>
+          </td>
+          <td>
+            ${score > 0 ? `<span class="score-badge">${score}/100 (${esc(grade)})</span>` : '—'}
+          </td>
+          <td>${eur(income)}</td>
+          <td>${esc(contractType)}</td>
+          <td>
+            <span class="status-badge ${status.class}">${status.text}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    
+    if(window.lucide) lucide.createIcons();
+  }
+  
+  // Slide-over
+  window.openSlideOver = async function(candId){
+    currentCandidatId = candId;
+    $('overlay').classList.add('show');
+    $('slideOver').classList.add('open');
+    
+    try{
+      const r = await apiJson(`/api/candidatures/${encodeURIComponent(candId)}`);
+      if(!r.ok){
+        $('slideOverBody').innerHTML = '<div style="color:#EF4444">Erreur lors du chargement</div>';
+        return;
+      }
+      
+      const c = r.data;
+      const name = ((c.firstName||'') + ' ' + (c.lastName||'')).trim() || 'Candidat';
+      const sc = c.scoring || {};
+      const total = sc.total || 0;
+      const grade = sc.grade || '—';
+      const breakdown = sc.breakdown || [];
+      const propertyRent = c.property?.rentAmount || 0;
+      
+      $('slideOverTitle').textContent = name;
+      
+      // Stocke l'ID pour les actions
+      currentCandidatId = candId;
+      
+      let html = `
+        <div style="margin-bottom:24px">
+          <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px">${esc(name)}</div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:4px">${esc(c.email||'')}</div>
+          <div style="font-size:13px;color:var(--muted)">${esc(c.propertyName||'Bien')} • ${esc(c.propertyAddress||'')}</div>
+        </div>
+        
+        <div class="score-section">
+          <div class="score-total">${total}/100</div>
+          <div class="score-grade">Grade: ${esc(grade)}</div>
+          ${breakdown.length > 0 ? `
+            <div class="score-breakdown">
+              ${breakdown.map(item => `
+                <div class="breakdown-item">
+                  <span class="breakdown-label">${esc(item.label||item.key||'')}</span>
+                  <span class="breakdown-points">${item.points || 0} pts</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+      
+      // Documents
+      const docs = Array.isArray(c.docs) ? c.docs : [];
+      if(docs.length > 0){
+        html += `
+          <div class="documents-section">
+            <div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:16px">Documents (${docs.length})</div>
+            <div class="documents-grid">
+              ${docs.map(doc => {
+                const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
+                const docName = esc(doc.originalName||'document');
+                return `
+                  <div class="doc-thumbnail" onclick="downloadDoc('${candId}', '${doc._id}', '${docName}')" title="${docName}">
+                    ${isImage ? `<img src="/api/candidatures/${candId}/file/${doc._id}" onerror="this.parentElement.innerHTML='<div class=\\'doc-icon\\'><i data-lucide=\\'file-text\\'></i></div>'" />` : '<div class="doc-icon"><i data-lucide="file-text"></i></div>'}
+                    <div class="doc-name">${docName.slice(0,20)}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      $('slideOverBody').innerHTML = html;
+      if(window.lucide) lucide.createIcons();
+    }catch(e){
+      console.error('Erreur chargement détail:', e);
+      $('slideOverBody').innerHTML = '<div style="color:#EF4444">Erreur réseau</div>';
+    }
+  };
+  
+  window.closeSlideOver = function(){
+    $('overlay').classList.remove('show');
+    $('slideOver').classList.remove('open');
+    currentCandidatId = null;
+  };
+  
+  window.downloadDoc = function(candId, docId, filename){
+    const url = `/api/candidatures/${encodeURIComponent(candId)}/file/${encodeURIComponent(docId)}`;
+    fetch(url, {
+      headers: { 'x-auth-token': token }
+    }).then(r => {
+      if(!r.ok) throw new Error('Erreur téléchargement');
+      return r.blob();
+    }).then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }).catch(e => {
+      console.error('Erreur téléchargement:', e);
+      alert('Erreur lors du téléchargement');
+    });
+  };
+  
+  // Actions
+  window.acceptCandidat = async function(){
+    if(!currentCandidatId) return;
+    
+    if(!confirm('Êtes-vous sûr de vouloir accepter ce candidat ? Un bail sera généré.')){
+      return;
+    }
+    
+    try{
+      const r = await apiJson(`/api/candidatures/${encodeURIComponent(currentCandidatId)}/accept`, {
+        method: 'POST'
+      });
+      
+      if(r.ok){
+        alert('Candidat accepté ! Le bail a été généré.');
+        closeSlideOver();
+        loadCandidatures();
+      }else{
+        alert(r.data.msg || 'Erreur lors de l\'acceptation');
+      }
+    }catch(e){
+      console.error('Erreur acceptation:', e);
+      alert('Erreur réseau');
+    }
+  };
+  
+  window.rejectCandidat = async function(){
+    if(!currentCandidatId) return;
+    
+    if(!confirm('Êtes-vous sûr de vouloir refuser ce candidat ? Un email de refus sera envoyé.')){
+      return;
+    }
+    
+    try{
+      const r = await apiJson(`/api/candidatures/${encodeURIComponent(currentCandidatId)}/reject`, {
+        method: 'POST'
+      });
+      
+      if(r.ok){
+        alert('Candidat refusé. Un email de refus a été envoyé.');
+        closeSlideOver();
+        loadCandidatures();
+      }else{
+        alert(r.data.msg || 'Erreur lors du refus');
+      }
+    }catch(e){
+      console.error('Erreur refus:', e);
+      alert('Erreur réseau');
+    }
+  };
+  
+  window.logout = function(){
+    localStorage.removeItem('token');
+    location.href = '/login.html';
+  };
+  
+  // Initialize
+  loadCandidatures();
+  
+  // Re-create icons on updates
+  const observer = new MutationObserver(() => {
+    if(window.lucide) lucide.createIcons();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+</body>
+</html>

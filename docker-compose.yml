@@ -7,12 +7,12 @@ services:
     env_file:
       - .env
     environment:
-      - MONGO_URI=${MONGO_URI:-mongodb://mongodb:27017/doc2loc}
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/doc2loc?authSource=admin
       - NODE_ENV=production
-    working_dir: /app
+    working_dir: /opt/doc2loc
     volumes:
-      - ./:/app
-      - node_modules:/app/node_modules
+      - ./uploads:/opt/doc2loc/uploads
+      - node_modules:/opt/doc2loc/node_modules
     networks:
       - doc2loc-net
     restart: unless-stopped

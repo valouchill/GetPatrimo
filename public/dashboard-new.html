@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;
+      --emerald:#10B981;
+      --cobalt:#3B82F6;
+      --slate-bg:#F8FAFC;
+      --slate-border:#E2E8F0;
+      --text:#0F172A;
+      --muted:#64748B;
+      --white:#FFFFFF;
+      --radius:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--slate-bg);
+      color:var(--text);
+      display:flex;
+      min-height:100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar{
+      width:260px;
+      background:var(--navy);
+      color:#fff;
+      position:fixed;
+      left:0;
+      top:0;
+      height:100vh;
+      overflow-y:auto;
+      z-index:1000;
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar-logo{
+      padding:24px 20px;
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-0.02em;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-nav{
+      flex:1;
+      padding:16px 0;
+    }
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 20px;
+      color:rgba(255,255,255,0.7);
+      text-decoration:none;
+      transition:all 0.2s;
+      border-left:3px solid transparent;
+    }
+    .nav-item:hover{
+      background:rgba(255,255,255,0.05);
+      color:#fff;
+    }
+    .nav-item.active{
+      background:rgba(255,255,255,0.1);
+      color:#fff;
+      border-left-color:var(--emerald);
+    }
+    .nav-item i{width:20px;height:20px}
+    
+    /* Main Content */
+    .main-content{
+      flex:1;
+      margin-left:260px;
+      padding:32px;
+      min-height:100vh;
+    }
+    
+    /* Stats Cards */
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:20px;
+      margin-bottom:32px;
+    }
+    .stat-card{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:var(--radius);
+      padding:24px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .stat-label{
+      font-size:14px;
+      font-weight:600;
+      color:var(--muted);
+    }
+    .stat-icon{
+      width:40px;
+      height:40px;
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--emerald);
+      color:#fff;
+    }
+    .stat-value{
+      font-size:32px;
+      font-weight:800;
+      color:var(--navy);
+      margin-bottom:4px;
+    }
+    .stat-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:12px;
+      font-size:12px;
+      font-weight:600;
+      background:#FEE2E2;
+      color:#991B1B;
+      margin-top:8px;
+    }
+    
+    /* Candidatures Table */
+    .candidatures-section{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:var(--radius);
+      padding:24px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .section-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .candidatures-table{
+      width:100%;
+      border-collapse:collapse;
+    }
+    .candidatures-table thead{
+      border-bottom:1px solid var(--slate-border);
+    }
+    .candidatures-table th{
+      text-align:left;
+      padding:12px 16px;
+      font-size:12px;
+      font-weight:600;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+    }
+    .candidatures-table td{
+      padding:16px;
+      border-bottom:1px solid var(--slate-border);
+    }
+    .candidatures-table tbody tr{
+      transition:background 0.2s;
+      cursor:pointer;
+    }
+    .candidatures-table tbody tr:hover{
+      background:#F8FAFC;
+    }
+    .candidat-name{
+      font-weight:600;
+      color:var(--navy);
+      margin-bottom:4px;
+    }
+    .candidat-email{
+      font-size:13px;
+      color:var(--muted);
+    }
+    .score-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 12px;
+      border-radius:8px;
+      font-size:13px;
+      font-weight:600;
+      background:#D1FAE5;
+      color:#065F46;
+    }
+    .status-badge{
+      display:inline-flex;
+      padding:6px 12px;
+      border-radius:8px;
+      font-size:12px;
+      font-weight:600;
+    }
+    .status-pending{background:#FEF3C7;color:#92400E}
+    .status-certified{background:#D1FAE5;color:#065F46}
+    .status-fraud{background:#FEE2E2;color:#991B1B}
+    .fraud-alert{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:6px;
+      font-size:11px;
+      font-weight:700;
+      background:#EF4444;
+      color:#fff;
+      margin-left:8px;
+    }
+    
+    /* Slide-over */
+    .slide-over{
+      position:fixed;
+      top:0;
+      right:0;
+      width:600px;
+      max-width:90vw;
+      height:100vh;
+      background:var(--white);
+      box-shadow:-4px 0 24px rgba(0,0,0,0.15);
+      transform:translateX(100%);
+      transition:transform 0.3s ease;
+      z-index:2000;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .slide-over.open{transform:translateX(0)}
+    .slide-over-header{
+      padding:24px;
+      border-bottom:1px solid var(--slate-border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .slide-over-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .slide-over-close{
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      border:1px solid var(--slate-border);
+      background:var(--white);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .slide-over-body{
+      flex:1;
+      overflow-y:auto;
+      padding:24px;
+    }
+    
+    /* Audit Section */
+    .audit-section{
+      margin-top:24px;
+      padding:20px;
+      background:#F8FAFC;
+      border-radius:var(--radius);
+      border:1px solid var(--slate-border);
+    }
+    .audit-title{
+      font-size:16px;
+      font-weight:700;
+      color:var(--navy);
+      margin-bottom:16px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .audit-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 0;
+      border-bottom:1px solid var(--slate-border);
+    }
+    .audit-item:last-child{border-bottom:none}
+    .audit-icon{
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+    }
+    .audit-icon.valid{background:#D1FAE5;color:#065F46}
+    .audit-icon.alert{background:#FEE2E2;color:#991B1B}
+    .audit-label{
+      flex:1;
+      font-size:14px;
+      color:var(--navy);
+    }
+    
+    /* Document Preview */
+    .doc-preview-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .doc-preview{
+      aspect-ratio:1;
+      border-radius:8px;
+      border:1px solid var(--slate-border);
+      overflow:hidden;
+      background:#F8FAFC;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:32px;
+    }
+    
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.5);
+      z-index:1999;
+      display:none;
+    }
+    .overlay.show{display:block}
+    
+    @media(max-width:1024px){
+      .sidebar{transform:translateX(-100%);transition:transform 0.3s}
+      .sidebar.open{transform:translateX(0)}
+      .main-content{margin-left:0;padding:16px}
+      .stats-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">GetPatrimo</div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item active" data-page="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <a href="/dashboard.html#properties" class="nav-item" data-page="properties">
+        <i data-lucide="home"></i>
+        <span>Mes Biens</span>
+      </a>
+      <a href="/dashboard.html#candidatures" class="nav-item" data-page="candidatures">
+        <i data-lucide="file-text"></i>
+        <span>Candidatures</span>
+      </a>
+      <a href="/dashboard.html#fiscalite" class="nav-item" data-page="fiscalite">
+        <i data-lucide="receipt"></i>
+        <span>Fiscalité</span>
+      </a>
+      <a href="/dashboard.html#settings" class="nav-item" data-page="settings">
+        <i data-lucide="settings"></i>
+        <span>Paramètres</span>
+      </a>
+    </nav>
+    <div style="padding:20px;border-top:1px solid rgba(255,255,255,0.1)">
+      <a href="#" id="btnLogout" class="nav-item" style="border-left:none">
+        <i data-lucide="log-out"></i>
+        <span>Déconnexion</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div style="margin-bottom:32px">
+      <h1 style="font-size:28px;font-weight:800;color:var(--navy);margin-bottom:8px">Tableau de bord</h1>
+      <p style="color:var(--muted);font-size:14px">Vue d'ensemble de votre portefeuille locatif</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-label">Revenus Locatifs</div>
+          <div class="stat-icon">
+            <i data-lucide="euro"></i>
+          </div>
+        </div>
+        <div class="stat-value" id="statRevenue">0 €</div>
+        <div style="font-size:13px;color:var(--muted)">Revenus mensuels estimés</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-label">Candidatures à traiter</div>
+          <div class="stat-icon" style="background:var(--cobalt)">
+            <i data-lucide="file-text"></i>
+          </div>
+        </div>
+        <div class="stat-value" id="statCandidatures">0</div>
+        <div id="candidaturesBadge" style="display:none" class="stat-badge">
+          <i data-lucide="alert-circle"></i>
+          <span>Action requise</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-label">Score Moyen du Parc</div>
+          <div class="stat-icon" style="background:var(--emerald)">
+            <i data-lucide="trending-up"></i>
+          </div>
+        </div>
+        <div class="stat-value" id="statScore">—</div>
+        <div style="font-size:13px;color:var(--muted)">Indicateur de santé globale</div>
+      </div>
+    </div>
+
+    <!-- Candidatures Table -->
+    <div class="candidatures-section">
+      <div class="section-header">
+        <h2 class="section-title">Candidatures</h2>
+        <button style="padding:8px 16px;background:var(--emerald);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer" onclick="loadCandidatures()">
+          <i data-lucide="refresh-cw" style="width:16px;height:16px"></i>
+          Actualiser
+        </button>
+      </div>
+      <table class="candidatures-table">
+        <thead>
+          <tr>
+            <th>Candidat</th>
+            <th>Bien</th>
+            <th>Revenus</th>
+            <th>Score</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="candidaturesBody">
+          <tr>
+            <td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Chargement…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Slide-over -->
+  <div class="overlay" id="overlay"></div>
+  <div class="slide-over" id="slideOver">
+    <div class="slide-over-header">
+      <h3 class="slide-over-title" id="slideOverTitle">Détail du dossier</h3>
+      <button class="slide-over-close" id="slideOverClose">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="slide-over-body" id="slideOverBody">
+      <!-- Contenu chargé dynamiquement -->
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const token = localStorage.getItem('token') || '';
+  
+  if(!token){
+    location.href = '/login.html';
+    return;
+  }
+
+  // Utilitaires
+  function api(path, opts={}){
+    const headers = Object.assign({}, opts.headers||{}, { "x-auth-token": token });
+    return fetch(path, Object.assign({}, opts, { headers }));
+  }
+  
+  function apiJson(path, opts={}){
+    return api(path, opts).then(r => r.json().then(j => ({ ok: r.ok, data: j, status: r.status })));
+  }
+  
+  function eur(n){
+    const v = Number(n||0);
+    return v.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+  }
+  
+  function esc(s){
+    return String(s||"").replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+  
+  function fmtDate(d){
+    try{ return new Date(d).toLocaleDateString("fr-FR"); }
+    catch(e){ return "—"; }
+  }
+
+  // Slide-over
+  function openSlideOver(candId){
+    $("overlay").classList.add("show");
+    $("slideOver").classList.add("open");
+    loadCandidatDetail(candId);
+  }
+  
+  function closeSlideOver(){
+    $("overlay").classList.remove("show");
+    $("slideOver").classList.remove("open");
+  }
+  
+  $("slideOverClose").addEventListener("click", closeSlideOver);
+  $("overlay").addEventListener("click", closeSlideOver);
+
+  // Load candidat detail
+  async function loadCandidatDetail(candId){
+    $("slideOverBody").innerHTML = "<div style='text-align:center;padding:40px'>Chargement…</div>";
+    
+    try{
+      const r = await apiJson("/api/candidatures/" + encodeURIComponent(candId));
+      if(!r.ok){
+        $("slideOverBody").innerHTML = "<div style='color:#EF4444'>Erreur lors du chargement</div>";
+        return;
+      }
+      
+      const c = r.data;
+      const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
+      const sc = c.scoring || {};
+      const grade = sc.grade || "—";
+      const total = sc.total !== undefined ? sc.total : null;
+      
+      // Détecte fraude
+      const hasFraud = sc.total === 0 || (sc.alerts && sc.alerts.some(a => a.type === 'critical'));
+      
+      $("slideOverTitle").textContent = name;
+      
+      let html = `
+        <div style="margin-bottom:24px">
+          <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px">${esc(name)}</div>
+          <div style="font-size:14px;color:var(--muted)">${esc(c.email||"—")}</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px">
+          <div style="padding:16px;background:#F8FAFC;border-radius:8px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Score GetPatrimo</div>
+            <div style="font-size:24px;font-weight:700;color:var(--navy)">${total !== null ? total : "—"}/100</div>
+            <div style="font-size:14px;color:var(--muted);margin-top:4px">Grade: ${esc(grade)}</div>
+          </div>
+          <div style="padding:16px;background:#F8FAFC;border-radius:8px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Revenus nets</div>
+            <div style="font-size:24px;font-weight:700;color:var(--navy)">${eur(c.monthlyNetIncome||0)}</div>
+            <div style="font-size:14px;color:var(--muted);margin-top:4px">Par mois</div>
+          </div>
+        </div>
+      `;
+      
+      // Audit IA
+      if(sc.alerts && sc.alerts.length > 0){
+        html += `
+          <div class="audit-section">
+            <div class="audit-title">
+              <i data-lucide="shield-check"></i>
+              <span>Audit IA</span>
+            </div>
+        `;
+        
+        sc.alerts.forEach(alert => {
+          const isCritical = alert.type === 'critical';
+          html += `
+            <div class="audit-item">
+              <div class="audit-icon ${isCritical ? 'alert' : 'valid'}">
+                <i data-lucide="${isCritical ? 'alert-triangle' : 'check'}"></i>
+              </div>
+              <div class="audit-label">${esc(alert.message || alert.code || '')}</div>
+            </div>
+          `;
+        });
+        
+        html += `</div>`;
+      }
+      
+      // Documents
+      const docs = Array.isArray(c.docs) ? c.docs : [];
+      if(docs.length > 0){
+        html += `
+          <div style="margin-top:24px">
+            <div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:16px">Documents</div>
+            <div class="doc-preview-grid">
+        `;
+        
+        docs.forEach(doc => {
+          html += `
+            <div class="doc-preview">
+              <i data-lucide="file-text"></i>
+            </div>
+          `;
+        });
+        
+        html += `</div></div>`;
+      }
+      
+      $("slideOverBody").innerHTML = html;
+      if(window.lucide) lucide.createIcons();
+    }catch(e){
+      console.error("Erreur chargement détail:", e);
+      $("slideOverBody").innerHTML = "<div style='color:#EF4444'>Erreur réseau</div>";
+    }
+  }
+
+  // Load candidatures
+  async function loadCandidatures(){
+    $("candidaturesBody").innerHTML = "<tr><td colspan='6' style='text-align:center;padding:40px;color:var(--muted)'>Chargement…</td></tr>";
+    
+    try{
+      const [rCand, rProps] = await Promise.all([
+        apiJson("/api/candidatures"),
+        apiJson("/api/properties")
+      ]);
+      
+      const candidatures = Array.isArray(rCand.data) ? rCand.data : [];
+      const properties = Array.isArray(rProps.data) ? rProps.data : [];
+      
+      // Stats
+      const totalRevenue = properties.reduce((sum, p) => sum + Number(p.rentAmount||0), 0);
+      $("statRevenue").textContent = eur(totalRevenue);
+      
+      const pendingCount = candidatures.filter(c => c.status === 'NEW').length;
+      $("statCandidatures").textContent = candidatures.length;
+      if(pendingCount > 0){
+        $("candidaturesBadge").style.display = "inline-flex";
+      }
+      
+      // Score moyen
+      const scored = candidatures.filter(c => c.scoring && typeof c.scoring.total === 'number');
+      if(scored.length > 0){
+        const avgScore = Math.round(scored.reduce((sum, c) => sum + c.scoring.total, 0) / scored.length);
+        $("statScore").textContent = avgScore + "/100";
+      }
+      
+      // Table
+      if(candidatures.length === 0){
+        $("candidaturesBody").innerHTML = "<tr><td colspan='6' style='text-align:center;padding:40px;color:var(--muted)'>Aucune candidature</td></tr>";
+        return;
+      }
+      
+      $("candidaturesBody").innerHTML = candidatures.map(c => {
+        const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
+        const sc = c.scoring || {};
+        const total = sc.total !== undefined ? sc.total : null;
+        const grade = sc.grade || "—";
+        const hasFraud = sc.total === 0 || (sc.alerts && sc.alerts.some(a => a.type === 'critical'));
+        
+        let statusClass = 'status-pending';
+        let statusText = 'En attente';
+        if(c.status === 'ACCEPTED'){
+          statusClass = 'status-certified';
+          statusText = 'Certifié';
+        } else if(hasFraud){
+          statusClass = 'status-fraud';
+          statusText = 'Alerte Fraude';
+        }
+        
+        return `
+          <tr onclick="openSlideOver('${c._id}')">
+            <td>
+              <div class="candidat-name">${esc(name)}</div>
+              <div class="candidat-email">${esc(c.email||"—")}</div>
+            </td>
+            <td>
+              <div style="font-weight:600;color:var(--navy)">${esc(c.propertyName||"Bien")}</div>
+              <div style="font-size:12px;color:var(--muted)">${esc(c.propertyAddress||"")}</div>
+            </td>
+            <td>${eur(c.monthlyNetIncome||0)}</td>
+            <td>
+              ${total !== null ? `<span class="score-badge">${total}/100 (${esc(grade)})</span>` : "—"}
+              ${hasFraud ? '<span class="fraud-alert">🚩 Fraude</span>' : ''}
+            </td>
+            <td>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </td>
+            <td>
+              <button style="padding:6px 12px;background:var(--emerald);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer" onclick="event.stopPropagation();openSlideOver('${c._id}')">
+                Voir le dossier
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+      
+      if(window.lucide) lucide.createIcons();
+    }catch(e){
+      console.error("Erreur chargement candidatures:", e);
+      $("candidaturesBody").innerHTML = "<tr><td colspan='6' style='text-align:center;padding:40px;color:#EF4444'>Erreur réseau</td></tr>";
+    }
+  }
+
+  // Logout
+  $("btnLogout").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    location.href = '/login.html';
+  });
+
+  // Expose functions globally
+  window.openSlideOver = openSlideOver;
+  window.loadCandidatures = loadCandidatures;
+
+  // Init
+  if(window.lucide) lucide.createIcons();
+  loadCandidatures();
+})();
+</script>
+</body>
+</html>

@@ -1,196 +1,628 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Doc2Loc — Dépôt de dossier</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
-  <style>
-    :root{--bg:#f6f7fb;--card:#fff;--text:#0b1020;--muted:#5b6476;--border:rgba(15,23,42,.12);--blue:#0a84ff;--r:18px;}
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:920px;margin:0 auto;padding:22px}
-    .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .brand{font-weight:900;letter-spacing:-.02em}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:0 10px 30px rgba(2,8,23,.06)}
-    .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
-    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
-    h1{margin:6px 0 0;font-size:26px;letter-spacing:-.02em}
-    .muted{color:var(--muted)}
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
-    input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;font:inherit;background:#fff}
-    textarea{min-height:100px;resize:vertical}
-    .row2{display:grid;grid-template-columns:1fr;gap:10px}
-    @media(min-width:680px){.row2{grid-template-columns:1fr 1fr}}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer}
-    .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:12px;display:none;max-width:92vw}
-    .files{font-size:12px;color:var(--muted);margin-top:6px}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--border);background:#fff;border-radius:999px;font-size:12px;color:var(--muted)}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetPatrimo | Certification de Dossier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .step-active { color: #0F172A; border-bottom: 2px solid #10B981; }
+        .step-inactive { color: #94A3B8; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); }
+        .scanner-line {
+            height: 2px;
+            background: #10B981;
+            box-shadow: 0 0 20px #10B981;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            animation: scan 2.5s infinite ease-in-out;
+            display: none;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+        @keyframes sealPop { 
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(10deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 20px 10px rgba(245, 158, 11, 0.2); }
+        }
+        .bg-navy { background-color: #0F172A; }
+        input[type="file"] { display: none; }
+        .seal-animation { animation: sealPop 0.5s ease-out forwards; }
+        .shimmer-bg { animation: shimmer 4s infinite; }
+        .golden-glow { animation: pulse-glow 2s infinite; }
+        .certified-item { transition: all 0.3s ease; }
+        .certified-item.validated { background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: #10B981; }
+    </style>
 </head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <div class="brand">Doc2Loc</div>
-      <div class="pill">Dépôt de dossier candidat</div>
+<body class="antialiased text-slate-900 overflow-x-hidden">
+
+    <!-- Golden Seal Overlay -->
+    <div id="golden-seal-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm hidden">
+        <div class="flex flex-col items-center gap-4 p-8 bg-white rounded-3xl shadow-2xl">
+            <div class="text-amber-500 seal-animation">
+                <i data-lucide="award" class="w-20 h-20"></i>
+            </div>
+            <div class="text-center">
+                <p class="text-xs uppercase tracking-[0.3em] text-amber-600 font-black mb-2">Certifié</p>
+                <p class="font-serif text-xl text-[#0F172A]" id="seal-item-label">Document</p>
+            </div>
+        </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h1>Dépose ton dossier</h1>
-        <p class="muted" id="sub">Chargement du bien…</p>
+    <header class="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-8 h-24 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-white font-serif font-bold">GP</div>
+                <span class="text-[10px] font-black tracking-[0.3em] uppercase opacity-50">Certification</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center gap-12">
+                <div class="step-link step-active pb-1 text-[11px] font-bold tracking-widest flex items-center gap-2 cursor-pointer" id="h-step-1">
+                    <span class="opacity-30">01</span> IDENTITÉ
+                </div>
+                <div class="step-link step-inactive pb-1 text-[11px] font-bold tracking-widest flex items-center gap-2 cursor-pointer" id="h-step-2">
+                    <span class="opacity-30">02</span> RESSOURCES
+                </div>
+                <div class="step-link step-inactive pb-1 text-[11px] font-bold tracking-widest flex items-center gap-2 cursor-pointer" id="h-step-3">
+                    <span class="opacity-30">03</span> GARANTIE
+                </div>
+                <div class="step-link step-inactive pb-1 text-[11px] font-bold tracking-widest flex items-center gap-2 cursor-pointer" id="h-step-4">
+                    <span class="opacity-30">04</span> VALIDATION
+                </div>
+            </nav>
 
-        <div class="row2">
-          <div><label>Prénom</label><input id="firstName" placeholder="Ex: Sarah"></div>
-          <div><label>Nom</label><input id="lastName" placeholder="Ex: Martin"></div>
+            <div class="flex items-center gap-4">
+                <!-- Score de Confiance -->
+                <div class="flex items-center gap-2">
+                    <div class="relative w-12 h-12">
+                        <svg class="transform -rotate-90" width="48" height="48">
+                            <circle cx="24" cy="24" r="20" fill="none" stroke="#E5E7EB" stroke-width="3"/>
+                            <circle id="score-circle" cx="24" cy="24" r="20" fill="none" stroke="#10B981" stroke-width="3" 
+                                stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round"
+                                style="transition: stroke-dashoffset 1s ease-out;"/>
+                        </svg>
+                        <span id="score-value" class="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#0F172A]">0</span>
+                    </div>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Confiance</span>
+                </div>
+                <div class="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+                    <span class="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">PatrimoTrust™</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-20 px-6 min-h-screen">
+        <div class="fixed inset-0 z-[-1] opacity-5">
+            <img src="https://images.unsplash.com/photo-1600607687940-467f4b566873?q=80&w=2000" class="w-full h-full object-cover">
         </div>
 
-        <div class="row2">
-          <div><label>Email (obligatoire)</label><input id="email" type="email" placeholder="sarah@email.com" required></div>
-          <div><label>Téléphone</label><input id="phone" placeholder="06…"></div>
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+            
+            <!-- Colonne principale -->
+            <div class="glass-card rounded-[2.5rem] p-12 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)]">
+                
+                <!-- Step 1: Identité -->
+                <div id="step-1" class="step-page space-y-10">
+                    <div class="max-w-2xl">
+                        <p class="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre I</p>
+                        <h1 class="text-5xl font-serif text-[#0F172A] leading-tight mb-4">Commençons par faire connaissance.</h1>
+                        <p class="text-slate-400 text-lg">Votre identité est le socle de votre certification PatrimoTrust™.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nom de famille</label>
+                            <input type="text" id="lastName" placeholder="ex: Cogoni" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-lg font-light">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Prénom(s)</label>
+                            <input type="text" id="firstName" placeholder="ex: Louna Patricia" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-lg font-light">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
+                            <input type="email" id="email" placeholder="ex: louna@email.com" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-lg font-light">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Téléphone</label>
+                            <input type="tel" id="phone" placeholder="ex: 06 12 34 56 78" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-lg font-light">
+                        </div>
+                    </div>
+
+                    <div id="id-upload-zone" class="p-10 border-2 border-dashed border-slate-200 rounded-[2rem] bg-white flex items-center justify-between group hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="id-card" class="text-emerald-500 w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[#0F172A]">Pièce d'Identité</h3>
+                                <p class="text-sm text-slate-400 uppercase text-[10px] font-bold mt-1">Recto / Verso • PDF, JPG</p>
+                            </div>
+                        </div>
+                        <div class="px-5 py-2.5 border border-slate-200 rounded-xl text-[10px] font-black tracking-widest uppercase group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">Télécharger</div>
+                        <input type="file" id="idFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                    </div>
+                    <div id="id-files-preview" class="hidden space-y-2"></div>
+                </div>
+
+                <!-- Step 2: Ressources -->
+                <div id="step-2" class="step-page hidden space-y-10">
+                    <div class="max-w-2xl">
+                        <p class="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre II</p>
+                        <h1 class="text-5xl font-serif text-[#0F172A] leading-tight mb-4">Valorisons vos revenus.</h1>
+                        <p class="text-slate-400 text-lg italic">"Bourses d'études, Aide au logement CAF, Pension alimentaire..."</p>
+                    </div>
+
+                    <div id="drop-zone" class="relative group border-2 border-dashed border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white rounded-[2.5rem] p-16 flex flex-col items-center justify-center transition-all hover:border-emerald-400 cursor-pointer overflow-hidden">
+                        <div class="scanner-line"></div>
+                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl mb-5 group-hover:scale-110 transition-transform">
+                            <i data-lucide="sparkles" class="text-emerald-500 w-9 h-9"></i>
+                        </div>
+                        <h3 class="text-xl font-serif text-[#0F172A] mb-2">Dépôt Intelligent IA</h3>
+                        <p class="text-center text-slate-500 max-w-sm text-sm">Glissez tous vos justificatifs en vrac. Notre IA trie et certifie chaque document automatiquement.</p>
+                        <input type="file" id="resourcesFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                    </div>
+                    <div id="resources-files-preview" class="hidden space-y-2"></div>
+                </div>
+
+                <!-- Step 3: Garantie -->
+                <div id="step-3" class="step-page hidden space-y-10">
+                    <div class="max-w-2xl">
+                        <p class="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre III</p>
+                        <h1 class="text-5xl font-serif text-[#0F172A] leading-tight mb-4">La Sûreté de votre dossier.</h1>
+                        <p class="text-slate-400 text-lg">Renforcez votre candidature avec un garant solide.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nom complet du garant</label>
+                            <input type="text" id="guarantorName" placeholder="ex: Jean-Pierre Cogoni" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-lg font-light">
+                        </div>
+                    </div>
+
+                    <div id="guarantor-upload-zone" class="p-10 border-2 border-dashed border-slate-200 rounded-[2rem] bg-white flex items-center justify-between group hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 group-hover:scale-110 transition-transform">
+                                <i data-lucide="users" class="text-slate-400 group-hover:text-emerald-500 w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[#0F172A]">Documents du Garant</h3>
+                                <p class="text-sm text-slate-400 uppercase text-[10px] font-bold mt-1">ID, Domicile, 3 bulletins de salaire</p>
+                            </div>
+                        </div>
+                        <div class="px-5 py-2.5 border border-slate-200 rounded-xl text-[10px] font-black tracking-widest uppercase group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">Télécharger</div>
+                        <input type="file" id="guarantorFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                    </div>
+                    <div id="guarantor-files-preview" class="hidden space-y-2"></div>
+                </div>
+
+                <!-- Step 4: Validation -->
+                <div id="step-4" class="step-page hidden flex flex-col items-center justify-center text-center space-y-10 py-8">
+                    <div class="relative">
+                        <div class="w-[340px] h-[480px] bg-navy rounded-[2.5rem] p-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                            <div class="absolute top-0 right-0 p-8 opacity-10">
+                                <i data-lucide="shield" class="w-32 h-32 text-emerald-500"></i>
+                            </div>
+                            
+                            <div class="flex justify-between items-start z-10">
+                                <div class="text-white font-serif text-lg opacity-60">GP.</div>
+                                <div class="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <i data-lucide="check" class="text-white w-5 h-5"></i>
+                                </div>
+                            </div>
+
+                            <div class="z-10 space-y-2">
+                                <p class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.4em]" id="passport-score">Score A+</p>
+                                <h2 class="text-4xl font-serif text-white tracking-tight" id="passport-name">Prénom Nom</h2>
+                                <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest italic">Dossier Certifié PatrimoTrust™</p>
+                            </div>
+
+                            <div class="z-10 flex flex-col items-center gap-4">
+                                <div class="bg-white p-3 rounded-2xl shadow-xl">
+                                    <i data-lucide="qr-code" class="w-16 h-16 text-navy"></i>
+                                </div>
+                                <p class="text-[8px] text-slate-500 uppercase tracking-[0.2em] max-w-[180px] leading-relaxed">Vérification instantanée sur getpatrimo.com</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <h2 class="text-3xl font-serif text-[#0F172A]">Votre Passeport est prêt.</h2>
+                        <p class="text-slate-500 max-w-sm mx-auto leading-relaxed" id="passport-message">Félicitations. Votre dossier est certifié. Téléchargez-le pour l'envoyer à n'importe quel propriétaire.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Panneau latéral: État de Certification -->
+            <div id="certification-panel" class="glass-card rounded-[2rem] p-6 shadow-lg h-fit sticky top-32">
+                
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">État de Certification</h3>
+                    <div class="flex items-center gap-2">
+                        <span id="panel-score" class="text-xs font-bold text-emerald-600">0%</span>
+                        <div class="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="panel-progress" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-700" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommandation IA -->
+                <div id="ai-recommendation" class="relative overflow-hidden rounded-xl border border-amber-200/50 bg-gradient-to-br from-amber-50/80 via-orange-50/50 to-amber-50/30 p-4 mb-6">
+                    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent shimmer-bg"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="flex items-center gap-1.5 px-2 py-1 bg-amber-100 rounded-full">
+                                <i data-lucide="lightbulb" class="w-3 h-3 text-amber-600"></i>
+                                <span class="text-[9px] font-black uppercase tracking-wider text-amber-700">Recommandation IA</span>
+                            </div>
+                        </div>
+                        <p id="ai-message" class="font-serif text-sm text-amber-900 leading-relaxed italic">
+                            "L'IA PatrimoTrust™ suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire."
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Checklist dynamique -->
+                <div id="certification-checklist" class="space-y-4">
+                    <!-- Rempli par JavaScript -->
+                </div>
+
+                <!-- Coach PatrimoTrust -->
+                <div class="mt-6 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-xl p-4 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent shimmer-bg"></div>
+                    <div class="relative z-10 flex items-center gap-2 mb-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
+                        <strong class="text-xs text-emerald-900">PatrimoTrust™ Coach</strong>
+                    </div>
+                    <p id="coach-message" class="font-serif text-sm text-emerald-800 leading-relaxed italic">
+                        "Commencez par les documents essentiels. L'IA PatrimoTrust™ vous guide vers une certification optimale."
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div class="row2">
-          <div>
-            <label>Revenus nets mensuels (€) (recommandé)</label>
-            <input id="monthlyNetIncome" type="number" min="0" step="50" placeholder="Ex: 2600">
-          </div>
-          <div>
-            <label>Type de contrat (recommandé)</label>
-            <select id="contractType">
-              <option value="">—</option>
-              <option value="CDI">CDI</option>
-              <option value="CDD">CDD</option>
-              <option value="FREELANCE">Indépendant / Freelance</option>
-              <option value="ETUDIANT">Étudiant</option>
-              <option value="RETRAITE">Retraité</option>
-              <option value="AUTRE">Autre</option>
-            </select>
-          </div>
+        <!-- Footer Navigation -->
+        <div class="max-w-7xl mx-auto mt-10 flex items-center justify-between px-4">
+            <div class="flex items-center gap-4 text-slate-300">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+                <span class="text-[9px] font-bold uppercase tracking-[0.4em]">Finances sécurisées par IA</span>
+            </div>
+            <div class="flex gap-4">
+                <button id="btn-prev" class="hidden px-6 py-4 text-[10px] font-black tracking-[0.3em] text-slate-400 hover:text-navy transition-all uppercase">Retour</button>
+                <button id="btn-next" class="px-10 py-5 bg-navy text-white rounded-2xl text-[10px] font-bold tracking-[0.4em] uppercase shadow-2xl shadow-navy/20 flex items-center gap-3 transition-all hover:bg-slate-800">
+                    <span>Continuer</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
         </div>
+    </main>
 
-        <div class="row2">
-          <div>
-            <label>Garant</label>
-            <select id="hasGuarantor">
-              <option value="0">Non</option>
-              <option value="1">Oui</option>
-            </select>
-          </div>
-          <div>
-            <label>Type de garant</label>
-            <select id="guarantorType">
-              <option value="">—</option>
-              <option value="VISALE">Visale</option>
-              <option value="PHYSIQUE">Garant physique</option>
-              <option value="AUTRE">Autre</option>
-            </select>
-          </div>
-        </div>
+    <script>
+        lucide.createIcons();
 
-        <label>Message</label>
-        <textarea id="message" placeholder="Quelques mots (optionnel)…"></textarea>
+        // Configuration de la Checklist
+        const CERTIFICATION_ITEMS = {
+            identite: [
+                { id: 'cni', label: 'CNI ou Passeport', desc: 'Recto/Verso', keywords: ['cni', 'carte', 'identite', 'passeport', 'id'] }
+            ],
+            situation: [
+                { id: 'scolarite', label: 'Certificat de scolarité', desc: 'Année en cours', keywords: ['scolarite', 'certificat', 'etudiant', 'inscription', 'universite'] },
+                { id: 'contrat', label: 'Contrat de travail', desc: 'CDI/CDD', keywords: ['contrat', 'travail', 'cdi', 'cdd', 'emploi'] }
+            ],
+            ressources: [
+                { id: 'bourse', label: 'Avis de Bourse', desc: 'CROUS', keywords: ['bourse', 'crous', 'attribution'] },
+                { id: 'caf', label: 'Simulation CAF/APL', desc: 'Attestation', keywords: ['caf', 'apl', 'als', 'aide', 'logement'] },
+                { id: 'pension', label: 'Justificatif de Pension', desc: 'Alimentaire', keywords: ['pension', 'alimentaire'] },
+                { id: 'salaire', label: 'Bulletins de salaire', desc: '3 derniers mois', keywords: ['salaire', 'bulletin', 'fiche', 'paie'] }
+            ],
+            garantie: [
+                { id: 'garant_id', label: 'ID du garant', desc: 'CNI ou Passeport', keywords: ['garant', 'identite', 'parent'] },
+                { id: 'garant_domicile', label: 'Justificatif domicile', desc: 'Moins de 3 mois', keywords: ['domicile', 'facture', 'edf', 'gaz', 'quittance'] },
+                { id: 'garant_salaires', label: 'Salaires du garant', desc: '3 derniers bulletins', keywords: ['garant', 'salaire', 'bulletin'] }
+            ],
+            engagement: [
+                { id: 'motivation', label: 'Lettre de motivation', desc: 'Personnalisée', keywords: ['motivation', 'lettre'] }
+            ]
+        };
 
-        <label>Documents (PDF/JPG/PNG)</label>
-        <input id="documents" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
-        <div class="files">Astuce : tu peux sélectionner plusieurs fichiers d’un coup.</div>
+        let currentStep = 1;
+        const totalSteps = 4;
+        let certifiedItems = new Set();
+        let uploadedFiles = { identity: [], resources: [], guarantor: [] };
+        let propertyData = null;
 
-        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn primary" id="btnSend">Envoyer le dossier</button>
-        </div>
-      </div>
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
 
-      <div class="card">
-        <b>Bien concerné</b>
-        <div class="muted" id="propBox" style="margin-top:8px">—</div>
-        <div style="margin-top:14px">
-          <b>Confidentialité</b>
-          <p class="muted" style="margin:8px 0 0">Ton dossier est transmis uniquement au bailleur.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+        // Messages de recommandation IA
+        const AI_MESSAGES = {
+            bourse: "L'IA PatrimoTrust™ suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire.",
+            caf: "Une simulation CAF/APL renforce significativement la crédibilité de votre dossier auprès des bailleurs.",
+            garant_salaires: "Les justificatifs de revenus du garant sont essentiels pour une certification complète.",
+            motivation: "Une lettre de motivation personnalisée fait la différence et démontre votre sérieux.",
+            default: "Chaque document ajouté renforce votre Score de Confiance PatrimoTrust™."
+        };
 
-  <div class="toast" id="toast"></div>
+        // Messages du Coach selon le score
+        function getCoachMessage(score) {
+            if (score >= 85) return "Exceptionnel ! Votre dossier atteint un niveau de certification premium. Les propriétaires privilégient systématiquement ce type de profil.";
+            if (score >= 70) return "Excellent ! Votre dossier est solide. Quelques documents supplémentaires vous placeraient en tête des candidatures.";
+            if (score >= 50) return "Votre dossier progresse bien. Chaque document ajouté renforce significativement votre crédibilité.";
+            return "Commencez par les documents essentiels. L'IA PatrimoTrust™ vous guide vers une certification optimale.";
+        }
 
-<script>
-(function(){
-  const $ = (id)=>document.getElementById(id);
-  function toast(msg, ok=true){
-    const t = $("toast");
-    t.textContent = msg;
-    t.style.display = "block";
-    t.style.background = ok ? "#111827" : "#7f1d1d";
-    clearTimeout(window.__tmo);
-    window.__tmo = setTimeout(()=>t.style.display="none", 2800);
-  }
+        // Calculer le score
+        function calculateScore() {
+            const totalItems = Object.values(CERTIFICATION_ITEMS).flat().length;
+            const certifiedCount = certifiedItems.size;
+            let bonus = 0;
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            if (firstName && lastName) bonus += 5;
+            return Math.min(100, Math.round((certifiedCount / totalItems) * 85) + bonus);
+        }
 
-  const token = new URLSearchParams(location.search).get("token");
-  if(!token){
-    $("sub").textContent = "Lien invalide (token manquant).";
-    $("btnSend").disabled = true;
-    return;
-  }
+        // Mettre à jour l'affichage du score
+        function updateScoreDisplay() {
+            const score = calculateScore();
+            const circumference = 2 * Math.PI * 20;
+            const offset = circumference * (1 - score / 100);
+            
+            document.getElementById('score-circle').style.strokeDashoffset = offset;
+            document.getElementById('score-value').textContent = score;
+            document.getElementById('panel-score').textContent = score + '%';
+            document.getElementById('panel-progress').style.width = score + '%';
+            document.getElementById('coach-message').textContent = getCoachMessage(score);
 
-  async function loadProperty(){
-    try{
-      const r = await fetch("/api/public/apply/" + encodeURIComponent(token));
-      const j = await r.json().catch(()=>({}));
-      if(!r.ok){
-        $("sub").textContent = j.msg || "Lien invalide.";
-        $("btnSend").disabled = true;
-        return;
-      }
-      const p = j.property || {};
-      const addr = (p.addressLine && p.zipCode && p.city) ? (p.addressLine + ", " + p.zipCode + " " + p.city) : (p.address || "—");
-      $("sub").textContent = "Le bailleur recevra ton dossier pour : " + (p.name || "ce bien");
-      $("propBox").innerHTML = "<div><b>" + (p.name||"—") + "</b></div>"
-        + "<div class='muted' style='margin-top:6px'>" + addr + "</div>";
-    }catch(e){
-      $("sub").textContent = "Impossible de charger le bien (réseau).";
-    }
-  }
+            // Mettre à jour le passeport
+            if (score >= 85) document.getElementById('passport-score').textContent = 'Score A+';
+            else if (score >= 70) document.getElementById('passport-score').textContent = 'Score A';
+            else document.getElementById('passport-score').textContent = 'Score B+';
+        }
 
-  $("btnSend").addEventListener("click", async ()=>{
-    const email = ($("email").value || "").trim();
-    if(!email || !email.includes("@")){ toast("Email obligatoire", false); return; }
+        // Afficher le sceau doré
+        function showGoldenSeal(label) {
+            const overlay = document.getElementById('golden-seal-overlay');
+            document.getElementById('seal-item-label').textContent = label;
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.add('hidden'), 1500);
+        }
 
-    const files = $("documents").files;
-    if(!files || files.length === 0){ toast("Ajoute au moins 1 document", false); return; }
+        // Détecter le type de document
+        function detectDocumentType(fileName) {
+            const lowerName = fileName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            for (const [category, items] of Object.entries(CERTIFICATION_ITEMS)) {
+                for (const item of items) {
+                    if (item.keywords.some(keyword => lowerName.includes(keyword))) {
+                        return { ...item, category };
+                    }
+                }
+            }
+            return null;
+        }
 
-    const fd = new FormData();
-    fd.append("firstName", ($("firstName").value||"").trim());
-    fd.append("lastName", ($("lastName").value||"").trim());
-    fd.append("email", email);
-    fd.append("phone", ($("phone").value||"").trim());
-    fd.append("message", ($("message").value||"").trim());
+        // Rendre la checklist
+        function renderChecklist() {
+            const container = document.getElementById('certification-checklist');
+            let categories = {};
 
-    fd.append("monthlyNetIncome", String(($("monthlyNetIncome").value||"").trim()));
-    fd.append("contractType", String(($("contractType").value||"").trim()));
-    fd.append("hasGuarantor", $("hasGuarantor").value === "1" ? "1" : "0");
-    fd.append("guarantorType", String(($("guarantorType").value||"").trim()));
+            // Sélectionner les catégories selon l'étape
+            switch (currentStep) {
+                case 1: categories = { 'Identité': CERTIFICATION_ITEMS.identite }; break;
+                case 2: categories = { 'Situation': CERTIFICATION_ITEMS.situation, 'Ressources': CERTIFICATION_ITEMS.ressources }; break;
+                case 3: categories = { 'Garantie': CERTIFICATION_ITEMS.garantie }; break;
+                case 4: categories = { 'Engagement': CERTIFICATION_ITEMS.engagement }; break;
+            }
 
-    for(const f of files) fd.append("documents", f);
+            let html = '';
+            for (const [catName, items] of Object.entries(categories)) {
+                html += `
+                    <div class="space-y-2">
+                        <h4 class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                            <span>${catName}</span>
+                            <span class="flex-1 h-px bg-slate-200"></span>
+                        </h4>
+                        <div class="space-y-1.5">
+                `;
+                for (const item of items) {
+                    const isCertified = certifiedItems.has(item.id);
+                    html += `
+                        <div class="certified-item flex items-center gap-3 p-3 rounded-xl border ${isCertified ? 'validated border-emerald-200' : 'bg-slate-50/50 border-slate-100'}">
+                            <div class="flex-shrink-0 ${isCertified ? 'text-emerald-500' : 'text-slate-300'}">
+                                ${isCertified ? '<i data-lucide="check-circle" class="w-5 h-5"></i>' : '<div class="w-5 h-5 rounded-full border-2 border-current"></div>'}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium ${isCertified ? 'text-emerald-900' : 'text-slate-600'}">${item.label}</p>
+                                <p class="text-[10px] ${isCertified ? 'text-emerald-600' : 'text-slate-400'}">${item.desc}</p>
+                            </div>
+                            ${isCertified ? '<i data-lucide="award" class="w-5 h-5 text-amber-500"></i>' : '<span class="text-[9px] font-medium text-amber-600/70 bg-amber-50 px-2 py-0.5 rounded-full">Opportunité</span>'}
+                        </div>
+                    `;
+                }
+                html += '</div></div>';
+            }
+            container.innerHTML = html;
+            lucide.createIcons();
 
-    const btn = $("btnSend");
-    btn.disabled = true;
-    try{
-      const r = await fetch("/api/public/apply/" + encodeURIComponent(token), { method:"POST", body: fd });
-      const j = await r.json().catch(()=>({}));
-      if(!r.ok){ toast(j.msg || "Envoi impossible", false); return; }
-      toast(j.msg || "Dossier envoyé ✅");
-      $("documents").value = "";
-    }catch(e){
-      toast("Erreur réseau", false);
-    }finally{
-      btn.disabled = false;
-    }
-  });
+            // Mettre à jour la recommandation IA
+            const allItems = Object.values(categories).flat();
+            const missingItems = allItems.filter(item => !certifiedItems.has(item.id));
+            if (missingItems.length > 0) {
+                const firstMissing = missingItems[0];
+                const message = AI_MESSAGES[firstMissing.id] || AI_MESSAGES.default;
+                document.getElementById('ai-message').textContent = `"${message}"`;
+                document.getElementById('ai-recommendation').classList.remove('hidden');
+            } else {
+                document.getElementById('ai-recommendation').classList.add('hidden');
+            }
+        }
 
-  loadProperty();
-})();
-</script>
+        // Gérer l'upload de fichiers
+        function handleFileUpload(category, files) {
+            Array.from(files).forEach(file => {
+                const detected = detectDocumentType(file.name);
+                
+                if (detected && !certifiedItems.has(detected.id)) {
+                    // Simuler l'analyse
+                    setTimeout(() => {
+                        certifiedItems.add(detected.id);
+                        showGoldenSeal(detected.label);
+                        renderChecklist();
+                        updateScoreDisplay();
+                        renderFilePreview(category, file, detected);
+                    }, 1500);
+                } else {
+                    renderFilePreview(category, file, detected);
+                }
+            });
+        }
+
+        // Afficher l'aperçu des fichiers
+        function renderFilePreview(category, file, detected) {
+            let containerId;
+            switch (category) {
+                case 'identity': containerId = 'id-files-preview'; break;
+                case 'resources': containerId = 'resources-files-preview'; break;
+                case 'guarantor': containerId = 'guarantor-files-preview'; break;
+            }
+            const container = document.getElementById(containerId);
+            container.classList.remove('hidden');
+
+            const isCertified = detected && certifiedItems.has(detected.id);
+            const html = `
+                <div class="flex items-center gap-3 p-3 rounded-xl border ${isCertified ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}">
+                    ${isCertified ? '<i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>' : '<i data-lucide="file" class="w-5 h-5 text-slate-400"></i>'}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-[#0F172A] truncate">${detected ? detected.label : file.name}</p>
+                        <p class="text-xs text-slate-500 truncate">${file.name}</p>
+                    </div>
+                    ${isCertified ? '<i data-lucide="award" class="w-5 h-5 text-amber-500"></i>' : ''}
+                </div>
+            `;
+            container.innerHTML += html;
+            lucide.createIcons();
+        }
+
+        // Event listeners pour les zones d'upload
+        document.getElementById('id-upload-zone').addEventListener('click', () => document.getElementById('idFileInput').click());
+        document.getElementById('idFileInput').addEventListener('change', (e) => handleFileUpload('identity', e.target.files));
+
+        document.getElementById('drop-zone').addEventListener('click', () => document.getElementById('resourcesFileInput').click());
+        document.getElementById('drop-zone').addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('border-emerald-400', 'bg-emerald-50'); });
+        document.getElementById('drop-zone').addEventListener('dragleave', (e) => { e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50'); });
+        document.getElementById('drop-zone').addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-emerald-400', 'bg-emerald-50');
+            handleFileUpload('resources', e.dataTransfer.files);
+        });
+        document.getElementById('resourcesFileInput').addEventListener('change', (e) => handleFileUpload('resources', e.target.files));
+
+        document.getElementById('guarantor-upload-zone').addEventListener('click', () => document.getElementById('guarantorFileInput').click());
+        document.getElementById('guarantorFileInput').addEventListener('change', (e) => handleFileUpload('guarantor', e.target.files));
+
+        // Navigation
+        function updateUI() {
+            document.querySelectorAll('.step-page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`step-${currentStep}`).classList.remove('hidden');
+
+            document.querySelectorAll('.step-link').forEach(link => {
+                link.classList.remove('step-active');
+                link.classList.add('step-inactive');
+            });
+            const headerStep = document.getElementById(`h-step-${currentStep}`);
+            if (headerStep) {
+                headerStep.classList.remove('step-inactive');
+                headerStep.classList.add('step-active');
+            }
+
+            btnPrev.classList.toggle('hidden', currentStep <= 1 || currentStep >= 4);
+
+            if (currentStep === 3) btnNext.querySelector('span').innerText = 'Générer le Passeport';
+            else if (currentStep === 4) {
+                btnNext.querySelector('span').innerText = 'Télécharger le PDF';
+                btnNext.classList.replace('bg-navy', 'bg-emerald-600');
+            } else {
+                btnNext.querySelector('span').innerText = 'Continuer';
+                btnNext.classList.replace('bg-emerald-600', 'bg-navy');
+            }
+
+            renderChecklist();
+            updateScoreDisplay();
+
+            // Mettre à jour le passeport
+            const firstName = document.getElementById('firstName').value.trim() || 'Prénom';
+            const lastName = document.getElementById('lastName').value.trim() || 'Nom';
+            document.getElementById('passport-name').textContent = `${firstName} ${lastName}`;
+        }
+
+        btnNext.addEventListener('click', async () => {
+            if (currentStep === 2) {
+                const line = document.querySelector('.scanner-line');
+                line.style.display = 'block';
+                btnNext.classList.add('opacity-50', 'pointer-events-none');
+                btnNext.querySelector('span').innerText = 'Analyse IA...';
+                setTimeout(() => {
+                    line.style.display = 'none';
+                    currentStep++;
+                    updateUI();
+                    btnNext.classList.remove('opacity-50', 'pointer-events-none');
+                }, 2000);
+            } else if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            } else {
+                alert("Préparation du PDF certifié...");
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        });
+
+        // Chargement initial
+        async function loadProperty() {
+            const urlParams = new URLSearchParams(location.search);
+            const propertyId = urlParams.get("propertyId") || urlParams.get("id");
+            let token = urlParams.get("token");
+            if (!token && !propertyId) {
+                const pathMatch = location.pathname.match(/\/apply\/([^\/\?]+)/);
+                if (pathMatch) token = pathMatch[1];
+            }
+            
+            if (token || propertyId) {
+                try {
+                    const url = propertyId 
+                        ? `/api/public/property/${encodeURIComponent(propertyId)}`
+                        : `/api/public/apply/${encodeURIComponent(token)}`;
+                    const r = await fetch(url);
+                    const j = await r.json().catch(() => ({}));
+                    if (r.ok && j.property) propertyData = j.property;
+                } catch (e) {
+                    console.error("Erreur chargement bien:", e);
+                }
+            }
+        }
+
+        // Initialisation
+        loadProperty();
+        updateUI();
+    </script>
 </body>
 </html>

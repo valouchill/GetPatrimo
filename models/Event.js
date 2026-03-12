@@ -11,4 +11,5 @@ const EventSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Event', EventSchema);
+// Éviter la recompilation du modèle dans Next.js
+module.exports = mongoose.models.Event || mongoose.model('Event', EventSchema);

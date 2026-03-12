@@ -1,7 +1,8 @@
 node_modules/
-
+.next/
 .env
-
 *.bak
-
 docker-compose.override.yml
+uploads/
+server.log
+*.tsbuildinfo

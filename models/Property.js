@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const PropertySchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -18,7 +19,77 @@ const PropertySchema = new mongoose.Schema({
 
   surfaceM2: { type: Number, default: null },
 
+  applyToken: { type: String, default: '', unique: true, sparse: true },
+
+  // Documents obligatoires à transmettre au locataire
+  requiredDocuments: [{
+    name: { type: String, required: true },
+    description: { type: String, default: '' },
+    isMandatory: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+  // Diagnostics techniques obligatoires (DDT)
+  diagnostics: [{
+    type: { 
+      type: String, 
+      enum: ['DPE', 'CREP', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'NOTICE_INFO', 'REGLEMENT_COPRO', 
+             'dpe', 'crep', 'amiante', 'electricite', 'gaz', 'erp', 'notice_info', 'reglement_copro',
+             'elec_gaz', 'ELEC_GAZ', 'plomb', 'PLOMB', 'boutin', 'BOUTIN'], 
+      required: true 
+    },
+    documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },
+    uploadedAt: { type: Date, default: Date.now },
+    expiryDate: { type: Date }, // Date d'expiration du diagnostic
+    isValid: { type: Boolean, default: true }
+  }],
+
+  // Statut du bien dans le cycle de location
+  status: { 
+    type: String, 
+    enum: ['AVAILABLE', 'CANDIDATE_SELECTION', 'LEASE_IN_PROGRESS', 'OCCUPIED', 'VACANT'], 
+    default: 'AVAILABLE' 
+  },
+
+  archived: { type: Boolean, default: false },
+
+  // Stripe & gestion premium
+  managed: { type: Boolean, default: false },
+  stripeCustomerId: { type: String, default: '' },
+  stripeSubscriptionId: { type: String, default: '' },
+  acceptedTenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', default: null },
+
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Property', PropertySchema);
+function generatePrivilegeCode(address) {
+  const zipMatch = (address || '').match(/\b(\d{5})\b/);
+  const zip = zipMatch ? zipMatch[1] : '00000';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let suffix = '';
+  const bytes = crypto.randomBytes(4);
+  for (let i = 0; i < 4; i++) {
+    suffix += chars[bytes[i] % chars.length];
+  }
+  return `PT-${zip}-${suffix}`;
+}
+
+PropertySchema.pre('save', async function(next) {
+  if (!this.applyToken || this.applyToken === '') {
+    const model = this.constructor;
+    let token = generatePrivilegeCode(this.address);
+    let attempts = 0;
+    while (attempts < 10) {
+      const exists = await model.findOne({ applyToken: token });
+      if (!exists) break;
+      token = generatePrivilegeCode(this.address);
+      attempts++;
+    }
+    this.applyToken = token;
+  }
+  next();
+});
+
+// Éviter la recompilation du modèle dans Next.js
+module.exports = mongoose.models.Property || mongoose.model('Property', PropertySchema);

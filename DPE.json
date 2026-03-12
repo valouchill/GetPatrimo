@@ -1,0 +1,41 @@
+{
+  "name": "extraction_dpe_souverain",
+  "description": "Extraction experte des données d'un Diagnostic de Performance Énergétique (DPE) français.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "surface_habitable_m2": {
+        "type": "number",
+        "description": "La surface habitable exacte en mètres carrés. Renvoyer null si introuvable."
+      },
+      "etiquette_energie": {
+        "type": "string",
+        "enum": ["A", "B", "C", "D", "E", "F", "G"],
+        "description": "La note globale de performance énergétique."
+      },
+      "etiquette_ges": {
+        "type": "string",
+        "enum": ["A", "B", "C", "D", "E", "F", "G"],
+        "description": "La note des émissions de gaz à effet de serre (GES)."
+      },
+      "estimation_cout_annuel_min": {
+        "type": "number",
+        "description": "L'estimation basse des coûts annuels d'énergie en euros."
+      },
+      "estimation_cout_annuel_max": {
+        "type": "number",
+        "description": "L'estimation haute des coûts annuels d'énergie en euros."
+      },
+      "annee_construction": {
+        "type": "number",
+        "description": "L'année de construction du bâtiment. Renvoyer null si non spécifiée."
+      },
+      "date_validite_dpe": {
+        "type": "string",
+        "description": "La date d'expiration du DPE au format YYYY-MM-DD."
+      }
+    },
+    "required": ["surface_habitable_m2", "etiquette_energie", "etiquette_ges", "date_validite_dpe"],
+    "additionalProperties": false
+  }
+}

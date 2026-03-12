@@ -1,0 +1,55 @@
+{
+  "name": "audit_visuel_souverain",
+  "description": "Analyse visuelle experte d'un bien immobilier de prestige.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "materiaux_et_cachet": {
+        "type": "object",
+        "properties": {
+          "parquet_massif": { "type": "boolean", "description": "Présence de parquet ancien, point de Hongrie ou massif." },
+          "moulures_anciennes": { "type": "boolean" },
+          "cheminee_apparente": { "type": "boolean" },
+          "poutres_apparentes": { "type": "boolean" },
+          "beton_cire_ou_marbre": { "type": "boolean", "description": "Matériaux de sol très haut de gamme modernes." }
+        },
+        "required": ["parquet_massif", "moulures_anciennes", "cheminee_apparente", "poutres_apparentes", "beton_cire_ou_marbre"]
+      },
+      "volumes_et_lumiere": {
+        "type": "object",
+        "properties": {
+          "belle_hauteur_sous_plafond": { "type": "boolean", "description": "Plafond semblant supérieur à 2m80." },
+          "grandes_baies_vitrees": { "type": "boolean" },
+          "luminosite_exceptionnelle": { "type": "boolean", "description": "Pièce baignée de soleil ou très claire." }
+        },
+        "required": ["belle_hauteur_sous_plafond", "grandes_baies_vitrees", "luminosite_exceptionnelle"]
+      },
+      "equipements_premium": {
+        "type": "object",
+        "properties": {
+          "cuisine_equipee_moderne": { "type": "boolean", "description": "Cuisine récente, îlot central ou électroménager encastré." },
+          "douche_italienne_ou_baignoire_ilot": { "type": "boolean" },
+          "dressing_sur_mesure": { "type": "boolean" },
+          "verriere_interieure": { "type": "boolean", "description": "Séparation de pièces style atelier." }
+        },
+        "required": ["cuisine_equipee_moderne", "douche_italienne_ou_baignoire_ilot", "dressing_sur_mesure", "verriere_interieure"]
+      },
+      "exterieur_et_vue": {
+        "type": "object",
+        "properties": {
+          "balcon_ou_terrasse": { "type": "boolean" },
+          "vue_degagee": { "type": "boolean", "description": "Pas de vis-à-vis immédiat, vue sur ciel ou horizon." },
+          "jardin_privatif": { "type": "boolean" }
+        },
+        "required": ["balcon_ou_terrasse", "vue_degagee", "jardin_privatif"]
+      },
+      "etat_general": {
+        "type": "string",
+        "enum": ["refait_a_neuf", "tres_bon_etat", "standard", "rafraichissement_necessaire"],
+        "description": "L'état général perçu du bien."
+      }
+    },
+    "required": ["materiaux_et_cachet", "volumes_et_lumiere", "equipements_premium", "exterieur_et_vue", "etat_general"],
+    "additionalProperties": false
+  }
+}

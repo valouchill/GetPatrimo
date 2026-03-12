@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --color-navy: #0F172A;
+  --color-cobalt: #3B82F6;
+}
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 248, 250, 252;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
+}
+
+/* === GetPatrimo Apply Page Custom Styles === */
+.font-serif-display {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+}
+
+.step-active {
+  color: #0F172A;
+  border-bottom: 2px solid #10B981;
+}
+
+.step-inactive {
+  color: #94A3B8;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Le dégradé signature PatrimoTrust */
+.patrimo-gradient {
+  background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #fbbf24 100%);
+}
+
+/* L'effet de verre fumé pour le cockpit */
+.glass-cockpit {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Animation de pulsation pour l'IA */
+@keyframes pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+}
+
+.pulse-gold {
+  animation: pulse-gold 1.8s infinite;
+}
+
+.patrimo-gauge {
+  background: conic-gradient(#10b981 var(--patrimo-value, 0deg), #e2e8f0 0deg);
+}
+
+.bg-navy {
+  background-color: #0F172A;
+}
+
+.text-navy {
+  color: #0F172A;
+}
+
+/* Scanner line animation */
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
+.scanner-line {
+  height: 2px;
+  background: #10B981;
+  box-shadow: 0 0 20px #10B981;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  animation: scan 2.5s infinite ease-in-out;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.shimmer-bg {
+  animation: shimmer 4s infinite;
+}
+
+/* Seal pop animation */
+@keyframes sealPop {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.seal-animation {
+  animation: sealPop 0.5s ease-out forwards;
+}
+
+/* Golden glow animation */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 20px 10px rgba(245, 158, 11, 0.2); }
+}
+
+.golden-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Certified item transition */
+.certified-item {
+  transition: all 0.3s ease;
+}
+
+.certified-item.validated {
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border-color: #10B981;
+}
+
+/* === Mobile-First : Tunnel Locataire === */
+
+/* Safe-area padding pour iPhones avec encoche/barre d'accueil */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Empêche le zoom iOS sur les inputs (minimum 16px requis) */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Barre de progression mobile (style Story Instagram) */
+.story-progress-segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #e2e8f0;
+  overflow: hidden;
+  transition: background 0.3s ease;
+}
+
+.story-progress-segment.active {
+  background: linear-gradient(90deg, #10B981 0%, #34D399 100%);
+}
+
+.story-progress-segment.completed {
+  background: #10B981;
+}

@@ -14,4 +14,5 @@ TenantSchema.index(
   { unique: true, partialFilterExpression: { property: { $type: 'objectId' } } }
 );
 
-module.exports = mongoose.model('Tenant', TenantSchema);
+// Éviter la recompilation du modèle dans Next.js
+module.exports = mongoose.models.Tenant || mongoose.model('Tenant', TenantSchema);

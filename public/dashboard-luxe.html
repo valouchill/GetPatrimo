@@ -1,0 +1,2805 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Copilote Intelligent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;
+      --emerald:#10B981;
+      --cobalt:#3B82F6;
+      --slate-bg:#F8FAFC;
+      --slate-border:#E2E8F0;
+      --text:#0F172A;
+      --muted:#64748B;
+      --white:#FFFFFF;
+      --warning:#F59E0B;
+      --error:#EF4444;
+      --radius:12px;
+      --shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);
+      --glow:0 0 20px rgba(16,185,129,0.3);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--slate-bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    
+    /* Main Content */
+    .main-content{
+      padding:120px 48px 32px;
+      max-width:100%;
+      width:100%;
+    }
+
+    /* Luxe Header */
+    .luxe-header{
+      position:sticky;
+      top:0;
+      z-index:1200;
+      width:100%;
+      border-bottom:1px solid var(--slate-border);
+      background:rgba(255,255,255,0.85);
+      backdrop-filter:blur(12px);
+    }
+    .luxe-header-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 48px;
+      gap:24px;
+    }
+    .luxe-header-left{
+      display:flex;
+      align-items:center;
+      gap:24px;
+    }
+    .luxe-logo{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      background:var(--navy);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:12px;
+      letter-spacing:0.08em;
+    }
+    .luxe-nav{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+    .luxe-nav-link{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.18em;
+      color:var(--muted);
+      text-decoration:none;
+      transition:color 0.2s ease;
+    }
+    .luxe-nav-link:hover{
+      color:var(--navy);
+    }
+    .luxe-header-actions{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .user-plan-badge{
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:10px;
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      font-weight:600;
+      background:#EEF2FF;
+      color:#4338CA;
+    }
+    .user-plan-badge.prestige{
+      background:#ECFDF5;
+      color:#047857;
+    }
+    .btn-create-property{
+      padding:10px 20px;
+      border-radius:999px;
+      font-size:11px;
+      letter-spacing:0.18em;
+    }
+    .user-menu{
+      position:relative;
+    }
+    .user-trigger{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      border:1px solid rgba(16,185,129,0.6);
+      background:rgba(15,23,42,0.06);
+      color:var(--navy);
+      font-weight:600;
+      font-size:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+    .user-dropdown{
+      position:absolute;
+      right:0;
+      top:52px;
+      width:280px;
+      background:var(--white);
+      border:1px solid #EEF2F7;
+      border-radius:16px;
+      box-shadow:0 24px 40px rgba(15,23,42,0.12);
+      padding:12px;
+      display:none;
+    }
+    .user-dropdown.open{
+      display:block;
+    }
+    .user-section{
+      padding:8px 10px;
+    }
+    .user-name{
+      font-size:14px;
+      font-weight:600;
+      color:var(--navy);
+    }
+    .user-plan{
+      font-size:11px;
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .user-divider{
+      height:1px;
+      background:#EEF2F7;
+      margin:8px 0;
+    }
+    .user-action{
+      width:100%;
+      border:none;
+      background:transparent;
+      text-align:left;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+      color:var(--navy);
+      cursor:pointer;
+      transition:background 0.2s ease;
+    }
+    .user-action:hover{
+      background:#F8FAFC;
+    }
+    .user-action.logout{
+      color:#9F1239;
+    }
+    .security-modal{
+      position:fixed;
+      inset:0;
+      z-index:1400;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(15,23,42,0.45);
+      backdrop-filter:blur(10px);
+    }
+    .security-modal.open{
+      display:flex;
+    }
+    .security-card{
+      width:100%;
+      max-width:520px;
+      background:#fff;
+      border-radius:18px;
+      padding:24px;
+      box-shadow:0 32px 60px rgba(15,23,42,0.18);
+      position:relative;
+      z-index:1;
+    }
+    .security-title{
+      font-family:'Playfair Display',serif;
+      font-size:20px;
+      font-weight:600;
+      color:var(--navy);
+      margin-bottom:6px;
+    }
+    .security-subtitle{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:18px;
+    }
+    .security-form label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.18em;
+      color:var(--muted);
+      display:block;
+      margin-bottom:6px;
+    }
+    .security-input{
+      width:100%;
+      border:1px solid var(--slate-border);
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:14px;
+      color:var(--navy);
+      outline:none;
+      transition:border 0.2s ease, box-shadow 0.2s ease;
+      margin-bottom:14px;
+    }
+    .security-input:focus{
+      border-color:var(--emerald);
+      box-shadow:0 0 0 4px rgba(16,185,129,0.1);
+    }
+    .security-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:6px;
+    }
+    .security-btn{
+      padding:10px 16px;
+      border-radius:12px;
+      border:1px solid var(--slate-border);
+      background:transparent;
+      color:var(--muted);
+      font-size:13px;
+      cursor:pointer;
+    }
+    .security-btn.primary{
+      background:var(--navy);
+      border-color:var(--navy);
+      color:#fff;
+    }
+    .security-alert{
+      margin-bottom:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+    }
+    .security-alert.error{
+      background:#FFF1F2;
+      color:#9F1239;
+      border:1px solid #FFE4E6;
+    }
+    .security-alert.success{
+      background:#ECFDF5;
+      color:#047857;
+      border:1px solid #D1FAE5;
+    }
+    
+    /* Header */
+    .header{
+      margin-bottom:32px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+    }
+    .header-content{
+      flex:1;
+    }
+    .header h1{
+      font-size:32px;
+      font-weight:800;
+      color:var(--navy);
+      margin-bottom:8px;
+      letter-spacing:-0.02em;
+    }
+    .header p{
+      color:var(--muted);
+      font-size:16px;
+    }
+    .btn-create-property{
+      padding:14px 28px;
+      background:var(--navy);
+      color:#fff;
+      border:none;
+      border-radius:var(--radius);
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:0.15em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:all 0.3s ease;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+      font-family:'Inter',sans-serif;
+      box-shadow:0 2px 8px rgba(15,23,42,0.2);
+    }
+    .btn-create-property:hover{
+      transform:translateY(-2px);
+      box-shadow:0 8px 24px rgba(16,185,129,0.4),0 0 0 1px rgba(16,185,129,0.2);
+      background:var(--navy);
+    }
+    .btn-create-property i{
+      width:18px;
+      height:18px;
+      stroke-width:2.5;
+    }
+    
+    /* Onboarding Magic Link */
+    .onboarding{
+      background:var(--white);
+      border-radius:var(--radius);
+      padding:80px 40px;
+      text-align:center;
+      box-shadow:var(--shadow);
+      max-width:800px;
+      margin:0 auto;
+    }
+    .onboarding-icon{
+      width:80px;
+      height:80px;
+      background:linear-gradient(135deg,var(--emerald),var(--cobalt));
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:0 auto 24px;
+      color:#fff;
+    }
+    .onboarding-icon i{
+      width:40px;
+      height:40px;
+    }
+    .onboarding h2{
+      font-size:28px;
+      font-weight:700;
+      color:var(--navy);
+      margin-bottom:12px;
+    }
+    .onboarding p{
+      color:var(--muted);
+      font-size:16px;
+      margin-bottom:32px;
+      line-height:1.6;
+    }
+    .magic-link-input{
+      width:100%;
+      padding:20px 24px;
+      border:2px solid var(--slate-border);
+      border-radius:var(--radius);
+      font-size:16px;
+      font-family:inherit;
+      transition:all 0.2s ease;
+      background:var(--slate-bg);
+    }
+    .magic-link-input:focus{
+      outline:none;
+      border-color:var(--emerald);
+      background:var(--white);
+      box-shadow:0 0 0 4px rgba(16,185,129,0.1);
+    }
+    .magic-link-input::placeholder{
+      color:var(--muted);
+    }
+    .btn-primary{
+      margin-top:16px;
+      padding:16px 32px;
+      background:var(--navy);
+      color:#fff;
+      border:none;
+      border-radius:var(--radius);
+      font-size:16px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.3s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .btn-primary:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 20px rgba(15,23,42,0.2),var(--glow);
+    }
+    .btn-primary:active{
+      transform:translateY(0);
+    }
+    
+    /* Property Inventory - Structure Luxe */
+    .property-inventory{
+      display:flex;
+      flex-direction:column;
+      gap:48px;
+    }
+    
+    /* Filters */
+    .property-filters{
+      display:flex;
+      align-items:center;
+      gap:32px;
+      padding-bottom:16px;
+      border-bottom:1px solid var(--slate-border);
+      margin-bottom:32px;
+    }
+    .filter-link{
+      font-size:14px;
+      font-weight:500;
+      color:var(--muted);
+      text-decoration:none;
+      padding-bottom:8px;
+      border-bottom:2px solid transparent;
+      transition:all 0.2s ease;
+      cursor:pointer;
+      font-family:'Inter',sans-serif;
+    }
+    .filter-link:hover{
+      color:var(--navy);
+    }
+    .filter-link.active{
+      color:var(--navy);
+      border-bottom-color:var(--navy);
+    }
+    
+    /* Section Titles */
+    .inventory-section{
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+    }
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .section-title{
+      font-family:'Playfair Display',serif;
+      font-size:28px;
+      font-weight:600;
+      color:var(--navy);
+      letter-spacing:-0.02em;
+    }
+    .section-subtitle{
+      font-size:14px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .section-badge{
+      padding:6px 14px;
+      border-radius:20px;
+      font-size:11px;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:0.1em;
+      font-family:'Inter',sans-serif;
+    }
+    .section-badge.active{
+      background:rgba(16,185,129,0.1);
+      color:var(--emerald);
+      border:1px solid rgba(16,185,129,0.2);
+    }
+    .section-badge.opportunity{
+      background:rgba(15,23,42,0.05);
+      color:var(--navy);
+      border:1px solid var(--slate-border);
+    }
+    .section-separator{
+      height:1px;
+      background:var(--slate-border);
+      margin:32px 0;
+    }
+    
+    /* Dashboard Grid */
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(380px,1fr));
+      gap:24px;
+      margin-bottom:32px;
+    }
+    .dashboard-grid .property-card{
+      opacity:0;
+      animation:fadeInUp 0.5s ease forwards;
+    }
+    .dashboard-grid .property-card:nth-child(1){animation-delay:0.05s}
+    .dashboard-grid .property-card:nth-child(2){animation-delay:0.1s}
+    .dashboard-grid .property-card:nth-child(3){animation-delay:0.15s}
+    .dashboard-grid .property-card:nth-child(4){animation-delay:0.2s}
+    .dashboard-grid .property-card:nth-child(5){animation-delay:0.25s}
+    .dashboard-grid .property-card:nth-child(6){animation-delay:0.3s}
+    
+    @keyframes fadeInUp{
+      from{
+        opacity:0;
+        transform:translateY(20px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+    
+    /* Property Card */
+    .property-card{
+      background:var(--white);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 24px 50px rgba(15,23,42,0.08);
+      border:1px solid #F8FAFC;
+      transition:transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      cursor:pointer;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+    }
+    .property-card:hover{
+      transform:translateY(-4px);
+      box-shadow:0 30px 60px rgba(15,23,42,0.12);
+      border-color:#F1F5F9;
+      background:#fff;
+    }
+    .property-notification-badge{
+      position:absolute;
+      top:12px;
+      left:12px;
+      width:12px;
+      height:12px;
+      background:var(--error);
+      border-radius:50%;
+      border:2px solid var(--white);
+      box-shadow:0 0 0 2px var(--error);
+      animation:pulse 2s infinite;
+      z-index:10;
+    }
+    .property-card-header{
+      position:relative;
+    }
+    .property-image{
+      width:100%;
+      height:190px;
+      background:linear-gradient(135deg,var(--slate-border),var(--slate-bg));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      position:relative;
+      overflow:hidden;
+    }
+    .property-image img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+    .property-image-overlay{
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg,rgba(15,23,42,0) 30%,rgba(15,23,42,0.7) 100%);
+      display:flex;
+      align-items:flex-end;
+      padding:18px;
+    }
+    .property-price{
+      font-family:'Playfair Display',serif;
+      font-size:22px;
+      font-weight:600;
+      color:var(--white);
+      text-shadow:0 6px 18px rgba(15,23,42,0.35);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .property-price-sub{
+      font-family:'Inter',sans-serif;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.18em;
+      color:rgba(226,232,240,0.9);
+    }
+    .property-image i{
+      width:40px;
+      height:40px;
+    }
+    .property-status-badge{
+      position:absolute;
+      top:16px;
+      right:16px;
+      padding:6px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+      box-shadow:0 10px 24px rgba(15,23,42,0.12);
+      background:#E2E8F0;
+      color:#475569;
+    }
+    .property-status-badge.active{
+      background:#E0F2FE;
+      color:#0F172A;
+    }
+    .property-status-badge.signing{
+      background:#FEF3C7;
+      color:#92400E;
+    }
+    .property-status-badge.open{
+      background:#E2E8F0;
+      color:#475569;
+    }
+    .property-status-badge.rented{
+      background:#DCFCE7;
+      color:#166534;
+    }
+    .property-status-badge.potential{
+      background:rgba(16,185,129,0.12);
+      color:#047857;
+      border:1px solid rgba(16,185,129,0.35);
+    }
+    .property-status-badge.booster{
+      background:rgba(59,130,246,0.12);
+      color:#1D4ED8;
+      border:1px solid rgba(59,130,246,0.35);
+    }
+    .property-content{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .property-title{
+      font-size:18px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .property-subtitle{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .property-kpis{
+      display:flex;
+      gap:18px;
+      align-items:center;
+    }
+    .property-kpi{
+      flex:1;
+    }
+    .kpi-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      margin-bottom:8px;
+      gap:12px;
+    }
+    .kpi-label{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:0.6px;
+    }
+    .kpi-value{
+      font-family:'Playfair Display',serif;
+      font-size:16px;
+      font-weight:600;
+      color:var(--navy);
+    }
+    .kpi-progress{
+      height:2px;
+      background:var(--slate-border);
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .kpi-progress-bar{
+      height:100%;
+      background:var(--emerald);
+      border-radius:999px;
+      transition:width 0.3s ease;
+    }
+    .kpi-progress-bar.warning{
+      background:var(--warning);
+    }
+    .kpi-progress-bar.error{
+      background:var(--error);
+    }
+    .kpi-progress-bar.elite{
+      background:var(--emerald);
+      box-shadow:0 0 12px rgba(16,185,129,0.35);
+    }
+    .kpi-value.kpi-muted{
+      font-family:'Inter',sans-serif;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .kpi-micro{
+      height:4px;
+      border-radius:999px;
+      background:rgba(15,23,42,0.08);
+      overflow:hidden;
+    }
+    .kpi-micro-bar{
+      height:100%;
+      background:linear-gradient(90deg, rgba(59,130,246,0.2), rgba(59,130,246,0.8));
+      border-radius:999px;
+      transition:width 0.3s ease;
+    }
+    .elite-candidates{
+      display:flex;
+      align-items:flex-end;
+      gap:12px;
+    }
+    .elite-candidate{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      min-width:44px;
+    }
+    .elite-avatar{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:rgba(15,23,42,0.08);
+      color:var(--navy);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+    }
+    .elite-score{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .kpi-activity{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:var(--slate-bg);
+    }
+    .kpi-activity-icon{
+      width:26px;
+      height:26px;
+      border-radius:10px;
+      background:#E0F2FE;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--navy);
+    }
+    .kpi-activity-icon i{
+      width:18px;
+      height:18px;
+    }
+    .kpi-activity-value{
+      font-family:'Playfair Display',serif;
+      font-size:18px;
+      font-weight:600;
+      color:var(--navy);
+      line-height:1.1;
+    }
+    .kpi-activity-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.6px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .leasing-journey{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .leasing-journey-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.6px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .leasing-journey-line{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      width:100%;
+      height:22px;
+    }
+    .leasing-journey-line::before{
+      content:'';
+      position:absolute;
+      left:0;
+      right:0;
+      top:50%;
+      height:1px;
+      background:rgba(15,23,42,0.12);
+      transform:translateY(-50%);
+    }
+    .leasing-journey-line::after{
+      content:'';
+      position:absolute;
+      left:0;
+      top:50%;
+      height:1px;
+      width:var(--progress, 0%);
+      background:var(--emerald);
+      transform:translateY(-50%);
+      transition:width 0.45s ease;
+    }
+    .journey-step{
+      position:relative;
+      z-index:1;
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0.2;
+    }
+    .journey-step.completed,
+    .journey-step.active{
+      opacity:1;
+    }
+    .journey-dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:rgba(15,23,42,0.25);
+    }
+    .journey-step.completed .journey-dot{
+      background:var(--emerald);
+    }
+    .journey-step.active .journey-dot{
+      background:#10B981;
+      animation:pulseDot 1.6s ease-in-out infinite;
+      box-shadow:0 0 10px rgba(16,185,129,0.35);
+    }
+    .journey-step.active::before{
+      content:attr(data-label);
+      position:absolute;
+      top:-18px;
+      left:50%;
+      transform:translateX(-50%);
+      padding:2px 8px;
+      border-radius:999px;
+      font-family:'Inter',sans-serif;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:0.22em;
+      font-weight:600;
+      color:var(--navy);
+      background:rgba(15,23,42,0.06);
+      white-space:nowrap;
+      animation:blurIn 0.35s ease;
+    }
+    @keyframes pulseDot{
+      0%, 100%{ transform:scale(1); }
+      50%{ transform:scale(1.15); }
+    }
+    @keyframes blurIn{
+      from{ opacity:0; filter:blur(6px); transform:translateX(-50%) translateY(-2px); }
+      to{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(0); }
+    }
+    .property-cta{
+      margin-top:4px;
+    }
+    .property-cta-btn{
+      width:100%;
+      border:none;
+      border-radius:12px;
+      padding:12px 16px;
+      background:var(--navy);
+      color:#fff;
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:0.02em;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      cursor:pointer;
+      transition:transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .property-cta-btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 12px 24px rgba(15,23,42,0.18);
+    }
+    /* Pipeline de Recrutement */
+    .recruitment-pipeline{
+      margin-top:24px;
+      padding-top:24px;
+      border-top:1px solid var(--slate-border);
+    }
+    .pipeline-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+      gap:16px;
+    }
+    .pipeline-title-section{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    .pipeline-title{
+      font-family:'Playfair Display',serif;
+      font-size:20px;
+      font-weight:600;
+      color:var(--navy);
+      letter-spacing:-0.01em;
+    }
+    .pipeline-actions{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .pipeline-share-btn{
+      padding:8px 16px;
+      background:var(--navy);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.2s ease;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-family:'Inter',sans-serif;
+    }
+    .pipeline-share-btn:hover{
+      background:var(--emerald);
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(16,185,129,0.3);
+    }
+    .pipeline-search{
+      position:relative;
+      flex:1;
+      min-width:200px;
+      max-width:300px;
+    }
+    .pipeline-search input{
+      width:100%;
+      padding:8px 12px 8px 36px;
+      border:1px solid var(--slate-border);
+      border-radius:8px;
+      font-size:13px;
+      font-family:inherit;
+      transition:all 0.2s ease;
+      background:var(--slate-bg);
+    }
+    .pipeline-search input:focus{
+      outline:none;
+      border-color:var(--emerald);
+      background:var(--white);
+      box-shadow:0 0 0 3px rgba(16,185,129,0.1);
+    }
+    .pipeline-search i{
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform:translateY(-50%);
+      width:16px;
+      height:16px;
+      color:var(--muted);
+    }
+    .pipeline-columns{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:16px;
+      margin-bottom:20px;
+    }
+    .pipeline-column{
+      background:var(--slate-bg);
+      border-radius:12px;
+      padding:16px;
+      min-height:200px;
+    }
+    .pipeline-column-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+      padding-bottom:12px;
+      border-bottom:1px solid var(--slate-border);
+    }
+    .pipeline-column-title{
+      font-weight:600;
+      font-size:14px;
+      color:var(--navy);
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .pipeline-column-count{
+      padding:4px 8px;
+      background:var(--white);
+      border-radius:12px;
+      font-size:12px;
+      font-weight:600;
+      color:var(--muted);
+    }
+    .pipeline-column-content{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .candidate-card{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:10px;
+      padding:16px;
+      cursor:pointer;
+      transition:all 0.2s ease;
+      position:relative;
+    }
+    .candidate-card:hover{
+      border-color:var(--emerald);
+      box-shadow:0 4px 12px rgba(16,185,129,0.15);
+      transform:translateY(-2px);
+    }
+    .candidate-card-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .candidate-card-name{
+      font-weight:600;
+      font-size:15px;
+      color:var(--navy);
+      margin-bottom:4px;
+    }
+    .candidate-card-score{
+      font-size:24px;
+      font-weight:700;
+      color:var(--emerald);
+      line-height:1;
+    }
+    .candidate-card-details{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:12px;
+    }
+    .candidate-card-detail{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .candidate-card-detail i{
+      width:14px;
+      height:14px;
+    }
+    .candidate-card-actions{
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding-top:12px;
+      border-top:1px solid var(--slate-border);
+      margin-top:12px;
+    }
+    .candidate-card:hover .candidate-card-actions{
+      display:flex;
+    }
+    .candidate-card-action{
+      flex:1;
+      padding:8px;
+      border:1px solid var(--slate-border);
+      border-radius:6px;
+      background:var(--white);
+      cursor:pointer;
+      transition:all 0.2s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      font-size:12px;
+      font-weight:500;
+      color:var(--navy);
+    }
+    .candidate-card-action:hover{
+      background:var(--emerald);
+      border-color:var(--emerald);
+      color:#fff;
+    }
+    .candidate-card-action.danger:hover{
+      background:var(--error);
+      border-color:var(--error);
+    }
+    .pipeline-heatmap{
+      background:var(--white);
+      border:1px solid var(--slate-border);
+      border-radius:12px;
+      padding:20px;
+      margin-top:20px;
+    }
+    .heatmap-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .heatmap-title{
+      font-weight:600;
+      font-size:14px;
+      color:var(--navy);
+    }
+    .heatmap-stats{
+      display:flex;
+      gap:24px;
+    }
+    .heatmap-stat{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .heatmap-stat-label{
+      font-size:11px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .heatmap-stat-value{
+      font-size:18px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .heatmap-chart{
+      height:60px;
+      display:flex;
+      align-items:flex-end;
+      gap:4px;
+      margin-top:16px;
+    }
+    .heatmap-bar{
+      flex:1;
+      background:var(--slate-border);
+      border-radius:4px 4px 0 0;
+      min-height:8px;
+      transition:all 0.3s ease;
+      cursor:pointer;
+    }
+    .heatmap-bar:hover{
+      opacity:0.8;
+    }
+    .heatmap-bar.visits{
+      background:var(--cobalt);
+    }
+    .heatmap-bar.applications{
+      background:var(--emerald);
+    }
+    
+    /* Slide-over */
+    .slide-over{
+      position:fixed;
+      top:0;
+      right:0;
+      width:480px;
+      max-width:90vw;
+      height:100vh;
+      background:var(--white);
+      box-shadow:var(--shadow-lg);
+      z-index:2000;
+      transform:translateX(100%);
+      transition:transform 0.3s ease;
+      overflow-y:auto;
+    }
+    .slide-over.open{
+      transform:translateX(0);
+    }
+    .slide-over-header{
+      padding:24px;
+      border-bottom:1px solid var(--slate-border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .slide-over-title{
+      font-size:20px;
+      font-weight:700;
+      color:var(--navy);
+    }
+    .slide-over-close{
+      width:32px;
+      height:32px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
+      cursor:pointer;
+      transition:all 0.2s ease;
+      color:var(--muted);
+    }
+    .slide-over-close:hover{
+      background:var(--slate-bg);
+      color:var(--navy);
+    }
+    .slide-over-content{
+      padding:24px;
+    }
+    .form-group{
+      margin-bottom:20px;
+    }
+    .form-label{
+      display:block;
+      font-size:14px;
+      font-weight:600;
+      color:var(--navy);
+      margin-bottom:8px;
+    }
+    .form-input{
+      width:100%;
+      padding:12px 16px;
+      border:1px solid var(--slate-border);
+      border-radius:8px;
+      font-size:15px;
+      font-family:inherit;
+      transition:all 0.2s ease;
+      background:var(--white);
+    }
+    .form-input:focus{
+      outline:none;
+      border-color:var(--emerald);
+      box-shadow:0 0 0 3px rgba(16,185,129,0.1);
+    }
+    .form-textarea{
+      min-height:100px;
+      resize:vertical;
+    }
+    
+    /* Overlay */
+    .overlay{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(15,23,42,0.5);
+      z-index:1999;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.3s ease;
+    }
+    .overlay.open{
+      opacity:1;
+      pointer-events:all;
+    }
+    
+    /* Loading */
+    .loading{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:40px;
+      color:var(--muted);
+    }
+    .loading i{
+      width:32px;
+      height:32px;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin{
+      from{transform:rotate(0deg)}
+      to{transform:rotate(360deg)}
+    }
+    @keyframes pulse{
+      0%,100%{opacity:1;transform:translateX(-50%) scale(1)}
+      50%{opacity:0.7;transform:translateX(-50%) scale(1.2)}
+    }
+    @keyframes pulseGlow{
+      0%{opacity:0.8;transform:scale(0.9)}
+      50%{opacity:0.4;transform:scale(1.2)}
+      100%{opacity:0.8;transform:scale(0.9)}
+    }
+    
+    /* Alert */
+    .alert{
+      padding:16px;
+      border-radius:8px;
+      margin-bottom:16px;
+      display:flex;
+      align-items:start;
+      gap:12px;
+    }
+    .alert.warning{
+      background:#FEF3C7;
+      border-left:4px solid var(--warning);
+    }
+    .alert.info{
+      background:#DBEAFE;
+      border-left:4px solid var(--cobalt);
+    }
+    .alert i{
+      width:20px;
+      height:20px;
+      flex-shrink:0;
+    }
+    
+    /* Responsive */
+    @media (max-width:768px){
+      .main-content{
+        padding:96px 20px 24px;
+      }
+      .luxe-header-inner{
+        padding:12px 20px;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:12px;
+      }
+      .luxe-header-actions{
+        width:100%;
+        justify-content:space-between;
+      }
+      .user-plan-badge{
+        display:none;
+      }
+      .luxe-nav{
+        flex-wrap:wrap;
+        gap:10px;
+      }
+      .dashboard-grid{
+        grid-template-columns:1fr;
+      }
+      .slide-over{
+        width:100vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Luxe Header -->
+  <header class="luxe-header">
+    <div class="luxe-header-inner">
+      <div class="luxe-header-left">
+        <div class="luxe-logo">GP</div>
+        <nav class="luxe-nav">
+          <a href="/dashboard-luxe.html" class="luxe-nav-link">PATRIMOINE</a>
+          <a href="/candidatures.html" class="luxe-nav-link">MESSAGES</a>
+          <a href="/fiscalite.html" class="luxe-nav-link">DOCUMENTS</a>
+        </nav>
+      </div>
+      <div class="luxe-header-actions">
+        <button class="btn-create-property" onclick="openCreatePropertySlideOver()" id="btnCreateProperty" style="display:none">
+          <i data-lucide="plus"></i>
+          AJOUTER UN BIEN
+        </button>
+        <span class="user-plan-badge" id="userPlanBadge">PLAN</span>
+        <div class="user-menu" id="userMenu">
+          <button class="user-trigger" id="userTrigger">GP</button>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="user-section">
+              <div class="user-name" id="userName">Utilisateur GetPatrimo</div>
+              <div class="user-plan" id="userPlan">Plan Prestige</div>
+            </div>
+            <div class="user-divider"></div>
+            <button class="user-action" onclick="openSecurityModal()">Changer le mot de passe</button>
+            <div class="user-divider"></div>
+            <button class="user-action logout" onclick="logoutUser()">Déconnexion</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Onboarding (si aucun bien) -->
+    <div id="onboarding" style="display:none">
+      <div class="onboarding">
+        <div class="onboarding-icon">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <h2>Créez votre premier bien en 2 secondes</h2>
+        <p>Collez l'adresse ou le lien de votre annonce (LeBonCoin, SeLoger, Airbnb) et nous récupérons automatiquement les informations essentielles.</p>
+        <input 
+          type="text" 
+          id="magicLinkInput" 
+          class="magic-link-input" 
+          placeholder="https://www.leboncoin.fr/..."
+          autocomplete="off"
+        >
+        <button class="btn-primary" onclick="processMagicLink()">
+          Créer mon bien
+        </button>
+      </div>
+    </div>
+    
+    <!-- Dashboard Opérationnel -->
+    <div id="dashboard" style="display:none">
+      <!-- Filtres -->
+      <div class="property-filters">
+        <a href="#" class="filter-link active" onclick="event.preventDefault();setPropertyFilter('all');return false;" id="filterAll">Tous</a>
+        <a href="#" class="filter-link" onclick="event.preventDefault();setPropertyFilter('rented');return false;" id="filterRented">Loués</a>
+        <a href="#" class="filter-link" onclick="event.preventDefault();setPropertyFilter('available');return false;" id="filterAvailable">Vacants</a>
+      </div>
+      
+      <!-- Property Inventory -->
+      <div class="property-inventory" id="propertyInventory">
+        <!-- Section "Patrimoine Actif" sera injectée ici -->
+        <!-- Section "Opportunités" sera injectée ici -->
+      </div>
+      
+      <!-- Empty State amélioré -->
+      <div id="propertyEmptyState" style="display:none;text-align:center;padding:80px 40px">
+        <div style="width:120px;height:120px;margin:0 auto 32px;opacity:0.3">
+          <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="30" width="80" height="60" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M30 30 L60 10 L90 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="45" cy="55" r="3" fill="currentColor"/>
+            <circle cx="60" cy="55" r="3" fill="currentColor"/>
+            <circle cx="75" cy="55" r="3" fill="currentColor"/>
+            <path d="M35 75 L85 75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M50 85 L70 85" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:600;color:var(--navy);margin-bottom:16px;letter-spacing:-0.02em">Votre patrimoine commence ici</h2>
+        <p style="font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 32px;line-height:1.6">Ajoutez votre premier bien pour activer l'analyse PatrimoTrust™ et gérez votre patrimoine locatif en toute simplicité.</p>
+        <button class="btn-primary" onclick="openCreatePropertySlideOver()">
+          <i data-lucide="plus"></i>
+          Ajouter mon premier bien
+        </button>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Modale Sécurité -->
+  <div class="security-modal" id="securityModal">
+    <div class="security-card">
+      <div class="security-title">Sécurité du compte</div>
+      <div class="security-subtitle">Mettez à jour votre mot de passe en toute sécurité.</div>
+      <form class="security-form" onsubmit="changePassword(event)">
+        <div id="securityAlert"></div>
+        <label for="currentPassword">Ancien mot de passe</label>
+        <input id="currentPassword" type="password" class="security-input" placeholder="••••••••" required>
+        <label for="newPassword">Nouveau mot de passe</label>
+        <input id="newPassword" type="password" class="security-input" placeholder="••••••••" required>
+        <label for="confirmPassword">Confirmation</label>
+        <input id="confirmPassword" type="password" class="security-input" placeholder="••••••••" required>
+        <div class="security-actions">
+          <button type="button" class="security-btn" onclick="closeSecurityModal()">Annuler</button>
+          <button type="submit" class="security-btn primary" id="securitySubmit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Slide-over Confirmation Magic Link -->
+  <div class="slide-over" id="confirmSlideOver">
+    <div class="slide-over-header">
+      <h3 class="slide-over-title">Confirmer les informations</h3>
+      <div class="slide-over-close" onclick="closeSlideOver('confirmSlideOver')">
+        <i data-lucide="x"></i>
+      </div>
+    </div>
+    <div class="slide-over-content">
+      <form id="confirmPropertyForm" onsubmit="confirmProperty(event)">
+        <div class="form-group">
+          <label class="form-label">Titre</label>
+          <input type="text" id="confirmTitle" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input type="text" id="confirmAddress" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Surface (m²)</label>
+          <input type="number" id="confirmSurface" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Loyer (€)</label>
+          <input type="number" id="confirmRent" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Charges (€)</label>
+          <input type="number" id="confirmCharges" class="form-input" value="0">
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;margin-top:8px">
+          Créer le bien
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" onclick="closeAllSlideOvers()"></div>
+  
+  <script>
+    const $ = id => document.getElementById(id);
+    let properties = [];
+    let candidatures = [];
+    let authToken = localStorage.getItem('token');
+    let currentFilter = 'all'; // 'all', 'rented', 'available'
+    
+    // Initialize icons
+    if(window.lucide) lucide.createIcons();
+    
+    // Check auth
+    if(!authToken){
+      window.location.href = '/login-luxe.html';
+    }
+
+    // Initialisation du UserHub
+    setupUserMenu();
+    loadUserProfile();
+    setupSecurityModal();
+    
+    function setupUserMenu(){
+      const trigger = $('userTrigger');
+      const dropdown = $('userDropdown');
+      if(!trigger || !dropdown) return;
+      
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        dropdown.classList.toggle('open');
+      });
+      
+      document.addEventListener('click', (event) => {
+        if(!dropdown.contains(event.target) && event.target !== trigger){
+          dropdown.classList.remove('open');
+        }
+      });
+    }
+    
+    function getInitials(name){
+      const parts = String(name || '').trim().split(' ').filter(Boolean);
+      if(parts.length === 0) return 'GP';
+      if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    
+    async function loadUserProfile(){
+      try{
+        const res = await fetch('/api/auth/profile', {
+          headers: { 'x-auth-token': authToken }
+        });
+        if(!res.ok){
+          if(res.status === 401){
+            window.location.href = '/login-luxe.html';
+            return;
+          }
+          throw new Error('Erreur profil');
+        }
+        const user = await res.json();
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Utilisateur GetPatrimo';
+        $('userName').textContent = fullName;
+        const isPrestige = user.plan === 'PRO';
+        $('userPlan').textContent = isPrestige ? 'Plan Prestige' : 'Plan Essentiel';
+        $('userPlanBadge').textContent = isPrestige ? 'PRESTIGE' : 'ESSENTIEL';
+        $('userPlanBadge').classList.toggle('prestige', isPrestige);
+        $('userTrigger').textContent = getInitials(fullName);
+      }catch(err){
+        console.warn('Erreur chargement profil:', err);
+      }
+    }
+    
+    function openSecurityModal(){
+      $('securityModal').classList.add('open');
+      $('userDropdown').classList.remove('open');
+      $('currentPassword').value = '';
+      $('newPassword').value = '';
+      $('confirmPassword').value = '';
+      $('securityAlert').innerHTML = '';
+    }
+    
+    function closeSecurityModal(){
+      $('securityModal').classList.remove('open');
+    }
+
+    function setupSecurityModal(){
+      const modal = $('securityModal');
+      if(!modal) return;
+      modal.addEventListener('click', (event) => {
+        if(event.target === modal){
+          closeSecurityModal();
+        }
+      });
+    }
+    
+    async function changePassword(event){
+      event.preventDefault();
+      const alertBox = $('securityAlert');
+      const submitBtn = $('securitySubmit');
+      const currentPassword = $('currentPassword').value.trim();
+      const newPassword = $('newPassword').value.trim();
+      const confirmPassword = $('confirmPassword').value.trim();
+      
+      alertBox.innerHTML = '';
+      
+      if(!currentPassword || !newPassword || !confirmPassword){
+        alertBox.innerHTML = '<div class="security-alert error">Tous les champs sont requis.</div>';
+        return;
+      }
+      if(newPassword !== confirmPassword){
+        alertBox.innerHTML = '<div class="security-alert error">La confirmation ne correspond pas.</div>';
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enregistrement...';
+      
+      try{
+        const res = await fetch('/api/auth/change-password', {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-auth-token': authToken
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword
+          })
+        });
+        
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok){
+          throw new Error(data.msg || 'Erreur lors de la mise à jour.');
+        }
+        
+        alertBox.innerHTML = '<div class="security-alert success">Mot de passe mis à jour avec succès.</div>';
+        setTimeout(() => closeSecurityModal(), 900);
+      }catch(err){
+        alertBox.innerHTML = `<div class="security-alert error">${err.message || 'Erreur lors de la mise à jour.'}</div>`;
+      }finally{
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enregistrer';
+      }
+    }
+    
+    function logoutUser(){
+      localStorage.removeItem('token');
+      window.location.href = '/login-luxe.html';
+    }
+    
+    // Load dashboard
+    async function loadDashboard(){
+      try{
+        await Promise.all([
+          loadProperties(),
+          loadCandidatures()
+        ]);
+        
+        if(properties.length === 0){
+          $('onboarding').style.display = 'block';
+          $('dashboard').style.display = 'none';
+          $('btnCreateProperty').style.display = 'none';
+        }else{
+          $('onboarding').style.display = 'none';
+          $('dashboard').style.display = 'block';
+          $('btnCreateProperty').style.display = 'flex';
+          renderProperties();
+        }
+      }catch(err){
+        console.error('Erreur chargement dashboard:',err);
+        alert('Erreur lors du chargement du dashboard');
+      }
+    }
+    
+    // Load properties
+    async function loadProperties(){
+      try{
+        const res = await fetch('/api/properties',{
+          headers:{
+            'x-auth-token': authToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        if(!res.ok){
+          if(res.status === 401){
+            window.location.href = '/login-luxe.html';
+            return;
+          }
+          throw new Error('Erreur API');
+        }
+        properties = await res.json();
+        
+        // Charge les baux pour chaque bien pour déterminer la progression du LeasingJourney
+        await Promise.all(properties.map(async (prop) => {
+          try {
+            const leaseRes = await fetch(`/api/leases/property/${prop._id}`, {
+              headers: { 'x-auth-token': authToken }
+            });
+            if(leaseRes.ok) {
+              const leases = await leaseRes.json();
+              prop.leases = leases || [];
+              prop.currentLease = leases && leases.length > 0 ? leases[0] : null;
+            }
+          } catch(e) {
+            console.warn('Erreur chargement baux pour bien', prop._id, e);
+            prop.leases = [];
+            prop.currentLease = null;
+          }
+        }));
+      }catch(err){
+        console.error('Erreur chargement biens:',err);
+        properties = [];
+      }
+    }
+    
+    // Load candidatures
+    async function loadCandidatures(){
+      try{
+        const res = await fetch('/api/candidatures',{
+          headers:{
+            'x-auth-token': authToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        if(!res.ok){
+          if(res.status === 401){
+            window.location.href = '/login-luxe.html';
+            return;
+          }
+          throw new Error('Erreur API');
+        }
+        candidatures = await res.json();
+      }catch(err){
+        console.error('Erreur chargement candidatures:',err);
+        candidatures = [];
+      }
+    }
+    
+    // Ouvrir le slide-over pour créer un bien
+    function openCreatePropertySlideOver(){
+      // Réinitialise le formulaire
+      $('confirmTitle').value = '';
+      $('confirmAddress').value = '';
+      $('confirmSurface').value = '';
+      $('confirmRent').value = '';
+      $('confirmCharges').value = '0';
+      
+      // Ouvre le slide-over
+      openSlideOver('confirmSlideOver');
+      
+      // Initialise les icônes Lucide
+      if(window.lucide) lucide.createIcons();
+    }
+    
+    // Process Magic Link
+    async function processMagicLink(){
+      const url = $('magicLinkInput').value.trim();
+      if(!url){
+        alert('Veuillez entrer un lien');
+        return;
+      }
+      
+      // Désactiver le bouton pendant le scraping
+      const btn = $('magicLinkInput').nextElementSibling;
+      btn.disabled = true;
+      btn.textContent = 'Analyse en cours...';
+      
+      try{
+        // Appel API de scraping
+        const res = await fetch('/api/scraping',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-auth-token':authToken
+          },
+          body:JSON.stringify({url})
+        });
+        
+        if(!res.ok) throw new Error('Erreur scraping');
+        
+        const data = await res.json();
+        
+        // Pré-remplir le formulaire avec les données scrapées
+        $('confirmTitle').value = data.data.name || '';
+        $('confirmAddress').value = data.data.address || '';
+        $('confirmSurface').value = data.data.surfaceM2 || '';
+        $('confirmRent').value = data.data.rentAmount || '';
+        $('confirmCharges').value = data.data.chargesAmount || '0';
+        
+        // Ouvrir slide-over
+        openSlideOver('confirmSlideOver');
+      }catch(err){
+        console.error('Erreur scraping:',err);
+        alert('Erreur lors du scraping. Utilisez le formulaire manuel.');
+      }finally{
+        btn.disabled = false;
+        btn.textContent = 'Créer mon bien';
+      }
+    }
+    
+    // Confirm property
+    async function confirmProperty(e){
+      e.preventDefault();
+      
+      const propertyData = {
+        name:$('confirmTitle').value,
+        address:$('confirmAddress').value,
+        surfaceM2:parseFloat($('confirmSurface').value) || null,
+        rentAmount:parseFloat($('confirmRent').value),
+        chargesAmount:parseFloat($('confirmCharges').value) || 0
+      };
+      
+      try{
+        const res = await fetch('/api/properties',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-auth-token': authToken
+          },
+          body:JSON.stringify(propertyData)
+        });
+        
+        if(!res.ok) throw new Error('Erreur création');
+        
+        closeSlideOver('confirmSlideOver');
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur création bien:',err);
+        alert('Erreur lors de la création du bien');
+      }
+    }
+    
+    // Set property filter
+    function setPropertyFilter(filter){
+      currentFilter = filter;
+      document.querySelectorAll('.filter-link').forEach(link => link.classList.remove('active'));
+      $('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.add('active');
+      renderProperties();
+    }
+    
+    // Render properties
+    function renderProperties(){
+      const inventory = $('propertyInventory');
+      const emptyState = $('propertyEmptyState');
+      
+      if(!inventory || !emptyState) return;
+      
+      if(properties.length === 0){
+        inventory.style.display = 'none';
+        emptyState.style.display = 'block';
+        if(window.lucide) lucide.createIcons();
+        return;
+      }
+      
+      inventory.style.display = 'flex';
+      emptyState.style.display = 'none';
+      
+      // Séparer les biens en deux catégories
+      const rentedProperties = [];
+      const availableProperties = [];
+      
+      properties.forEach(prop => {
+        const status = getPropertyStatus(prop);
+        const isOccupied = prop.status === 'OCCUPIED';
+        
+        // Appliquer le filtre
+        if(currentFilter === 'rented' && !isOccupied) return;
+        if(currentFilter === 'available' && isOccupied) return;
+        
+        if(isOccupied){
+          rentedProperties.push(prop);
+        } else {
+          availableProperties.push(prop);
+        }
+      });
+      
+      // Générer le HTML des deux sections
+      let html = '';
+      
+      // Section "Patrimoine Actif" (Biens loués)
+      if(rentedProperties.length > 0 || currentFilter === 'rented'){
+        html += `
+          <div class="inventory-section" id="sectionActive">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Patrimoine Actif</div>
+                <div class="section-subtitle">Biens loués et en gestion</div>
+              </div>
+              <div class="section-badge active">Sérénité Active</div>
+            </div>
+            <div class="dashboard-grid" id="rentedPropertiesGrid">
+              ${rentedProperties.map((prop, index) => renderPropertyCard(prop, index, true)).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Séparateur si les deux sections existent
+      if(rentedProperties.length > 0 && availableProperties.length > 0 && currentFilter === 'all'){
+        html += '<div class="section-separator"></div>';
+      }
+      
+      // Section "Opportunités" (Biens disponibles)
+      if(availableProperties.length > 0 || currentFilter === 'available'){
+        const propCandidaturesAll = candidatures.filter(c => availableProperties.some(p => 
+          (c.property?._id === p._id || c.property === p._id) && c.status === 'pending'
+        ));
+        const avgScore = propCandidaturesAll.length > 0 
+          ? Math.round(propCandidaturesAll.reduce((sum, c) => sum + (c.scoring?.total || c.score || 0), 0) / propCandidaturesAll.length)
+          : 0;
+        
+        html += `
+          <div class="inventory-section" id="sectionOpportunities">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Opportunités</div>
+                <div class="section-subtitle">${propCandidaturesAll.length} dossier${propCandidaturesAll.length > 1 ? 's' : ''} reçu${propCandidaturesAll.length > 1 ? 's' : ''} • Score moyen PatrimoTrust™ : ${avgScore}/100</div>
+              </div>
+              <div class="section-badge opportunity">En Recrutement</div>
+            </div>
+            <div class="dashboard-grid" id="availablePropertiesGrid">
+              ${availableProperties.map((prop, index) => renderPropertyCard(prop, index, false)).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      inventory.innerHTML = html;
+      
+      if(window.lucide) lucide.createIcons();
+    }
+    
+    // Utility functions
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function applyUrlFromToken(token) {
+      // Nouvelle URL Luxe Next.js + cache-buster
+      return window.location.origin + '/apply/' + encodeURIComponent(token) + '?v=ultra-imp';
+    }
+    
+    // Render Recruitment Pipeline
+    function renderRecruitmentPipeline(prop, propCandidatures) {
+      const propId = prop._id;
+      const applyToken = prop.applyToken || '';
+      const applyUrl = applyToken ? applyUrlFromToken(applyToken) : '';
+      
+      // Catégoriser les candidatures (exclusif : un candidat ne peut être que dans une catégorie)
+      // Priorité : Shortlist > Qualifiés > Nouveaux
+      const shortlist = propCandidatures.filter(c => c.shortlisted === true);
+      const shortlistIds = new Set(shortlist.map(c => c._id));
+      
+      const qualifies = propCandidatures.filter(c => {
+        if(shortlistIds.has(c._id)) return false; // Déjà dans shortlist
+        if(c.status === 'REJECTED' || c.status === 'ARCHIVED_REFUSED') return false;
+        const score = c.scoring?.total || c.trustAnalysis?.score || c.score || 0;
+        return score >= 70;
+      });
+      const qualifiesIds = new Set(qualifies.map(c => c._id));
+      
+      const nouveaux = propCandidatures.filter(c => {
+        return !shortlistIds.has(c._id) && !qualifiesIds.has(c._id);
+      });
+      
+      // Fonction pour rendre une carte candidat
+      function renderCandidateCard(cand) {
+        const name = `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Candidat';
+        const score = cand.scoring?.total || cand.trustAnalysis?.score || cand.score || 0;
+        const income = cand.monthlyNetIncome || 0;
+        const contractType = cand.contractType || 'Non spécifié';
+        const candId = cand._id;
+        
+        return `
+          <div class="candidate-card" data-cand-id="${candId}">
+            <div class="candidate-card-header">
+              <div>
+                <div class="candidate-card-name">${escapeHtml(name)}</div>
+              </div>
+              <div class="candidate-card-score">${score}</div>
+            </div>
+            <div class="candidate-card-details">
+              <div class="candidate-card-detail">
+                <i data-lucide="euro"></i>
+                <span>${income > 0 ? income.toLocaleString('fr-FR') + '€/mois' : 'Non renseigné'}</span>
+              </div>
+              <div class="candidate-card-detail">
+                <i data-lucide="file-text"></i>
+                <span>${escapeHtml(contractType)}</span>
+              </div>
+            </div>
+            <div class="candidate-card-actions">
+              <button class="candidate-card-action" onclick="event.stopPropagation();viewCandidateDossier('${candId}')" title="Voir le dossier">
+                <i data-lucide="eye"></i>
+                <span>Voir</span>
+              </button>
+              <button class="candidate-card-action" onclick="event.stopPropagation();inviteCandidate('${candId}')" title="Inviter à visiter">
+                <i data-lucide="calendar"></i>
+                <span>Inviter</span>
+              </button>
+              <button class="candidate-card-action danger" onclick="event.stopPropagation();rejectCandidate('${candId}')" title="Refuser">
+                <i data-lucide="x"></i>
+                <span>Refuser</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Fonction pour rendre une colonne
+      function renderColumn(title, candidates, columnId) {
+        return `
+          <div class="pipeline-column" id="${columnId}">
+            <div class="pipeline-column-header">
+              <div class="pipeline-column-title">${escapeHtml(title)}</div>
+              <div class="pipeline-column-count">${candidates.length}</div>
+            </div>
+            <div class="pipeline-column-content">
+              ${candidates.length > 0 
+                ? candidates.map(c => renderCandidateCard(c)).join('')
+                : '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Aucun candidat</div>'
+              }
+            </div>
+          </div>
+        `;
+      }
+      
+      // Heatmap simple (visites vs dossiers)
+      const totalVisits = Math.floor(propCandidatures.length * 2.5); // Estimation
+      const totalApplications = propCandidatures.length;
+      const conversionRate = totalVisits > 0 ? Math.round((totalApplications / totalVisits) * 100) : 0;
+      
+      return `
+        <div class="recruitment-pipeline" data-property-id="${propId}">
+          <div class="pipeline-header">
+            <div class="pipeline-title-section">
+              <div class="pipeline-title">Pipeline de Recrutement</div>
+            </div>
+            <div class="pipeline-actions">
+              ${applyUrl ? `
+                <button class="pipeline-share-btn" onclick="event.stopPropagation();copyApplyLink('${propId}', ${JSON.stringify(applyUrl)})">
+                  <i data-lucide="share-2"></i>
+                  <span>Partager le lien</span>
+                </button>
+              ` : `
+                <button class="pipeline-share-btn" onclick="event.stopPropagation();generateApplyLink('${propId}')">
+                  <i data-lucide="link"></i>
+                  <span>Générer le lien</span>
+                </button>
+              `}
+              <div class="pipeline-search">
+                <i data-lucide="search"></i>
+                <input type="text" placeholder="Rechercher par revenus ou score..." 
+                       onkeyup="filterCandidates('${propId}', this.value)" 
+                       onclick="event.stopPropagation()">
+              </div>
+            </div>
+          </div>
+          
+          <div class="pipeline-columns">
+            ${renderColumn('Nouveaux', nouveaux, `pipeline-nouveaux-${propId}`)}
+            ${renderColumn('Qualifiés', qualifies, `pipeline-qualifies-${propId}`)}
+            ${renderColumn('Shortlist', shortlist, `pipeline-shortlist-${propId}`)}
+          </div>
+          
+          <div class="pipeline-heatmap">
+            <div class="heatmap-header">
+              <div class="heatmap-title">Visualisation du Flux</div>
+              <div class="heatmap-stats">
+                <div class="heatmap-stat">
+                  <div class="heatmap-stat-label">Visites</div>
+                  <div class="heatmap-stat-value">${totalVisits}</div>
+                </div>
+                <div class="heatmap-stat">
+                  <div class="heatmap-stat-label">Dossiers</div>
+                  <div class="heatmap-stat-value">${totalApplications}</div>
+                </div>
+                <div class="heatmap-stat">
+                  <div class="heatmap-stat-label">Taux</div>
+                  <div class="heatmap-stat-value">${conversionRate}%</div>
+                </div>
+              </div>
+            </div>
+            <div class="heatmap-chart">
+              ${Array.from({length: 10}, (_, i) => {
+                const visitsHeight = Math.random() * 60 + 20;
+                const appsHeight = Math.random() * visitsHeight;
+                return `
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+                    <div class="heatmap-bar visits" style="height:${visitsHeight}px" title="Visites: ${Math.round(visitsHeight * 5)}"></div>
+                    <div class="heatmap-bar applications" style="height:${appsHeight}px" title="Dossiers: ${Math.round(appsHeight * 5)}"></div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Render single property card
+    function renderPropertyCard(prop, index, isRented){
+        const status = getPropertyStatus(prop);
+        const financialHealth = calculateFinancialHealth(prop);
+        const pipeline = getPipelineProgress(prop);
+        const propCandidatures = candidatures.filter(c => c.property?._id === prop._id || c.property === prop._id);
+        const activeCandidatures = propCandidatures.filter(c => c.status !== 'REJECTED' && c.status !== 'ARCHIVED_REFUSED');
+        const notifications = calculatePropertyNotifications(prop);
+        const isOccupied = prop.status === 'OCCUPIED';
+        const applyToken = prop.applyToken || '';
+        const applyUrl = applyToken ? applyUrlFromToken(applyToken) : '';
+        const rentAmount = prop.rentAmount || 0;
+        const chargesAmount = prop.chargesAmount || 0;
+        const totalRent = rentAmount + chargesAmount;
+        const title = prop.name || prop.address || 'Bien';
+        const subtitle = prop.name && prop.address && prop.name !== prop.address ? prop.address : '';
+        const hasApplications = activeCandidatures.length > 0;
+        const isRecruitment = !isOccupied && pipeline.journeyStatus !== 'signature';
+        const scores = activeCandidatures.map(c => c.scoring?.total || c.trustAnalysis?.score || c.score || 0);
+        const topScore = hasApplications ? Math.max(...scores) : 0;
+        const totalVisitsRaw = Number(prop.visitCount || prop.visits || prop.views || prop.analytics?.visits || 0);
+        const totalVisits = totalVisitsRaw > 0 ? totalVisitsRaw : Math.floor(activeCandidatures.length * 2.5);
+        const conversionRate = totalVisits > 0 ? Math.round((activeCandidatures.length / totalVisits) * 100) : 0;
+        const conversionRateBar = Math.min(conversionRate, 100);
+        const createdAtMs = prop.createdAt ? new Date(prop.createdAt).getTime() : 0;
+        const daysSinceCreation = createdAtMs ? Math.floor((Date.now() - createdAtMs) / (1000 * 60 * 60 * 24)) : 0;
+        const shouldBoost = daysSinceCreation >= 3 && totalVisits < 5;
+        const shortlistCount = activeCandidatures.filter(c => c.shortlisted === true).length;
+        const unreadCount = activeCandidatures.filter(c => {
+          const hasReadSignal = Object.prototype.hasOwnProperty.call(c, 'isRead')
+            || Object.prototype.hasOwnProperty.call(c, 'readAt')
+            || Object.prototype.hasOwnProperty.call(c, 'viewed')
+            || Object.prototype.hasOwnProperty.call(c, 'hasBeenRead');
+          if(!hasReadSignal) return false;
+          return c.isRead === false || c.viewed === false || c.hasBeenRead === false || !c.readAt;
+        }).length;
+        const eliteCandidates = activeCandidatures
+          .map(c => {
+            const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Candidat';
+            const score = c.scoring?.total || c.trustAnalysis?.score || c.score || 0;
+            const initials = name.split(' ').filter(Boolean).slice(0,2).map(part => part[0]).join('').toUpperCase();
+            return { name, score, initials };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+        
+        let statusBadge = { label:'Annonce ouverte', class:'open' };
+        if(isOccupied){
+          statusBadge = { label:'Loué', class:'rented' };
+        }else if(pipeline.journeyStatus === 'signature'){
+          statusBadge = { label:'Signature en cours', class:'signing' };
+        }else if(hasApplications){
+          statusBadge = { label:'Recrutement Actif', class:'active' };
+        }
+        if(isRecruitment && topScore > 80){
+          statusBadge = { label:'HAUT POTENTIEL', class:'potential' };
+        }else if(isRecruitment && shouldBoost){
+          statusBadge = { label:'À BOOSTER', class:'booster' };
+        }
+        
+        let cta = {
+          label:'Partager l\'annonce',
+          icon:'share-2',
+          action: applyUrl
+            ? `copyApplyLink('${prop._id}', ${JSON.stringify(applyUrl)})`
+            : `generateApplyLink('${prop._id}')`
+        };
+        if(isOccupied){
+          cta = { label:'Gérer mon bien', icon:'settings', action:`openProperty('${prop._id}')` };
+        }else if(pipeline.journeyStatus === 'signature'){
+          cta = { label:'Envoyer pour signature', icon:'send', action:`continueLeasingJourney('${prop._id}', '${prop.currentLease?._id || ''}')` };
+        }else if(isRecruitment){
+          if(activeCandidatures.length === 0){
+            cta = {
+              label:'PARTAGER L\'ANNONCE',
+              icon:'link',
+              action: applyUrl
+                ? `copyApplyLink('${prop._id}', ${JSON.stringify(applyUrl)})`
+                : `generateApplyLink('${prop._id}')`
+            };
+          }else if(shortlistCount > 0){
+            cta = { label:'FINALISER LA SÉLECTION', icon:'check', action:`openProperty('${prop._id}')` };
+          }else if(unreadCount > 0){
+            cta = { label:`VOIR LES ${unreadCount} NOUVEAUX PROFILS`, icon:'sparkles', action:`openProperty('${prop._id}')` };
+          }else if(hasApplications){
+            cta = {
+              label:`Voir les ${activeCandidatures.length} candidat${activeCandidatures.length > 1 ? 's' : ''}`,
+              icon:'users',
+              action:`openProperty('${prop._id}')`
+            };
+          }
+        }else if(hasApplications){
+          cta = {
+            label:`Voir les ${activeCandidatures.length} candidat${activeCandidatures.length > 1 ? 's' : ''}`,
+            icon:'users',
+            action:`openProperty('${prop._id}')`
+          };
+        }
+
+        const funnelLabel = hasApplications ? `Top Score : ${topScore}/100` : 'En attente de talents';
+        const funnelBarWidth = hasApplications ? Math.min(topScore, 100) : 0;
+        const recruitmentKpis = `
+          <div class="property-kpis recruitment">
+            <div class="property-kpi">
+              <div class="kpi-header">
+                <span class="kpi-label">Qualité du Funnel</span>
+                <span class="kpi-value ${hasApplications ? '' : 'kpi-muted'}">${funnelLabel}</span>
+              </div>
+              <div class="kpi-progress">
+                <div class="kpi-progress-bar ${topScore > 80 ? 'elite' : ''}" style="width:${funnelBarWidth}%"></div>
+              </div>
+            </div>
+            <div class="property-kpi">
+              <div class="kpi-header">
+                <span class="kpi-label">Taux d'Intérêt</span>
+                <span class="kpi-value">${conversionRate}% de conversion</span>
+              </div>
+                <div class="kpi-micro">
+                  <div class="kpi-micro-bar" style="width:${conversionRateBar}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+        const defaultKpis = `
+          <div class="property-kpis">
+            <div class="property-kpi">
+              <div class="kpi-header">
+                <span class="kpi-label">Santé financière</span>
+                <span class="kpi-value">${financialHealth.received}/${financialHealth.expected}€</span>
+              </div>
+              <div class="kpi-progress">
+                <div class="kpi-progress-bar ${financialHealth.class}" style="width:${financialHealth.percent}%"></div>
+              </div>
+            </div>
+            <div class="property-kpi">
+              <div class="kpi-activity">
+                <span class="kpi-activity-icon"><i data-lucide="users"></i></span>
+                <div>
+                  <div class="kpi-activity-value">${activeCandidatures.length}</div>
+                  <div class="kpi-activity-label">Dossiers reçus</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        const kpisHtml = isRecruitment ? recruitmentKpis : defaultKpis;
+        // Mapping exact des statuts backend vers la Ligne de Vie
+        // Property.status: AVAILABLE | CANDIDATE_SELECTION | LEASE_IN_PROGRESS | OCCUPIED | VACANT
+        // Candidature.status: NEW | REVIEWED | ACCEPTED | SELECTED_FOR_LEASE | REJECTED | ARCHIVED_REFUSED
+        const hasAcceptedCandidate = activeCandidatures.some(c =>
+          c.status === 'ACCEPTED' || c.status === 'SELECTED_FOR_LEASE'
+        );
+        const hasLease = !!prop.currentLease;
+        const leaseSigned = prop.currentLease?.opensignStatus === 'completed';
+        let journeyActiveIndex = 1; // DIFFUSION
+        if(prop.status === 'OCCUPIED' || leaseSigned){
+          journeyActiveIndex = 4; // REMISE DES CLÉS
+        }else if(prop.status === 'LEASE_IN_PROGRESS' || hasLease || hasAcceptedCandidate){
+          journeyActiveIndex = 3; // CONTRAT
+        }else if(prop.status === 'CANDIDATE_SELECTION' || hasApplications){
+          journeyActiveIndex = 2; // CANDIDATURES
+        }else if(['AVAILABLE','VACANT'].includes(prop.status)){
+          journeyActiveIndex = 1; // DIFFUSION
+        }
+        const journeyLabels = ['DIFFUSION', 'CANDIDATURES', 'CONTRAT', 'REMISE DES CLÉS'];
+        const clampedJourneyIndex = Math.min(Math.max(journeyActiveIndex, 1), journeyLabels.length);
+        const journeySteps = journeyLabels.map((label, idx) => {
+          const stepIndex = idx + 1;
+          const className = stepIndex < clampedJourneyIndex
+            ? 'completed'
+            : (stepIndex === clampedJourneyIndex ? 'active' : 'upcoming');
+          return { label, class: className };
+        });
+        const journeyProgress = journeyLabels.length > 1
+          ? Math.round(((clampedJourneyIndex - 1) / (journeyLabels.length - 1)) * 100)
+          : 0;
+        const eliteBlock = isRecruitment && hasApplications
+          ? `
+            <div class="elite-candidates">
+              ${eliteCandidates.map(c => `
+                <div class="elite-candidate" title="${escapeHtml(c.name)}">
+                  <div class="elite-avatar">${c.initials}</div>
+                  <div class="elite-score">${c.score}/100</div>
+                </div>
+              `).join('')}
+            </div>
+          `
+          : '';
+        
+        return `
+          <div class="property-card" onclick="openProperty('${prop._id}')">
+            ${notifications.count > 0 ? '<div class="property-notification-badge" title="Actions requises"></div>' : ''}
+            <div class="property-card-header">
+              <div class="property-image">
+                ${prop.photos && prop.photos.length > 0 
+                  ? `<img src="${prop.photos[0]}" alt="${escapeHtml(title)}">`
+                  : `<i data-lucide="home"></i>`
+                }
+                <div class="property-image-overlay">
+                  <div class="property-price">
+                    ${totalRent > 0 ? `${totalRent}€ /mois` : '—'}
+                    <span class="property-price-sub">Revenu cible</span>
+                  </div>
+                </div>
+              </div>
+              <div class="property-status-badge ${statusBadge.class}">${statusBadge.label}</div>
+            </div>
+            <div class="property-content">
+              <div>
+                <div class="property-title">${escapeHtml(title)}</div>
+                ${subtitle ? `<div class="property-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+              </div>
+              
+              ${kpisHtml}
+              ${eliteBlock}
+              
+              <div class="leasing-journey">
+                <div class="leasing-journey-line" style="--progress:${journeyProgress}%">
+                  ${journeySteps.map(step => `
+                    <div class="journey-step ${step.class}" title="${step.label}" data-label="${step.label}">
+                      <span class="journey-dot"></span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              
+              <div class="property-cta">
+                <button class="property-cta-btn" onclick="event.stopPropagation();${cta.action}">
+                  <i data-lucide="${cta.icon}"></i>
+                  ${cta.label}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+    }
+    
+    // Get property status - basé sur le statut explicite du bien
+    function getPropertyStatus(prop){
+      // CRITÈRE PRINCIPAL : le statut explicite du bien
+      const isOccupied = prop.status === 'OCCUPIED';
+      
+      if(isOccupied){
+        return {class:'rented',label:'Loué'};
+      }else{
+        // Vérifie s'il y a des candidatures pour afficher "Sélection" ou "Disponible"
+        const propCandidatures = candidatures.filter(c => 
+          (c.property?._id === prop._id || c.property === prop._id) && 
+          c.status !== 'REJECTED' && c.status !== 'ARCHIVED_REFUSED'
+        );
+        if(propCandidatures.length > 0){
+          return {class:'selection',label:'Sélection'};
+        }
+        return {class:'selection',label:'Disponible'};
+      }
+    }
+    
+    // Calculate property notifications (quittances, events, etc.)
+    function calculatePropertyNotifications(prop){
+      const notifications = [];
+      const today = new Date();
+      const day = today.getDate();
+      const month = today.getMonth();
+      const isOccupied = prop.status === 'OCCUPIED';
+      
+      if(!isOccupied) {
+        return { count: 0, items: [] };
+      }
+      
+      // Notification pour quittance à générer (entre le 25 et 28 du mois)
+      if(day >= 25 && day <= 28){
+        notifications.push({
+          type: 'quittance',
+          message: 'Quittance à générer pour ce mois'
+        });
+      }
+      
+      // Notification pour quittance à vérifier (entre le 1 et 5 du mois suivant)
+      if(day >= 1 && day <= 5){
+        notifications.push({
+          type: 'quittance_check',
+          message: 'Vérifier le paiement de la quittance du mois dernier'
+        });
+      }
+      
+      // Notification pour diagnostic expiré (à implémenter avec les données réelles)
+      // Pour l'instant, on simule
+      
+      return {
+        count: notifications.length,
+        items: notifications
+      };
+    }
+    
+    // Calculate financial health
+    function calculateFinancialHealth(prop){
+      const expected = prop.rentAmount + (prop.chargesAmount || 0);
+      
+      // TODO: Calculer depuis les paiements réels (à implémenter avec les données de paiement)
+      // Pour l'instant, on simule basé sur le statut
+      const isOccupied = prop.status === 'OCCUPIED';
+      const received = isOccupied ? expected * 0.95 : 0; // 95% si occupé, 0 sinon
+      
+      const percent = Math.round((received / expected) * 100);
+      let class_ = 'completed';
+      if(percent < 50) class_ = 'error';
+      else if(percent < 80) class_ = 'warning';
+      
+      return {received:Math.round(received),expected,percent,class:class_};
+    }
+    
+    // Get pipeline progress (LeasingJourney - 5 étapes)
+    function getPipelineProgress(prop){
+      const propCandidatures = candidatures.filter(c => c.property?._id === prop._id || c.property === prop._id);
+      const hasAcceptedCandidature = propCandidatures.some(c => 
+        c.status === 'SELECTED_FOR_LEASE' || c.status === 'ACCEPTED'
+      );
+      const currentLease = prop.currentLease;
+      const isOccupied = prop.status === 'OCCUPIED';
+      
+      // Détermine le step actuel du LeasingJourney (1-5)
+      let currentStep = 1; // Par défaut : Sélection
+      let journeyStatus = null;
+      
+      if(currentLease) {
+        // Étape 5 : Signature (OpenSign lancé)
+        if(currentLease.opensignStatus === 'completed') {
+          currentStep = 5;
+          journeyStatus = 'completed';
+        } else if(currentLease.opensignStatus && currentLease.opensignStatus !== 'completed') {
+          currentStep = 5;
+          journeyStatus = 'signature';
+        }
+        // Étape 4 : Garantie (bail créé, en attente de garantie)
+        else if(currentLease.guarantor && !currentLease.opensignDocumentId) {
+          currentStep = 4;
+          journeyStatus = 'garantie';
+        }
+        // Étape 3 : Contrat (bail créé, conformité OK)
+        else if(currentLease._id) {
+          // Vérifie si la conformité est OK (diagnostics présents)
+          // Pour simplifier, on considère que si le bail existe, on est au moins à l'étape 3
+          currentStep = 3;
+          journeyStatus = 'contrat';
+        }
+      } else if(hasAcceptedCandidature) {
+        // Étape 2 : Conformité (candidat accepté, bail pas encore créé)
+        currentStep = 2;
+        journeyStatus = 'conformite';
+      } else if(propCandidatures.length > 0) {
+        // Étape 1 : Sélection (candidatures présentes)
+        currentStep = 1;
+        journeyStatus = 'selection';
+      }
+      
+      // Les 5 étapes du LeasingJourney
+      const steps = [
+        {
+          label:'Sélection',
+          class:currentStep > 1 ? 'completed' : (currentStep === 1 ? 'active' : ''),
+          step: 1
+        },
+        {
+          label:'Conformité',
+          class:currentStep > 2 ? 'completed' : (currentStep === 2 ? 'active' : ''),
+          step: 2
+        },
+        {
+          label:'Contrat',
+          class:currentStep > 3 ? 'completed' : (currentStep === 3 ? 'active' : ''),
+          step: 3
+        },
+        {
+          label:'Garantie',
+          class:currentStep > 4 ? 'completed' : (currentStep === 4 ? 'active' : ''),
+          step: 4
+        },
+        {
+          label:'Signature',
+          class:currentStep >= 5 ? (journeyStatus === 'completed' ? 'completed' : 'active') : '',
+          step: 5
+        }
+      ];
+      
+      return {
+        steps, 
+        currentStep, 
+        journeyStatus, 
+        hasLease: !!currentLease,
+        canContinue: currentStep < 5 || (currentStep === 5 && journeyStatus !== 'completed')
+      };
+    }
+    
+    // Slide-over functions
+    function openSlideOver(id){
+      $(id).classList.add('open');
+      $('overlay').classList.add('open');
+    }
+    
+    function closeSlideOver(id){
+      $(id).classList.remove('open');
+      $('overlay').classList.remove('open');
+    }
+    
+    function closeAllSlideOvers(){
+      document.querySelectorAll('.slide-over').forEach(el => el.classList.remove('open'));
+      $('overlay').classList.remove('open');
+    }
+    
+    // Property actions
+    function openProperty(id){
+      // Redirige vers la page de détails du bien
+      window.location.href = `/property-luxe.html?id=${id}`;
+    }
+    
+    // Continue LeasingJourney
+    function continueLeasingJourney(propertyId, leaseId){
+      // Redirige vers contractualization avec les bons paramètres
+      if(leaseId) {
+        window.location.href = `/properties/${propertyId}/contract`;
+      } else {
+        // Si pas de bail, redirige vers property pour sélectionner un candidat
+        window.location.href = `/properties/${propertyId}/contract`;
+      }
+    }
+    
+    function editProperty(id){
+      // TODO: Ouvrir édition dans slide-over
+      console.log('Edit property:',id);
+      alert('Édition du bien (à implémenter)');
+    }
+    
+    function viewDocuments(id){
+      // Redirige vers les documents du bien
+      window.location.href = `/documents.html?property=${id}`;
+    }
+    
+    function viewTenants(id){
+      // Ouvre le slide-over pour ajouter un locataire
+      $('tenantPropertyId').value = id;
+      openSlideOver('addTenantSlideOver');
+    }
+    
+    // Add tenant
+    async function addTenant(e){
+      e.preventDefault();
+      
+      const tenantData = {
+        firstName:$('tenantFirstName').value,
+        lastName:$('tenantLastName').value,
+        email:$('tenantEmail').value,
+        phone:$('tenantPhone').value || '',
+        property:$('tenantPropertyId').value
+      };
+      
+      try{
+        const res = await fetch('/api/tenants',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-auth-token':authToken
+          },
+          body:JSON.stringify(tenantData)
+        });
+        
+        if(!res.ok) throw new Error('Erreur création');
+        
+        closeSlideOver('addTenantSlideOver');
+        $('addTenantForm').reset();
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur ajout locataire:',err);
+        alert('Erreur lors de l\'ajout du locataire');
+      }
+    }
+    
+    // Open candidature slide-over
+    function openCandidatureSlideOver(candidature){
+      const content = $('candidatureContent');
+      content.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">Candidat</label>
+          <div style="padding:12px;background:var(--slate-bg);border-radius:8px">
+            <strong>${candidature.firstName || ''} ${candidature.lastName || ''}</strong><br>
+            <span style="color:var(--muted);font-size:14px">${candidature.email || ''}</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bien</label>
+          <div style="padding:12px;background:var(--slate-bg);border-radius:8px">
+            ${candidature.propertyName || ''}<br>
+            <span style="color:var(--muted);font-size:14px">${candidature.propertyAddress || ''}</span>
+          </div>
+        </div>
+        ${candidature.score ? `
+          <div class="form-group">
+            <label class="form-label">Score de confiance</label>
+            <div style="padding:12px;background:var(--slate-bg);border-radius:8px">
+              <span style="font-size:24px;font-weight:700;color:var(--emerald)">${candidature.score}</span>
+            </div>
+          </div>
+        ` : ''}
+        <div style="display:flex;gap:8px;margin-top:24px">
+          <button class="btn-primary" style="flex:1" onclick="acceptCandidature('${candidature._id}')">
+            Accepter
+          </button>
+          <button class="btn-action" style="flex:1;background:var(--error)" onclick="rejectCandidature('${candidature._id}')">
+            Refuser
+          </button>
+        </div>
+      `;
+      
+      openSlideOver('candidatureSlideOver');
+    }
+    
+    // Accept candidature
+    async function acceptCandidature(id){
+      try{
+        const res = await fetch(`/api/candidatures/${id}/accept`,{
+          method:'POST',
+          headers:{'x-auth-token':authToken}
+        });
+        
+        if(!res.ok) throw new Error('Erreur acceptation');
+        
+        closeSlideOver('candidatureSlideOver');
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur acceptation:',err);
+        alert('Erreur lors de l\'acceptation');
+      }
+    }
+    
+    // Reject candidature
+    async function rejectCandidature(id){
+      try{
+        const res = await fetch(`/api/candidatures/${id}/reject`,{
+          method:'POST',
+          headers:{'x-auth-token':authToken}
+        });
+        
+        if(!res.ok) throw new Error('Erreur refus');
+        
+        closeSlideOver('candidatureSlideOver');
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur refus:',err);
+        alert('Erreur lors du refus');
+      }
+    }
+    
+    // Pipeline de Recrutement - Actions
+    async function generateApplyLink(propertyId){
+      try{
+        const res = await fetch(`/api/properties/${propertyId}/apply-link`, {
+          method:'POST',
+          headers:{
+            'x-auth-token':authToken,
+            'Content-Type':'application/json'
+          }
+        });
+        
+        if(!res.ok) throw new Error('Erreur génération lien');
+        
+        const data = await res.json();
+        const url = data.url || applyUrlFromToken(data.token);
+        
+        // Copie automatiquement dans le presse-papiers
+        await copyApplyLink(propertyId, url);
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur génération lien:',err);
+        alert('Erreur lors de la génération du lien');
+      }
+    }
+    
+    async function copyApplyLink(propertyId, url){
+      try{
+        await navigator.clipboard.writeText(url);
+        // Afficher un toast de confirmation
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:10000;background:var(--emerald);color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:14px;font-weight:600;';
+        toast.textContent = 'Lien copié dans le presse-papiers ✅';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }catch(err){
+        // Fallback pour navigateurs anciens
+        const input = document.createElement('input');
+        input.value = url;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('Lien copié dans le presse-papiers');
+      }
+    }
+    
+    function filterCandidates(propertyId, searchTerm){
+      // Cette fonction filtre les candidatures affichées dans le pipeline
+      // Pour simplifier, on recharge le dashboard avec un filtre
+      // Dans une implémentation complète, on filtrerait directement le DOM
+      const term = searchTerm.toLowerCase().trim();
+      if(!term) {
+        renderProperties();
+        return;
+      }
+      
+      // Filtrer les candidatures et re-rendre
+      const prop = properties.find(p => p._id === propertyId);
+      if(!prop) return;
+      
+      const propCandidatures = candidatures.filter(c => 
+        c.property?._id === propertyId || c.property === propertyId
+      );
+      
+      const filtered = propCandidatures.filter(c => {
+        const name = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
+        const income = String(c.monthlyNetIncome || '').toLowerCase();
+        const score = String(c.scoring?.total || c.trustAnalysis?.score || c.score || '').toLowerCase();
+        return name.includes(term) || income.includes(term) || score.includes(term);
+      });
+      
+      // Re-rendre uniquement la carte de cette propriété
+      renderProperties();
+    }
+    
+    function viewCandidateDossier(candidatureId){
+      // Redirige vers la page de détails du candidat
+      window.location.href = `/property-luxe.html?candidatureId=${candidatureId}`;
+    }
+    
+    async function inviteCandidate(candidatureId){
+      try{
+        // Ouvre un modal pour programmer une visite
+        const cand = candidatures.find(c => c._id === candidatureId);
+        if(!cand) {
+          alert('Candidat introuvable');
+          return;
+        }
+        
+        const date = prompt('Date de visite (format: JJ/MM/AAAA HH:MM):');
+        if(!date) return;
+        
+        // TODO: Implémenter l'API pour inviter un candidat
+        alert(`Invitation envoyée à ${cand.firstName} ${cand.lastName} pour le ${date}`);
+      }catch(err){
+        console.error('Erreur invitation:',err);
+        alert('Erreur lors de l\'invitation');
+      }
+    }
+    
+    async function rejectCandidate(candidatureId){
+      if(!confirm('Êtes-vous sûr de vouloir refuser ce candidat ?')) return;
+      
+      try{
+        const res = await fetch(`/api/candidatures/${candidatureId}/reject`, {
+          method:'POST',
+          headers:{'x-auth-token':authToken}
+        });
+        
+        if(!res.ok) throw new Error('Erreur refus');
+        
+        await loadDashboard();
+      }catch(err){
+        console.error('Erreur refus:',err);
+        alert('Erreur lors du refus');
+      }
+    }
+    
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click',function(){
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        // TODO: Navigation entre pages
+      });
+    });
+    
+    // Initialize
+    loadDashboard();
+  </script>
+</body>
+</html>

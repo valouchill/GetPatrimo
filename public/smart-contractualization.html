@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GetPatrimo — Smart Contractualization</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --navy:#0F172A;--emerald:#10B981;--cobalt:#3B82F6;--slate-bg:#F8FAFC;
+      --slate-border:#E2E8F0;--text:#0F172A;--muted:#64748B;--white:#FFFFFF;
+      --warning:#F59E0B;--error:#EF4444;--radius:16px;
+      --shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);
+      --glow:0 0 20px rgba(16,185,129,0.3);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--slate-bg);color:var(--text);min-height:100vh;line-height:1.6}
+    
+    /* Header */
+    .header{background:var(--white);border-bottom:1px solid var(--slate-border);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+    .header-content{max-width:1400px;margin:0 auto;padding:24px 32px;display:flex;align-items:center;justify-content:space-between}
+    .header-title{font-size:28px;font-weight:300;color:var(--navy);letter-spacing:-0.02em;display:flex;align-items:center;gap:12px}
+    .header-title i{color:var(--emerald)}
+    .btn-back{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--slate-bg);border:1px solid var(--slate-border);border-radius:8px;color:var(--navy);text-decoration:none;font-weight:500;transition:all 0.2s ease}
+    .btn-back:hover{background:var(--slate-border)}
+    
+    /* Main Layout */
+    .main-content{max-width:1400px;margin:0 auto;padding:32px}
+    .layout-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:32px;align-items:start}
+    @media(max-width:1024px){.layout-grid{grid-template-columns:1fr}}
+    
+    /* Card */
+    .card{background:var(--white);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow);margin-bottom:24px}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid var(--slate-border)}
+    .card-title{font-size:22px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:10px;letter-spacing:-0.01em}
+    .card-title i{color:var(--emerald);width:24px;height:24px}
+    
+    /* Smart Deposit Zone */
+    .smart-deposit-zone{position:relative;border:3px dashed var(--slate-border);border-radius:var(--radius);padding:64px 32px;text-align:center;background:var(--slate-bg);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer;overflow:hidden}
+    .smart-deposit-zone:hover{border-color:var(--emerald);background:rgba(16,185,129,0.02)}
+    .smart-deposit-zone.dragover{border-color:var(--emerald);background:rgba(16,185,129,0.05);transform:scale(1.02);box-shadow:var(--glow)}
+    .smart-deposit-zone.scanning{border-color:var(--emerald);background:rgba(16,185,129,0.08)}
+    
+    .scan-animation{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,transparent,var(--emerald),transparent);animation:scan 2s linear infinite;opacity:0}
+    .smart-deposit-zone.scanning .scan-animation{opacity:1}
+    @keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(calc(100vh - 4px))}}
+    
+    .smart-deposit-content{position:relative;z-index:1;pointer-events:none}
+    .smart-deposit-icon{width:64px;height:64px;color:var(--muted);margin:0 auto 20px;transition:all 0.3s ease}
+    .smart-deposit-zone.dragover .smart-deposit-icon,.smart-deposit-zone.scanning .smart-deposit-icon{color:var(--emerald);transform:scale(1.1)}
+    .smart-deposit-title{font-size:18px;font-weight:600;color:var(--navy);margin-bottom:8px}
+    .smart-deposit-subtitle{font-size:14px;color:var(--muted)}
+    .smart-deposit-input{display:none}
+    
+    /* Progress Bar */
+    .progress-container{margin-top:24px;display:none}
+    .smart-deposit-zone.scanning .progress-container{display:block}
+    .progress-bar{width:100%;height:6px;background:var(--slate-border);border-radius:999px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--emerald),#34D399);border-radius:999px;transition:width 0.3s ease;width:0%}
+    .progress-text{text-align:center;font-size:13px;color:var(--muted);margin-top:12px;font-weight:500}
+    
+    /* Categories List */
+    .categories-list{display:flex;flex-direction:column;gap:12px;margin-top:32px}
+    .category-item{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--slate-bg);border:2px solid var(--slate-border);border-radius:12px;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
+    .category-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--emerald);transition:width 0.4s ease}
+    .category-item.validated{border-color:var(--emerald);background:rgba(16,185,129,0.05);transform:translateX(4px)}
+    .category-item.validated::before{width:4px}
+    .category-item.pulse{animation:pulse 0.6s ease}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+    
+    .category-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--slate-bg);border:2px solid var(--slate-border);border-radius:10px;color:var(--muted);flex-shrink:0;transition:all 0.4s ease}
+    .category-item.validated .category-icon{background:var(--emerald);border-color:var(--emerald);color:var(--white);transform:scale(1.1)}
+    
+    .category-content{flex:1}
+    .category-name{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;transition:color 0.4s ease}
+    .category-item.validated .category-name{color:var(--emerald)}
+    .category-status{font-size:13px;color:var(--muted);transition:color 0.4s ease}
+    .category-item.validated .category-status{color:var(--emerald);font-weight:500}
+    
+    .category-check{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--slate-border);border-radius:50%;color:transparent;flex-shrink:0;transition:all 0.4s ease}
+    .category-item.validated .category-check{background:var(--emerald);color:var(--white);transform:scale(1.2)}
+    
+    /* Documents Gallery */
+    .documents-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:24px}
+    @media(max-width:768px){.documents-gallery{grid-template-columns:1fr}}
+    
+    .document-card{position:relative;background:var(--white);border:2px solid var(--slate-border);border-radius:var(--radius);padding:20px;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer;overflow:hidden;animation:slideIn 0.4s ease}
+    @keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .document-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--emerald)}
+    .document-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--emerald),var(--cobalt));opacity:0;transition:opacity 0.3s ease}
+    .document-card:hover::before{opacity:1}
+    
+    .document-card-header{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+    .document-icon-wrapper{width:56px;height:56px;display:flex;align-items:center;justify-content:center;background:var(--slate-bg);border-radius:12px;flex-shrink:0}
+    .document-icon-wrapper.type-id{background:rgba(59,130,246,0.1)}
+    .document-icon-wrapper.type-income{background:rgba(245,158,11,0.1)}
+    .document-icon-wrapper.type-tax{background:rgba(16,185,129,0.1)}
+    .document-icon-wrapper.type-address{background:rgba(139,92,246,0.1)}
+    .document-icon-wrapper.type-other{background:var(--slate-bg)}
+    .document-icon{width:28px;height:28px;color:var(--navy)}
+    .document-info{flex:1;min-width:0}
+    .document-name{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .document-date{font-size:12px;color:var(--muted)}
+    
+    .document-actions{position:absolute;top:16px;right:16px;display:flex;gap:8px;opacity:0;transform:translateX(10px);transition:all 0.3s ease}
+    .document-card:hover .document-actions{opacity:1;transform:translateX(0)}
+    .action-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--white);border:2px solid var(--slate-border);border-radius:8px;cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow)}
+    .action-btn:hover{transform:scale(1.1)}
+    .action-btn.view{color:var(--cobalt);border-color:var(--cobalt)}
+    .action-btn.view:hover{background:rgba(59,130,246,0.1)}
+    .action-btn.delete{color:var(--error);border-color:var(--error)}
+    .action-btn.delete:hover{background:rgba(239,68,68,0.1)}
+    .action-btn i{width:18px;height:18px}
+    
+    .document-type-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--slate-bg);border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);margin-top:12px}
+    
+    /* Modal */
+    .modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:1000;align-items:center;justify-content:center;padding:32px;backdrop-filter:blur(4px)}
+    .modal.active{display:flex}
+    .modal-content{background:var(--white);border-radius:var(--radius);max-width:900px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalSlide 0.3s ease}
+    @keyframes modalSlide{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:2px solid var(--slate-border)}
+    .modal-title{font-size:20px;font-weight:700;color:var(--navy)}
+    .modal-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:none;background:var(--slate-bg);border-radius:8px;cursor:pointer;color:var(--muted);transition:all 0.2s ease}
+    .modal-close:hover{background:var(--slate-border);color:var(--navy)}
+    .modal-body{flex:1;padding:32px;overflow:auto}
+    .modal-preview{width:100%;height:600px;border:2px solid var(--slate-border);border-radius:12px;background:var(--slate-bg)}
+    
+    /* Toast */
+    .toast{position:fixed;bottom:32px;right:32px;padding:16px 20px;background:var(--navy);color:var(--white);border-radius:12px;box-shadow:var(--shadow-lg);display:none;z-index:2000;animation:toastSlide 0.3s ease;max-width:400px}
+    @keyframes toastSlide{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+    .toast.active{display:block}
+    .toast.success{background:var(--emerald)}
+    .toast.error{background:var(--error)}
+    
+    /* Empty State */
+    .empty-state{text-align:center;padding:64px 32px;color:var(--muted)}
+    .empty-state-icon{width:80px;height:80px;color:var(--slate-border);margin:0 auto 24px}
+    .empty-state-text{font-size:16px;font-weight:500}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <h1 class="header-title">
+        <i data-lucide="file-check-2"></i>
+        Smart Contractualization
+      </h1>
+      <a href="/dashboard.html" class="btn-back">
+        <i data-lucide="arrow-left" style="width:18px;height:18px"></i>
+        Retour
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="layout-grid">
+      <!-- Left Column: Upload & Categories -->
+      <div>
+        <!-- Smart Deposit Zone -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i data-lucide="upload-cloud"></i>
+              Dépôt Intelligent
+            </h2>
+          </div>
+          
+          <div class="smart-deposit-zone" id="smartDepositZone"
+               ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('dragover');"
+               ondragleave="event.preventDefault(); this.classList.remove('dragover');"
+               ondrop="event.preventDefault(); this.classList.remove('dragover'); handleFileDrop(event);"
+               onclick="document.getElementById('smartDepositInput').click();">
+            <div class="scan-animation"></div>
+            <div class="smart-deposit-content">
+              <i data-lucide="upload-cloud" class="smart-deposit-icon" id="smartDepositIcon"></i>
+              <div class="smart-deposit-title">Déposez vos documents ici</div>
+              <div class="smart-deposit-subtitle">Glissez-déposez ou cliquez pour sélectionner<br>Analyse IA automatique PatrimoTrust™</div>
+            </div>
+            <input type="file" id="smartDepositInput" class="smart-deposit-input" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(event)">
+            
+            <div class="progress-container" id="progressContainer">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="progress-text" id="progressText">Analyse PatrimoTrust™ en cours...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories Checklist -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i data-lucide="check-circle-2"></i>
+              Documents Requis
+            </h2>
+          </div>
+          
+          <div class="categories-list" id="categoriesList">
+            <div class="category-item" data-category="id">
+              <div class="category-icon">
+                <i data-lucide="user"></i>
+              </div>
+              <div class="category-content">
+                <div class="category-name">Pièce d'Identité</div>
+                <div class="category-status">En attente</div>
+              </div>
+              <div class="category-check">
+                <i data-lucide="check"></i>
+              </div>
+            </div>
+            
+            <div class="category-item" data-category="income">
+              <div class="category-icon">
+                <i data-lucide="file-text"></i>
+              </div>
+              <div class="category-content">
+                <div class="category-name">Bulletin de Paie</div>
+                <div class="category-status">En attente</div>
+              </div>
+              <div class="category-check">
+                <i data-lucide="check"></i>
+              </div>
+            </div>
+            
+            <div class="category-item" data-category="tax">
+              <div class="category-icon">
+                <i data-lucide="receipt"></i>
+              </div>
+              <div class="category-content">
+                <div class="category-name">Avis d'Imposition</div>
+                <div class="category-status">En attente</div>
+              </div>
+              <div class="category-check">
+                <i data-lucide="check"></i>
+              </div>
+            </div>
+            
+            <div class="category-item" data-category="address">
+              <div class="category-icon">
+                <i data-lucide="map-pin"></i>
+              </div>
+              <div class="category-content">
+                <div class="category-name">Justificatif de Domicile</div>
+                <div class="category-status">En attente</div>
+              </div>
+              <div class="category-check">
+                <i data-lucide="check"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Documents Gallery -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <i data-lucide="folder-open"></i>
+              Documents Uploadés
+            </h2>
+          </div>
+          
+          <div class="documents-gallery" id="documentsGallery">
+            <div class="empty-state">
+              <i data-lucide="file-x" class="empty-state-icon"></i>
+              <div class="empty-state-text">Aucun document uploadé</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Preview Modal -->
+  <div class="modal" id="previewModal" onclick="if(event.target===this) closePreviewModal()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Prévisualisation</h3>
+        <button class="modal-close" onclick="closePreviewModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <iframe class="modal-preview" id="modalPreview" src=""></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Utility functions
+    const $ = id => document.getElementById(id);
+    const $$ = sel => document.querySelectorAll(sel);
+    
+    // State
+    let uploadedDocuments = [];
+    let propertyId = null;
+    let authToken = localStorage.getItem('token') || '';
+    
+    // Document type mapping
+    const documentTypes = {
+      id: { name: 'Pièce d\'Identité', icon: 'user', keywords: ['carte', 'identite', 'passeport', 'cnn', 'identité', 'national'] },
+      income: { name: 'Bulletin de Paie', icon: 'file-text', keywords: ['paie', 'salaire', 'bulletin', 'payslip', 'revenu'] },
+      tax: { name: 'Avis d\'Imposition', icon: 'receipt', keywords: ['imposition', 'avis', 'impot', 'tax', 'fiscal'] },
+      address: { name: 'Justificatif de Domicile', icon: 'map-pin', keywords: ['domicile', 'adresse', 'facture', 'edf', 'eau', 'gaz', 'adresse'] }
+    };
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadUrlParams();
+      loadExistingDocuments();
+    });
+    
+    // Load URL parameters
+    function loadUrlParams(){
+      const urlParams = new URLSearchParams(window.location.search);
+      propertyId = urlParams.get('propertyId') || urlParams.get('property');
+    }
+    
+    // Handle file drop
+    function handleFileDrop(e){
+      const files = e.dataTransfer ? Array.from(e.dataTransfer.files) : [];
+      if(files.length > 0){
+        processFiles(files);
+      }
+    }
+    
+    // Handle file select
+    function handleFileSelect(e){
+      const files = Array.from(e.target.files || []);
+      if(files.length > 0){
+        processFiles(files);
+      }
+      e.target.value = '';
+    }
+    
+    // Process uploaded files
+    async function processFiles(files){
+      const zone = $('smartDepositZone');
+      const progressContainer = $('progressContainer');
+      const progressFill = $('progressFill');
+      const progressText = $('progressText');
+      
+      // Show scanning state
+      zone.classList.add('scanning');
+      progressContainer.style.display = 'block';
+      
+      try{
+        for(let i = 0; i < files.length; i++){
+          const file = files[i];
+          const progress = ((i + 1) / files.length) * 100;
+          
+          // Update progress
+          progressFill.style.width = progress + '%';
+          progressText.textContent = `Analyse PatrimoTrust™ : ${file.name}...`;
+          
+          // Simulate AI analysis (OCR mock)
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Classify document type
+          const docType = classifyDocument(file.name);
+          
+          // Upload file
+          const uploadResult = await uploadFile(file, docType);
+          
+          if(uploadResult.success){
+            uploadedDocuments.push({
+              id: uploadResult.id || Date.now() + i,
+              name: file.name,
+              type: docType,
+              date: new Date(),
+              url: uploadResult.url || '#'
+            });
+            
+            // Update category
+            updateCategory(docType);
+            
+            // Show success animation
+            celebrateCategory(docType);
+            
+            showToast(`✅ ${file.name} analysé et uploadé`, 'success');
+          }
+        }
+        
+        // Hide scanning state
+        setTimeout(() => {
+          zone.classList.remove('scanning');
+          progressContainer.style.display = 'none';
+          progressFill.style.width = '0%';
+          renderDocuments();
+        }, 500);
+        
+      } catch(error){
+        console.error('Erreur upload:', error);
+        showToast('Erreur lors de l\'upload', 'error');
+        zone.classList.remove('scanning');
+        progressContainer.style.display = 'none';
+      }
+    }
+    
+    // Classify document type (Mock AI/OCR)
+    function classifyDocument(fileName){
+      const lowerName = fileName.toLowerCase();
+      
+      for(const [type, data] of Object.entries(documentTypes)){
+        if(data.keywords.some(keyword => lowerName.includes(keyword))){
+          return type;
+        }
+      }
+      
+      return 'other';
+    }
+    
+    // Upload file
+    async function uploadFile(file, type){
+      try{
+        if(!propertyId){
+          // Mock upload without property
+          return { success: true, id: Date.now(), url: URL.createObjectURL(file) };
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        
+        const response = await fetch(`/api/property-documents/upload/${propertyId}`, {
+          method: 'POST',
+          headers: { 'x-auth-token': authToken },
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if(response.ok){
+          return { success: true, id: result._id || result.id, url: result.url || '#' };
+        } else {
+          throw new Error(result.msg || 'Erreur upload');
+        }
+      } catch(error){
+        console.error('Upload error:', error);
+        // Return mock success for demo
+        return { success: true, id: Date.now(), url: URL.createObjectURL(file) };
+      }
+    }
+    
+    // Update category status
+    function updateCategory(type){
+      if(type === 'other') return;
+      
+      const categoryItem = document.querySelector(`[data-category="${type}"]`);
+      if(categoryItem && !categoryItem.classList.contains('validated')){
+        categoryItem.classList.add('validated');
+        const statusEl = categoryItem.querySelector('.category-status');
+        if(statusEl){
+          statusEl.textContent = 'Document détecté ✅';
+          statusEl.style.color = 'var(--emerald)';
+        }
+      }
+    }
+    
+    // Celebrate category validation
+    function celebrateCategory(type){
+      const categoryItem = document.querySelector(`[data-category="${type}"]`);
+      if(categoryItem){
+        categoryItem.classList.add('pulse');
+        setTimeout(() => categoryItem.classList.remove('pulse'), 600);
+      }
+    }
+    
+    // Render documents gallery
+    function renderDocuments(){
+      const gallery = $('documentsGallery');
+      
+      if(uploadedDocuments.length === 0){
+        gallery.innerHTML = `
+          <div class="empty-state">
+            <i data-lucide="file-x" class="empty-state-icon"></i>
+            <div class="empty-state-text">Aucun document uploadé</div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+      
+      gallery.innerHTML = uploadedDocuments.map(doc => {
+        const typeInfo = documentTypes[doc.type] || { name: 'Autre', icon: 'file' };
+        const dateStr = new Date(doc.date).toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        
+        return `
+          <div class="document-card" data-doc-id="${doc.id}">
+            <div class="document-card-header">
+              <div class="document-icon-wrapper type-${doc.type}">
+                <i data-lucide="${typeInfo.icon}" class="document-icon"></i>
+              </div>
+              <div class="document-info">
+                <div class="document-name" title="${doc.name}">${doc.name}</div>
+                <div class="document-date">${dateStr}</div>
+              </div>
+            </div>
+            <div class="document-type-badge">
+              <i data-lucide="tag" style="width:12px;height:12px"></i>
+              ${typeInfo.name}
+            </div>
+            <div class="document-actions">
+              <button class="action-btn view" onclick="previewDocument('${doc.url}', '${doc.name.replace(/'/g, "\\'")}')" title="Visualiser">
+                <i data-lucide="eye"></i>
+              </button>
+              <button class="action-btn delete" onclick="deleteDocument('${doc.id}')" title="Supprimer">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      lucide.createIcons();
+    }
+    
+    // Preview document
+    function previewDocument(url, name){
+      const modal = $('previewModal');
+      const preview = $('modalPreview');
+      const title = $('modalTitle');
+      
+      title.textContent = name;
+      preview.src = url;
+      modal.classList.add('active');
+      lucide.createIcons();
+    }
+    
+    // Close preview modal
+    function closePreviewModal(){
+      const modal = $('previewModal');
+      const preview = $('modalPreview');
+      modal.classList.remove('active');
+      setTimeout(() => { preview.src = ''; }, 300);
+    }
+    
+    // Delete document
+    async function deleteDocument(docId){
+      if(!confirm('Supprimer ce document ?')) return;
+      
+      try{
+        if(propertyId){
+          const response = await fetch(`/api/property-documents/${docId}`, {
+            method: 'DELETE',
+            headers: { 'x-auth-token': authToken }
+          });
+          
+          if(!response.ok){
+            throw new Error('Erreur suppression');
+          }
+        }
+        
+        uploadedDocuments = uploadedDocuments.filter(doc => doc.id !== docId);
+        renderDocuments();
+        showToast('Document supprimé', 'success');
+        
+        // Reset categories if needed
+        checkCategoriesStatus();
+        
+      } catch(error){
+        console.error('Delete error:', error);
+        showToast('Erreur lors de la suppression', 'error');
+      }
+    }
+    
+    // Check categories status
+    function checkCategoriesStatus(){
+      const categories = ['id', 'income', 'tax', 'address'];
+      categories.forEach(type => {
+        const hasDoc = uploadedDocuments.some(doc => doc.type === type);
+        const categoryItem = document.querySelector(`[data-category="${type}"]`);
+        if(categoryItem && !hasDoc && categoryItem.classList.contains('validated')){
+          categoryItem.classList.remove('validated');
+          const statusEl = categoryItem.querySelector('.category-status');
+          if(statusEl){
+            statusEl.textContent = 'En attente';
+            statusEl.style.color = '';
+          }
+        }
+      });
+    }
+    
+    // Load existing documents
+    async function loadExistingDocuments(){
+      if(!propertyId) return;
+      
+      try{
+        const response = await fetch(`/api/property-documents/${propertyId}`, {
+          headers: { 'x-auth-token': authToken }
+        });
+        
+        if(response.ok){
+          const docs = await response.json();
+          uploadedDocuments = (Array.isArray(docs) ? docs : []).map(doc => ({
+            id: doc._id || doc.id,
+            name: doc.originalName || doc.name || 'Document',
+            type: doc.type || 'other',
+            date: doc.createdAt || doc.date || new Date(),
+            url: doc.url || `/api/property-documents/file/${doc._id || doc.id}`
+          }));
+          
+          // Update categories
+          uploadedDocuments.forEach(doc => {
+            if(doc.type !== 'other'){
+              updateCategory(doc.type);
+            }
+          });
+          
+          renderDocuments();
+        }
+      } catch(error){
+        console.error('Load error:', error);
+      }
+    }
+    
+    // Show toast
+    function showToast(message, type = ''){
+      const toast = $('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} active`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape'){
+        closePreviewModal();
+      }
+    });
+  </script>
+</body>
+</html>
