@@ -48,7 +48,7 @@ function stageTone(tone?: string) {
 }
 
 function formatActiveReason(entry: PropertyWithCandidatures) {
-  return entry.flow?.focusCard?.reason || entry.flow?.summary || 'Ouvrez l'actif pour poursuivre le tunnel.';
+  return entry.flow?.focusCard?.reason || entry.flow?.summary || "Ouvrez l\u2019actif pour poursuivre le tunnel.";
 }
 
 /* ─── Skeleton ─────────────────────────────────────────────────────────────── */

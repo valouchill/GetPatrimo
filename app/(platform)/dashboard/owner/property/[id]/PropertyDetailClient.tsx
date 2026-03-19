@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -186,11 +186,120 @@ const GRADE_BG: Record<string, string> = {
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-5 pb-12">
-      <div className="h-72 rounded-[2.25rem] bg-slate-200" />
+      <div className="h-64 rounded-[2rem] bg-slate-100" />
+      <div className="h-20 rounded-[1.75rem] bg-slate-100" />
       <div className="flex gap-2">
-        {[1, 2, 3, 4].map((i) => <div key={i} className="h-10 w-32 rounded-xl bg-slate-200" />)}
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-10 w-28 rounded-xl bg-slate-100" />)}
       </div>
-      <div className="h-52 rounded-3xl bg-slate-200" />
+      <div className="h-48 rounded-3xl bg-slate-100" />
+    </div>
+  );
+}
+
+// ─── Stage Pipeline ───────────────────────────────────────────────────────────
+
+const PIPELINE_STAGES = [
+  { id: 'search', num: 'I', label: 'Recherche' },
+  { id: 'analysis', num: 'II', label: 'Analyse' },
+  { id: 'selection', num: 'III', label: 'Sélection' },
+  { id: 'contract', num: 'IV', label: 'Contrat' },
+  { id: 'management', num: 'V', label: 'Gestion' },
+] as const;
+
+function StagePipeline({ currentStage }: { currentStage?: string }) {
+  const currentIndex = PIPELINE_STAGES.findIndex((s) => s.id === currentStage);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+
+  return (
+    <div className="rounded-[1.75rem] border border-slate-200 bg-white px-6 py-5">
+      {/* Desktop */}
+      <div className="hidden items-center sm:flex">
+        {PIPELINE_STAGES.map((stage, index) => {
+          const isCompleted = index < safeIndex;
+          const isActive = index === safeIndex;
+
+          return (
+            <Fragment key={stage.id}>
+              <div className="flex flex-col items-center gap-2">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-all ${
+                  isCompleted
+                    ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-md shadow-emerald-500/30'
+                    : isActive
+                    ? 'border-2 border-amber-400 bg-white ring-4 ring-amber-100 shadow-md'
+                    : 'border border-slate-200 bg-slate-50'
+                }`}>
+                  {isCompleted ? (
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  ) : (
+                    <span className={`text-xs font-bold ${isActive ? 'text-amber-600' : 'text-slate-400'}`}>
+                      {stage.num}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <span className={`text-[10px] font-bold uppercase tracking-[0.06em] ${
+                    isActive ? 'text-slate-900'
+                    : isCompleted ? 'text-emerald-700'
+                    : 'text-slate-400'
+                  }`}>
+                    {stage.label}
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      className="mt-0.5 h-0.5 w-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500"
+                      initial={{ scaleX: 0, originX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 0.45 }}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {index < PIPELINE_STAGES.length - 1 && (
+                <div className="relative mx-3 h-px flex-1">
+                  <div className="absolute inset-0 rounded-full bg-slate-200" />
+                  {isCompleted && (
+                    <motion.div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500"
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 0.35, delay: index * 0.08 }}
+                    />
+                  )}
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-amber-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: '50%' }}
+                      transition={{ duration: 0.35 }}
+                    />
+                  )}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+
+      {/* Mobile */}
+      <div className="flex items-center justify-between sm:hidden">
+        <span className="text-sm font-bold text-slate-900">
+          Étape {safeIndex + 1}/5 &middot; {PIPELINE_STAGES[safeIndex]?.label}
+        </span>
+        <div className="flex gap-1">
+          {PIPELINE_STAGES.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 w-5 rounded-full ${
+                i < safeIndex ? 'bg-emerald-500'
+                : i === safeIndex ? 'bg-amber-400'
+                : 'bg-slate-200'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -384,7 +493,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const primaryAction = selectionState?.primaryAction;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-12">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pb-12">
       <CheckoutModal
         open={Boolean(checkoutTarget)}
         onClose={() => setCheckoutTarget(null)}
@@ -394,154 +503,157 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
         unlockScope="property"
       />
 
-      {checkoutSuccess ? (
-        <PremiumSurface padding="md" className="rounded-3xl border-emerald-200 bg-emerald-50">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
-              <CheckCircle2 className="h-5 w-5 text-emerald-700" />
-            </div>
-            <div>
-              <h2 className="font-serif text-2xl tracking-tight text-emerald-950">
-                {unlocked ? 'Accès complet activé' : unlockPolling ? 'Activation en cours…' : 'Paiement reçu'}
-              </h2>
-              <p className="mt-1 text-sm text-emerald-800">
-                {unlocked
-                  ? 'Les passeports complets sont maintenant accessibles.'
-                  : unlockPolling
-                    ? 'Synchronisation en cours, quelques secondes.'
-                    : "Rechargez dans quelques instants si les passeports ne s'affichent pas encore."}
-              </p>
-            </div>
+      {/* ── Banners ─────────────────────────────────────────────────── */}
+      {checkoutSuccess && (
+        <div className="flex items-start gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
+            <CheckCircle2 className="h-5 w-5 text-emerald-700" />
           </div>
-        </PremiumSurface>
-      ) : null}
-
-      {selectionError ? (
-        <PremiumSurface padding="sm" className="rounded-3xl border-rose-200 bg-rose-50">
-          <p className="text-sm font-medium text-rose-700">{selectionError}</p>
-        </PremiumSurface>
-      ) : null}
-
-      {/* ── HERO ──────────────────────────────────────────────────────── */}
-      <PremiumSurface tone="hero" padding="lg" className="rounded-[2.25rem] border-stone-200/80">
-        <div className="space-y-6">
-          <Link href="/dashboard/owner" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800">
-            <ArrowLeft className="h-4 w-4" /> Retour au portefeuille
-          </Link>
-
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white/75">
-              <Building2 className="h-6 w-6 text-emerald-900" />
-            </div>
-            <div className="min-w-0">
-              <ActionBar className="gap-2">
-                <StatusBadge
-                  tone={resolveStageTone(property.flow?.stageTone)}
-                  label={property.flow?.stageLabel || 'Pipeline'}
-                  className="normal-case tracking-normal text-[11px] font-semibold"
-                />
-                {ownerSelected ? (
-                  <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
-                ) : null}
-              </ActionBar>
-              <h1 className="mt-3 break-words font-serif text-[2.4rem] tracking-tight text-slate-950">
-                {property.address || property.name || 'Actif'}
-              </h1>
-              <p className="mt-1.5 text-sm text-slate-600">
-                {formatCurrency(property.rentAmount)} HC
-                {Number(property.chargesAmount || 0) > 0 ? ` + ${formatCurrency(property.chargesAmount)} charges` : ''}
-                {property.surfaceM2 ? ` · ${property.surfaceM2} m²` : ''}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <QuickStat label="Passeports" value={property.flow?.totalCandidates || 0} className="bg-white/80 backdrop-blur" />
-            <QuickStat label="Finalistes" value={selectionState?.finalistsCount || 0} className="bg-white/80 backdrop-blur" />
-            <QuickStat label="Masqués" value={property.flow?.sealedCount || 0} className="bg-white/80 backdrop-blur" />
-            <QuickStat label="Prêts au bail" value={property.flow?.readyToContractCount || 0} className="bg-white/80 backdrop-blur" />
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              disabled={!property.applyToken}
-              className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
-            >
-              {copied ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-              {copied ? 'Sésame copié !' : 'Copier le Sésame candidat'}
-            </button>
-            {primaryAction ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (primaryAction.kind === 'unlock') { openUnlockModal(); return; }
-                  router.push(primaryAction.href || `/dashboard/owner/property/${propertyId}`);
-                }}
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
-              >
-                {primaryAction.kind === 'unlock' ? <Lock className="h-4 w-4 text-amber-300" /> : <Shield className="h-4 w-4" />}
-                {primaryAction.label}
-              </button>
-            ) : null}
+          <div>
+            <p className="font-semibold text-emerald-950">
+              {unlocked ? 'Accès complet activé' : unlockPolling ? 'Activation en cours…' : 'Paiement reçu'}
+            </p>
+            <p className="mt-0.5 text-sm text-emerald-800">
+              {unlocked
+                ? 'Les passeports complets sont maintenant accessibles.'
+                : unlockPolling
+                ? 'Synchronisation en cours, quelques secondes.'
+                : "Rechargez dans quelques instants si les passeports ne s'affichent pas encore."}
+            </p>
           </div>
         </div>
-      </PremiumSurface>
+      )}
 
-      {/* ── TABS ──────────────────────────────────────────────────────── */}
+      {selectionError && (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-3">
+          <p className="text-sm font-medium text-rose-700">{selectionError}</p>
+        </div>
+      )}
+
+      {/* ── HERO ────────────────────────────────────────────────────── */}
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8">
+        <Link
+          href="/dashboard/owner"
+          className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-800"
+        >
+          <ArrowLeft className="h-4 w-4" /> Retour au portefeuille
+        </Link>
+
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
+            <Building2 className="h-5 w-5 text-emerald-800" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <ActionBar className="mb-3 gap-2">
+              <StatusBadge
+                tone={resolveStageTone(property.flow?.stageTone)}
+                label={property.flow?.stageLabel || 'Pipeline'}
+                className="normal-case tracking-normal text-[11px] font-semibold"
+              />
+              {ownerSelected && (
+                <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
+              )}
+            </ActionBar>
+            <h1 className="break-words font-serif text-3xl tracking-tight text-slate-950 sm:text-4xl">
+              {property.address || property.name || 'Actif'}
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500">
+              {formatCurrency(property.rentAmount)} HC
+              {Number(property.chargesAmount || 0) > 0 ? ` + ${formatCurrency(property.chargesAmount)} charges` : ''}
+              {property.surfaceM2 ? ` · ${property.surfaceM2} m²` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickStat label="Passeports" value={property.flow?.totalCandidates || 0} />
+          <QuickStat label="Finalistes" value={selectionState?.finalistsCount || 0} />
+          <QuickStat label="Masqués" value={property.flow?.sealedCount || 0} />
+          <QuickStat label="Prêts au bail" value={property.flow?.readyToContractCount || 0} />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            disabled={!property.applyToken}
+            className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+          >
+            {copied ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+            {copied ? 'Sésame copié !' : 'Copier le Sésame candidat'}
+          </button>
+          {primaryAction && (
+            <button
+              type="button"
+              onClick={() => {
+                if (primaryAction.kind === 'unlock') { openUnlockModal(); return; }
+                router.push(primaryAction.href || `/dashboard/owner/property/${propertyId}`);
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              {primaryAction.kind === 'unlock' ? <Lock className="h-4 w-4 text-amber-500" /> : <Shield className="h-4 w-4" />}
+              {primaryAction.label}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── STAGE PIPELINE ──────────────────────────────────────────── */}
+      <StagePipeline currentStage={property.flow?.stage} />
+
+      {/* ── TABS ────────────────────────────────────────────────────── */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => goToTab(id)}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-sm font-medium transition-all ${
               currentTab === id
-                ? 'bg-slate-950 text-white shadow-md'
+                ? 'bg-slate-950 text-white shadow-lg'
                 : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
             }`}
           >
             <Icon className="h-4 w-4" />
             {label}
-            {id === 'passports' && sorted.length > 0 ? (
+            {id === 'passports' && sorted.length > 0 && (
               <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
                 currentTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {sorted.length}
               </span>
-            ) : null}
+            )}
           </button>
         ))}
       </div>
 
-      {/* ── TAB : VUE D'ENSEMBLE ──────────────────────────────────────── */}
-      {currentTab === 'overview' ? (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+      {/* ── TAB : VUE D'ENSEMBLE ────────────────────────────────────── */}
+      {currentTab === 'overview' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-              Contexte de l'étape
+              Contexte de l&apos;étape
             </div>
             <p className="mt-3 text-sm leading-7 text-slate-700">
               {property.flow?.guidance?.whyThisStage || property.flow?.focusCard?.reason || property.flow?.summary}
             </p>
-            {(property.flow?.alerts || []).length > 0 ? (
-              <div className="mt-5 space-y-3">
+            {(property.flow?.alerts || []).length > 0 && (
+              <div className="mt-4 space-y-2">
                 {property.flow?.alerts?.map((alert) => (
-                  <div key={alert} className="rounded-[1.35rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                  <div key={alert} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-slate-700">
                     {alert}
                   </div>
                 ))}
               </div>
-            ) : null}
+            )}
           </PremiumSurface>
 
-          {property.applyToken ? (
+          {property.applyToken && (
             <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
                 Sésame candidat
               </div>
-              <code className="mt-4 block break-all rounded-[1.45rem] border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-700">
+              <code className="mt-4 block break-all rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-700">
                 {typeof window !== 'undefined'
                   ? `${window.location.origin}/apply/${property.applyToken}`
                   : `/apply/${property.applyToken}`}
@@ -550,7 +662,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
                 >
                   <Copy className="h-4 w-4" />
                   {copied ? 'Copié !' : 'Copier'}
@@ -565,12 +677,12 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                 </button>
               </ActionBar>
             </PremiumSurface>
-          ) : null}
+          )}
         </motion.div>
-      ) : null}
+      )}
 
-      {/* ── TAB : PASSEPORTS ──────────────────────────────────────────── */}
-      {currentTab === 'passports' ? (
+      {/* ── TAB : PASSEPORTS ────────────────────────────────────────── */}
+      {currentTab === 'passports' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <PremiumSurface padding="md" className="overflow-hidden rounded-3xl border-slate-200 bg-white">
             <PremiumSectionHeader
@@ -584,6 +696,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                   const gradeBg = grade ? (GRADE_BG[grade] || GRADE_BG.F) : null;
                   const initials = [candidate.profile?.firstName?.[0], candidate.profile?.lastName?.[0]]
                     .filter(Boolean).join('').toUpperCase();
+
                   return (
                     <div
                       key={candidate.id}
@@ -607,17 +720,17 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {candidate.rank != null ? (
+                        {candidate.rank != null && (
                           <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[11px] font-semibold" />
-                        ) : null}
-                        {candidate.isOwnerSelected ? (
+                        )}
+                        {candidate.isOwnerSelected && (
                           <StatusBadge tone="success" label="Retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
-                        ) : null}
-                        {grade && !candidate.isSealed && gradeBg ? (
+                        )}
+                        {grade && !candidate.isSealed && gradeBg && (
                           <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white ${gradeBg}`}>
                             {grade === 'SOUVERAIN' ? '👑' : grade}
                           </span>
-                        ) : null}
+                        )}
                       </div>
 
                       {candidate.isSealed ? (
@@ -651,11 +764,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             )}
           </PremiumSurface>
         </motion.div>
-      ) : null}
+      )}
 
-      {/* ── TAB : COMPARER ────────────────────────────────────────────── */}
-      {currentTab === 'compare' ? (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+      {/* ── TAB : COMPARER ──────────────────────────────────────────── */}
+      {currentTab === 'compare' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <PremiumSectionHeader
             eyebrow="Comparaison"
             title="Décider sur des critères stables"
@@ -682,17 +795,17 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             />
           )}
         </motion.div>
-      ) : null}
+      )}
 
-      {/* ── TAB : SÉLECTION ───────────────────────────────────────────── */}
-      {currentTab === 'selection' ? (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+      {/* ── TAB : SÉLECTION ─────────────────────────────────────────── */}
+      {currentTab === 'selection' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           <PremiumSectionHeader
             eyebrow="Sélection confirmée"
-            title="Le locataire retenu est clairement identifié"
+            title="Locataire retenu"
           />
           {ownerSelected ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <div className="grid gap-4 xl:grid-cols-2">
               <PremiumSurface padding="lg" className="rounded-3xl border-emerald-200 bg-emerald-50">
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
@@ -710,8 +823,8 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                     </p>
                   </div>
                 </div>
-                {(ownerSelected.ownerInsights?.decisionSummary?.strengths || []).length > 0 ? (
-                  <div className="mt-6 space-y-3">
+                {(ownerSelected.ownerInsights?.decisionSummary?.strengths || []).length > 0 && (
+                  <div className="mt-6 space-y-2">
                     {ownerSelected.ownerInsights?.decisionSummary?.strengths?.slice(0, 4).map((item) => (
                       <div key={item} className="flex items-start gap-2 text-sm text-emerald-950">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
@@ -719,7 +832,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                       </div>
                     ))}
                   </div>
-                ) : null}
+                )}
               </PremiumSurface>
 
               <PremiumSurface padding="lg" className="rounded-3xl border-slate-200 bg-white">
@@ -735,7 +848,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                   <button
                     type="button"
                     onClick={launchContractDesk}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
                   >
                     <ScrollText className="h-4 w-4" /> Préparer le bail
                   </button>
@@ -766,14 +879,14 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             />
           )}
         </motion.div>
-      ) : null}
+      )}
 
-      {/* ── GESTION LOCATIVE ──────────────────────────────────────────── */}
-      {showManagement ? (
-        <section className="space-y-5">
+      {/* ── GESTION LOCATIVE ────────────────────────────────────────── */}
+      {showManagement && (
+        <section className="space-y-4">
           <PremiumSectionHeader
             eyebrow="Gestion locative"
-            title="L'essentiel reste accessible"
+            title="L&apos;essentiel reste accessible"
           />
           <div className="grid gap-4 xl:grid-cols-3">
             <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
@@ -794,7 +907,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             <div className="mt-5 space-y-3">
               {(property.managementTools?.vaultDocuments || []).length > 0 ? (
                 property.managementTools?.vaultDocuments?.map((doc) => (
-                  <div key={doc.id} className="flex flex-col gap-3 rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div key={doc.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-slate-950">{doc.label}</div>
                       <div className="mt-1 text-xs uppercase tracking-wider text-slate-400">{doc.status}</div>
@@ -811,14 +924,14 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                   </div>
                 ))
               ) : (
-                <div className="rounded-[1.35rem] border border-dashed border-slate-300 bg-white/70 px-4 py-5 text-sm text-slate-500">
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-5 text-sm text-slate-500">
                   Aucun document archivé.
                 </div>
               )}
             </div>
           </PremiumSurface>
         </section>
-      ) : null}
+      )}
     </motion.div>
   );
 }
