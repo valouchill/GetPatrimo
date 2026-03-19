@@ -6,3 +6,6 @@ docker-compose.override.yml
 uploads/
 server.log
 *.tsbuildinfo
+playwright-report/
+test-results/
+.e2e/

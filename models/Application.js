@@ -19,6 +19,7 @@ const ApplicationSchema = new mongoose.Schema({
     lastName: { type: String, default: '' },
     phone: { type: String, default: '' },
     birthDate: { type: String, default: '' },
+    status: { type: String, default: 'Etudiant' },
   },
   
   // État du tunnel
@@ -29,6 +30,7 @@ const ApplicationSchema = new mongoose.Schema({
     lastActiveAt: { type: Date, default: Date.now },
     completedAt: { type: Date },
     progress: { type: Number, default: 0, min: 0, max: 100 }, // Pourcentage global
+    chapterStates: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   
   // Certification Didit
@@ -47,10 +49,12 @@ const ApplicationSchema = new mongoose.Schema({
   documents: [{
     id: { type: String },
     category: { type: String, enum: ['identity', 'income', 'address', 'guarantor'] },
+    subjectType: { type: String, enum: ['tenant', 'guarantor', 'visale'], default: 'tenant' },
+    subjectSlot: { type: Number, enum: [1, 2] },
     type: { type: String }, // BULLETIN_SALAIRE, AVIS_IMPOSITION, etc.
     fileName: { type: String },
     fileUrl: { type: String },
-    status: { type: String, enum: ['pending', 'analyzing', 'certified', 'flagged', 'rejected'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'analyzing', 'certified', 'flagged', 'rejected', 'illegible', 'needs_review'], default: 'pending' },
     uploadedAt: { type: Date, default: Date.now },
     
     // Analyse IA
@@ -74,7 +78,12 @@ const ApplicationSchema = new mongoose.Schema({
     hasGuarantor: { type: Boolean, default: false },
     guarantorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Guarantor' },
     status: { type: String, enum: ['NONE', 'PENDING', 'CERTIFIED', 'AUDITED'], default: 'NONE' },
-    certificationMethod: { type: String, enum: ['DIDIT', 'AUDIT'] },
+    certificationMethod: { type: String, enum: ['DIDIT', 'AUDIT', 'VISALE'] },
+  },
+
+  guarantee: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
   },
   
   // PatrimoMeter™ Score
@@ -86,12 +95,10 @@ const ApplicationSchema = new mongoose.Schema({
       label: { type: String },
       earnedAt: { type: Date },
     }],
-    breakdown: {
-      identity: { type: Number, default: 0 }, // max 25
-      income: { type: Number, default: 0 }, // max 25
-      documents: { type: Number, default: 0 }, // max 10
-      guarantor: { type: Number, default: 0 }, // max 40
-    },
+    breakdown: { type: mongoose.Schema.Types.Mixed, default: {} },
+    warnings: [{ type: String }],
+    nextAction: { type: mongoose.Schema.Types.Mixed, default: null },
+    chapterStates: { type: mongoose.Schema.Types.Mixed, default: {} },
     lastCalculatedAt: { type: Date },
   },
   
@@ -147,24 +154,13 @@ ApplicationSchema.methods.calculateGrade = function() {
 
 // Méthode pour calculer le progrès
 ApplicationSchema.methods.calculateProgress = function() {
-  let progress = 0;
-  
-  // Identité Didit (25%)
-  if (this.didit.status === 'VERIFIED') progress += 25;
-  
-  // Documents revenus (25%)
-  const incomeDoc = this.documents.find(d => d.category === 'income' && d.status === 'certified');
-  if (incomeDoc) progress += 25;
-  
-  // Documents domicile (10%)
-  const addressDoc = this.documents.find(d => d.category === 'address' && d.status === 'certified');
-  if (addressDoc) progress += 10;
-  
-  // Garant (40%)
-  if (this.guarantor.status === 'CERTIFIED') progress += 40;
-  else if (this.guarantor.status === 'AUDITED') progress += 30;
-  
-  return Math.min(100, progress);
+  const passportState = this.patrimometer?.chapterStates?.passport?.state;
+  if (passportState === 'ready' || passportState === 'sealed' || this.patrimometer?.chapterStates?.passport?.ready) {
+    return 100;
+  }
+
+  const score = Number(this.patrimometer?.score || 0);
+  return Math.min(100, Math.max(0, score));
 };
 
 module.exports = mongoose.models.Application || mongoose.model('Application', ApplicationSchema);

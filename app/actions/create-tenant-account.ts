@@ -2,6 +2,7 @@
 
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
+import Property from '@/models/Property';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 
@@ -71,6 +72,13 @@ export async function createTenantAccount(
         applyToken,
         status: 'IN_PROGRESS',
       });
+    }
+
+    if (!application.property) {
+      const property = await Property.findOne({ applyToken }).select('_id').lean() as { _id?: unknown } | null;
+      if (property?._id) {
+        application.property = property._id as any;
+      }
     }
 
     // Mettre à jour les informations de contact

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
 
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
     }
 
-    const { propertyId, tenantId, tenantName } = await request.json();
-    if (!propertyId || !tenantId) {
+    const { propertyId } = await request.json();
+    if (!propertyId) {
       return NextResponse.json({ error: 'Données manquantes.' }, { status: 400 });
     }
 
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://doc2loc.com';
 
     const stripe = getStripe();
+    const successTarget = `${baseUrl}/dashboard/owner/property/${propertyId}?tab=candidates&checkout=success`;
+
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: session.user.email,
@@ -44,17 +46,15 @@ export async function POST(request: NextRequest) {
         { price: process.env.PRICE_ID_RECURRING!, quantity: 1 },
         { price: process.env.PRICE_ID_ONESHOT!, quantity: 1 },
       ],
-      success_url: `${baseUrl}/dashboard/owner?checkout=success&property_id=${propertyId}`,
+      success_url: successTarget,
       cancel_url: `${baseUrl}/dashboard/owner?checkout=cancelled`,
       metadata: {
         propertyId,
-        tenantId,
         userId: session.user.id,
       },
       subscription_data: {
         metadata: {
           propertyId,
-          tenantId,
           userId: session.user.id,
         },
       },

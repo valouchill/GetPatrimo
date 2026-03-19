@@ -27,152 +27,182 @@ const opensignClient = axios.create({
   timeout: 30000 // 30 secondes
 });
 
-/**
- * Envoie un bail pour signature via OpenSign
- * @param {Object} leaseData - Données du bail
- * @param {Object} property - Données du bien
- * @param {Object} parties - Objet contenant tenant, owner, guarantor (optionnel)
- * @param {string} pdfPath - Chemin vers le PDF du bail
- * @returns {Promise<Object>} - Réponse OpenSign avec documentId et liens de signature
- */
-async function sendLeaseForSignature(leaseData, property, parties, pdfPath) {
-  try {
-    if (!OPENSIGN_API_KEY) {
-      throw new Error('OpenSign API Key non configurée');
-    }
+function toSigner(name, email, role, order) {
+  return {
+    name,
+    email,
+    role,
+    order,
+    requireAuthentication: true,
+    signatureType: 'electronic',
+  };
+}
 
-    // Vérifie que le fichier PDF existe
-    const absolutePdfPath = path.join(__dirname, '../../', pdfPath);
-    if (!fs.existsSync(absolutePdfPath)) {
-      throw new Error(`Fichier PDF introuvable: ${absolutePdfPath}`);
-    }
-
-    // Lit le fichier PDF en base64
-    const pdfBuffer = fs.readFileSync(absolutePdfPath);
-    const pdfBase64 = pdfBuffer.toString('base64');
-
-    // Construit la liste des signataires
+function buildSignersForDocument(kind, parties) {
+  if (kind === 'guarantee') {
     const signers = [];
-
-    // 1. Locataire (premier signataire)
-    signers.push({
-      name: `${parties.tenant.firstName} ${parties.tenant.lastName}`,
-      email: parties.tenant.email,
-      role: 'tenant',
-      order: 1,
-      requireAuthentication: true, // Requiert authentification par email
-      signatureType: 'electronic'
-    });
-
-    // 2. Garant (si présent et pas Visale)
-    if (parties.guarantor && parties.guarantor.email && !parties.guarantor.visaleNumber) {
-      signers.push({
-        name: `${parties.guarantor.firstName} ${parties.guarantor.lastName}`,
-        email: parties.guarantor.email,
-        role: 'guarantor',
-        order: 2,
-        requireAuthentication: true,
-        signatureType: 'electronic'
-      });
+    if (parties.guarantor?.email) {
+      signers.push(toSigner(
+        `${parties.guarantor.firstName || ''} ${parties.guarantor.lastName || ''}`.trim(),
+        parties.guarantor.email,
+        'guarantor',
+        1
+      ));
     }
+    signers.push(toSigner(
+      `${parties.owner.firstName || ''} ${parties.owner.lastName || ''}`.trim(),
+      parties.owner.email,
+      'owner',
+      signers.length + 1
+    ));
+    return signers;
+  }
 
-    // 3. Propriétaire (dernier signataire)
-    signers.push({
-      name: `${parties.owner.firstName} ${parties.owner.lastName}`,
-      email: parties.owner.email,
-      role: 'owner',
-      order: signers.length + 1,
-      requireAuthentication: true,
-      signatureType: 'electronic'
-    });
+  return [
+    toSigner(
+      `${parties.tenant.firstName || ''} ${parties.tenant.lastName || ''}`.trim(),
+      parties.tenant.email,
+      'tenant',
+      1
+    ),
+    toSigner(
+      `${parties.owner.firstName || ''} ${parties.owner.lastName || ''}`.trim(),
+      parties.owner.email,
+      'owner',
+      2
+    ),
+  ];
+}
 
-    // Prépare la requête OpenSign selon l'API v1.1
-    // Note: Pour l'instant, on envoie uniquement le bail principal
-    // Les annexes seront disponibles séparément et pourront être jointes manuellement
-    // ou via une fonctionnalité future de fusion PDF côté serveur
-    const documentData = {
-      name: `Bail de location - ${property.address}`,
-      description: `Contrat de location pour le bien situé à ${property.address}${annexesPdfPath ? ' (annexes DDT disponibles)' : ''}`,
-      file: {
-        name: `bail_${leaseData._id || leaseData.id}.pdf`,
-        content: pdfBase64,
-        mimeType: 'application/pdf'
+async function sendDocumentForSignature({ lease, property, parties, document, index }) {
+  if (!OPENSIGN_API_KEY) {
+    throw new Error('OpenSign API Key non configurée');
+  }
+
+  const signers = buildSignersForDocument(document.kind, parties);
+  const documentData = {
+    name: document.kind === 'guarantee'
+      ? `Acte de caution - ${property.address}`
+      : `Bail de location - ${property.address}`,
+    description: document.kind === 'guarantee'
+      ? `Acte de caution solidaire pour le bien situé à ${property.address}`
+      : `Contrat de location pour le bien situé à ${property.address}`,
+    file: {
+      name: document.kind === 'guarantee'
+        ? `caution_${lease._id || lease.id}.pdf`
+        : `bail_${lease._id || lease.id}.pdf`,
+      content: document.pdfBuffer.toString('base64'),
+      mimeType: 'application/pdf',
+    },
+    signers: signers.map((signer) => ({
+      name: signer.name,
+      email: signer.email,
+      role: signer.role,
+      order: signer.order,
+      requireAuthentication: signer.requireAuthentication,
+      signatureType: signer.signatureType,
+    })),
+    settings: {
+      reminders: {
+        enabled: true,
+        interval: 48,
+        maxReminders: 3,
       },
-      signers: signers.map(s => ({
-        name: s.name,
-        email: s.email,
-        role: s.role,
-        order: s.order,
-        requireAuthentication: s.requireAuthentication,
-        signatureType: s.signatureType
-      })),
-      settings: {
-        // Rappels automatiques après 48h si non signé
-        reminders: {
-          enabled: true,
-          interval: 48, // heures
-          maxReminders: 3
-        },
-        // Expiration du document après 7 jours
-        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 jours à partir de maintenant
-        // Notifications webhook
-        webhook: {
-          url: `${process.env.APP_URL || 'http://localhost:3000'}/api/webhooks/opensign`,
-          events: ['document.signed', 'document.completed', 'document.expired', 'document.declined']
-        },
-        // Métadonnées pour identifier le bail
-        metadata: {
-          leaseId: String(leaseData._id || leaseData.id),
-          propertyId: String(property._id || property.id),
-          type: 'lease'
-        }
-      }
-    };
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      webhook: {
+        url: `${process.env.APP_URL || 'http://localhost:3000'}/api/webhooks/opensign`,
+        events: ['document.signed', 'document.completed', 'document.expired', 'document.declined'],
+      },
+      metadata: {
+        leaseId: String(lease._id || lease.id),
+        propertyId: String(property._id || property.id),
+        type: 'lease_bundle',
+        kind: document.kind,
+        bundleIndex: index,
+      },
+    },
+  };
 
-    // Envoie la requête à OpenSign API v1.1
-    const response = await opensignClient.post('/v1.1/documents', documentData);
+  const response = await opensignClient.post('/v1.1/documents', documentData);
+  if (!response.data?.documentId) {
+    throw new Error('Réponse OpenSign invalide: documentId manquant');
+  }
 
-    if (!response.data || !response.data.documentId) {
-      throw new Error('Réponse OpenSign invalide: documentId manquant');
+  const { documentId, signingLinks } = response.data;
+  await logEvent(parties.owner._id || parties.owner.id, {
+    property: property._id || property.id,
+    type: 'opensign_document_created',
+    meta: {
+      leaseId: String(lease._id || lease.id),
+      documentId,
+      kind: document.kind,
+      signersCount: signers.length,
+    },
+  });
+
+  return {
+    kind: document.kind,
+    documentId,
+    status: 'pending',
+    signingLinks,
+    signers: signers.map((signer) => ({ role: signer.role, email: signer.email })),
+  };
+}
+
+async function sendDocumentsForSignature({ lease, property, parties, documents }) {
+  try {
+    const results = [];
+    for (const [index, document] of documents.entries()) {
+      results.push(await sendDocumentForSignature({
+        lease,
+        property,
+        parties,
+        document,
+        index,
+      }));
     }
-
-    const { documentId, signingLinks } = response.data;
-
-    // Log l'événement
-    await logEvent(parties.owner._id || parties.owner.id, {
-      property: property._id || property.id,
-      type: 'opensign_document_created',
-      meta: {
-        leaseId: String(leaseData._id || leaseData.id),
-        documentId: documentId,
-        signersCount: signers.length
-      }
-    });
 
     return {
       success: true,
-      documentId: documentId,
-      signingLinks: signingLinks, // { tenant: url, guarantor: url, owner: url }
-      signers: signers.map(s => ({ role: s.role, email: s.email }))
+      documents: results,
     };
-
   } catch (error) {
-    console.error('❌ Erreur sendLeaseForSignature:', error);
-    
-    // Log l'erreur
-    if (parties && parties.owner) {
+    console.error('❌ Erreur sendDocumentsForSignature:', error);
+    if (parties?.owner) {
       await logEvent(parties.owner._id || parties.owner.id, {
         property: property?._id || property?.id,
         type: 'opensign_error',
         meta: {
-          leaseId: String(leaseData?._id || leaseData?.id),
-          error: error.message
-        }
-      }).catch(() => {}); // Ignore les erreurs de log
+          leaseId: String(lease?._id || lease?.id),
+          error: error.message,
+        },
+      }).catch(() => {});
     }
-
     throw error;
   }
+}
+
+async function sendLeaseForSignature(leaseData, property, parties, pdfPath) {
+  const absolutePdfPath = path.join(__dirname, '../../', pdfPath);
+  if (!fs.existsSync(absolutePdfPath)) {
+    throw new Error(`Fichier PDF introuvable: ${absolutePdfPath}`);
+  }
+
+  const pdfBuffer = fs.readFileSync(absolutePdfPath);
+  const result = await sendDocumentsForSignature({
+    lease: leaseData,
+    property,
+    parties,
+    documents: [{ kind: 'lease', pdfBuffer }],
+  });
+
+  const first = result.documents[0];
+  return {
+    success: true,
+    documentId: first.documentId,
+    signingLinks: first.signingLinks,
+    signers: first.signers,
+  };
 }
 
 /**
@@ -272,6 +302,7 @@ async function resendSigningLink(documentId, signerEmail) {
 }
 
 module.exports = {
+  sendDocumentsForSignature,
   sendLeaseForSignature,
   getDocumentStatus,
   downloadSignedPdf,

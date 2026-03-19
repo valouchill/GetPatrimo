@@ -17,6 +17,14 @@ import {
   ClockIcon,
   EyeIcon,
 } from '@heroicons/react/24/solid';
+import {
+  ActionBar,
+  EmptyState,
+  MetricTile,
+  PremiumSectionHeader,
+  PremiumSurface,
+  StatusBadge,
+} from '@/app/components/ui/premium';
 
 interface Document {
   id: string;
@@ -120,7 +128,7 @@ export default function TenantDashboardClient({
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-gradient-to-br from-navy to-slate-700 rounded-xl flex items-center justify-center">
                 <ShieldCheckIcon className="w-5 h-5 text-white" />
@@ -131,8 +139,8 @@ export default function TenantDashboardClient({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-600">{userEmail}</span>
+            <div className="flex min-w-0 flex-wrap items-center gap-4">
+              <span className="min-w-0 break-anywhere text-sm text-slate-600">{userEmail}</span>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
@@ -150,16 +158,16 @@ export default function TenantDashboardClient({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden mb-8"
+          className="mb-8"
         >
-          <div className="p-8 md:p-12">
+          <PremiumSurface padding="lg" className="overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               {/* Salutation et message */}
-              <div className="flex-1">
-                <h2 className="text-3xl md:text-4xl font-serif text-navy mb-2">
+              <div className="min-w-0 flex-1">
+                <h2 className="mb-2 text-balance text-3xl font-serif text-navy md:text-4xl">
                   Bonjour {firstName} 👋
                 </h2>
-                <p className="text-slate-600 text-lg">{getWelcomeMessage()}</p>
+                <p className="text-pretty text-lg text-slate-600">{getWelcomeMessage()}</p>
                 
                 {app && app.tunnel.progress < 100 && app.applyToken && (
                   <Link
@@ -174,7 +182,7 @@ export default function TenantDashboardClient({
               </div>
 
               {/* PatrimoMeter Badge */}
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center self-start md:self-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -208,7 +216,7 @@ export default function TenantDashboardClient({
                 </div>
               </div>
             )}
-          </div>
+          </PremiumSurface>
         </motion.div>
 
         {/* Onglets */}
@@ -293,24 +301,32 @@ export default function TenantDashboardClient({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden"
+            className="min-w-0"
           >
-            <div className="p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-navy">Mes Documents</h3>
-              <p className="text-sm text-slate-500">Tous vos documents uploadés et certifiés</p>
-            </div>
+            <PremiumSurface padding="md" className="overflow-hidden">
+              <PremiumSectionHeader
+                eyebrow="Documents"
+                title="Mes documents"
+                description="Tous vos documents uploadés et certifiés, dans une vue plus claire et plus robuste."
+              />
             
             {app?.documents && app.documents.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div className="mt-6 divide-y divide-slate-100">
                 {app.documents.map((doc, index) => (
-                  <div key={doc.id || index} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                  <div key={doc.id || index} className="flex flex-col gap-4 p-4 transition-colors hover:bg-slate-50 sm:flex-row sm:items-center">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                       doc.status === 'certified' ? 'bg-emerald-100' :
+                      doc.status === 'needs_review' ? 'bg-amber-100' :
+                      doc.status === 'illegible' ? 'bg-orange-100' :
                       doc.status === 'flagged' ? 'bg-amber-100' :
                       doc.status === 'rejected' ? 'bg-red-100' : 'bg-slate-100'
                     }`}>
                       {doc.status === 'certified' ? (
                         <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
+                      ) : doc.status === 'needs_review' ? (
+                        <ExclamationCircleIcon className="w-6 h-6 text-amber-600" />
+                      ) : doc.status === 'illegible' ? (
+                        <ExclamationCircleIcon className="w-6 h-6 text-orange-600" />
                       ) : doc.status === 'rejected' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-red-600" />
                       ) : (
@@ -318,35 +334,52 @@ export default function TenantDashboardClient({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-800 truncate">{doc.fileName}</p>
+                      <p className="break-anywhere font-medium text-slate-800">{doc.fileName}</p>
                       <p className="text-sm text-slate-500">{doc.type || doc.category}</p>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      doc.status === 'certified' ? 'bg-emerald-100 text-emerald-700' :
-                      doc.status === 'flagged' ? 'bg-amber-100 text-amber-700' :
-                      doc.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {doc.status === 'certified' ? '✓ Certifié' :
-                       doc.status === 'flagged' ? '⚠ À vérifier' :
-                       doc.status === 'rejected' ? '✗ Rejeté' : 'En attente'}
-                    </div>
+                    <StatusBadge
+                      tone={
+                        doc.status === 'certified'
+                          ? 'success'
+                          : doc.status === 'needs_review' || doc.status === 'flagged'
+                            ? 'warning'
+                            : doc.status === 'illegible'
+                              ? 'warning'
+                              : doc.status === 'rejected'
+                                ? 'danger'
+                                : 'neutral'
+                      }
+                      label={
+                        doc.status === 'certified' ? 'Certifié' :
+                        doc.status === 'needs_review' ? 'Revue manuelle' :
+                        doc.status === 'illegible' ? 'Illisible' :
+                        doc.status === 'flagged' ? 'À vérifier' :
+                        doc.status === 'rejected' ? 'Rejeté' : 'En attente'
+                      }
+                    />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <DocumentTextIcon className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500">Aucun document uploadé</p>
-                {app?.applyToken && (
-                  <Link
-                    href={`/apply/${app.applyToken}`}
-                    className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all"
-                  >
-                    Ajouter des documents
-                  </Link>
-                )}
+              <div className="mt-6">
+                <EmptyState
+                  icon={<DocumentTextIcon className="w-8 h-8 text-slate-300" />}
+                  title="Aucun document uploadé"
+                  description="Ajoutez vos pièces pour enrichir le dossier et améliorer le passeport locataire."
+                  action={
+                    app?.applyToken ? (
+                      <Link
+                        href={`/apply/${app.applyToken}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-600"
+                      >
+                        Ajouter des documents
+                      </Link>
+                    ) : null
+                  }
+                />
               </div>
             )}
+            </PremiumSurface>
           </motion.div>
         )}
 
@@ -354,15 +387,17 @@ export default function TenantDashboardClient({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden"
+            className="min-w-0"
           >
-            <div className="p-6 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-navy">Mes Candidatures</h3>
-              <p className="text-sm text-slate-500">Suivez l&apos;état de vos candidatures</p>
-            </div>
+            <PremiumSurface padding="md" className="overflow-hidden">
+              <PremiumSectionHeader
+                eyebrow="Candidatures"
+                title="Mes candidatures"
+                description="Suivez l’état de vos dépôts sans perdre les informations importantes sur mobile."
+              />
             
             {applications && applications.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="mt-6 overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
@@ -379,7 +414,7 @@ export default function TenantDashboardClient({
                         <td className="px-6 py-4">
                           <div>
                             <p className="font-medium text-slate-800">{candidature.property?.name || 'Bien immobilier'}</p>
-                            <p className="text-sm text-slate-500 truncate max-w-xs">{candidature.property?.address || '-'}</p>
+                            <p className="max-w-xs break-anywhere text-sm text-slate-500">{candidature.property?.address || '-'}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -413,11 +448,15 @@ export default function TenantDashboardClient({
                 </table>
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <HomeIcon className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500">Aucune candidature en cours</p>
+              <div className="mt-6">
+                <EmptyState
+                  icon={<HomeIcon className="mx-auto h-8 w-8 text-slate-300" />}
+                  title="Aucune candidature en cours"
+                  description="Vos candidatures apparaîtront ici dès qu’un dossier sera envoyé."
+                />
               </div>
             )}
+            </PremiumSurface>
           </motion.div>
         )}
       </main>
@@ -442,18 +481,13 @@ function DocumentCard({
   href?: string;
 }) {
   const content = (
-    <div className={`bg-white rounded-2xl border ${status === 'certified' ? 'border-emerald-200' : 'border-slate-200'} p-6 hover:shadow-lg transition-all h-full`}>
+    <PremiumSurface className={`h-full ${status === 'certified' ? 'border-emerald-200' : 'border-slate-200'} hover:shadow-lg transition-all`} padding="sm">
       <div className="flex items-start justify-between mb-4">
         <span className="text-3xl">{icon}</span>
-        {status === 'certified' && (
-          <div className="flex items-center gap-1 px-2 py-1 bg-emerald-100 rounded-full">
-            <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-bold text-emerald-700">Certifié</span>
-          </div>
-        )}
+        {status === 'certified' ? <StatusBadge tone="success" label="Certifié" /> : null}
       </div>
-      <h4 className="font-bold text-navy mb-1">{title}</h4>
-      <p className="text-sm text-slate-500 mb-3">{description}</p>
+      <h4 className="mb-1 break-words font-bold text-navy">{title}</h4>
+      <p className="mb-3 text-sm text-slate-500">{description}</p>
       <div className="flex items-center justify-between">
         <span className={`text-sm font-bold ${points > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
           +{points} pts
@@ -462,7 +496,7 @@ function DocumentCard({
           <span className="text-xs text-emerald-600 font-medium">Compléter →</span>
         )}
       </div>
-    </div>
+    </PremiumSurface>
   );
 
   if (href && status === 'pending') {

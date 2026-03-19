@@ -4,6 +4,7 @@ const LeaseSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
   candidature: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidature', required: true },
+  applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' },
   
   // Informations locataire
   tenantFirstName: { type: String, required: true },
@@ -17,7 +18,10 @@ const LeaseSchema = new mongoose.Schema({
   rentAmount: { type: Number, required: true },
   chargesAmount: { type: Number, default: 0 },
   depositAmount: { type: Number, default: 0 },
-  propertyType: { type: String, enum: ['MEUBLE', 'NU'], default: 'NU' },
+  propertyType: { type: String, enum: ['MEUBLE', 'NU', 'MOBILITE', 'GARAGE_PARKING'], default: 'NU' },
+  leaseType: { type: String, enum: ['vide', 'meuble', 'mobilite', 'garage_parking'], default: 'vide' },
+  paymentDay: { type: Number, default: 5 },
+  durationMonths: { type: Number, default: 12 },
   additionalClauses: { type: String, default: '' },
   
   // Informations garant (pour acte de cautionnement)
@@ -28,7 +32,8 @@ const LeaseSchema = new mongoose.Schema({
     phone: { type: String, default: '' },
     address: { type: String, default: '' },
     income: { type: Number, default: 0 },
-    profession: { type: String, default: '' }
+    profession: { type: String, default: '' },
+    visaleNumber: { type: String, default: '' }
   },
   
   // Signature
@@ -59,6 +64,22 @@ const LeaseSchema = new mongoose.Schema({
   },
   opensignCompletedAt: { type: Date },
   signedPdfPath: { type: String }, // Chemin vers le PDF final certifié
+  opensignDocuments: [{
+    kind: { type: String, enum: ['lease', 'guarantee'] },
+    documentId: { type: String },
+    status: {
+      type: String,
+      enum: ['pending', 'signed', 'completed', 'expired', 'declined'],
+      default: 'pending',
+    },
+    signingLinks: {
+      tenant: { type: String },
+      guarantor: { type: String },
+      owner: { type: String },
+    },
+    signedPdfPath: { type: String },
+    completedAt: { type: Date },
+  }],
   
   // État des lieux
   edlStatus: { 
@@ -84,6 +105,15 @@ const LeaseSchema = new mongoose.Schema({
   contractPdfPath: { type: String },
   annexesPdfPath: { type: String }, // PDF des annexes DDT
   edlPdfPath: { type: String },
+  generatedDocuments: [{
+    kind: { type: String, enum: ['lease', 'guarantee'] },
+    template: { type: String },
+    fileName: { type: String },
+    mimeType: { type: String },
+    docxPath: { type: String },
+    pdfPath: { type: String },
+    createdAt: { type: Date, default: Date.now },
+  }],
   
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

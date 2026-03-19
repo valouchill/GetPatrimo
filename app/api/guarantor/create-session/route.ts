@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  normalizeSlot,
+  resolveGuarantorWebhookUrl,
+} = require('@/src/utils/guarantorDidit');
 
 /**
  * Crée une session Didit pour un garant
@@ -9,7 +14,7 @@ import Property from '@/models/Property';
  */
 export async function POST(request: NextRequest) {
   // Lire le body une seule fois au début
-  let body: { invitationToken?: string; applyToken?: string; email?: string; firstName?: string; lastName?: string };
+  let body: { invitationToken?: string; applyToken?: string; email?: string; firstName?: string; lastName?: string; slot?: number | string };
   try {
     body = await request.json();
     console.log('[GUARANTOR CREATE-SESSION] Body reçu:', JSON.stringify(body));
@@ -24,15 +29,17 @@ export async function POST(request: NextRequest) {
   try {
     await connectDiditDb();
     // Accepter candidatureId comme alias de applyToken pour compatibilité
-    const { invitationToken, applyToken, candidatureId, email, firstName, lastName } = body as { 
+    const { invitationToken, applyToken, candidatureId, email, firstName, lastName, slot } = body as { 
       invitationToken?: string; 
       applyToken?: string; 
       candidatureId?: string;
       email?: string; 
       firstName?: string; 
-      lastName?: string 
+      lastName?: string;
+      slot?: number | string;
     };
     const effectiveApplyToken = applyToken || candidatureId;
+    const normalizedSlot = normalizeSlot(slot) || 1;
     console.log('[GUARANTOR CREATE-SESSION] invitationToken:', invitationToken, 'applyToken:', effectiveApplyToken);
 
     // Si invitationToken, chercher le garant existant
@@ -61,15 +68,24 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      guarantor = await Guarantor.findOne({ 
+      guarantor = await Guarantor.findOne({
         applyToken: effectiveApplyToken,
-        email: email.toLowerCase()
+        email: email.toLowerCase(),
+        slot: normalizedSlot,
       });
+
+      if (!guarantor) {
+        guarantor = await Guarantor.findOne({
+          applyToken: effectiveApplyToken,
+          email: email.toLowerCase(),
+        });
+      }
       
       if (!guarantor) {
         guarantor = new Guarantor({
           property: property._id,
           applyToken: effectiveApplyToken,
+          slot: normalizedSlot,
           email: email.toLowerCase(),
           firstName: firstName || '',
           lastName: lastName || '',
@@ -77,6 +93,12 @@ export async function POST(request: NextRequest) {
           invitationToken: invitationTokenNew,
           isDirectCertification: true,
         });
+        await guarantor.save();
+      } else {
+        guarantor.slot = guarantor.slot === 2 ? 2 : normalizedSlot;
+        guarantor.isDirectCertification = true;
+        if (firstName) guarantor.firstName = firstName;
+        if (lastName) guarantor.lastName = lastName;
         await guarantor.save();
       }
     } else {
@@ -89,7 +111,10 @@ export async function POST(request: NextRequest) {
     // Créer une session Didit pour le garant
     const apiKey = process.env.DIDIT_API_KEY || process.env.DIDIT_CLIENT_SECRET;
     const workflowId = process.env.DIDIT_WORKFLOW_ID || process.env.DIDIT_CLIENT_ID;
-    const webhookUrl = process.env.DIDIT_WEBHOOK_URL || `${request.nextUrl.origin}/api/webhooks/didit/guarantor`;
+    const webhookUrl = resolveGuarantorWebhookUrl({
+      configuredGuarantorWebhookUrl: process.env.DIDIT_GUARANTOR_WEBHOOK_URL,
+      origin: process.env.NEXTAUTH_URL || request.nextUrl.origin,
+    });
 
     if (!apiKey || !workflowId) {
       return NextResponse.json({
@@ -112,7 +137,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         workflow_id: workflowId,
-        reference: `guarantor-${guarantor._id}`,
+        reference: `guarantor-${guarantor._id}-slot-${guarantor.slot || normalizedSlot}`,
         redirect_url: `${request.nextUrl.origin}/verify-guarantor/${guarantorToken}?didit_callback=1`,
         webhook_url: webhookUrl,
       }),
@@ -136,6 +161,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       sessionId,
+      slot: guarantor.slot || normalizedSlot,
       verificationUrl: diditData.verification_url || diditData.url,
       qrCode: diditData.qr_code,
       fallbackMode: false,

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  buildGuarantorLookupFilters,
+  fetchDiditSessionVerification,
+  normalizeSlot,
+} = require('@/src/utils/guarantorDidit');
 
 /**
  * Vérifie le statut de certification d'un garant
@@ -13,10 +19,14 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const invitationToken = searchParams.get('token');
     const applyToken = searchParams.get('applyToken'); // Token de la page apply (Property.applyToken)
+    const sessionId = searchParams.get('sessionId');
+    const email = searchParams.get('email');
+    const slot = searchParams.get('slot');
+    const normalizedSlot = normalizeSlot(slot);
 
-    if (!invitationToken && !applyToken) {
+    if (!invitationToken && !applyToken && !sessionId) {
       return NextResponse.json(
-        { error: 'Token d\'invitation ou applyToken requis' },
+        { error: 'Token d\'invitation, applyToken ou sessionId requis' },
         { status: 400 }
       );
     }
@@ -29,14 +39,42 @@ export async function GET(request: NextRequest) {
       if (guarantor?.property) {
         property = guarantor.property;
       }
-    } else if (applyToken) {
-      // Chercher par applyToken
-      guarantor = await Guarantor.findOne({ applyToken }).populate('property');
-      if (!guarantor) {
+    } else {
+      const lookupFilters = buildGuarantorLookupFilters({
+        sessionId,
+        applyToken,
+        email,
+        slot,
+      });
+
+      for (const filter of lookupFilters) {
+        guarantor = await Guarantor.findOne(filter).populate('property');
+        if (guarantor) {
+          break;
+        }
+      }
+
+      if (!guarantor && applyToken) {
         // Fallback: chercher la property et ensuite le garant
         property = await Property.findOne({ applyToken });
         if (property) {
-          guarantor = await Guarantor.findOne({ property: property._id });
+          const propertyFallbackFilters: Array<Record<string, unknown>> = [];
+
+          if (email && normalizedSlot) {
+            propertyFallbackFilters.push({ property: property._id, email: email.toLowerCase(), slot: normalizedSlot });
+          }
+          if (email) {
+            propertyFallbackFilters.push({ property: property._id, email: email.toLowerCase() });
+          }
+          if (normalizedSlot) {
+            propertyFallbackFilters.push({ property: property._id, slot: normalizedSlot });
+          }
+          propertyFallbackFilters.push({ property: property._id });
+
+          for (const filter of propertyFallbackFilters) {
+            guarantor = await Guarantor.findOne(filter);
+            if (guarantor) break;
+          }
         }
       }
     }
@@ -56,39 +94,23 @@ export async function GET(request: NextRequest) {
         if (!apiKey) {
           console.warn('DIDIT_API_KEY non configuré');
         } else {
-          const statusResponse = await fetch(
-            `https://verification.didit.me/v2/session/${guarantor.diditSessionId}`,
-            {
-              headers: {
-                'x-api-key': apiKey as string,
-              },
-            }
-          );
+          diditStatus = await fetchDiditSessionVerification(guarantor.diditSessionId, apiKey as string);
 
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            diditStatus = {
-              verified: statusData.status === 'VERIFIED' || statusData.verified === true,
-              firstName: statusData.first_name || statusData.firstName,
-              lastName: statusData.last_name || statusData.lastName,
-              birthDate: statusData.birth_date || statusData.birthDate,
-              humanVerified: statusData.human_verified || statusData.humanVerified,
+          // Si vérifié, mettre à jour le garant
+          if (diditStatus?.verified) {
+            guarantor.status = 'CERTIFIED';
+            guarantor.firstName = diditStatus.firstName || guarantor.firstName;
+            guarantor.lastName = diditStatus.lastName || guarantor.lastName;
+            guarantor.identityVerification = {
+              status: 'CERTIFIEE',
+              firstName: diditStatus.firstName || guarantor.firstName || '',
+              lastName: diditStatus.lastName || guarantor.lastName || '',
+              birthDate: diditStatus.birthDate || '',
+              humanVerified: diditStatus.humanVerified || false,
+              verifiedAt: new Date(),
             };
-
-            // Si vérifié, mettre à jour le garant
-            if (diditStatus.verified) {
-              guarantor.status = 'CERTIFIED';
-              guarantor.identityVerification = {
-                status: 'CERTIFIEE',
-                firstName: diditStatus.firstName || '',
-                lastName: diditStatus.lastName || '',
-                birthDate: diditStatus.birthDate || '',
-                humanVerified: diditStatus.humanVerified || false,
-                verifiedAt: new Date(),
-              };
-              guarantor.certifiedAt = new Date();
-              await guarantor.save();
-            }
+            guarantor.certifiedAt = new Date();
+            await guarantor.save();
           }
         }
       } catch (error) {
@@ -107,6 +129,7 @@ export async function GET(request: NextRequest) {
         email: guarantor.email,
         firstName: guarantor.firstName,
         lastName: guarantor.lastName,
+        slot: guarantor.slot || 1,
         status: guarantor.status,
         diditSessionId: guarantor.diditSessionId,
         identityVerification: guarantor.identityVerification,

@@ -7,19 +7,25 @@ import { X, Check, Shield, CreditCard, FileText, Receipt, ClipboardCheck } from 
 interface CheckoutModalProps {
   open: boolean;
   onClose: () => void;
-  tenantName: string;
-  tenantGrade: string;
   propertyId: string;
-  tenantId: string;
+  tenantName?: string;
+  tenantGrade?: string;
+  tenantId?: string;
+  propertyLabel?: string;
+  candidateCount?: number;
+  unlockScope?: 'property' | 'candidate';
 }
 
 export default function CheckoutModal({
   open,
   onClose,
-  tenantName,
-  tenantGrade,
   propertyId,
-  tenantId,
+  tenantName = '',
+  tenantGrade = '',
+  tenantId = '',
+  propertyLabel = '',
+  candidateCount = 0,
+  unlockScope = 'property',
 }: CheckoutModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +38,11 @@ export default function CheckoutModal({
       const res = await fetch('/api/billing/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId, tenantId, tenantName }),
+        body: JSON.stringify({
+          propertyId,
+          tenantId: unlockScope === 'candidate' ? tenantId : undefined,
+          tenantName: unlockScope === 'candidate' ? tenantName : undefined,
+        }),
       });
       const data = await res.json();
 
@@ -51,7 +61,19 @@ export default function CheckoutModal({
     }
   };
 
+  const isPropertyUnlock = unlockScope === 'property';
   const gradeEmoji = tenantGrade === 'S' || tenantGrade === 'SOUVERAIN' ? '🛡️' : '✓';
+  const candidateLabel = candidateCount > 1 ? `${candidateCount} dossiers` : candidateCount === 1 ? '1 dossier' : 'le bien';
+  const accentLabel = isPropertyUnlock
+    ? propertyLabel || candidateLabel
+    : `${gradeEmoji} ${tenantName}`;
+  const title = isPropertyUnlock ? 'Accédez aux dossiers complets.' : 'Poursuivre avec ce dossier.';
+  const subtitle = isPropertyUnlock
+    ? `Le paiement ouvre tous les profils masqués de ${propertyLabel || 'ce bien'} et vous laisse comparer puis sélectionner sereinement.`
+    : 'Scellons votre location avec';
+  const unlockLineItems = isPropertyUnlock
+    ? ['Tous les dossiers du bien visibles', 'Comparateur complet débloqué', 'Sélection explicite avant bail']
+    : ['Audit complet débloqué', 'Génération du Bail sécurisé', "Module État des lieux d'entrée"];
 
   return (
     <AnimatePresence>
@@ -93,15 +115,21 @@ export default function CheckoutModal({
                     className="text-xl font-bold text-slate-900"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
-                    Excellente décision.
+                    {title}
                   </h2>
                 </div>
               </div>
               <p className="text-slate-600 text-sm mb-6">
-                Scellons votre location avec{' '}
-                <span className="font-semibold text-slate-900">
-                  {gradeEmoji} {tenantName}
-                </span>.
+                {isPropertyUnlock ? (
+                  subtitle
+                ) : (
+                  <>
+                    {subtitle}{' '}
+                    <span className="font-semibold text-slate-900">
+                      {accentLabel}
+                    </span>.
+                  </>
+                )}
               </p>
 
               {/* Récapitulatif de valeur */}
@@ -117,7 +145,7 @@ export default function CheckoutModal({
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">Paiement unique</p>
                     <ul className="mt-2 space-y-1">
-                      {['Audit complet débloqué', 'Génération du Bail sécurisé', "Module État des lieux d'entrée"].map((item) => (
+                      {unlockLineItems.map((item) => (
                         <li key={item} className="flex items-center gap-1.5 text-xs text-slate-600">
                           <Check className="w-3 h-3 text-emerald-500 shrink-0" />
                           {item}
@@ -183,7 +211,7 @@ export default function CheckoutModal({
                   <>
                     <CreditCard className="w-4.5 h-4.5" />
                     <span className="text-amber-400">◆</span>
-                    Déverrouiller &amp; Générer le Bail
+                    {isPropertyUnlock ? 'Accéder aux dossiers complets' : 'Déverrouiller et poursuivre'}
                   </>
                 )}
               </button>

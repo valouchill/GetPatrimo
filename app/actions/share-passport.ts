@@ -70,8 +70,8 @@ export async function sharePassportByEmail(
     
     // Construire l'URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://doc2loc.com';
-    const verifyUrl = `${baseUrl}/verify/${shareToken}`;
     const passportUrl = `${baseUrl}/p/${slug}`;
+    const verifyUrl = passportUrl;
     
     // Préparer les données pour l'email
     const tenantName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Le candidat';

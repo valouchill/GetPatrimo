@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { ChevronDown, Building2, Plus, LogOut, Moon, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -13,6 +13,8 @@ import FastOnboardingForm from '@/app/components/FastOnboardingForm';
 export default function OwnerHeader() {
   const { data, activeEntry, setActivePropertyId, userEmail, refresh } = useOwner();
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
@@ -32,11 +34,22 @@ export default function OwnerHeader() {
 
   const property = activeEntry?.property;
   const initial = userEmail ? userEmail[0].toUpperCase() : 'P';
+  const hasManagement = data.some((entry) => entry.flow?.stage === 'management' || entry.property.isRented);
 
   const navLinks = [
-    { label: "Vue d'ensemble", href: '/dashboard/owner' },
+    { label: 'Portefeuille', href: '/dashboard/owner' },
     { label: 'Coffre-Fort', href: '/dashboard/owner/vault' },
+    ...(hasManagement ? [{ label: 'Gestion', href: '/dashboard/owner?stage=management' }] : []),
   ];
+
+  const handleSelectProperty = (propertyId: string) => {
+    setActivePropertyId(propertyId);
+    setSwitcherOpen(false);
+
+    if (pathname?.startsWith('/dashboard/owner/property/')) {
+      router.push(`/dashboard/owner/property/${propertyId}`);
+    }
+  };
 
   return (
     <>
@@ -45,19 +58,24 @@ export default function OwnerHeader() {
       onClose={() => setAddModalOpen(false)}
       onSuccess={() => { setAddModalOpen(false); refresh(); }}
     />
-    <header className="h-16 sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8">
+    <header className="sticky top-0 z-50 flex min-h-16 flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 bg-[rgba(250,250,249,0.88)] px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
       {/* ─── Zone Gauche : Property Switcher ─── */}
       <div className="relative" ref={switcherRef}>
         <button
           onClick={() => setSwitcherOpen((o) => !o)}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors group"
+          className="group flex max-w-full items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-white/70 px-3 py-2.5 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)] transition-colors hover:bg-white"
         >
           <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
             <Building2 className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-semibold text-slate-800 max-w-[200px] truncate hidden sm:inline">
+          <span className="hidden max-w-[220px] truncate text-sm font-semibold text-slate-800 sm:inline">
             {property?.address || property?.title || 'Aucun bien'}
           </span>
+          {activeEntry?.flow?.stageLabel ? (
+            <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 md:inline-flex">
+              {activeEntry.flow.stageLabel}
+            </span>
+          ) : null}
           <ChevronDown
             className={`w-4 h-4 text-slate-400 transition-transform ${switcherOpen ? 'rotate-180' : ''}`}
           />
@@ -70,9 +88,9 @@ export default function OwnerHeader() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 mt-1 w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50"
+              className="absolute top-full left-0 z-50 mt-2 w-80 overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_-42px_rgba(15,23,42,0.28)] backdrop-blur"
             >
-              <div className="px-3 py-2 border-b border-slate-100">
+              <div className="border-b border-slate-100 px-4 py-3">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                   Mes actifs
                 </p>
@@ -82,27 +100,24 @@ export default function OwnerHeader() {
                 {activeEntries.map((entry) => (
                   <button
                     key={entry.property.id}
-                    onClick={() => {
-                      setActivePropertyId(entry.property.id);
-                      setSwitcherOpen(false);
-                    }}
+                    onClick={() => handleSelectProperty(entry.property.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       entry.property.id === property?.id
-                        ? 'bg-emerald-50 text-emerald-900'
+                        ? 'bg-slate-900/5 text-slate-900'
                         : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div className="w-2 h-2 rounded-full shrink-0 bg-emerald-500" />
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-slate-900" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">
                         {entry.property.address || entry.property.title}
                       </p>
-                      <p className="text-xs text-slate-400">
-                        {entry.candidatures.length} dossier{entry.candidatures.length !== 1 ? 's' : ''}
-                        {entry.property.rent ? ` · ${entry.property.rent} €` : ''}
-                      </p>
-                    </div>
-                  </button>
+                          <p className="text-xs text-slate-400">
+                            {entry.flow?.stageLabel || 'Pipeline'}
+                            {entry.candidatures.length ? ` · ${entry.candidatures.length} passeport${entry.candidatures.length !== 1 ? 's' : ''}` : ''}
+                          </p>
+                        </div>
+                      </button>
                 ))}
 
                 {archivedEntries.length > 0 && (
@@ -115,10 +130,7 @@ export default function OwnerHeader() {
                     {archivedEntries.map((entry) => (
                       <button
                         key={entry.property.id}
-                        onClick={() => {
-                          setActivePropertyId(entry.property.id);
-                          setSwitcherOpen(false);
-                        }}
+                        onClick={() => handleSelectProperty(entry.property.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors opacity-50 ${
                           entry.property.id === property?.id
                             ? 'bg-slate-100 text-slate-600'
@@ -143,7 +155,7 @@ export default function OwnerHeader() {
               <button
                 type="button"
                 onClick={() => { setSwitcherOpen(false); setAddModalOpen(true); }}
-                className="w-full flex items-center gap-2 px-4 py-3 border-t border-slate-100 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                className="w-full flex items-center gap-2 border-t border-slate-100 px-4 py-3 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50"
               >
                 <Plus className="w-4 h-4" />
                 Ajouter un nouvel actif
@@ -154,17 +166,22 @@ export default function OwnerHeader() {
       </div>
 
       {/* ─── Zone Centre : Navigation ─── */}
-      <nav className="flex items-center gap-1">
+      <nav className="flex flex-wrap items-center gap-1 rounded-[1rem] border border-slate-200/80 bg-white/70 p-1 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)]">
         {navLinks.map((link) => {
-          const active = pathname === link.href;
+          const isManagementLink = link.href.includes('?stage=management');
+          const active = isManagementLink
+            ? pathname === '/dashboard/owner' && searchParams.get('stage') === 'management'
+            : link.href === '/dashboard/owner'
+              ? pathname?.startsWith('/dashboard/owner') && !pathname?.startsWith('/dashboard/owner/vault') && searchParams.get('stage') !== 'management'
+              : pathname === link.href;
           return (
             <Link
               key={link.href}
               href={link.href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-slate-100 text-slate-900'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               {link.label}
@@ -177,13 +194,13 @@ export default function OwnerHeader() {
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard/owner/profile"
-          className="w-9 h-9 rounded-full bg-emerald-900 flex items-center justify-center hover:ring-2 hover:ring-emerald-400/50 transition-all"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.35)] transition-all hover:ring-2 hover:ring-slate-300/70"
         >
-          <span className="text-amber-500 font-serif text-sm font-bold">{initial}</span>
+          <span className="font-serif text-sm font-bold text-slate-900">{initial}</span>
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-slate-400 transition-colors hover:text-slate-600"
           title="Déconnexion"
         >
           <LogOut className="w-4 h-4" />

@@ -56,6 +56,8 @@ const CandidatureSchema = new mongoose.Schema({
     score: { type: Number, default: 0 }, // 0-100
     status: { type: String, enum: ['PENDING', 'VALIDATED', 'WARNING', 'REJECTED'], default: 'PENDING' },
     summary: { type: String, default: '' }, // AI Insight
+    rating: { type: String, default: '' },
+    breakdown: { type: mongoose.Schema.Types.Mixed, default: null },
     checks: [{
       id: String, // ex: 'effort_rate', 'id_mrz', 'photoshop_detect'
       label: String,
@@ -63,6 +65,7 @@ const CandidatureSchema = new mongoose.Schema({
       details: String,
       metadata: mongoose.Schema.Types.Mixed
     }],
+    phase1: { type: mongoose.Schema.Types.Mixed, default: null },
     analyzedAt: Date
   },
   identityVerification: {

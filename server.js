@@ -34,6 +34,48 @@ app.use((req, res, next) => {
   next();
 });
 
+// Stripe webhook — handled by Express with raw body to preserve signature
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  if (!sig) return res.status(400).json({ error: 'Signature manquante.' });
+
+  let Stripe;
+  try { Stripe = require('stripe'); } catch { return res.status(500).json({ error: 'Stripe non disponible.' }); }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' });
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('[stripe-webhook] Signature invalide:', err.message);
+    return res.status(400).json({ error: 'Signature invalide.' });
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const { propertyId, userId } = session.metadata || {};
+    if (propertyId) {
+      try {
+        await mongoose.connection.db.collection('properties').updateOne(
+          { _id: new mongoose.Types.ObjectId(propertyId) },
+          { $set: { managed: true, stripeCustomerId: String(session.customer || ''), stripeSubscriptionId: String(session.subscription || '') } }
+        );
+        if (userId && session.customer) {
+          await mongoose.connection.db.collection('users').updateOne(
+            { _id: new mongoose.Types.ObjectId(userId) },
+            { $set: { stripeCustomerId: String(session.customer) } }
+          );
+        }
+        console.log(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId}.`);
+      } catch (e) {
+        console.error('[stripe-webhook] Erreur DB:', e);
+      }
+    }
+  }
+
+  return res.json({ received: true });
+});
+
 // Ne pas parser le body JSON pour les routes Next.js API (elles le font elles-mêmes)
 app.use((req, res, next) => {
   // Routes Next.js API qui gèrent leur propre body

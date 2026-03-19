@@ -1655,10 +1655,18 @@ async function loadCandidatures(){
     
     const name = `${cand.firstName || ''} ${cand.lastName || ''}`.trim() || 'Candidat';
     $("scanName").textContent = name;
-    $("scanStatus").textContent = `Dossier #${cand._id ? cand._id.substr(-6) : '—'} • ${cand.contractType || '—'}`;
     
     const analysis = cand.trustAnalysis || {};
+    const phase1 = analysis.phase1 || {};
     const score = analysis.score || 0;
+    const verdictBits = [
+      `Dossier #${cand._id ? cand._id.substr(-6) : '—'}`,
+      cand.contractType || '—'
+    ];
+    if(phase1.fraudStatus) verdictBits.push(`Verdict ${phase1.fraudStatus}`);
+    if(typeof phase1.fraudScore === 'number') verdictBits.push(`Fraude ${phase1.fraudScore}/100`);
+    if(phase1.workflowDecision) verdictBits.push(phase1.workflowDecision);
+    $("scanStatus").textContent = verdictBits.join(' • ');
     $("scanScoreText").textContent = score;
     
     // Animation du cercle de score
@@ -1692,7 +1700,12 @@ async function loadCandidatures(){
     const insightBox = $("scanInsightBox");
     const insightText = $("scanInsightText");
     
-    insightText.textContent = analysis.summary || "Analyse en attente...";
+    const insightParts = [];
+    if(analysis.summary) insightParts.push(analysis.summary);
+    if(phase1.pointsIncoherence && phase1.pointsIncoherence.length){
+      insightParts.push(`Points clés: ${phase1.pointsIncoherence.slice(0, 3).join(' • ')}`);
+    }
+    insightText.textContent = insightParts.join('\n') || "Analyse en attente...";
     
     // Couleur selon le score
     if(score >= 70){

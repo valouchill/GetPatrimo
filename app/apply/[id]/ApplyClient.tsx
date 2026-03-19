@@ -4,10 +4,32 @@ import React, { useEffect, useState, useRef, useCallback, useMemo, type CSSPrope
 import { AnimatePresence, motion } from 'framer-motion';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { useSession } from 'next-auth/react';
-import { verifyNameConsistency } from '@/app/utils/nameVerification';
 import { processDossier } from '@/app/actions/process-dossier';
 import { saveApplicationProgress, getApplication, submitApplication } from '@/app/actions/application-actions';
 import { createTenantAccount } from '@/app/actions/create-tenant-account';
+import PassportStudio from '@/app/components/PassportStudio';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  getChecklistIdForDocumentType,
+  getDocumentCertificationDecision,
+  isChecklistItemCompatibleWithUploadCategory,
+  normalizeAnalysisDocumentType,
+} = require('@/src/utils/documentCertificationRules');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  SUPPORTED_PROFILES,
+  computeApplicationPatrimometer,
+  inferEvidenceKind,
+} = require('@/src/utils/applicationScoring');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  buildExpectedIdentityTarget,
+  compareIdentityToExpected,
+  extractIdentityCandidate,
+  hasUsableIdentity,
+} = require('@/src/utils/documentSubjectIdentity');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { getDocumentIncomeContribution } = require('@/src/utils/financialExtraction');
 
 // Types pour l'analyse de document
 interface DocumentAnalysisResult {
@@ -42,6 +64,14 @@ declare global {
     };
   }
 }
+
+type DiditPostMessage = {
+  source?: string;
+  type?: string;
+  sessionId?: string;
+  status?: string;
+  redirectUrl?: string;
+};
 
 interface AnalysisV2Result extends DocumentAnalysisResult {
   ownerName?: string;
@@ -316,9 +346,10 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
   const isAnalyzing = file.status === 'analyzing' || file.status === 'scanning';
   const hasInconsistency = file.inconsistencyDetected && !file.inconsistencyResolved;
   const isCertified = file.status === 'certified' && !file.flagged && !hasInconsistency;
+  const isNeedsReview = file.status === 'needs_review';
   const isRejected = file.status === 'rejected';
   const isIllegible = file.status === 'illegible';
-  const isFlagged = file.flagged || hasInconsistency;
+  const isFlagged = (file.flagged && !isNeedsReview) || hasInconsistency;
   const isRenamed = file.isRenamed && file.suggestedName;
 
   // Montant extrait
@@ -353,6 +384,8 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
           ? 'bg-red-50 border-red-200'
           : isCertified
           ? 'bg-gradient-to-r from-emerald-50 to-white border-emerald-200 shadow-emerald-100/50'
+          : isNeedsReview
+          ? 'bg-amber-50 border-amber-200'
           : isFlagged
           ? 'bg-amber-50 border-amber-200'
           : 'bg-white border-slate-200'
@@ -392,6 +425,10 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
+          ) : isNeedsReview ? (
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <AlertTriangleIcon className="w-5 h-5 text-amber-500" />
+            </div>
           ) : isFlagged ? (
             <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
               <AlertTriangleIcon className="w-5 h-5 text-amber-500" />
@@ -422,6 +459,16 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
             {isCertified && (
               <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-bold uppercase tracking-wider rounded">
                 Certifié
+              </span>
+            )}
+            {isNeedsReview && (
+              <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[8px] font-bold uppercase tracking-wider rounded">
+                Revue requise
+              </span>
+            )}
+            {isRejected && !file.flagged && (
+              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-[8px] font-bold uppercase tracking-wider rounded">
+                Non retenu
               </span>
             )}
             {/* Badge Incohérence détectée */}
@@ -705,7 +752,7 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
       )}
 
       {/* Message bienveillant pour documents nécessitant révision */}
-      {file.needsHumanReview && !file.forceSent && (
+      {(isNeedsReview || file.needsHumanReview) && !file.forceSent && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
@@ -719,7 +766,7 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
               <div className="flex-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Expert PatrimoTrust</p>
                 <p className="text-sm text-amber-900 leading-relaxed">
-                  {file.improvementTip || file.errorMessage || 'Document partiellement analysé. Une petite amélioration et c\'est parfait !'}
+                  {file.humanReviewReason || file.improvementTip || file.errorMessage || 'Document partiellement analysé. Une petite amélioration et c\'est parfait !'}
                 </p>
                 {file.extractedFields && file.extractedFields.length > 0 && (
                   <p className="text-xs text-amber-700 mt-2">
@@ -730,7 +777,7 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
             </div>
             
             {/* Bouton "Envoyer quand même" */}
-            {onForceValidate && (
+            {onForceValidate && file.canForceSend !== false && (
               <div className="mt-3 pt-3 border-t border-amber-200">
                 <button
                   onClick={() => onForceValidate(file.id)}
@@ -762,6 +809,28 @@ function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDe
               <span>📤</span>
               Document envoyé • Le propriétaire effectuera une vérification visuelle
             </p>
+          </div>
+        </motion.div>
+      )}
+
+      {isRejected && !file.flagged && (file.humanReviewReason || file.improvementTip) && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          className="px-4 pb-3 -mt-1"
+        >
+          <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 rounded-xl border border-red-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">📄</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-700 mb-1">Document non retenu</p>
+                <p className="text-sm text-red-900 leading-relaxed">
+                  {file.humanReviewReason || file.improvementTip}
+                </p>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -816,7 +885,29 @@ interface Property {
   city?: string;
 }
 
-type CandidateStatus = 'Etudiant' | 'Salarie' | 'Independant';
+type CandidateStatus = 'Etudiant' | 'Salarie' | 'Independant' | 'Retraite';
+type GuaranteeMode = 'NONE' | 'VISALE' | 'PHYSICAL';
+type GuarantorCertificationMethod = 'DIDIT' | 'AUDIT' | 'VISALE' | null;
+
+interface GuarantorSlotState {
+  slot: 1 | 2;
+  profile: CandidateStatus | 'Retraite';
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: 'NONE' | 'PENDING' | 'CERTIFIED' | 'AUDITED';
+  certificationMethod: GuarantorCertificationMethod;
+  invitationSent: boolean;
+}
+
+type GuarantorBlockStatus = 'complete' | 'partial' | 'missing';
+
+interface GuarantorChapterBlock {
+  id: 'identity' | 'income' | 'activity' | 'domicile';
+  label: string;
+  description: string;
+  status: GuarantorBlockStatus;
+}
 
 interface DocumentFile {
   id: string;
@@ -825,7 +916,7 @@ interface DocumentFile {
   originalName?: string; // Nom original avant renommage IA
   suggestedName?: string; // Nom suggéré par l'IA
   isRenamed?: boolean; // Si le fichier a été renommé par l'IA
-  status: 'scanning' | 'analyzing' | 'certified' | 'rejected' | 'illegible' | 'needs_review';
+  status: 'pending' | 'scanning' | 'analyzing' | 'certified' | 'rejected' | 'illegible' | 'needs_review';
   category: string;
   url?: string; // URL du fichier sur le serveur
   confidenceScore?: number;
@@ -840,6 +931,10 @@ interface DocumentFile {
   extractedFields?: string[]; // Liste des champs extraits avec succès
   improvementTip?: string; // Conseil d'amélioration du document
   forceSent?: boolean; // true si le locataire a forcé l'envoi malgré le doute
+  canForceSend?: boolean;
+  categoryMatch?: boolean;
+  subjectType?: 'tenant' | 'guarantor' | 'visale';
+  subjectSlot?: 1 | 2;
   // Champs pour la cohérence documentaire
   inconsistencyDetected?: boolean; // Incohérence de nom détectée
   inconsistencyJustification?: string; // Justification fournie par l'utilisateur
@@ -856,6 +951,8 @@ interface DocumentFile {
     documentType: string;
     ownerName?: string;
     document_metadata?: { owner_name?: string };
+    financial_data?: AnalysisV2Result['financial_data'];
+    trust_and_security?: AnalysisV2Result['trust_and_security'];
     recommendations: string[];
     fraudIndicators?: {
       suspicious: boolean;
@@ -903,7 +1000,7 @@ const CERTIFICATION_ITEMS: Record<string, CertificationItem[]> = {
     { id: 'photo_profil', category: 'Identité', label: 'Photo de profil professionnelle', description: 'Renforce la confiance du propriétaire.', keywords: ['photo', 'profil', 'portrait', 'selfie'], required: false }
   ],
   domicile: [
-    { id: 'domicile', category: 'Domicile', label: 'Justificatif de domicile', description: 'Facture ou quittance de moins de 3 mois.', keywords: ['domicile', 'facture', 'edf', 'gdf', 'gaz', 'electricite', 'internet', 'quittance', 'assurance'], required: true },
+    { id: 'domicile', category: 'Domicile', label: 'Justificatif de domicile', description: 'Facture ou quittance de moins de 3 mois.', keywords: ['domicile', 'facture', 'edf', 'engie', 'totalenergies', 'gdf', 'gaz', 'electricite', 'energie', 'eau', 'internet', 'telephone', 'orange', 'sfr', 'free', 'bouygues', 'quittance', 'assurance habitation', 'habitation', 'echeance'], required: true },
     { id: 'quittance', category: 'Domicile', label: 'Quittance de loyer', description: 'Prouve que vous êtes un locataire exemplaire.', keywords: ['quittance', 'loyer'], required: false }
   ],
   activite: [
@@ -925,7 +1022,7 @@ const CERTIFICATION_ITEMS: Record<string, CertificationItem[]> = {
   ],
   garantie: [
     { id: 'garant_id', category: 'Garantie', label: 'ID du garant', description: 'CNI ou Passeport', keywords: ['garant', 'identite', 'parent'], required: false },
-    { id: 'garant_domicile', category: 'Garantie', label: 'Justificatif domicile', description: 'Moins de 3 mois', keywords: ['domicile', 'facture', 'edf', 'gaz', 'quittance'], required: false },
+    { id: 'garant_domicile', category: 'Garantie', label: 'Justificatif domicile', description: 'Moins de 3 mois', keywords: ['domicile', 'facture', 'edf', 'engie', 'gaz', 'eau', 'internet', 'telephone', 'orange', 'sfr', 'free', 'bouygues', 'quittance', 'assurance habitation', 'habitation', 'echeance'], required: false },
     { id: 'garant_salaires', category: 'Garantie', label: 'Salaires du garant', description: '3 derniers bulletins', keywords: ['garant', 'salaire', 'bulletin'], required: false }
   ],
   engagement: [
@@ -955,12 +1052,11 @@ const AI_MESSAGES: Record<string, string> = {
 // --- Documents requis selon profil ---
 const REQUIRED_DOCS_BY_PROFILE: Record<string, { required: string[]; optional: string[]; boost: { id: string; label: string; points: number; icon: string }[] }> = {
   Etudiant: {
-    required: ['cni', 'scolarite', 'bourse', 'domicile'],
-    optional: ['caf', 'avis_imposition', 'garant_id'],
+    required: ['cni', 'scolarite', 'domicile'],
+    optional: ['bourse', 'caf', 'avis_imposition', 'pension'],
     boost: [
       { id: 'quittance', label: 'Dernière quittance de loyer', points: 10, icon: '🏠' },
       { id: 'photo_profil', label: 'Photo de profil professionnelle', points: 5, icon: '📸' },
-      { id: 'visale', label: 'Caution Visale / Garant certifié', points: 15, icon: '🛡️' },
     ]
   },
   Salarie: {
@@ -969,7 +1065,6 @@ const REQUIRED_DOCS_BY_PROFILE: Record<string, { required: string[]; optional: s
     boost: [
       { id: 'quittance', label: 'Dernière quittance de loyer', points: 10, icon: '🏠' },
       { id: 'photo_profil', label: 'Photo de profil professionnelle', points: 5, icon: '📸' },
-      { id: 'visale', label: 'Caution Visale / Garant certifié', points: 15, icon: '🛡️' },
     ]
   },
   Independant: {
@@ -978,14 +1073,21 @@ const REQUIRED_DOCS_BY_PROFILE: Record<string, { required: string[]; optional: s
     boost: [
       { id: 'quittance', label: 'Dernière quittance de loyer', points: 10, icon: '🏠' },
       { id: 'photo_profil', label: 'Photo de profil professionnelle', points: 5, icon: '📸' },
-      { id: 'visale', label: 'Caution Visale / Garant certifié', points: 15, icon: '🛡️' },
+    ]
+  },
+  Retraite: {
+    required: ['cni', 'pension', 'avis_imposition', 'domicile'],
+    optional: [],
+    boost: [
+      { id: 'quittance', label: 'Dernière quittance de loyer', points: 10, icon: '🏠' },
+      { id: 'photo_profil', label: 'Photo de profil professionnelle', points: 5, icon: '📸' },
     ]
   },
 };
 
 // --- Composant ProgressSidebar ---
 interface ProgressSidebarProps {
-  profile: 'Etudiant' | 'Salarie' | 'Independant';
+  profile: 'Etudiant' | 'Salarie' | 'Independant' | 'Retraite';
   certifiedItems: Set<string>;
   uploadedFiles: { identity: DocumentFile[]; resources: DocumentFile[]; guarantor: DocumentFile[] };
   score: number;
@@ -1106,7 +1208,7 @@ function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score, diditV
               Identité certifiée Didit
             </p>
             <p className={`text-[10px] ${diditVerified ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-              {diditVerified ? '✓ +40 points scellés' : '+40 points'}
+              {diditVerified ? '✓ Bloc Identité validé' : 'Bloc Identité 25 points'}
             </p>
           </div>
           {diditVerified && (
@@ -1577,6 +1679,8 @@ interface PatrimoMeterProps {
   hasInconsistency?: boolean;
   scoreDelta?: number | null;
   hasExpirationMalus?: boolean;
+  canGeneratePassport?: boolean;
+  passportHint?: string;
 }
 
 function PatrimoMeter({ 
@@ -1587,7 +1691,9 @@ function PatrimoMeter({
   nextActionPoints,
   hasInconsistency,
   scoreDelta,
-  hasExpirationMalus
+  hasExpirationMalus,
+  canGeneratePassport,
+  passportHint,
 }: PatrimoMeterProps) {
   const [displayScore, setDisplayScore] = useState(previousScore);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -1824,8 +1930,7 @@ function PatrimoMeter({
             )}
           </div>
 
-          {/* Afficher le bouton uniquement si score >= 80 */}
-          {score >= 80 ? (
+          {canGeneratePassport ? (
             <button
               className="mt-4 w-full py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all patrimo-gradient text-white shadow-lg hover:opacity-90"
             >
@@ -1834,15 +1939,15 @@ function PatrimoMeter({
           ) : (
             <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
               <p className="text-[10px] text-slate-500 text-center">
-                Atteignez <span className="font-bold text-emerald-600">80 points</span> pour débloquer votre Passeport Souverain
+                {passportHint || 'Complétez les chapitres réellement requis pour débloquer votre Passeport Souverain.'}
               </p>
               <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-slate-400 to-emerald-500 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (score / 80) * 100)}%` }}
+                  style={{ width: `${Math.min(100, score)}%` }}
                 />
               </div>
-              <p className="text-[9px] text-slate-400 text-center mt-1">{score}/80 points</p>
+              <p className="text-[9px] text-slate-400 text-center mt-1">{score}/100 points</p>
             </div>
           )}
         </div>
@@ -2351,7 +2456,7 @@ function ContextualSidebar({
         messages: [
           {
             type: 'success' as const,
-            text: `Identité validée ! Votre score a bondi de +40 points. Nous allons maintenant analyser vos ressources.`,
+            text: `Identité validée. Le bloc Identité est complet, nous pouvons maintenant analyser vos ressources.`,
             delay: 0
           }
         ],
@@ -3138,6 +3243,8 @@ export default function ApplyClient({ token }: { token: string }) {
 
   // Candidate Status
   const [candidateStatus, setCandidateStatus] = useState<CandidateStatus>('Etudiant');
+  const [guaranteeMode, setGuaranteeMode] = useState<GuaranteeMode>('NONE');
+  const [guarantorSlotsCount, setGuarantorSlotsCount] = useState<1 | 2>(1);
   const [diditStatus, setDiditStatus] = useState<'idle' | 'loading' | 'verified'>('idle');
   const [diditIdentity, setDiditIdentity] = useState<{
     firstName?: string;
@@ -3151,6 +3258,7 @@ export default function ApplyClient({ token }: { token: string }) {
   // Garant Physique Souverain
   const [guarantorCertified, setGuarantorCertified] = useState(false);
   const [guarantorCertificationMethod, setGuarantorCertificationMethod] = useState<'DIDIT' | 'AUDIT' | null>(null);
+  const [guarantorProfile, setGuarantorProfile] = useState<CandidateStatus>('Salarie');
   const [guarantorEmail, setGuarantorEmail] = useState('');
   const [guarantorFirstName, setGuarantorFirstName] = useState('');
   const [guarantorLastName, setGuarantorLastName] = useState('');
@@ -3158,6 +3266,16 @@ export default function ApplyClient({ token }: { token: string }) {
   const [guarantorDirectCertification, setGuarantorDirectCertification] = useState(false);
   const [guarantorDiditSessionId, setGuarantorDiditSessionId] = useState<string | null>(null);
   const [guarantorDiditVerificationUrl, setGuarantorDiditVerificationUrl] = useState<string | null>(null);
+  const [secondGuarantor, setSecondGuarantor] = useState<GuarantorSlotState>({
+    slot: 2,
+    profile: 'Salarie',
+    firstName: '',
+    lastName: '',
+    email: '',
+    status: 'NONE',
+    certificationMethod: null,
+    invitationSent: false,
+  });
   const [diditVerificationUrl, setDiditVerificationUrl] = useState<string | null>(null);
   const [diditQrCode, setDiditQrCode] = useState<string | null>(null);
   // diditScriptReady supprimé - SDK Didit (cdn.didit.me) n'est plus disponible
@@ -3340,6 +3458,11 @@ export default function ApplyClient({ token }: { token: string }) {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [passportStudioState, setPassportStudioState] = useState<{
+    state: 'draft' | 'review' | 'ready' | 'sealed';
+    readinessReasons: string[];
+    summary: string;
+  } | null>(null);
   const [submittingPassport, setSubmittingPassport] = useState(false);
 
   // --- État pour le score précédent (pour l'animation) ---
@@ -3351,6 +3474,87 @@ export default function ApplyClient({ token }: { token: string }) {
   // --- Helpers pour la péremption (doivent être déclarés avant useMemo) ---
   const normalizeValue = (value: string) =>
     value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const getPersistedDocumentCategory = (
+    file: DocumentFile,
+    bucket: 'identity' | 'resources' | 'guarantor'
+  ): 'identity' | 'income' | 'address' | 'guarantor' => {
+    if (bucket === 'identity') return 'identity';
+    if (bucket === 'guarantor') return 'guarantor';
+
+    const normalizedType = normalizeAnalysisDocumentType(
+      file.aiAnalysis?.documentType || file.type || file.name
+    );
+
+    return normalizedType === 'JUSTIFICATIF_DOMICILE' ? 'address' : 'income';
+  };
+
+  const buildGuarantorSlot = useCallback((
+    slot: 1 | 2,
+    overrides: Partial<GuarantorSlotState> = {}
+  ): GuarantorSlotState => ({
+    slot,
+    profile: 'Salarie',
+    firstName: '',
+    lastName: '',
+    email: '',
+    status: 'NONE',
+    certificationMethod: null,
+    invitationSent: false,
+    ...overrides,
+  }), []);
+
+  const getGuarantorFilesForSlot = useCallback((slot: 1 | 2) => (
+    uploadedFiles.guarantor.filter(file => (file.subjectSlot || 1) === slot)
+  ), [uploadedFiles.guarantor]);
+
+  const buildPortalDocuments = useCallback(() => ([
+    ...uploadedFiles.identity.map(file => ({
+      ...file,
+      fileName: file.name,
+      subjectType: 'tenant' as const,
+    })),
+    ...uploadedFiles.resources.map(file => ({
+      ...file,
+      fileName: file.name,
+      subjectType: file.subjectType || (normalizeAnalysisDocumentType(file.aiAnalysis?.documentType || file.type || file.name) === 'CERTIFICAT_VISALE' ? 'visale' : 'tenant'),
+    })),
+    ...uploadedFiles.guarantor.map(file => ({
+      ...file,
+      fileName: file.name,
+      subjectType: 'guarantor' as const,
+      subjectSlot: file.subjectSlot || 1,
+    })),
+  ]), [uploadedFiles]);
+
+  const getExpectedIdentityForSubject = useCallback((
+    subjectType: 'tenant' | 'guarantor' | 'visale',
+    subjectSlot?: 1 | 2
+  ) => buildExpectedIdentityTarget({
+    subjectType,
+    subjectSlot,
+    tenant: {
+      firstName: formData.firstName || diditIdentity?.firstName || '',
+      lastName: formData.lastName || diditIdentity?.lastName || '',
+    },
+    guarantorOne: {
+      firstName: guarantorFirstName,
+      lastName: guarantorLastName,
+    },
+    guarantorTwo: {
+      firstName: secondGuarantor.firstName,
+      lastName: secondGuarantor.lastName,
+    },
+  }), [
+    formData.firstName,
+    formData.lastName,
+    diditIdentity?.firstName,
+    diditIdentity?.lastName,
+    guarantorFirstName,
+    guarantorLastName,
+    secondGuarantor.firstName,
+    secondGuarantor.lastName,
+  ]);
 
   const parseIsoDate = (value?: string | null): Date | null => {
     if (!value) return null;
@@ -3384,6 +3588,26 @@ export default function ApplyClient({ token }: { token: string }) {
     const haystack = normalizeValue(`${file.aiAnalysis?.documentType || ''} ${file.type || ''} ${file.name || ''}`);
     return haystack.includes('quittance') && haystack.includes('loyer');
   };
+
+  const getGuarantorUploadInputId = useCallback((slot: 1 | 2) => (
+    slot === 2 ? 'guarantor-slot-2-file-input' : 'guarantor-file-input'
+  ), []);
+
+  const getGuarantorBlockStatusLabel = useCallback((status: GuarantorBlockStatus) => {
+    if (status === 'complete') return 'Complet';
+    if (status === 'partial') return 'À consolider';
+    return 'Manquant';
+  }, []);
+
+  const getGuarantorBlockStatusClasses = useCallback((status: GuarantorBlockStatus) => {
+    if (status === 'complete') {
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    }
+    if (status === 'partial') {
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    }
+    return 'border-slate-200 bg-white text-slate-500';
+  }, []);
 
   interface ExpirationFlags {
     identityBlock: number;
@@ -3523,76 +3747,295 @@ export default function ApplyClient({ token }: { token: string }) {
 
   // Cross-check identité garant : CNI vs avis d'imposition (bloc score si incohérent)
   const guarantorIdentityMismatch = useMemo(() => {
-    const guarantorDocs = uploadedFiles.guarantor.filter(f => f.status === 'certified' && !f.flagged);
-    const idDoc = guarantorDocs.find(f => isIdentityDoc(f));
-    const avisDoc = guarantorDocs.find(f => {
-      const haystack = normalizeValue(`${f.aiAnalysis?.documentType || ''} ${f.type || ''} ${f.name || ''}`);
-      return haystack.includes('avis') && haystack.includes('imposition');
+    return ([1, 2] as const).some(slot => {
+      const guarantorDocs = getGuarantorFilesForSlot(slot).filter(f => f.status === 'certified' && !f.flagged);
+      const idDoc = guarantorDocs.find(f => isIdentityDoc(f));
+      const avisDoc = guarantorDocs.find(f => {
+        const haystack = normalizeValue(`${f.aiAnalysis?.documentType || ''} ${f.type || ''} ${f.name || ''}`);
+        return haystack.includes('avis') && haystack.includes('imposition');
+      });
+      const nameFromId = (idDoc?.aiAnalysis?.document_metadata?.owner_name || idDoc?.aiAnalysis?.ownerName || '').trim();
+      const nameFromAvis = (avisDoc?.aiAnalysis?.document_metadata?.owner_name || avisDoc?.aiAnalysis?.ownerName || '').trim();
+      if (!nameFromId || !nameFromAvis) return false;
+      const n1 = normalizeValue(nameFromId).replace(/\s/g, '');
+      const n2 = normalizeValue(nameFromAvis).replace(/\s/g, '');
+      return n1 !== n2;
     });
-    const nameFromId = (idDoc?.aiAnalysis?.document_metadata?.owner_name || idDoc?.aiAnalysis?.ownerName || '').trim();
-    const nameFromAvis = (avisDoc?.aiAnalysis?.document_metadata?.owner_name || avisDoc?.aiAnalysis?.ownerName || '').trim();
-    if (!nameFromId || !nameFromAvis) return false;
-    const n1 = normalizeValue(nameFromId).replace(/\s/g, '');
-    const n2 = normalizeValue(nameFromAvis).replace(/\s/g, '');
-    return n1 !== n2;
-  }, [uploadedFiles.guarantor]);
+  }, [getGuarantorFilesForSlot]);
 
-  // --- Calculer le score PatrimoMeter (par blocs + péremption) ---
-  const calculateScore = (flags: ExpirationFlags): number => {
-    let points = 0;
-    
-    const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor];
-    const validDocs = allFiles.filter(f => f.status === 'certified' && !f.flagged);
-    const hasGuarantor = uploadedFiles.guarantor.some(f => f.status === 'certified');
+  const visaleFiles = useMemo(
+    () =>
+      uploadedFiles.resources.filter(
+        file =>
+          file.subjectType === 'visale' ||
+          normalizeAnalysisDocumentType(file.aiAnalysis?.documentType || file.type || file.name) === 'CERTIFICAT_VISALE'
+      ),
+    [uploadedFiles.resources]
+  );
 
-    // 1. Blocs principaux
-    points += flags.identityBlock; // 40 max
-    points += flags.revenusBlock;  // 20 max
-    points += flags.activiteBlock; // 10 max
+  const guaranteeState = useMemo(() => {
+    const slotOneStatus: GuarantorSlotState['status'] = guarantorCertified
+      ? (guarantorCertificationMethod === 'AUDIT' ? 'AUDITED' : 'CERTIFIED')
+      : guarantorInvitationSent
+        ? 'PENDING'
+        : getGuarantorFilesForSlot(1).some(file => file.status === 'certified')
+          ? 'AUDITED'
+          : 'NONE';
 
-    // 2. Bonus garant (bloqué si cross-check CNI vs avis d'imposition en échec)
-    if (!guarantorIdentityMismatch) {
-      if (guarantorCertified) {
-        if (guarantorCertificationMethod === 'DIDIT') {
-          points += 40; // Badge 'Identité Souveraine Certifiée'
-        } else if (guarantorCertificationMethod === 'AUDIT') {
-          points += 30; // Badge 'Identité Auditée & Cohérente'
-        } else {
-          points += 30; // Fallback
-        }
-      }
-      // 3. Bonus profil (existant)
-      if (candidateStatus === 'Etudiant' && hasGuarantor) {
-        points += 20;
-      }
-    }
+    const slotTwoStatus: GuarantorSlotState['status'] =
+      getGuarantorFilesForSlot(2).some(file => file.status === 'certified')
+        ? 'AUDITED'
+        : secondGuarantor.status;
 
-    // 4. Pénalité incohérences IA
-    const flaggedDocs = allFiles.filter(f => f.flagged);
-    if (flaggedDocs.length > 0 || (nameVerification && !nameVerification.verified)) {
-      points -= 15;
-      if (!hasInconsistency) setHasInconsistency(true);
+    const certifiedVisale = visaleFiles.some(file => file.status === 'certified' && !file.flagged);
+    const visaleFile = visaleFiles.find(file => file.status === 'certified' && !file.flagged) || visaleFiles[0];
+    const visaleMaxRent =
+      Number(
+        visaleFile?.aiAnalysis?.financial_data?.extra_details?.visale?.loyer_maximum_garanti ||
+        0
+      ) || null;
+    const visaleCompatible = property?.rentAmount && visaleMaxRent
+      ? visaleMaxRent >= property.rentAmount
+      : certifiedVisale;
+
+    return {
+      mode: guaranteeMode,
+      visale: {
+        status: certifiedVisale ? 'CERTIFIED' : visaleFiles.length > 0 ? 'PENDING' : 'NONE',
+        certified: certifiedVisale,
+        maxRent: visaleMaxRent,
+        compatibleWithRent: visaleCompatible,
+        digitalSeal:
+          visaleFile?.aiAnalysis?.trust_and_security?.digital_seal_authenticated === true ||
+          visaleFile?.aiAnalysis?.trust_and_security?.digital_seal_status === 'AUTHENTIFIÉ_PAR_SCELLEMENT_NUMÉRIQUE',
+      },
+      guarantors: [
+        buildGuarantorSlot(1, {
+          profile: guarantorProfile,
+          firstName: guarantorFirstName,
+          lastName: guarantorLastName,
+          email: guarantorEmail,
+          status: slotOneStatus,
+          certificationMethod: guarantorCertificationMethod,
+          invitationSent: guarantorInvitationSent,
+        }),
+        ...(guarantorSlotsCount === 2 ? [buildGuarantorSlot(2, {
+          ...secondGuarantor,
+          status: slotTwoStatus,
+        })] : []),
+      ],
+    };
+  }, [
+    guaranteeMode,
+    guarantorCertified,
+    guarantorCertificationMethod,
+    guarantorInvitationSent,
+    guarantorProfile,
+    guarantorFirstName,
+    guarantorLastName,
+    guarantorEmail,
+    guarantorSlotsCount,
+    secondGuarantor,
+    getGuarantorFilesForSlot,
+    visaleFiles,
+    property?.rentAmount,
+    buildGuarantorSlot,
+  ]);
+
+  const scoringSnapshot = useMemo(
+    () =>
+      computeApplicationPatrimometer({
+        candidateStatus,
+        diditStatus,
+        propertyRentAmount: property?.rentAmount,
+        detectedIncome,
+        documents: buildPortalDocuments(),
+        guarantee: guaranteeState,
+        legacyGuarantor: {
+          hasGuarantor: guarantorCertified || uploadedFiles.guarantor.some(file => file.status === 'certified'),
+          status: guarantorCertified ? 'CERTIFIED' : guarantorInvitationSent ? 'PENDING' : 'NONE',
+          certificationMethod: guarantorCertificationMethod || undefined,
+        },
+      }),
+    [
+      candidateStatus,
+      diditStatus,
+      property?.rentAmount,
+      detectedIncome,
+      buildPortalDocuments,
+      guaranteeState,
+      guarantorCertified,
+      guarantorInvitationSent,
+      guarantorCertificationMethod,
+      uploadedFiles.guarantor,
+    ]
+  );
+
+  const buildGuarantorChapterBlocks = useCallback((slot: 1 | 2, profile: CandidateStatus): GuarantorChapterBlock[] => {
+    const slotFiles = getGuarantorFilesForSlot(slot);
+    const certifiedFiles = slotFiles.filter(file => file.status === 'certified' && !file.flagged);
+    const uploadedFilesForSlot = slotFiles.filter(file => file.status !== 'analyzing');
+    const countKinds = (files: DocumentFile[]) => files.reduce<Record<string, number>>((acc, file) => {
+      const kind = inferEvidenceKind({
+        ...file,
+        fileName: file.name,
+      });
+      acc[kind] = (acc[kind] || 0) + 1;
+      return acc;
+    }, {});
+
+    const certifiedKinds = countKinds(certifiedFiles);
+    const uploadedKinds = countKinds(uploadedFilesForSlot);
+    const slotScore = scoringSnapshot.guarantee?.guarantors?.find((entry: { slot: number }) => entry.slot === slot);
+    const slotVerified = ['CERTIFIED', 'AUDITED'].includes(String(slotScore?.status || '').toUpperCase());
+
+    const makeStatus = (complete: boolean, partial: boolean): GuarantorBlockStatus => (
+      complete ? 'complete' : partial ? 'partial' : 'missing'
+    );
+
+    const salaryUploaded = (uploadedKinds.salary || 0) >= 1;
+    const salaryComplete = (certifiedKinds.salary || 0) >= 3;
+    const taxUploaded = (uploadedKinds.tax || 0) > 0;
+    const taxComplete = (certifiedKinds.tax || 0) > 0;
+    const domicileUploaded = (uploadedKinds.domicile || 0) > 0 || (uploadedKinds.rent_receipt || 0) > 0;
+    const domicileComplete = (certifiedKinds.domicile || 0) > 0 || (certifiedKinds.rent_receipt || 0) > 0;
+    const activityUploaded =
+      (uploadedKinds.employment_certificate || 0) > 0 ||
+      (uploadedKinds.employment_contract || 0) > 0 ||
+      (uploadedKinds.scolarite || 0) > 0 ||
+      (uploadedKinds.urssaf || 0) > 0 ||
+      (uploadedKinds.kbis || 0) > 0 ||
+      (uploadedKinds.bilan || 0) > 0 ||
+      (uploadedKinds.retirement || 0) > 0 ||
+      (uploadedKinds.pension || 0) > 0;
+    const activityComplete =
+      (certifiedKinds.employment_certificate || 0) > 0 ||
+      (certifiedKinds.employment_contract || 0) > 0 ||
+      (certifiedKinds.scolarite || 0) > 0 ||
+      (certifiedKinds.urssaf || 0) > 0 ||
+      (certifiedKinds.kbis || 0) > 0 ||
+      (certifiedKinds.bilan || 0) >= 2 ||
+      (certifiedKinds.retirement || 0) > 0 ||
+      (certifiedKinds.pension || 0) > 0;
+
+    let incomeStatus: GuarantorBlockStatus = 'missing';
+    let activityStatus: GuarantorBlockStatus = 'missing';
+    let incomeDescription = 'Revenus du garant';
+    let activityDescription = 'Activité ou stabilité';
+
+    if (profile === 'Etudiant') {
+      const incomePiecesUploaded =
+        (uploadedKinds.student_aid || 0) +
+        (uploadedKinds.housing_aid || 0) +
+        (uploadedKinds.salary || 0) +
+        (uploadedKinds.pension || 0) +
+        (uploadedKinds.tax || 0);
+      const incomePiecesCertified =
+        (certifiedKinds.student_aid || 0) +
+        (certifiedKinds.housing_aid || 0) +
+        (certifiedKinds.salary || 0) +
+        (certifiedKinds.pension || 0) +
+        (certifiedKinds.tax || 0);
+
+      incomeStatus = makeStatus(incomePiecesCertified >= 2, incomePiecesUploaded >= 1);
+      activityStatus = makeStatus((certifiedKinds.scolarite || 0) > 0, (uploadedKinds.scolarite || 0) > 0);
+      incomeDescription = 'Bourse, aides, salaires ou fiscalité étudiante';
+      activityDescription = 'Certificat de scolarité ou inscription';
+    } else if (profile === 'Salarie') {
+      const hasActivityUploaded = (uploadedKinds.employment_certificate || 0) > 0 || (uploadedKinds.employment_contract || 0) > 0;
+      const hasActivityCertified = (certifiedKinds.employment_certificate || 0) > 0 || (certifiedKinds.employment_contract || 0) > 0;
+
+      incomeStatus = makeStatus(salaryComplete && taxComplete, salaryUploaded || taxUploaded);
+      activityStatus = makeStatus(hasActivityCertified, hasActivityUploaded);
+      incomeDescription = '3 bulletins + avis d’imposition';
+      activityDescription = 'Attestation employeur ou contrat récent';
+    } else if (profile === 'Independant') {
+      const bilanUploaded = (uploadedKinds.bilan || 0) > 0;
+      const bilanCertified = (certifiedKinds.bilan || 0) > 0;
+      const incomeComplete = taxComplete && ((certifiedKinds.urssaf || 0) > 0 || (certifiedKinds.bilan || 0) >= 2);
+      const incomePartial = taxUploaded || (uploadedKinds.urssaf || 0) > 0 || bilanUploaded || (uploadedKinds.kbis || 0) > 0;
+      const activityCompleteForProfile = (certifiedKinds.urssaf || 0) > 0 || (certifiedKinds.bilan || 0) >= 2;
+      const activityPartialForProfile = (uploadedKinds.urssaf || 0) > 0 || bilanUploaded || (uploadedKinds.kbis || 0) > 0;
+
+      incomeStatus = makeStatus(incomeComplete, incomePartial);
+      activityStatus = makeStatus(activityCompleteForProfile, activityPartialForProfile);
+      incomeDescription = 'Avis d’imposition + URSSAF ou bilans';
+      activityDescription = 'URSSAF, KBIS et bilans d’activité';
     } else {
-      if (hasInconsistency) setHasInconsistency(false);
+      const retirementUploaded = (uploadedKinds.retirement || 0) + (uploadedKinds.pension || 0);
+      const retirementCertified = (certifiedKinds.retirement || 0) + (certifiedKinds.pension || 0);
+
+      incomeStatus = makeStatus(retirementCertified > 0 && taxComplete, retirementUploaded > 0 || taxUploaded);
+      activityStatus = makeStatus(retirementCertified > 0, retirementUploaded > 0);
+      incomeDescription = 'Pension/retraite + avis d’imposition';
+      activityDescription = 'Justificatif de pension ou de retraite';
     }
 
-    // 5. Malus de péremption
-    points -= flags.revenusMalus;
-    points -= flags.quittanceMalus;
+    return [
+      {
+        id: 'identity',
+        label: 'Identité',
+        description: slotVerified ? 'Identité déjà certifiée pour ce garant' : 'CNI ou passeport en cours de validité',
+        status: makeStatus(slotVerified || (certifiedKinds.identity || 0) > 0, (uploadedKinds.identity || 0) > 0),
+      },
+      {
+        id: 'income',
+        label: 'Revenus',
+        description: incomeDescription,
+        status: incomeStatus,
+      },
+      {
+        id: 'activity',
+        label: 'Activité / Stabilité',
+        description: activityDescription,
+        status: activityStatus,
+      },
+      {
+        id: 'domicile',
+        label: 'Domicile / Administratif',
+        description: 'Justificatif de domicile récent',
+        status: makeStatus(domicileComplete, domicileUploaded),
+      },
+    ];
+  }, [getGuarantorFilesForSlot, scoringSnapshot.guarantee?.guarantors]);
 
-    // 5b. Garant : bloc revenus (3 bulletins) + malus fraîcheur (uniquement si pas de mismatch identité)
-    if (!guarantorIdentityMismatch) {
-      points += flags.guarantorRevenusBlock ?? 0;
+  const slotOneGuarantorBlocks = useMemo(
+    () => buildGuarantorChapterBlocks(1, guarantorProfile),
+    [buildGuarantorChapterBlocks, guarantorProfile]
+  );
+
+  const slotTwoGuarantorBlocks = useMemo(
+    () => buildGuarantorChapterBlocks(2, secondGuarantor.profile),
+    [buildGuarantorChapterBlocks, secondGuarantor.profile]
+  );
+
+  const passportBlockerMessage = useMemo(() => {
+    if (passportStudioState?.state === 'sealed') {
+      return 'Votre passeport est scellé et synchronisé sur toutes les surfaces.';
     }
-    points -= flags.guarantorRevenusMalus ?? 0;
+    if (passportStudioState?.state === 'ready') {
+      return 'Votre passeport peut être généré et partagé.';
+    }
+    if (passportStudioState?.readinessReasons?.length) {
+      return passportStudioState.readinessReasons[0];
+    }
+    if (scoringSnapshot.chapterStates.passport.ready) {
+      return 'Votre passeport peut être généré.';
+    }
+    if (scoringSnapshot.chapterStates.guarantee.requirement === 'required' && !scoringSnapshot.chapterStates.guarantee.satisfied) {
+      return scoringSnapshot.nextAction?.action || 'Ajoutez une garantie valide pour finaliser votre passeport.';
+    }
+    return scoringSnapshot.nextAction?.action || scoringSnapshot.warnings[0] || "Complétez d'abord l'identité et les pièces requises pour générer le passeport.";
+  }, [
+    scoringSnapshot.chapterStates.passport.ready,
+    scoringSnapshot.chapterStates.guarantee.requirement,
+    scoringSnapshot.chapterStates.guarantee.satisfied,
+    scoringSnapshot.nextAction,
+    scoringSnapshot.warnings,
+    passportStudioState,
+  ]);
 
-    // 6. Bonus checklist (légère prime de complétion)
-    points += certifiedItems.size * 3;
-    
-    return Math.min(100, Math.max(0, points));
-  };
-
-  const score = calculateScore(expirationFlags);
+  const score = scoringSnapshot.score;
   
   // Session NextAuth pour l'auto-save
   const { data: session } = useSession();
@@ -3639,11 +4082,76 @@ export default function ApplyClient({ token }: { token: string }) {
 
   // Mettre à jour l'état de malus de péremption et le message Expert
   useEffect(() => {
-    setHasExpirationMalus(expirationFlags.hasExpirationMalus);
-    if (!isAnalyzingDoc && expirationFlags.expertMessages.length > 0) {
+    const hasFlaggedDocuments = buildPortalDocuments().some(file => file.flagged);
+    setHasInconsistency(hasFlaggedDocuments || Boolean(nameVerification && !nameVerification.verified) || guarantorIdentityMismatch);
+    setHasExpirationMalus(
+      expirationFlags.hasExpirationMalus ||
+      scoringSnapshot.warnings.some((message: string) => /dater|fraich|mois|expire/i.test(message))
+    );
+    if (!isAnalyzingDoc && scoringSnapshot.warnings.length > 0) {
+      setExpertBubbleMessage(scoringSnapshot.warnings[0]);
+    } else if (!isAnalyzingDoc && expirationFlags.expertMessages.length > 0) {
       setExpertBubbleMessage(expirationFlags.expertMessages[0]);
     }
-  }, [expirationFlags, isAnalyzingDoc]);
+  }, [expirationFlags, isAnalyzingDoc, buildPortalDocuments, nameVerification, guarantorIdentityMismatch, scoringSnapshot.warnings]);
+
+  useEffect(() => {
+    const categories: Array<'identity' | 'resources' | 'guarantor'> = ['identity', 'resources', 'guarantor'];
+    let resolvedDocumentIds: string[] = [];
+
+    setUploadedFiles(prev => {
+      let changed = false;
+      const next = { ...prev };
+
+      for (const category of categories) {
+        next[category] = prev[category].map(file => {
+          if (!file.flagged || !file.inconsistencyDetected) {
+            return file;
+          }
+
+          const effectiveSubjectType =
+            file.subjectType ||
+            (category === 'guarantor'
+              ? 'guarantor'
+              : normalizeAnalysisDocumentType(file.aiAnalysis?.documentType || file.type || file.name) === 'CERTIFICAT_VISALE'
+                ? 'visale'
+                : 'tenant');
+          const expectedIdentity = getExpectedIdentityForSubject(effectiveSubjectType, file.subjectSlot);
+          const extractedIdentity = extractIdentityCandidate({
+            extractedData: file.extractedData,
+            document_metadata: file.aiAnalysis?.document_metadata,
+            ownerName: file.aiAnalysis?.ownerName,
+          });
+
+          if (!hasUsableIdentity(expectedIdentity) || !hasUsableIdentity(extractedIdentity)) {
+            return file;
+          }
+
+          const verification = compareIdentityToExpected(extractedIdentity, expectedIdentity);
+          if (!verification.matches) {
+            return file;
+          }
+
+          changed = true;
+          resolvedDocumentIds.push(file.id);
+          return {
+            ...file,
+            flagged: false,
+            inconsistencyDetected: false,
+            inconsistencyResolved: true,
+          };
+        });
+      }
+
+      return changed ? next : prev;
+    });
+
+    if (resolvedDocumentIds.length > 0) {
+      setDocumentInconsistencies(prev =>
+        prev.filter(inconsistency => !resolvedDocumentIds.includes(inconsistency.documentId))
+      );
+    }
+  }, [uploadedFiles, getExpectedIdentityForSubject]);
 
   // Auto-save: Sauvegarder la progression à chaque changement important
   const autoSaveTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -3652,33 +4160,67 @@ export default function ApplyClient({ token }: { token: string }) {
     if (!userEmail || !token) return;
     
     try {
-      await saveApplicationProgress(userEmail, token, {
+      const result = await saveApplicationProgress(userEmail, token, {
         currentStep,
         profile: {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
+          status: candidateStatus,
         },
+        candidateStatus,
         diditStatus: diditStatus === 'verified' ? 'VERIFIED' : diditStatus === 'loading' ? 'PENDING' : undefined,
         diditSessionId: diditSessionId || undefined,
         diditIdentity: diditIdentity || undefined,
-        documents: [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor].map(f => ({
-          id: f.id,
-          category: f.type?.includes('guarantor') ? 'guarantor' : f.type?.includes('identity') ? 'identity' : 'income',
-          type: f.type || 'UNKNOWN',
-          fileName: f.name,
-          status: f.status,
-          aiAnalysis: f.aiAnalysis,
-        })),
+        documents: [
+          ...uploadedFiles.identity.map(f => ({
+            id: f.id,
+            category: getPersistedDocumentCategory(f, 'identity'),
+            subjectType: 'tenant' as const,
+            type: f.type || 'UNKNOWN',
+            fileName: f.name,
+            status: f.status,
+            aiAnalysis: f.aiAnalysis,
+          })),
+          ...uploadedFiles.resources.map(f => ({
+            id: f.id,
+            category: getPersistedDocumentCategory(f, 'resources'),
+            subjectType: f.subjectType || (normalizeAnalysisDocumentType(f.aiAnalysis?.documentType || f.type || f.name) === 'CERTIFICAT_VISALE' ? 'visale' : 'tenant'),
+            type: f.type || 'UNKNOWN',
+            fileName: f.name,
+            status: f.status,
+            aiAnalysis: f.aiAnalysis,
+          })),
+          ...uploadedFiles.guarantor.map(f => ({
+            id: f.id,
+            category: getPersistedDocumentCategory(f, 'guarantor'),
+            subjectType: 'guarantor' as const,
+            subjectSlot: f.subjectSlot || 1,
+            type: f.type || 'UNKNOWN',
+            fileName: f.name,
+            status: f.status,
+            aiAnalysis: f.aiAnalysis,
+          })),
+        ],
         guarantorStatus: guarantorCertified ? 'CERTIFIED' : guarantorInvitationSent ? 'PENDING' : undefined,
         guarantorMethod: guarantorCertificationMethod || undefined,
         patrimometerScore: score,
+        patrimometerBreakdown: scoringSnapshot.breakdown,
+        patrimometerWarnings: scoringSnapshot.warnings,
+        patrimometerNextAction: scoringSnapshot.nextAction,
+        patrimometerChapterStates: scoringSnapshot.chapterStates,
+        guarantee: scoringSnapshot.guarantee,
+        propertyRentAmount: property?.rentAmount,
+        detectedIncome: detectedIncome ?? undefined,
       });
+      if (result?.success && result.applicationId) {
+        setApplicationId(result.applicationId);
+      }
       console.log('✅ Dossier sauvegardé automatiquement');
     } catch (error) {
       console.error('Erreur auto-save:', error);
     }
-  }, [userEmail, token, currentStep, formData, diditStatus, diditSessionId, diditIdentity, uploadedFiles, guarantorCertified, guarantorInvitationSent, guarantorCertificationMethod, score]);
+  }, [userEmail, token, currentStep, formData, candidateStatus, diditStatus, diditSessionId, diditIdentity, uploadedFiles, guarantorCertified, guarantorInvitationSent, guarantorCertificationMethod, score, scoringSnapshot, property?.rentAmount, detectedIncome]);
 
   // Déclencher l'auto-save avec debounce
   useEffect(() => {
@@ -3708,6 +4250,11 @@ export default function ApplyClient({ token }: { token: string }) {
         const { application } = await getApplication(userEmail, token);
         
         if (application && application.tunnel?.progress > 0) {
+          setHasStarted(true);
+          setShowOnboarding(false);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('patrimo_onboarding_seen', 'true');
+          }
           if ((application as { _id?: string })._id) {
             setApplicationId((application as { _id: string })._id);
           }
@@ -3723,7 +4270,11 @@ export default function ApplyClient({ token }: { token: string }) {
               firstName: application.profile.firstName || prev.firstName,
               lastName: application.profile.lastName || prev.lastName,
               phone: application.profile.phone || prev.phone,
+              status: (application.profile.status as CandidateStatus) || prev.status,
             }));
+            if (application.profile.status && SUPPORTED_PROFILES.includes(application.profile.status)) {
+              setCandidateStatus(application.profile.status as CandidateStatus);
+            }
           }
           
           // Restaurer le statut Didit
@@ -3736,8 +4287,77 @@ export default function ApplyClient({ token }: { token: string }) {
           
           // Restaurer le statut du garant
           if (application.guarantor?.status === 'CERTIFIED' || application.guarantor?.status === 'AUDITED') {
-            setGuarantorCertified(true);
-            setGuarantorCertificationMethod(application.guarantor.certificationMethod as 'DIDIT' | 'AUDIT');
+            if (application.guarantor?.certificationMethod !== 'VISALE') {
+              setGuarantorCertified(true);
+              setGuarantorCertificationMethod(application.guarantor.certificationMethod as 'DIDIT' | 'AUDIT');
+            }
+          }
+
+          if (Array.isArray(application.documents) && application.documents.length > 0) {
+            const restored = {
+              identity: [] as DocumentFile[],
+              resources: [] as DocumentFile[],
+              guarantor: [] as DocumentFile[],
+            };
+
+            application.documents.forEach((doc: any) => {
+              const restoredFile: DocumentFile = {
+                id: doc.id || Math.random().toString(36).slice(2),
+                type: doc.type || 'UNKNOWN',
+                name: doc.fileName || 'Document',
+                originalName: doc.fileName || 'Document',
+                status: doc.status || 'pending',
+                category: doc.category || 'Autre',
+                subjectType: doc.subjectType || (doc.category === 'guarantor' ? 'guarantor' : 'tenant'),
+                subjectSlot: doc.subjectSlot,
+                aiAnalysis: doc.aiAnalysis,
+              };
+
+              if (doc.category === 'identity') {
+                restored.identity.push(restoredFile);
+              } else if (doc.category === 'guarantor') {
+                restored.guarantor.push(restoredFile);
+              } else {
+                restored.resources.push(restoredFile);
+              }
+            });
+
+            setUploadedFiles(restored);
+          }
+
+          if (application.guarantee?.mode) {
+            setGuaranteeMode(application.guarantee.mode as GuaranteeMode);
+          } else if (application.guarantor?.certificationMethod === 'VISALE') {
+            setGuaranteeMode('VISALE');
+          } else if (application.guarantor?.hasGuarantor) {
+            setGuaranteeMode('PHYSICAL');
+          }
+
+          if (Array.isArray(application.guarantee?.guarantors) && application.guarantee.guarantors.length > 0) {
+            const slotOne = application.guarantee.guarantors.find((slot: any) => slot.slot === 1);
+            const slotTwo = application.guarantee.guarantors.find((slot: any) => slot.slot === 2);
+
+            if (slotOne) {
+              setGuarantorProfile((slotOne.profile as CandidateStatus) || 'Salarie');
+              setGuarantorFirstName(slotOne.firstName || '');
+              setGuarantorLastName(slotOne.lastName || '');
+              setGuarantorEmail(slotOne.email || '');
+              setGuarantorInvitationSent(Boolean(slotOne.invitationSent));
+            }
+
+            if (slotTwo) {
+              setGuarantorSlotsCount(2);
+              setSecondGuarantor({
+                slot: 2,
+                profile: (slotTwo.profile as CandidateStatus) || 'Salarie',
+                firstName: slotTwo.firstName || '',
+                lastName: slotTwo.lastName || '',
+                email: slotTwo.email || '',
+                status: slotTwo.status || 'NONE',
+                certificationMethod: slotTwo.certificationMethod || null,
+                invitationSent: Boolean(slotTwo.invitationSent),
+              });
+            }
           }
           
           // Afficher un message de bienvenue personnalisé
@@ -3763,11 +4383,22 @@ export default function ApplyClient({ token }: { token: string }) {
 
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/guarantor/status?applyToken=${encodeURIComponent(token)}`);
+        const searchParams = new URLSearchParams({
+          applyToken: token,
+          sessionId: guarantorDiditSessionId,
+          slot: '1',
+        });
+
+        if (guarantorEmail) {
+          searchParams.set('email', guarantorEmail);
+        }
+
+        const response = await fetch(`/api/guarantor/status?${searchParams.toString()}`);
         if (response.ok) {
           const data = await response.json();
           if (data.guarantor && data.guarantor.status === 'CERTIFIED') {
             setGuarantorCertified(true);
+            setGuaranteeMode('PHYSICAL');
             setGuarantorFirstName(data.guarantor.firstName || guarantorFirstName);
             setGuarantorLastName(data.guarantor.lastName || guarantorLastName);
             setGuarantorEmail(data.guarantor.email || guarantorEmail);
@@ -3777,15 +4408,16 @@ export default function ApplyClient({ token }: { token: string }) {
               (data.guarantor.identityVerification?.source?.includes('Audit'));
             const certMethod = isAuditCertified ? 'AUDIT' : 'DIDIT';
             setGuarantorCertificationMethod(certMethod);
+            setGuarantorDirectCertification(false);
+            setGuarantorDiditVerificationUrl(null);
             
-            const points = certMethod === 'DIDIT' ? 40 : 30;
             const badge = certMethod === 'DIDIT' ? 'Identité Souveraine Certifiée' : 'Identité Auditée & Cohérente';
             
             setAiFeedback({
               visible: true,
-              message: `🎉 Garantie Souveraine Activée ! Votre garant a certifié son identité. Badge "${badge}" +${points} points ajoutés au PatrimoMeter™.`,
+              message: `🎉 Garantie Souveraine activée. Le garant 1 a validé son identité et son bloc Garantie vient d'être renforcé (${badge}).`,
               type: 'success',
-              scoreIncrease: points,
+              scoreIncrease: 10,
             });
             setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 8000);
             clearInterval(interval);
@@ -3797,44 +4429,9 @@ export default function ApplyClient({ token }: { token: string }) {
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [guarantorDiditSessionId, guarantorCertified, token, guarantorFirstName, guarantorLastName]);
+  }, [guarantorDiditSessionId, guarantorCertified, token, guarantorFirstName, guarantorLastName, guarantorEmail]);
 
-  // --- Calculer le nudge IA (prochaine action suggérée) ---
-  const getNextAction = (): { action: string; points: number } | null => {
-    if (diditStatus !== 'verified') {
-      return { action: 'Vérifiez votre identité avec Didit', points: 40 };
-    }
-    
-    const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor];
-    const validDocsCount = allFiles.filter(f => f.status === 'certified').length;
-    
-    if (validDocsCount === 0) {
-      return { action: 'Ajoutez votre premier justificatif', points: 10 };
-    }
-    
-    if (candidateStatus === 'Etudiant') {
-      if (!certifiedItems.has('bourse')) {
-        return { action: "Ajoutez votre avis d'attribution de bourse", points: 10 };
-      }
-      if (!uploadedFiles.guarantor.some(f => f.status === 'certified')) {
-        return { action: 'Ajoutez les documents de votre garant', points: 20 };
-      }
-    }
-    
-    if (candidateStatus === 'Salarie') {
-      if (!certifiedItems.has('salaire')) {
-        return { action: 'Ajoutez vos 3 derniers bulletins de salaire', points: 10 };
-      }
-    }
-    
-    if (score < 90) {
-      return { action: 'Complétez votre dossier pour atteindre l\'Excellence', points: 90 - score };
-    }
-    
-    return null;
-  };
-
-  const nextActionInfo = getNextAction();
+  const nextActionInfo = scoringSnapshot.nextAction || null;
 
   // NOTE: Le calcul de solvabilité a été déplacé côté serveur (propriétaire uniquement).
   // Côté locataire, seule la certification des données brutes est effectuée.
@@ -3860,70 +4457,9 @@ export default function ApplyClient({ token }: { token: string }) {
 
   // --- Mapper le documentType de l'IA vers un CertificationItem ---
   const mapDocumentTypeToChecklistId = (documentType: string, category: 'identity' | 'resources' | 'guarantor'): CertificationItem | null => {
-    const docTypeLower = documentType.toLowerCase();
-    
-    // Mapping direct depuis les types retournés par l'IA
-    const typeMapping: Record<string, string> = {
-      'cni': 'cni',
-      'passeport': 'cni',
-      'carte d\'identité': 'cni',
-      'bulletin': 'salaire',
-      'bulletin de salaire': 'salaire',
-      'fiche de paie': 'salaire',
-      'bourse': 'bourse',
-      'avis de bourse': 'bourse',
-      'crous': 'bourse',
-      'caf': 'caf',
-      'apl': 'caf',
-      'als': 'caf',
-      'attestation caf': 'caf',
-      'pension': 'pension',
-      'pension alimentaire': 'pension',
-      'contrat': 'contrat',
-      'contrat de travail': 'contrat',
-      'scolarite': 'scolarite',
-      'certificat de scolarité': 'scolarite',
-      'avis d\'imposition': 'avis_imposition',
-      'impot': 'avis_imposition',
-      'rfr': 'avis_imposition',
-      'attestation employeur': 'attestation_employeur',
-      'employeur': 'attestation_employeur',
-      'urssaf': 'attestation_urssaf',
-      'bilan': 'bilan_n1',
-      'liasse': 'bilan_n1',
-      'kbis': 'kbis',
-      'domicile': 'domicile',
-      'quittance': 'quittance',
-      'visale': 'visale',
-    };
-    
-    let checklistId = typeMapping[docTypeLower];
-    if (!checklistId) {
-      for (const [key, value] of Object.entries(typeMapping)) {
-        if (docTypeLower.includes(key)) {
-          checklistId = value;
-          break;
-        }
-      }
-    }
-    if (checklistId) {
-      const item = ALL_CERTIFICATION_ITEMS.find(i => i.id === checklistId);
-      if (item) {
-        // Vérifier que l'item correspond à la catégorie du fichier
-        if (category === 'guarantor' && checklistId === 'salaire') {
-          return ALL_CERTIFICATION_ITEMS.find(i => i.id === 'garant_salaires') || null;
-        }
-        if (category === 'guarantor' && (checklistId === 'cni' || docTypeLower.includes('identité'))) {
-          return ALL_CERTIFICATION_ITEMS.find(i => i.id === 'garant_id') || null;
-        }
-        if (category === 'guarantor' && (docTypeLower.includes('domicile') || docTypeLower.includes('facture'))) {
-          return ALL_CERTIFICATION_ITEMS.find(i => i.id === 'garant_domicile') || null;
-        }
-        return item;
-      }
-    }
-    
-    return null;
+    const checklistId = getChecklistIdForDocumentType(documentType, category);
+    if (!checklistId) return null;
+    return ALL_CERTIFICATION_ITEMS.find(i => i.id === checklistId) || null;
   };
 
   // --- Afficher le sceau doré ---
@@ -4036,8 +4572,9 @@ export default function ApplyClient({ token }: { token: string }) {
               ? { 
                   ...f, 
                   forceSent: true,
-                  status: 'certified' as const, // Considérer comme certifié (avec note)
+                  status: 'needs_review' as const,
                   needsHumanReview: true, // Garder le flag pour le propriétaire
+                  canForceSend: false,
                 }
               : f
           )
@@ -4045,9 +4582,8 @@ export default function ApplyClient({ token }: { token: string }) {
         
         setAiFeedback({
           visible: true,
-          message: '✅ Document envoyé ! Le propriétaire effectuera une vérification visuelle complémentaire.',
+          message: '📤 Document transmis au propriétaire pour revue visuelle. Il ne sera pas marqué comme certifié tant qu il n aura pas été remplacé ou validé.',
           type: 'success',
-          scoreIncrease: 5, // Points réduits pour document avec doute
         });
         setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 4000);
         break;
@@ -4224,7 +4760,11 @@ export default function ApplyClient({ token }: { token: string }) {
   };
 
   // --- Gérer l'upload de fichiers avec IA réelle ---
-  const handleFileUpload = async (category: 'identity' | 'resources' | 'guarantor', files: FileList | null) => {
+  const handleFileUpload = async (
+    category: 'identity' | 'resources' | 'guarantor',
+    files: FileList | null,
+    options?: { subjectType?: 'tenant' | 'guarantor' | 'visale'; subjectSlot?: 1 | 2 }
+  ) => {
     if (!files) return;
     
     for (let file of Array.from(files)) {
@@ -4265,6 +4805,13 @@ export default function ApplyClient({ token }: { token: string }) {
 
       // Détection initiale par nom de fichier (pour l'affichage immédiat)
       const detected = detectDocumentType(file.name);
+      const resolvedSubjectType =
+        options?.subjectType ||
+        (category === 'guarantor' ? 'guarantor' : 'tenant');
+      const resolvedSubjectSlot =
+        resolvedSubjectType === 'guarantor'
+          ? (options?.subjectSlot || 1)
+          : undefined;
       
       const newFile: DocumentFile = {
         id: Math.random().toString(36).substr(2, 9),
@@ -4273,6 +4820,8 @@ export default function ApplyClient({ token }: { token: string }) {
         originalName: file.name, // Conserver le nom original
         status: 'analyzing',
         category: detected?.category || 'Autre',
+        subjectType: resolvedSubjectType,
+        subjectSlot: resolvedSubjectSlot,
       };
 
       setUploadedFiles(prev => ({
@@ -4341,22 +4890,45 @@ export default function ApplyClient({ token }: { token: string }) {
         
         // Vérifier si document illisible
         const isIllegible = analysis.isIllegible === true;
-        // Flag si score de confiance faible OU fraudScore élevé OU indicateurs de fraude
-        const isFlagged = !isIllegible && (
-          analysis.confidenceScore < 60 || 
-          analysis.fraudIndicators?.suspicious === true ||
-          (analysis.fraudScore !== undefined && analysis.fraudScore > 50)
-        );
-        const isRejected = !isIllegible && (
-          analysis.confidenceScore < 40 || 
-          (analysis.fraudScore !== undefined && analysis.fraudScore > 90)
-        );
+        const aiDocumentType = analysis.documentType || analysis.document_metadata?.type || '';
+        const normalizedAiDocumentType = normalizeAnalysisDocumentType(aiDocumentType);
+        const aiFraudScore = analysis.fraudScore ?? analysis.trust_and_security?.fraud_score ?? 0;
+        const compatibleDetectedItem =
+          detected && isChecklistItemCompatibleWithUploadCategory(detected, category)
+            ? detected
+            : null;
+        const aiDetectedItem = aiDocumentType
+          ? mapDocumentTypeToChecklistId(aiDocumentType, category)
+          : null;
+        let finalDetectedItem = aiDetectedItem || compatibleDetectedItem;
+        if (finalDetectedItem?.id === 'bilan_n1' && certifiedItems.has('bilan_n1') && !certifiedItems.has('bilan_n2')) {
+          const secondBilan = ALL_CERTIFICATION_ITEMS.find(i => i.id === 'bilan_n2') || null;
+          if (secondBilan) finalDetectedItem = secondBilan;
+        }
+
+        const certificationDecision = getDocumentCertificationDecision({
+          uploadCategory: category,
+          aiDocumentType: aiDocumentType || normalizedAiDocumentType,
+          fraudScore: aiFraudScore,
+          isIllegible,
+          needsHumanReview: analysis.needsHumanReview || false,
+          partialExtraction: analysis.partialExtraction || false,
+          hasCompatibleChecklistHint: Boolean(finalDetectedItem),
+        });
+        const isFlagged = certificationDecision.flagged || analysis.fraudIndicators?.suspicious === true;
+        const isRejected = certificationDecision.status === 'rejected';
+        const finalStatus = certificationDecision.status as DocumentFile['status'];
+        const finalConfidenceScore = analysis.confidenceScore ?? certificationDecision.confidenceScore;
         
         // Déterminer si renommage a eu lieu
         const formattedFileName = buildSuggestedFileName(analysis, file, detected?.label || file.name);
         const finalSuggestedName = !isIllegible ? (formattedFileName || analysis.suggestedFileName) : undefined;
         const hasBeenRenamed = !!finalSuggestedName && finalSuggestedName !== file.name;
-        
+        const finalSubjectType =
+          resolvedSubjectType === 'tenant' && normalizedAiDocumentType === 'CERTIFICAT_VISALE'
+            ? 'visale'
+            : resolvedSubjectType;
+
         // Mettre à jour le fichier avec les résultats de l'analyse
         setUploadedFiles(prev => ({
           ...prev,
@@ -4364,14 +4936,11 @@ export default function ApplyClient({ token }: { token: string }) {
             f.id === newFile.id 
               ? { 
                   ...f, 
-                  status: isIllegible 
-                    ? 'illegible' as const 
-                    : isRejected 
-                    ? 'rejected' as const 
-                    : 'certified' as const,
+                  type: finalDetectedItem?.label || (normalizedAiDocumentType !== 'AUTRE' ? normalizedAiDocumentType.replace(/_/g, ' ') : f.type),
+                  status: finalStatus,
                   flagged: isFlagged,
-                  confidenceScore: analysis.confidenceScore,
-                  fraudScore: analysis.fraudScore, // Score d'audit anti-fraude
+                  confidenceScore: finalConfidenceScore,
+                  fraudScore: aiFraudScore,
                   extractedData: analysis.extractedData,
                   // Dates normalisées
                   dateEmission: analysis.document_metadata?.date_emission || analysis.date || analysis.extractedData?.dates?.[0],
@@ -4381,48 +4950,68 @@ export default function ApplyClient({ token }: { token: string }) {
                   suggestedName: hasBeenRenamed ? finalSuggestedName : undefined,
                   name: hasBeenRenamed ? finalSuggestedName! : file.name,
                   isRenamed: hasBeenRenamed,
+                  subjectType: finalSubjectType,
+                  subjectSlot: resolvedSubjectSlot,
                   // Message d'erreur pour docs illisibles
                   errorMessage: isIllegible ? analysis.errorMessage : undefined,
                   // Nouveaux champs "Bienveillance Sécuritaire"
-                  needsHumanReview: analysis.needsHumanReview || false,
-                  humanReviewReason: analysis.humanReviewReason,
+                  needsHumanReview: finalStatus === 'needs_review' || analysis.needsHumanReview || false,
+                  humanReviewReason: analysis.humanReviewReason || certificationDecision.reason,
                   partialExtraction: analysis.partialExtraction || false,
                   extractedFields: analysis.extractedFields,
-                  improvementTip: analysis.improvementTip || analysis.expertAdvice,
+                  improvementTip: analysis.improvementTip || analysis.expertAdvice || certificationDecision.reason,
+                  canForceSend: certificationDecision.canForceSend,
+                  categoryMatch: certificationDecision.categoryMatch,
                   aiAnalysis: {
-                    documentType: analysis.documentType,
+                    documentType: aiDocumentType || normalizedAiDocumentType,
                     ownerName: analysis.ownerName || analysis.document_metadata?.owner_name,
-                    recommendations: analysis.recommendations,
+                    recommendations: analysis.recommendations || [],
                     fraudIndicators: analysis.fraudIndicators,
                     fraudAudit: analysis.fraudAudit, // Détails de l'audit anti-fraude
                     document_metadata: analysis.document_metadata, // Pour cross-check garant (CNI vs avis)
+                    financial_data: analysis.financial_data,
+                    trust_and_security: analysis.trust_and_security,
                   }
                 }
               : f
           )
         }));
 
-        // Vérification anti-fraude : identité Didit vs documents
-        if (analysis.extractedData?.nom && analysis.extractedData?.prenom) {
-          const compareTarget = diditIdentity?.firstName && diditIdentity?.lastName
-            ? { lastName: diditIdentity.lastName || '', firstName: diditIdentity.firstName || '' }
-            : { lastName: formData.lastName, firstName: formData.firstName };
+        if (finalSubjectType === 'visale') {
+          setGuaranteeMode('VISALE');
+        }
+        if (finalSubjectType === 'guarantor') {
+          setGuaranteeMode('PHYSICAL');
+          if (resolvedSubjectSlot === 2) {
+            setGuarantorSlotsCount(2);
+          }
+        }
 
-          const verification = verifyNameConsistency(
-            { nom: analysis.extractedData.nom, prenom: analysis.extractedData.prenom },
-            compareTarget
-          );
-          
-          setNameVerification({
-            verified: verification.matches,
-            message: verification.message,
-          });
-          
+        // Vérification anti-fraude : cohérence des noms par sujet (locataire, garant 1, garant 2)
+        const expectedIdentity = getExpectedIdentityForSubject(
+          finalSubjectType,
+          resolvedSubjectSlot
+        );
+        const extractedIdentity = extractIdentityCandidate({
+          extractedData: analysis.extractedData,
+          document_metadata: analysis.document_metadata,
+          ownerName: analysis.ownerName,
+        });
+
+        if (hasUsableIdentity(expectedIdentity) && hasUsableIdentity(extractedIdentity)) {
+          const verification = compareIdentityToExpected(extractedIdentity, expectedIdentity);
+
+          if (finalSubjectType !== 'guarantor') {
+            setNameVerification({
+              verified: verification.matches,
+              message: verification.message,
+            });
+          }
+
           if (!verification.matches) {
-            // Stocker l'incohérence détaillée
-            const detectedFullName = `${analysis.extractedData.prenom || ''} ${analysis.extractedData.nom || ''}`.trim();
-            const expectedFullName = `${compareTarget.firstName} ${compareTarget.lastName}`.trim();
-            
+            const detectedFullName = extractedIdentity.fullName || `${extractedIdentity.firstName || ''} ${extractedIdentity.lastName || ''}`.trim();
+            const expectedFullName = `${expectedIdentity.firstName || ''} ${expectedIdentity.lastName || ''}`.trim();
+
             const newInconsistency = {
               documentId: newFile.id,
               documentName: analysis.documentType || file.name,
@@ -4431,25 +5020,22 @@ export default function ApplyClient({ token }: { token: string }) {
               expectedName: expectedFullName,
               status: 'detected' as const,
             };
-            
-            // Ajouter à la liste des incohérences (éviter les doublons)
+
             setDocumentInconsistencies(prev => {
               const exists = prev.some(inc => inc.documentId === newFile.id);
               if (exists) return prev;
               return [...prev, newInconsistency];
             });
-            
-            // Mettre à jour le statut du fichier pour indiquer l'incohérence
+
             setUploadedFiles(prev => ({
               ...prev,
-              [category]: prev[category].map(f => 
-                f.id === newFile.id 
+              [category]: prev[category].map(f =>
+                f.id === newFile.id
                   ? { ...f, flagged: true, inconsistencyDetected: true }
                   : f
               )
             }));
-            
-            // Afficher la modale de résolution après un court délai
+
             setTimeout(() => {
               setActiveInconsistency({
                 documentId: newFile.id,
@@ -4465,50 +5051,68 @@ export default function ApplyClient({ token }: { token: string }) {
         // Profil détecté par l'IA
         if (analysis.personaMatch?.detectedProfile) {
           setDetectedProfile(analysis.personaMatch.detectedProfile);
-        } else if (analysis.documentType === 'bourse' || analysis.documentType === 'scolarite') {
+        } else if (normalizedAiDocumentType === 'ATTESTATION_BOURSE' || normalizeValue(aiDocumentType).includes('scolarite')) {
           setDetectedProfile('Étudiant boursier');
           setCandidateStatus('Etudiant');
           setFormData(prev => ({ ...prev, status: 'Etudiant' }));
-        } else if (analysis.documentType === 'bulletin' || analysis.documentType === 'contrat') {
+        } else if (normalizedAiDocumentType === 'BULLETIN_SALAIRE' || normalizedAiDocumentType === 'CONTRAT_TRAVAIL') {
           setDetectedProfile('Salarié');
           setCandidateStatus('Salarie');
           setFormData(prev => ({ ...prev, status: 'Salarie' }));
+        } else if (normalizedAiDocumentType === 'PENSION' || normalizeValue(aiDocumentType).includes('retraite')) {
+          setDetectedProfile('Retraité');
+          setCandidateStatus('Retraite');
+          setFormData(prev => ({ ...prev, status: 'Retraite' }));
         }
 
         // Revenus détectés - Intelligence selon le type de document
-        if (analysis.extractedData?.montants?.length) {
-          const total = analysis.extractedData.montants.reduce((sum, val) => sum + val, 0);
-          if (!Number.isNaN(total) && total > 0) {
-            const docType = normalizeValue(analysis.documentType || '');
-            
-            // Catégorisation intelligente des revenus
-            if (docType.includes('bourse') || docType.includes('crous')) {
-              setBourseAmount(prev => (prev || 0) + total);
-              setDetectedIncome(prev => (prev || 0) + total);
-            } else if (docType.includes('caf') || docType.includes('apl') || docType.includes('als')) {
-              setAplAmount(prev => (prev || 0) + total);
-              setDetectedIncome(prev => (prev || 0) + total);
-            } else if (category === 'guarantor' || docType.includes('garant')) {
-              setGuarantorIncome(prev => (prev || 0) + total);
-            } else {
-              // Revenus généraux (salaire, etc.)
-              setDetectedIncome(prev => (prev || 0) + total);
-            }
+        const normalizedDocType = normalizeValue(analysis.documentType || '');
+        const resolvedIncomeContribution = getDocumentIncomeContribution({
+          documentType: analysis.document_metadata?.type || analysis.documentType,
+          analysis,
+        });
+        const resolvedMonthlyIncome = Number(resolvedIncomeContribution?.amount || 0);
+
+        if (resolvedMonthlyIncome > 0) {
+          if (normalizedDocType.includes('bourse') || normalizedDocType.includes('crous')) {
+            setBourseAmount(prev => {
+              const next = Math.max(prev || 0, resolvedMonthlyIncome);
+              const salaryAverage =
+                salaryNetSamples.length > 0
+                  ? salaryNetSamples.reduce((sum, value) => sum + value, 0) / salaryNetSamples.length
+                  : 0;
+              setDetectedIncome(salaryAverage > 0 ? salaryAverage + next + (aplAmount || 0) : next + (aplAmount || 0));
+              return next;
+            });
+          } else if (normalizedDocType.includes('caf') || normalizedDocType.includes('apl') || normalizedDocType.includes('als')) {
+            setAplAmount(prev => {
+              const next = Math.max(prev || 0, resolvedMonthlyIncome);
+              const salaryAverage =
+                salaryNetSamples.length > 0
+                  ? salaryNetSamples.reduce((sum, value) => sum + value, 0) / salaryNetSamples.length
+                  : 0;
+              setDetectedIncome(salaryAverage > 0 ? salaryAverage + next + (bourseAmount || 0) : next + (bourseAmount || 0));
+              return next;
+            });
+          } else if (category === 'guarantor' || normalizedDocType.includes('garant')) {
+            setGuarantorIncome(prev => Math.max(prev || 0, resolvedMonthlyIncome));
+          } else if (normalizedDocType.includes('bulletin') || normalizedDocType.includes('salaire')) {
+            setSalaryNetSamples(prev => {
+              const next = [...prev, resolvedMonthlyIncome].slice(-3);
+              const averageSalary = next.reduce((sum, value) => sum + value, 0) / next.length;
+              setDetectedIncome(averageSalary + (aplAmount || 0) + (bourseAmount || 0));
+              return next;
+            });
+          } else if (!normalizedDocType.includes('imposition') && !normalizedDocType.includes('rfr')) {
+            setDetectedIncome(prev => Math.max(prev || 0, resolvedMonthlyIncome));
           }
         }
 
         // Cross-check RFR (Avis d'imposition) vs bulletins de salaire
-        const normalizedDocType = normalizeValue(analysis.documentType || '');
         if (normalizedDocType.includes('imposition') || normalizedDocType.includes('rfr')) {
           const rfrCandidate = Math.max(...(analysis.extractedData?.montants || []));
           if (Number.isFinite(rfrCandidate) && rfrCandidate > 0) {
             setRfrAmount(rfrCandidate);
-          }
-        }
-        if (normalizedDocType.includes('bulletin') || normalizedDocType.includes('salaire')) {
-          const monthlyNet = analysis.financial_data?.monthly_net_income || analysis.extractedData?.montants?.[0];
-          if (monthlyNet && Number.isFinite(monthlyNet) && monthlyNet > 0) {
-            setSalaryNetSamples(prev => [...prev, monthlyNet].slice(-3));
           }
         }
 
@@ -4529,7 +5133,7 @@ export default function ApplyClient({ token }: { token: string }) {
         }
 
         // Afficher les recommandations de l'IA
-        if (analysis.recommendations?.length > 0) {
+        if (analysis.recommendations?.length > 0 && finalStatus === 'certified') {
           setAiFeedback({
             visible: true,
             message: analysis.recommendations[0],
@@ -4573,41 +5177,47 @@ export default function ApplyClient({ token }: { token: string }) {
           setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 10000);
         }
 
-        // Mapper le documentType de l'IA vers un item de checklist
-        // Priorité: documentType de l'IA > détection par nom de fichier
-        const aiDetectedItem = analysis.documentType 
-          ? mapDocumentTypeToChecklistId(analysis.documentType, category)
-          : null;
-        let finalDetectedItem = aiDetectedItem || detected;
-
-        if (finalDetectedItem?.id === 'bilan_n1' && certifiedItems.has('bilan_n1') && !certifiedItems.has('bilan_n2')) {
-          const secondBilan = ALL_CERTIFICATION_ITEMS.find(i => i.id === 'bilan_n2') || null;
-          if (secondBilan) finalDetectedItem = secondBilan;
-        }
-        
         // Si le document est certifié avec succès
-        if (!isRejected && !isFlagged && finalDetectedItem && !certifiedItems.has(finalDetectedItem.id)) {
+        if (finalStatus === 'certified' && !isFlagged && finalDetectedItem && !certifiedItems.has(finalDetectedItem.id)) {
           setCertifiedItems(prev => new Set([...prev, finalDetectedItem.id]));
           triggerGoldenSeal(finalDetectedItem.label);
           setExpertBubbleMessage('Parfait ! Votre solvabilité est renforcée de 15 points.');
           setTimeout(() => setExpertBubbleMessage('Expert PatrimoTrust™ à votre service.'), 5000);
           
           // Message de succès avec augmentation du score
-          const scoreIncrease = Math.floor(analysis.confidenceScore / 10);
+          const scoreIncrease = Math.floor(finalConfidenceScore / 10);
           setAiFeedback({
             visible: true,
-            message: `✅ Document certifié avec succès ! "${finalDetectedItem.label}" ajouté à votre checklist. Score de confiance : ${analysis.confidenceScore}%`,
+            message: `✅ Document certifié avec succès ! "${finalDetectedItem.label}" ajouté à votre checklist. Score de confiance : ${finalConfidenceScore}%`,
             type: 'success',
             scoreIncrease,
           });
           setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
         }
 
+        if (finalStatus === 'needs_review' && certificationDecision.reason && !isFlagged) {
+          setAiFeedback({
+            visible: true,
+            message: `🧠 ${certificationDecision.reason}`,
+            type: 'info',
+          });
+          setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 7000);
+        }
+
+        if (finalStatus === 'rejected' && !isFlagged && certificationDecision.reason) {
+          setAiFeedback({
+            visible: true,
+            message: `📄 ${certificationDecision.reason}`,
+            type: 'warning',
+          });
+          setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 7000);
+        }
+
         // Alerte si document suspect (doute technique, pas accusation)
-        if (isFlagged || isRejected) {
+        if (isFlagged) {
           // Construire un message détaillé selon le fraudScore, en parlant de "doute technique"
           let alertMessage = '';
-          if (analysis.fraudScore !== undefined && analysis.fraudScore > 50) {
+          if (aiFraudScore > 50) {
             const fraudDetails: string[] = [];
             if (analysis.fraudAudit?.structureAnalysis?.suspiciousAlignment) {
               fraudDetails.push('alignements suspects');
@@ -4622,13 +5232,13 @@ export default function ApplyClient({ token }: { token: string }) {
               fraudDetails.push('incohérences de dates');
             }
             
-            alertMessage = `🔍 Nous avons un doute technique sur la structure de ce document (Score d'intégrité: ${Math.max(0, 100 - analysis.fraudScore)}/100). `;
+            alertMessage = `🔍 Nous avons un doute technique sur la structure de ce document (Score d'intégrité: ${Math.max(0, 100 - aiFraudScore)}/100). `;
             if (fraudDetails.length > 0) {
               alertMessage += `Éléments à vérifier: ${fraudDetails.join(', ')}. `;
             }
             alertMessage += `Pour garantir votre certification, pouvez-vous fournir l'original numérique (PDF natif) plutôt qu'une photo ?`;
-          } else if (analysis.fraudScore !== undefined && analysis.fraudScore > 10) {
-            alertMessage = `⚠️ Petite anomalie de lecture détectée (Score d'intégrité: ${Math.max(0, 100 - analysis.fraudScore)}/100). `;
+          } else if (aiFraudScore > 10) {
+            alertMessage = `⚠️ Petite anomalie de lecture détectée (Score d'intégrité: ${Math.max(0, 100 - aiFraudScore)}/100). `;
             const reasons = analysis.fraudIndicators?.reasons.join(', ') || 'Vérifications recommandées';
             alertMessage += `${reasons}. Une version plus nette ou l'original PDF aidera l'expert à confirmer votre dossier.`;
           } else {
@@ -4711,6 +5321,65 @@ export default function ApplyClient({ token }: { token: string }) {
   // On utilise directement la redirection vers verify.didit.me
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const returnedSessionId = params.get('session_id');
+    const returnedDiditStatus = params.get('didit_status');
+
+    if (!returnedSessionId) return;
+
+    setDiditSessionId((current) => current || returnedSessionId);
+    setDiditStatus('loading');
+    setDiditVerificationUrl(null);
+    setDiditQrCode(null);
+
+    if (returnedDiditStatus) {
+      setAiFeedback({
+        visible: true,
+        message: returnedDiditStatus.toLowerCase() === 'approved'
+          ? 'Verification Didit terminee. Confirmation de votre identite en cours...'
+          : `Retour Didit recu (${returnedDiditStatus}). Verification du statut en cours...`,
+        type: 'info',
+      });
+      setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 7000);
+    }
+
+    const cleanUrl = `/apply/${encodeURIComponent(token)}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }, [token]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleDiditMessage = (event: MessageEvent<DiditPostMessage>) => {
+      if (event.origin !== window.location.origin) return;
+
+      const payload = event.data;
+      if (!payload || payload.source !== 'doc2loc-didit' || payload.type !== 'didit_completed') {
+        return;
+      }
+
+      if (payload.sessionId) {
+        setDiditSessionId((current) => current || payload.sessionId || null);
+      }
+
+      setDiditStatus('loading');
+      setDiditVerificationUrl(null);
+      setDiditQrCode(null);
+      setAiFeedback({
+        visible: true,
+        message: 'Verification Didit terminee. Confirmation de votre identite en cours...',
+        type: 'info',
+      });
+      setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 7000);
+    };
+
+    window.addEventListener('message', handleDiditMessage);
+    return () => window.removeEventListener('message', handleDiditMessage);
+  }, []);
+
+  useEffect(() => {
     if (!diditSessionId) return;
     const interval = setInterval(async () => {
       try {
@@ -4731,6 +5400,8 @@ export default function ApplyClient({ token }: { token: string }) {
             lastName: data.lastName || prev.lastName,
             birthDate: data.birthDate || prev.birthDate,
           }));
+          setDiditVerificationUrl(null);
+          setDiditQrCode(null);
           setCertifiedItems(prev => new Set([...prev, 'cni']));
           // Ne pas passer automatiquement à l'étape 2 - attendre que le formulaire de coordonnées soit rempli
           clearInterval(interval);
@@ -4775,14 +5446,16 @@ export default function ApplyClient({ token }: { token: string }) {
   }, [isAnalyzingDoc]);
 
   // --- Navigation ---
-  const canAccessGuarantee = score >= 80;
+  const canAccessGuarantee = scoringSnapshot.chapterStates.guarantee.accessible;
+  const guaranteeRequirement = scoringSnapshot.chapterStates.guarantee.requirement;
+  const guaranteeSatisfied = scoringSnapshot.chapterStates.guarantee.satisfied;
 
   const handleNext = async () => {
     if (currentStep === 2) {
       if (!canAccessGuarantee) {
         setAiFeedback({
           visible: true,
-          message: "Chapitre III verrouillé : atteignez 80% sur les revenus & statut pour débloquer les garanties.",
+          message: "Chapitre III s'ouvre dès que votre identité est engagée. Lancez d'abord la vérification d'identité ou ajoutez une pièce d'identité.",
           type: 'warning',
         });
         setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 6000);
@@ -4797,6 +5470,15 @@ export default function ApplyClient({ token }: { token: string }) {
     } else if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
     } else if (currentStep === 4) {
+      if (!canAccessCertification) {
+        setAiFeedback({
+          visible: true,
+          message: passportBlockerMessage,
+          type: 'warning',
+        });
+        setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 6000);
+        return;
+      }
       if (!userEmail || !token) return;
       setSubmittingPassport(true);
       try {
@@ -4858,10 +5540,13 @@ export default function ApplyClient({ token }: { token: string }) {
   const getRequiredDocuments = (): string[] => {
     const base = ['cni', 'domicile'];
     if (candidateStatus === 'Etudiant') {
-      return [...base, 'scolarite', 'bourse'];
+      return [...base, 'scolarite'];
     }
     if (candidateStatus === 'Salarie') {
       return [...base, 'attestation_employeur', 'salaire', 'avis_imposition'];
+    }
+    if (candidateStatus === 'Retraite') {
+      return [...base, 'pension', 'avis_imposition'];
     }
     return [...base, 'avis_imposition', 'bilan_n1', 'bilan_n2', 'attestation_urssaf'];
   };
@@ -4884,6 +5569,11 @@ export default function ApplyClient({ token }: { token: string }) {
     : candidateStatus === 'Salarie'
     ? [
         { id: 'attestation_employeur', label: 'Attestation employeur' },
+        { id: 'avis_imposition', label: 'Avis d\'imposition' },
+      ]
+    : candidateStatus === 'Retraite'
+    ? [
+        { id: 'pension', label: 'Justificatif de retraite' },
         { id: 'avis_imposition', label: 'Avis d\'imposition' },
       ]
     : [
@@ -4975,7 +5665,17 @@ export default function ApplyClient({ token }: { token: string }) {
   };
 
   const profileDocs = REQUIRED_DOCS_BY_PROFILE[candidateStatus] || REQUIRED_DOCS_BY_PROFILE.Etudiant;
-  const certifiedResources = uploadedFiles.resources.filter(file => file.status === 'certified' && !file.flagged);
+  const slotOneGuarantorFiles = getGuarantorFilesForSlot(1);
+  const slotTwoGuarantorFiles = getGuarantorFilesForSlot(2);
+  const reviewedResources = uploadedFiles.resources.filter(file =>
+    file.status === 'certified' ||
+    file.status === 'rejected' ||
+    file.status === 'illegible' ||
+    file.status === 'needs_review' ||
+    !!file.flagged
+  );
+  const certifiedResources = reviewedResources.filter(file => file.status === 'certified' && !file.flagged);
+  const invalidatedResources = reviewedResources.filter(file => file.status !== 'certified' || !!file.flagged);
   const missingResourceDocs = profileDocs.required
     .map(id => ALL_CERTIFICATION_ITEMS.find(item => item.id === id))
     .filter((item): item is CertificationItem => !!item)
@@ -4983,27 +5683,50 @@ export default function ApplyClient({ token }: { token: string }) {
   const missingSummary = missingResourceDocs.slice(0, 3);
   const requiredTotal = profileDocs.required.length;
   const requiredDone = requiredTotal - missingResourceDocs.length;
+  const passportStudioFallbackWarnings = useMemo(() => (
+    scoringSnapshot.warnings.slice(0, 4).length > 0
+      ? scoringSnapshot.warnings.slice(0, 4)
+      : [scoringSnapshot.nextAction?.action || passportBlockerMessage]
+  ), [passportBlockerMessage, scoringSnapshot.nextAction, scoringSnapshot.warnings]);
+  const passportStudioRefreshKey = useMemo(() => [
+    applicationId || 'draft',
+    score,
+    diditStatus,
+    uploadedFiles.identity.length,
+    uploadedFiles.resources.length,
+    uploadedFiles.guarantor.length,
+    guaranteeMode,
+    guarantorSlotsCount,
+    guarantorCertified ? '1' : '0',
+  ].join(':'), [
+    applicationId,
+    diditStatus,
+    guaranteeMode,
+    guarantorCertified,
+    guarantorSlotsCount,
+    score,
+    uploadedFiles.guarantor.length,
+    uploadedFiles.identity.length,
+    uploadedFiles.resources.length,
+  ]);
 
-  // Certification (étape 4) : accessible seulement si identité validée + toutes les pièces requises (Revenus & Statut)
-  const identityValidated = diditStatus === 'verified' || uploadedFiles.identity.some(f => f.status === 'certified');
-  const canAccessCertification =
-    identityValidated &&
-    canAccessGuarantee &&
-    requiredDone >= requiredTotal &&
-    requiredTotal > 0;
+  // Certification (étape 4) : pilotée par le moteur unifié et la complétude réelle du dossier
+  const identityValidated = scoringSnapshot.chapterStates.identity.complete;
+  const canAccessCertification = passportStudioState
+    ? passportStudioState.state === 'ready' || passportStudioState.state === 'sealed'
+    : scoringSnapshot.chapterStates.passport.ready;
 
-  // Rediriger hors de l'étape 4 si l'utilisateur y est arrivé sans avoir validé les prérequis
+  // Afficher le blocage du passeport sur place au lieu de renvoyer l'utilisateur en arrière.
   useEffect(() => {
     if (currentStep === 4 && !canAccessCertification) {
-      setCurrentStep(canAccessGuarantee ? 3 : 2);
       setAiFeedback({
         visible: true,
-        message: "Complétez d'abord les pièces requises (Identité + Revenus & Statut) pour accéder à la certification.",
+        message: passportBlockerMessage,
         type: 'warning',
       });
       setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 6000);
     }
-  }, [currentStep, canAccessCertification, canAccessGuarantee]);
+  }, [currentStep, canAccessCertification, passportBlockerMessage]);
 
   const getPotentialPoints = (itemId: string) => {
     if (['attestation_employeur', 'attestation_urssaf', 'bilan_n1', 'bilan_n2', 'avis_imposition'].includes(itemId)) return 15;
@@ -5335,8 +6058,8 @@ export default function ApplyClient({ token }: { token: string }) {
                           setAiFeedback({
                             visible: true,
                             message: item.step === 3 
-                              ? "Chapitre III verrouillé : atteignez 80% sur l'audit de solvabilité pour débloquer."
-                              : "Chapitre IV verrouillé : validez votre identité et toutes les pièces requises.",
+                              ? "Chapitre III disponible dès que l'identité est engagée."
+                              : "Chapitre IV verrouillé : le passeport s'ouvre uniquement quand les chapitres réellement requis sont complets.",
                             type: 'warning',
                           });
                           setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
@@ -6051,11 +6774,12 @@ export default function ApplyClient({ token }: { token: string }) {
                       <p className="text-sm text-slate-500 mt-1">La checklist s&apos;adapte automatiquement (attestation employeur &lt; 1 mois, bilans, bourse, etc.).</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
                     {[
                       { id: 'Salarie', label: 'Salarié', detail: 'Attestation employeur (< 1 mois) requise' },
                       { id: 'Independant', label: 'Indépendant', detail: '2 derniers bilans ou attestations fiscales certifiées' },
                       { id: 'Etudiant', label: 'Étudiant', detail: 'Certificat de scolarité + avis de bourse' },
+                      { id: 'Retraite', label: 'Retraité', detail: 'Justificatifs de retraite + avis d’imposition' },
                     ].map(option => (
                       <button
                         key={option.id}
@@ -6156,36 +6880,30 @@ export default function ApplyClient({ token }: { token: string }) {
                     <div className="bg-white rounded-2xl border border-slate-200 p-5">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold tracking-widest uppercase text-slate-500">Documents certifiés</h3>
-                        <span className="text-[10px] font-bold text-emerald-600">{certifiedResources.length} certifié(s)</span>
+                        <span className="text-[10px] font-bold text-slate-600">
+                          <span className="text-emerald-600">{certifiedResources.length} validé(s)</span>
+                          {' • '}
+                          <span className="text-red-600">{invalidatedResources.length} invalidé(s)</span>
+                        </span>
                       </div>
-                      {certifiedResources.length === 0 ? (
-                        <p className="text-xs text-slate-400">Aucun document certifié pour le moment.</p>
+                      <p className="text-xs text-slate-400 mb-4">
+                        Les documents validés ou invalidés apparaissent ici après analyse.
+                      </p>
+                      {reviewedResources.length === 0 ? (
+                        <p className="text-xs text-slate-400">Aucun document analysé pour le moment.</p>
                       ) : (
                         <AnimatePresence mode="popLayout">
-                          {certifiedResources.map(file => (
-                            <motion.div
-                              key={file.id}
-                              layout
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                              className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 px-3 py-2 mb-3"
-                            >
-                              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
-                                <CheckCircleIcon className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-navy truncate">{file.suggestedName || file.name}</p>
-                                <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Certifié</p>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteDocument(file.id)}
-                                className="text-[10px] text-slate-500 hover:text-red-500 transition"
-                              >
-                                Supprimer
-                              </button>
-                            </motion.div>
-                          ))}
+                          <div className="space-y-3">
+                            {reviewedResources.map(file => (
+                              <DocumentCard
+                                key={file.id}
+                                file={file}
+                                onDelete={handleDeleteDocument}
+                                onForceValidate={handleForceValidate}
+                                isDeleting={deletingFileId === file.id}
+                              />
+                            ))}
+                          </div>
                         </AnimatePresence>
                       )}
                     </div>
@@ -6248,18 +6966,180 @@ export default function ApplyClient({ token }: { token: string }) {
                   {!canAccessGuarantee && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-amber-800">
                       <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Chapitre verrouillé</p>
-                      <p className="text-sm">Atteignez 80% sur le chapitre Revenus & Statut pour débloquer les garanties.</p>
+                      <p className="text-sm">Commencez par engager l&apos;identité du locataire pour ouvrir la garantie.</p>
                     </div>
                   )}
                   <div className={`space-y-10 ${!canAccessGuarantee ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="max-w-2xl">
                       <p className="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre III</p>
                       <h1 className="text-5xl font-serif text-[#0F172A] leading-tight mb-4">Garantie Souveraine</h1>
-                      <p className="text-slate-400 text-lg">Renforcez votre candidature avec un garant certifié. <strong className="text-emerald-600">+40 points</strong> (Didit) ou <strong className="text-blue-600">+30 points</strong> (Audit) au PatrimoMeter™.</p>
+                      <p className="text-slate-400 text-lg">Choisissez <strong className="text-navy">sans garant</strong>, une <strong className="text-emerald-600">Visale</strong> ou jusqu&apos;à <strong className="text-navy">2 garants physiques</strong>. Le bloc Garantie est plafonné à <strong>30 points</strong> et suit la même logique documentaire que le locataire.</p>
                     </div>
 
-                  {/* Alerte cross-check : nom CNI garant ≠ nom avis d'imposition */}
-                  {guarantorIdentityMismatch && (
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+                      {[
+                        {
+                          mode: 'NONE',
+                          title: 'Sans garant',
+                          subtitle: 'Aucun tiers engagé',
+                          description: 'Continuez sans garantie complémentaire. Le moteur vous dira si elle reste optionnelle, recommandée ou requise.',
+                        },
+                        {
+                          mode: 'VISALE',
+                          title: 'Visale',
+                          subtitle: 'Garantie Action Logement',
+                          description: 'Un certificat Visale certifié et compatible couvre tout le bloc Garantie.',
+                        },
+                        {
+                          mode: 'PHYSICAL',
+                          title: '1 garant physique',
+                          subtitle: 'Parcours miroir du locataire',
+                          description: 'Identité, revenus, activité et domicile sont évalués sur 30 points.',
+                        },
+                        {
+                          mode: 'PHYSICAL_2',
+                          title: '2 garants physiques',
+                          subtitle: 'Agrégation plafonnée',
+                          description: 'Le meilleur sous-bloc de chaque garant est retenu, sans dépasser 30 points.',
+                        },
+                      ].map(option => {
+                        const isActive =
+                          option.mode === 'NONE'
+                            ? guaranteeMode === 'NONE'
+                            : option.mode === 'VISALE'
+                            ? guaranteeMode === 'VISALE'
+                            : guaranteeMode === 'PHYSICAL' && guarantorSlotsCount === (option.mode === 'PHYSICAL_2' ? 2 : 1);
+
+                        return (
+                          <button
+                            key={option.mode}
+                            type="button"
+                            onClick={() => {
+                              if (option.mode === 'NONE') {
+                                setGuaranteeMode('NONE');
+                                setGuarantorSlotsCount(1);
+                                setGuarantorDiditVerificationUrl(null);
+                                setGuarantorDirectCertification(false);
+                              } else if (option.mode === 'VISALE') {
+                                setGuaranteeMode('VISALE');
+                                setGuarantorDiditVerificationUrl(null);
+                                setGuarantorDirectCertification(false);
+                              } else {
+                                setGuaranteeMode('PHYSICAL');
+                                setGuarantorSlotsCount(option.mode === 'PHYSICAL_2' ? 2 : 1);
+                              }
+                            }}
+                            className={`text-left rounded-2xl border p-5 transition-all ${
+                              isActive ? 'border-emerald-400 bg-emerald-50 shadow-sm' : 'border-slate-200 bg-white hover:border-emerald-300'
+                            }`}
+                          >
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{option.subtitle}</p>
+                            <h3 className="text-lg font-serif text-navy mt-2">{option.title}</h3>
+                            <p className="text-sm text-slate-500 mt-2 leading-relaxed">{option.description}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score garantie</p>
+                        <p className="text-2xl font-semibold text-navy mt-1">{scoringSnapshot.breakdown.guarantee?.total || 0}/30</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Exigence</p>
+                        <p className="text-sm font-semibold text-navy mt-2">
+                          {guaranteeRequirement === 'required' ? 'Garantie requise' : guaranteeRequirement === 'recommended' ? 'Garantie recommandée' : 'Garantie optionnelle'}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Etat du chapitre</p>
+                        <p className="text-sm font-semibold text-navy mt-2">
+                          {scoringSnapshot.chapterStates.guarantee.satisfied ? 'Cohérent avec le dossier' : 'Action attendue'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {guaranteeMode === 'NONE' && (
+                      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5">
+                        <p className="text-sm text-slate-600">
+                          Vous pouvez continuer sans garant. Le moteur vérifiera si ce choix reste cohérent avec votre dossier, ou si une garantie devient recommandée ou requise selon vos revenus et le loyer.
+                        </p>
+                      </div>
+                    )}
+
+                  {guaranteeMode === 'VISALE' && (
+                    <div className="space-y-6">
+                      <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-4">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Parcours Visale</p>
+                          <h3 className="text-xl font-serif text-navy mt-2">Déposez votre certificat Visale</h3>
+                          <p className="text-sm text-slate-500 mt-2">Une Visale certifiée et compatible avec le loyer peut remplir à elle seule le bloc Garantie.</p>
+                        </div>
+
+                        <div
+                          className="p-6 border-2 border-dashed border-emerald-200 rounded-2xl bg-emerald-50/40 hover:border-emerald-400 transition-all cursor-pointer"
+                          onClick={() => document.getElementById('visale-file-input')?.click()}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <h4 className="font-semibold text-navy">Certificat Visale</h4>
+                              <p className="text-sm text-slate-500 mt-1">PDF natif recommandé pour conserver le sceau numérique et le plafond de loyer garanti.</p>
+                            </div>
+                            <div className="px-4 py-2 rounded-xl border border-emerald-300 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                              Déposer
+                            </div>
+                          </div>
+                          <input
+                            type="file"
+                            id="visale-file-input"
+                            className="hidden"
+                            accept="image/*,application/pdf"
+                            multiple
+                            onChange={e => handleFileUpload('resources', e.target.files, { subjectType: 'visale' })}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Statut</p>
+                            <p className="text-sm font-semibold text-navy mt-2">
+                              {scoringSnapshot.guarantee?.visale?.certified ? 'Visale certifiée' : visaleFiles.length > 0 ? 'Analyse en cours' : 'En attente'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Compatibilité loyer</p>
+                            <p className="text-sm font-semibold text-navy mt-2">
+                              {scoringSnapshot.guarantee?.visale?.compatibleWithRent ? 'Compatible' : visaleFiles.length > 0 ? 'À confirmer' : 'Non vérifiée'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sous-score</p>
+                            <p className="text-sm font-semibold text-navy mt-2">{scoringSnapshot.breakdown.guarantee?.total || 0}/30</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {visaleFiles.length > 0 && (
+                        <div className="space-y-3">
+                          <AnimatePresence mode="popLayout">
+                            {visaleFiles.map(file => (
+                              <DocumentCard
+                                key={file.id}
+                                file={file}
+                                showAmount={false}
+                                onDelete={handleDeleteDocument}
+                                onForceValidate={handleForceValidate}
+                                isDeleting={deletingFileId === file.id}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {guaranteeMode === 'PHYSICAL' && guarantorIdentityMismatch && (
                     <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-amber-900">
                       <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">Incohérence détectée</p>
                       <p className="text-sm">Le nom sur la CNI du garant ne correspond pas au nom sur l'avis d'imposition. Le score du bloc Garant est bloqué à 0 jusqu'à correction.</p>
@@ -6267,7 +7147,7 @@ export default function ApplyClient({ token }: { token: string }) {
                   )}
 
                   {/* Votre Bouclier de Garantie – visible quand garant certifié ou documents garant certifiés */}
-                  {(guarantorCertified || uploadedFiles.guarantor.some(f => f.status === 'certified')) && (
+                  {guaranteeMode === 'PHYSICAL' && (guarantorCertified || uploadedFiles.guarantor.some(f => f.status === 'certified')) && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -6313,40 +7193,59 @@ export default function ApplyClient({ token }: { token: string }) {
                     </motion.div>
                   )}
 
-                  {/* Garant certifié */}
-                  {guarantorCertified ? (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`bg-gradient-to-br ${guarantorCertificationMethod === 'DIDIT' ? 'from-emerald-50 to-emerald-100 border-emerald-300' : 'from-blue-50 to-blue-100 border-blue-300'} border-2 rounded-2xl p-8`}
-                    >
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-16 h-16 ${guarantorCertificationMethod === 'DIDIT' ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full flex items-center justify-center`}>
-                          <ShieldCheckIcon className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-serif text-navy mb-1">
-                            {guarantorCertificationMethod === 'DIDIT' ? 'Identité Souveraine Certifiée' : 'Identité Auditée & Cohérente'}
-                          </h3>
-                          <p className={`${guarantorCertificationMethod === 'DIDIT' ? 'text-emerald-700' : 'text-blue-700'} text-sm`}>
-                            {guarantorFirstName} {guarantorLastName} ({guarantorEmail})
-                          </p>
-                        </div>
-                      </div>
-                      <div className={`bg-white/80 rounded-xl p-4 border ${guarantorCertificationMethod === 'DIDIT' ? 'border-emerald-200' : 'border-blue-200'}`}>
-                        <p className={`${guarantorCertificationMethod === 'DIDIT' ? 'text-emerald-800' : 'text-blue-800'} font-medium text-sm`}>
-                          {guarantorCertificationMethod === 'DIDIT' 
-                            ? '✅ Votre garant a certifié son identité via Didit. Le PatrimoMeter™ a été augmenté de +40 points.'
-                            : '📋 Votre garant a passé l\'audit documentaire PatrimoTrust. Le PatrimoMeter™ a été augmenté de +30 points.'
-                          }
-                        </p>
-                      </div>
-                    </motion.div>
-                  ) : (
+                  {guaranteeMode === 'PHYSICAL' ? (
                     <>
+                      {/* Garant certifié */}
+                      {guarantorCertified && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`bg-gradient-to-br ${guarantorCertificationMethod === 'DIDIT' ? 'from-emerald-50 to-emerald-100 border-emerald-300' : 'from-blue-50 to-blue-100 border-blue-300'} border-2 rounded-2xl p-8`}
+                        >
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className={`w-16 h-16 ${guarantorCertificationMethod === 'DIDIT' ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full flex items-center justify-center`}>
+                              <ShieldCheckIcon className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-serif text-navy mb-1">
+                                {guarantorCertificationMethod === 'DIDIT' ? 'Identité Souveraine Certifiée' : 'Identité Auditée & Cohérente'}
+                              </h3>
+                              <p className={`${guarantorCertificationMethod === 'DIDIT' ? 'text-emerald-700' : 'text-blue-700'} text-sm`}>
+                                {guarantorFirstName} {guarantorLastName} ({guarantorEmail})
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`bg-white/80 rounded-xl p-4 border ${guarantorCertificationMethod === 'DIDIT' ? 'border-emerald-200' : 'border-blue-200'}`}>
+                            <p className={`${guarantorCertificationMethod === 'DIDIT' ? 'text-emerald-800' : 'text-blue-800'} font-medium text-sm`}>
+                              {guarantorCertificationMethod === 'DIDIT'
+                                ? '✅ Le garant 1 a certifié son identité via Didit. Vous pouvez maintenant déposer ses revenus, son activité et son domicile dans les blocs ci-dessous.'
+                                : '📋 Le garant 1 a passé l’audit documentaire PatrimoTrust. Les zones d’upload restent disponibles ci-dessous pour compléter son sous-score.'
+                              }
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+
                       {/* Formulaire d'ajout de garant */}
                       <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-6">
-                        <h3 className="text-xl font-serif text-navy">Ajouter un garant physique</h3>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="text-xl font-serif text-navy">Garant physique 1</h3>
+                            <p className="text-sm text-slate-500 mt-1">Le garant suit la même logique documentaire que le locataire.</p>
+                          </div>
+                          <div className="min-w-[220px]">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Profil du garant</label>
+                            <select
+                              value={guarantorProfile}
+                              onChange={e => setGuarantorProfile(e.target.value as CandidateStatus)}
+                              className="mt-2 w-full p-3 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm"
+                            >
+                              {SUPPORTED_PROFILES.map((profile: string) => (
+                                <option key={profile} value={profile}>{profile}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -6387,178 +7286,211 @@ export default function ApplyClient({ token }: { token: string }) {
                           />
                         </div>
 
-                        {/* Options */}
-                        <div className="flex flex-col gap-4 pt-4 border-t border-slate-200">
-                          {/* Option 1: Envoyer invitation */}
-                          <button
-                            onClick={async () => {
-                              if (!guarantorEmail || !token) return;
-                              try {
-                                const { sendGuarantorInvitation } = await import('@/app/actions/send-guarantor-invitation');
-                                const result = await sendGuarantorInvitation(
-                                  token,
-                                  guarantorEmail,
-                                  guarantorFirstName,
-                                  guarantorLastName,
-                                  {
-                                    firstName: formData.firstName || diditIdentity?.firstName,
-                                    lastName: formData.lastName || diditIdentity?.lastName,
-                                    email: formData.email
-                                  }
-                                );
-                                if (result.success) {
-                                  setGuarantorInvitationSent(true);
-                                  setAiFeedback({
-                                    visible: true,
-                                    message: `✅ Invitation envoyée à ${guarantorEmail}. Le garant recevra un email avec un lien de certification.`,
-                                    type: 'success',
-                                  });
-                                  setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
-                                } else {
-                                  setAiFeedback({
-                                    visible: true,
-                                    message: `❌ Erreur: ${result.error}`,
-                                    type: 'error',
-                                  });
-                                  setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
-                                }
-                              } catch (error) {
-                                console.error('Erreur envoi invitation:', error);
-                              }
-                            }}
-                            disabled={!guarantorEmail || guarantorInvitationSent}
-                            className="w-full px-8 py-4 bg-navy text-white rounded-2xl text-sm font-bold tracking-[0.2em] uppercase shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                          >
-                            {guarantorInvitationSent ? (
-                              <>
-                                <CheckCircleIcon className="w-5 h-5" />
-                                <span>Invitation envoyée</span>
-                              </>
-                            ) : (
-                              <>
-                                <UsersIcon className="w-5 h-5" />
-                                <span>Envoyer l'invitation par email</span>
-                              </>
-                            )}
-                          </button>
-
-                          {/* Option 2: En Direct */}
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-2xl blur-xl" />
-                            <button
-                              onClick={async () => {
-                                if (!guarantorEmail || !token) return;
-                                setGuarantorDirectCertification(true);
-                                try {
-                                  // Créer une session Didit pour le garant (option "En Direct")
-                                  const response = await fetch('/api/guarantor/create-session', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ 
-                                      candidatureId: token,
-                                      email: guarantorEmail,
-                                      firstName: guarantorFirstName,
-                                      lastName: guarantorLastName,
-                                    }),
-                                  });
-                                  
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    setGuarantorDiditSessionId(data.sessionId);
-                                    setGuarantorDiditVerificationUrl(data.verificationUrl);
-                                    // L'iframe s'affichera automatiquement via le state
-                                  } else {
-                                    const errorData = await response.json().catch(() => ({}));
-                                    setAiFeedback({
-                                      visible: true,
-                                      message: `❌ Erreur: ${errorData.error || 'Impossible de créer la session Didit'}`,
-                                      type: 'error',
-                                    });
-                                    setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
-                                    setGuarantorDirectCertification(false);
-                                  }
-                                } catch (error) {
-                                  console.error('Erreur certification directe:', error);
-                                  setAiFeedback({
-                                    visible: true,
-                                    message: '❌ Erreur lors de la certification directe',
-                                    type: 'error',
-                                  });
-                                  setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
-                                  setGuarantorDirectCertification(false);
-                                }
-                              }}
-                              disabled={!guarantorEmail || guarantorDirectCertification}
-                              className="relative w-full px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl text-sm font-bold tracking-[0.2em] uppercase shadow-xl hover:from-emerald-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                            >
-                              {guarantorDirectCertification ? (
-                                <>
-                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  <span>Certification en cours...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ShieldCheckIcon className="w-5 h-5" />
-                                  <span>Le garant est avec moi : Certifier immédiatement</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Iframe Didit pour le garant (option En Direct) */}
-                        {guarantorDiditVerificationUrl && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-2xl border-2 border-emerald-300 overflow-hidden shadow-xl"
-                          >
-                            <div className="p-4 bg-gradient-to-r from-emerald-50 to-blue-50 border-b border-emerald-200">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                                  <ShieldCheckIcon className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <h3 className="font-bold text-navy">Certification Garant en cours</h3>
-                                  <p className="text-xs text-slate-600">Le garant doit compléter la vérification ci-dessous</p>
-                                </div>
-                              </div>
-                            </div>
-                            <iframe
-                              src={guarantorDiditVerificationUrl}
-                              className="w-full border-0"
-                              style={{ height: '550px', minHeight: '450px' }}
-                              allow="camera; microphone"
-                              title="Vérification Didit Garant"
-                            />
-                          </motion.div>
-                        )}
-
-                        {guarantorInvitationSent && (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                            <p className="text-emerald-800 text-sm">
-                              ✅ Un email a été envoyé à <strong>{guarantorEmail}</strong>. Le garant pourra certifier son identité en cliquant sur le lien dans l'email.
+                        {guarantorCertified ? (
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                            <p className="text-sm text-emerald-800">
+                              L&apos;identité du garant 1 est déjà validée. Vous pouvez encore déposer ses documents de revenus, activité, fiscalité et domicile juste en dessous.
                             </p>
                           </div>
+                        ) : (
+                          <>
+                            {/* Options */}
+                            <div className="flex flex-col gap-4 pt-4 border-t border-slate-200">
+                              {/* Option 1: Envoyer invitation */}
+                              <button
+                                onClick={async () => {
+                                  if (!guarantorEmail || !token) return;
+                                  try {
+                                    const { sendGuarantorInvitation } = await import('@/app/actions/send-guarantor-invitation');
+                                    const result = await sendGuarantorInvitation(
+                                      token,
+                                      guarantorEmail,
+                                      guarantorFirstName,
+                                      guarantorLastName,
+                                      {
+                                        firstName: formData.firstName || diditIdentity?.firstName,
+                                        lastName: formData.lastName || diditIdentity?.lastName,
+                                        email: formData.email
+                                      }
+                                    );
+                                    if (result.success) {
+                                      setGuarantorInvitationSent(true);
+                                      setAiFeedback({
+                                        visible: true,
+                                        message: `✅ Invitation envoyée à ${guarantorEmail}. Le garant recevra un email avec un lien de certification.`,
+                                        type: 'success',
+                                      });
+                                      setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
+                                    } else {
+                                      setAiFeedback({
+                                        visible: true,
+                                        message: `❌ Erreur: ${result.error}`,
+                                        type: 'error',
+                                      });
+                                      setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
+                                    }
+                                  } catch (error) {
+                                    console.error('Erreur envoi invitation:', error);
+                                  }
+                                }}
+                                disabled={!guarantorEmail || guarantorInvitationSent}
+                                className="w-full px-8 py-4 bg-navy text-white rounded-2xl text-sm font-bold tracking-[0.2em] uppercase shadow-xl hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                              >
+                                {guarantorInvitationSent ? (
+                                  <>
+                                    <CheckCircleIcon className="w-5 h-5" />
+                                    <span>Invitation envoyée</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UsersIcon className="w-5 h-5" />
+                                    <span>Envoyer l'invitation par email</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Option 2: En Direct */}
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-2xl blur-xl" />
+                                <button
+                                  onClick={async () => {
+                                    if (!guarantorEmail || !token) return;
+                                    setGuarantorDirectCertification(true);
+                                    try {
+                                      // Créer une session Didit pour le garant (option "En Direct")
+                                      const response = await fetch('/api/guarantor/create-session', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          candidatureId: token,
+                                          slot: 1,
+                                          email: guarantorEmail,
+                                          firstName: guarantorFirstName,
+                                          lastName: guarantorLastName,
+                                        }),
+                                      });
+
+                                      if (response.ok) {
+                                        const data = await response.json();
+                                        setGuarantorDiditSessionId(data.sessionId);
+                                        setGuarantorDiditVerificationUrl(data.verificationUrl);
+                                        // L'iframe s'affichera automatiquement via le state
+                                      } else {
+                                        const errorData = await response.json().catch(() => ({}));
+                                        setAiFeedback({
+                                          visible: true,
+                                          message: `❌ Erreur: ${errorData.error || 'Impossible de créer la session Didit'}`,
+                                          type: 'error',
+                                        });
+                                        setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
+                                        setGuarantorDirectCertification(false);
+                                      }
+                                    } catch (error) {
+                                      console.error('Erreur certification directe:', error);
+                                      setAiFeedback({
+                                        visible: true,
+                                        message: '❌ Erreur lors de la certification directe',
+                                        type: 'error',
+                                      });
+                                      setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
+                                      setGuarantorDirectCertification(false);
+                                    }
+                                  }}
+                                  disabled={!guarantorEmail || guarantorDirectCertification}
+                                  className="relative w-full px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl text-sm font-bold tracking-[0.2em] uppercase shadow-xl hover:from-emerald-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                >
+                                  {guarantorDirectCertification ? (
+                                    <>
+                                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      <span>Certification en cours...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ShieldCheckIcon className="w-5 h-5" />
+                                      <span>Le garant est avec moi : Certifier immédiatement</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Iframe Didit pour le garant (option En Direct) */}
+                            {guarantorDiditVerificationUrl && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white rounded-2xl border-2 border-emerald-300 overflow-hidden shadow-xl"
+                              >
+                                <div className="p-4 bg-gradient-to-r from-emerald-50 to-blue-50 border-b border-emerald-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                                      <ShieldCheckIcon className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                      <h3 className="font-bold text-navy">Certification Garant en cours</h3>
+                                      <p className="text-xs text-slate-600">Le garant doit compléter la vérification ci-dessous</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <iframe
+                                  src={guarantorDiditVerificationUrl}
+                                  className="w-full border-0"
+                                  style={{ height: '550px', minHeight: '450px' }}
+                                  allow="camera; microphone"
+                                  title="Vérification Didit Garant"
+                                />
+                              </motion.div>
+                            )}
+
+                            {guarantorInvitationSent && (
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                                <p className="text-emerald-800 text-sm">
+                                  ✅ Un email a été envoyé à <strong>{guarantorEmail}</strong>. Le garant pourra certifier son identité en cliquant sur le lien dans l&apos;email.
+                                </p>
+                              </div>
+                            )}
+                          </>
                         )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                        {slotOneGuarantorBlocks.map(block => (
+                          <button
+                            key={`slot-1-${block.id}`}
+                            type="button"
+                            onClick={() => document.getElementById(getGuarantorUploadInputId(1))?.click()}
+                            className={`text-left rounded-2xl border p-4 transition-all hover:-translate-y-0.5 ${getGuarantorBlockStatusClasses(block.status)}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest">Garant 1</p>
+                                <h4 className="mt-2 text-sm font-semibold text-navy">{block.label}</h4>
+                              </div>
+                              <span className="rounded-full border border-current/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                {getGuarantorBlockStatusLabel(block.status)}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-600">{block.description}</p>
+                          </button>
+                        ))}
                       </div>
 
                       {/* Zone upload garant (optionnel - documents classiques) */}
                       <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
                         <p className="text-slate-600 text-sm mb-4">
-                          <strong>Option alternative :</strong> Vous pouvez aussi télécharger les documents du garant (ID, Domicile, Bulletins de salaire) pour une garantie classique (+20 points).
+                          <strong>Dépôt documentaire du garant 1 :</strong> déposez chaque pièce dans le bloc correspondant ci-dessus ou utilisez l’espace global ci-dessous.
                         </p>
                         <div 
                           className="p-4 md:p-8 border-2 border-dashed border-slate-300 rounded-xl md:rounded-[2rem] bg-white flex flex-col md:flex-row items-center justify-between gap-4 group hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer"
-                          onClick={() => document.getElementById('guarantor-file-input')?.click()}
+                          onClick={() => document.getElementById(getGuarantorUploadInputId(1))?.click()}
                         >
                           <div className="flex items-center gap-5">
                             <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 group-hover:scale-110 transition-transform">
                               <UsersIcon className="text-slate-400 group-hover:text-emerald-500 w-7 h-7" />
                             </div>
                             <div>
-                              <h3 className="font-bold text-[#0F172A]">Documents du Garant (Optionnel)</h3>
-                              <p className="text-sm text-slate-400 uppercase text-[10px] font-bold mt-1">ID, Domicile, 3 bulletins de salaire</p>
+                              <h3 className="font-bold text-[#0F172A]">Documents du garant 1</h3>
+                              <p className="text-sm text-slate-400 uppercase text-[10px] font-bold mt-1">ID, domicile, revenus, activité, fiscalité</p>
                             </div>
                           </div>
                           <div className="px-5 py-2.5 border border-slate-200 rounded-xl text-[10px] font-black tracking-widest uppercase group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">Télécharger</div>
@@ -6568,7 +7500,7 @@ export default function ApplyClient({ token }: { token: string }) {
                             className="hidden" 
                             accept="image/*,application/pdf" 
                             multiple 
-                            onChange={e => handleFileUpload('guarantor', e.target.files)}
+                            onChange={e => handleFileUpload('guarantor', e.target.files, { subjectType: 'guarantor', subjectSlot: 1 })}
                           />
                           <input 
                             type="file" 
@@ -6576,7 +7508,7 @@ export default function ApplyClient({ token }: { token: string }) {
                             className="hidden" 
                             accept="image/*" 
                             capture="environment"
-                            onChange={e => handleFileUpload('guarantor', e.target.files)}
+                            onChange={e => handleFileUpload('guarantor', e.target.files, { subjectType: 'guarantor', subjectSlot: 1 })}
                           />
                         </div>
                         {/* Scanner natif garant (mobile) */}
@@ -6591,10 +7523,10 @@ export default function ApplyClient({ token }: { token: string }) {
                       </div>
 
                       {/* Fichiers uploadés avec DocumentCard */}
-                      {uploadedFiles.guarantor.length > 0 && (
+                      {slotOneGuarantorFiles.length > 0 && (
                         <div className="space-y-3">
                           <AnimatePresence mode="popLayout">
-                            {uploadedFiles.guarantor.map(file => (
+                            {slotOneGuarantorFiles.map(file => (
                               <DocumentCard 
                                 key={file.id} 
                                 file={file} 
@@ -6607,46 +7539,157 @@ export default function ApplyClient({ token }: { token: string }) {
                           </AnimatePresence>
                         </div>
                       )}
+
+                      {guarantorSlotsCount === 2 && (
+                        <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-xl font-serif text-navy">Garant physique 2</h3>
+                              <p className="text-sm text-slate-500 mt-1">Ce second garant complète le premier. Le meilleur sous-bloc par thème est retenu.</p>
+                            </div>
+                            <div className="min-w-[220px]">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Profil du garant 2</label>
+                              <select
+                                value={secondGuarantor.profile}
+                                onChange={e => setSecondGuarantor(prev => ({ ...prev, profile: e.target.value as CandidateStatus }))}
+                                className="mt-2 w-full p-3 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm"
+                              >
+                                {SUPPORTED_PROFILES.map((profile: string) => (
+                                  <option key={profile} value={profile}>{profile}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input
+                              type="text"
+                              value={secondGuarantor.firstName}
+                              onChange={e => setSecondGuarantor(prev => ({ ...prev, firstName: e.target.value }))}
+                              placeholder="Prénom"
+                              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-[16px]"
+                            />
+                            <input
+                              type="text"
+                              value={secondGuarantor.lastName}
+                              onChange={e => setSecondGuarantor(prev => ({ ...prev, lastName: e.target.value }))}
+                              placeholder="Nom"
+                              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-[16px]"
+                            />
+                            <input
+                              type="email"
+                              value={secondGuarantor.email}
+                              onChange={e => setSecondGuarantor(prev => ({ ...prev, email: e.target.value }))}
+                              placeholder="email@exemple.com"
+                              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 text-[16px]"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            {slotTwoGuarantorBlocks.map(block => (
+                              <button
+                                key={`slot-2-${block.id}`}
+                                type="button"
+                                onClick={() => document.getElementById(getGuarantorUploadInputId(2))?.click()}
+                                className={`text-left rounded-2xl border p-4 transition-all hover:-translate-y-0.5 ${getGuarantorBlockStatusClasses(block.status)}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Garant 2</p>
+                                    <h4 className="mt-2 text-sm font-semibold text-navy">{block.label}</h4>
+                                  </div>
+                                  <span className="rounded-full border border-current/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+                                    {getGuarantorBlockStatusLabel(block.status)}
+                                  </span>
+                                </div>
+                                <p className="mt-3 text-sm leading-relaxed text-slate-600">{block.description}</p>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div
+                            className="p-4 md:p-8 border-2 border-dashed border-slate-300 rounded-xl md:rounded-[2rem] bg-slate-50 flex flex-col md:flex-row items-center justify-between gap-4 group hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer"
+                            onClick={() => document.getElementById(getGuarantorUploadInputId(2))?.click()}
+                          >
+                            <div className="flex items-center gap-5">
+                              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 group-hover:scale-110 transition-transform">
+                                <UsersIcon className="text-slate-400 group-hover:text-emerald-500 w-7 h-7" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-[#0F172A]">Documents du garant 2</h3>
+                                <p className="text-sm text-slate-400 uppercase text-[10px] font-bold mt-1">ID, domicile, revenus, activité, fiscalité</p>
+                              </div>
+                            </div>
+                            <div className="px-5 py-2.5 border border-slate-200 rounded-xl text-[10px] font-black tracking-widest uppercase group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all">Télécharger</div>
+                            <input
+                              type="file"
+                              id="guarantor-slot-2-file-input"
+                              className="hidden"
+                              accept="image/*,application/pdf"
+                              multiple
+                              onChange={e => handleFileUpload('guarantor', e.target.files, { subjectType: 'guarantor', subjectSlot: 2 })}
+                            />
+                          </div>
+
+                          {slotTwoGuarantorFiles.length > 0 && (
+                            <div className="space-y-3">
+                              <AnimatePresence mode="popLayout">
+                                {slotTwoGuarantorFiles.map(file => (
+                                  <DocumentCard
+                                    key={file.id}
+                                    file={file}
+                                    showAmount={false}
+                                    onDelete={handleDeleteDocument}
+                                    onForceValidate={handleForceValidate}
+                                    isDeleting={deletingFileId === file.id}
+                                  />
+                                ))}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
-                  )}
+                  ) : null}
                 </div>
                 </div>
 
             {/* Step 4: Validation / Passeport */}
             <div className={`step-page hidden flex flex-col items-center justify-center text-center space-y-10 py-8 ${currentStep === 4 ? '' : 'hidden'}`} id="step-4" style={{ display: currentStep === 4 ? 'flex' : 'none' }}>
-                  <div className="relative">
-                    <div className="w-[340px] h-[480px] bg-navy rounded-[2.5rem] p-10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)] border border-white/10 relative overflow-hidden flex flex-col justify-between">
-                      <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <ShieldIcon className="w-32 h-32 text-emerald-500" />
-                      </div>
-                      
-                      <div className="flex justify-between items-start z-10">
-                        <div className="text-white font-serif-display text-lg opacity-60">GP.</div>
-                        <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center">
-                          <CheckIcon className="text-white w-5 h-5" />
+                  <div className="w-full max-w-6xl space-y-6">
+                    <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-7 text-left shadow-[0_25px_70px_-40px_rgba(15,23,42,0.28)]">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Chapitre IV</p>
+                          <h2 className="mt-3 text-4xl font-serif text-[#0F172A]">Passport Studio</h2>
+                          <p className="mt-3 max-w-2xl text-slate-600 leading-relaxed">
+                            Prévisualisez la vraie page web et le vrai PDF de votre passeport locataire. Le partage externe ne s’active que lorsque le dossier est réellement prêt.
+                          </p>
+                        </div>
+                        <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${
+                          canAccessCertification
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-amber-200 bg-amber-50 text-amber-700'
+                        }`}>
+                          {canAccessCertification ? 'Partage activable' : 'Partage verrouillé'}
                         </div>
                       </div>
 
-                      <div className="z-10 space-y-2">
-                        <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.4em]">{getPassportScore()}</p>
-                        <h2 className="text-4xl font-serif text-white tracking-tight">{passportName}</h2>
-                        <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest italic">Dossier Certifié PatrimoTrust™</p>
-                      </div>
-
-                      <div className="z-10 flex flex-col items-center gap-4">
-                        <div className="bg-white p-3 rounded-2xl shadow-xl">
-                          <QRCodeIcon className="w-16 h-16 text-navy" />
+                      {!applicationId && (
+                        <div className="mt-5 rounded-[1.35rem] border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+                          Votre dossier est en cours de synchronisation. Le studio s’active automatiquement dès que la sauvegarde crée votre passeport.
                         </div>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-[0.2em] max-w-[180px] leading-relaxed">Vérification instantanée sur getpatrimo.com</p>
-                      </div>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                        <h2 className="text-3xl font-serif text-[#0F172A]">Votre Passeport est prêt.</h2>
-                    <p className="text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      Félicitations {formData.firstName || diditIdentity?.firstName || 'Votre dossier'}. Votre dossier est certifié à {score}%. Transmettez-le pour obtenir votre Passeport partageable.
-                    </p>
+
+                    <PassportStudio
+                      applicationId={applicationId}
+                      refreshKey={passportStudioRefreshKey}
+                      fallbackName={passportName}
+                      fallbackSummary={passportBlockerMessage}
+                      fallbackWarnings={passportStudioFallbackWarnings}
+                      onStateChange={setPassportStudioState}
+                    />
                   </div>
             </div>
           </div>
@@ -6711,24 +7754,39 @@ export default function ApplyClient({ token }: { token: string }) {
               hasInconsistency={hasInconsistency}
               scoreDelta={scoreDelta}
               hasExpirationMalus={hasExpirationMalus}
+              canGeneratePassport={canAccessCertification}
+              passportHint={passportBlockerMessage}
             />
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Résumé administratif</p>
                 <p className="text-sm text-slate-600 mt-1">
-                  Statut : <span className="font-semibold text-navy">{candidateStatus}</span> • Chapitre {currentStep}/3
+                  Statut : <span className="font-semibold text-navy">{candidateStatus}</span> • Garantie <span className="font-semibold text-navy">{guaranteeMode === 'NONE' ? 'Aucune' : guaranteeMode === 'VISALE' ? 'Visale' : guarantorSlotsCount === 2 ? '2 garants physiques' : '1 garant physique'}</span>
                 </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bloc locataire</p>
+                  <p className="text-lg font-semibold text-navy mt-1">{scoringSnapshot.breakdown.tenant?.total || 0}/70</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white/70 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bloc garantie</p>
+                  <p className="text-lg font-semibold text-navy mt-1">{scoringSnapshot.breakdown.guarantee?.total || 0}/30</p>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Priorités</p>
-                {missingSummary.length === 0 ? (
+                {scoringSnapshot.warnings.length === 0 && missingSummary.length === 0 ? (
                   <p className="text-sm text-emerald-700 mt-2">Aucune pièce critique manquante.</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                    {missingSummary.map(item => (
-                      <li key={item.id} className="flex items-center gap-2">
+                    {(scoringSnapshot.warnings.slice(0, 3).length > 0
+                      ? scoringSnapshot.warnings.slice(0, 3).map((warning: string, index: number) => ({ id: `warning-${index}`, label: warning }))
+                      : missingSummary).map((item: { id: string; label: string }) => (
+                      <li key={item.id} className="flex items-start gap-2">
                         <span className="text-amber-500">•</span>
                         <span>{item.label}</span>
                       </li>
@@ -6766,7 +7824,7 @@ export default function ApplyClient({ token }: { token: string }) {
               id="btn-prev"
               onClick={handlePrev}
               className={`px-6 py-4 text-[10px] font-black tracking-[0.3em] text-slate-400 hover:text-navy transition-all uppercase ${
-                currentStep > 1 && currentStep < 4 ? '' : 'hidden'
+                currentStep > 1 ? '' : 'hidden'
               }`}
             >
               Retour
@@ -6774,9 +7832,9 @@ export default function ApplyClient({ token }: { token: string }) {
             <button 
               id="btn-next"
               onClick={handleNext}
-              disabled={isScanning || submittingPassport || isAnalyzingDoc}
+              disabled={isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification)}
               className={`px-10 py-5 bg-navy text-white rounded-2xl text-[10px] font-bold tracking-[0.4em] uppercase shadow-2xl shadow-navy/20 flex items-center gap-3 transition-all hover:bg-slate-800 ${
-                isScanning || submittingPassport || isAnalyzingDoc ? 'opacity-50 pointer-events-none' : ''
+                isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification) ? 'opacity-50 pointer-events-none' : ''
               }`}
             >
               <span>
@@ -6787,9 +7845,9 @@ export default function ApplyClient({ token }: { token: string }) {
                     : submittingPassport
                       ? 'Transmission...'
                       : currentStep === 3 
-                        ? 'Générer le Passeport' 
+                        ? 'Continuer vers le Passeport' 
                         : currentStep === 4 
-                          ? 'Transmettre et obtenir mon Passeport' 
+                          ? canAccessCertification ? 'Transmettre et obtenir mon Passeport' : 'Passeport en attente'
                           : 'Continuer'
                 }
               </span>
@@ -6801,7 +7859,7 @@ export default function ApplyClient({ token }: { token: string }) {
         {/* Footer Navigation — Mobile Sticky Bottom (Thumb Zone) */}
         <div className="fixed bottom-0 left-0 w-full md:hidden z-50 bg-white/90 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center justify-between px-4 py-3">
-            {currentStep > 1 && currentStep < 4 && (
+            {currentStep > 1 && (
               <button 
                 onClick={handlePrev}
                 className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider"
@@ -6811,9 +7869,9 @@ export default function ApplyClient({ token }: { token: string }) {
             )}
             <button 
               onClick={handleNext}
-              disabled={isScanning || submittingPassport || isAnalyzingDoc}
-              className={`flex-1 ${currentStep > 1 && currentStep < 4 ? 'ml-3' : ''} py-4 bg-navy text-white rounded-xl text-sm font-bold uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                isScanning || submittingPassport || isAnalyzingDoc ? 'opacity-50 pointer-events-none' : ''
+              disabled={isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification)}
+              className={`flex-1 ${currentStep > 1 ? 'ml-3' : ''} py-4 bg-navy text-white rounded-xl text-sm font-bold uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification) ? 'opacity-50 pointer-events-none' : ''
               }`}
             >
               <span>
@@ -6824,9 +7882,9 @@ export default function ApplyClient({ token }: { token: string }) {
                     : submittingPassport
                       ? 'Transmission...'
                       : currentStep === 3 
-                        ? 'Générer le Passeport' 
+                        ? 'Continuer vers le Passeport' 
                         : currentStep === 4 
-                          ? 'Sceller mon Passeport' 
+                          ? canAccessCertification ? 'Sceller mon Passeport' : 'Passeport en attente'
                           : 'Continuer'
                 }
               </span>

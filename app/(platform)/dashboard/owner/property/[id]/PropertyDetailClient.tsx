@@ -1,584 +1,819 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  FileText,
+  Link2,
+  Loader2,
+  Lock,
+  ScrollText,
+  Shield,
+} from 'lucide-react';
 
-interface Candidature {
-  id: string;
-  token: string;
-  profile: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  patrimometer: {
-    score: number;
-    grade: string;
-  };
-  diditStatus: string;
-  income?: {
-    monthly: number;
-    type: string;
-    verified: boolean;
-  };
-  effortRate?: number;
-  guarantor?: {
-    status: string;
-    type: string;
-  };
-  documentsComplete: boolean;
-  submittedAt: string;
-  isUnlocked?: boolean;
-}
+import CheckoutModal from '@/app/components/CheckoutModal';
+import {
+  ActionBar,
+  EmptyState,
+  InfoRow,
+  MetricTile,
+  PremiumSectionHeader,
+  PremiumSurface,
+  StatusBadge,
+} from '@/app/components/ui/premium';
+import CandidateComparisonMatrix from '../../components/CandidateComparisonMatrix';
+import PropertyJourneyStrip from '../../components/PropertyJourneyStrip';
 
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  rent: number;
-  status: 'ACTIVE' | 'PENDING' | 'RENTED';
-  views: number;
-  shareLink: string;
-  shortLink: string;
-}
-
-export default function PropertyDetailClient({ propertyId }: { propertyId: string }) {
-  const [property, setProperty] = useState<Property | null>(null);
-  const [candidatures, setCandidatures] = useState<Candidature[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
-
-  useEffect(() => {
-    // TODO: Fetch from API
-    // Simulation data
-    setTimeout(() => {
-      setProperty({
-        id: propertyId,
-        name: 'Résidence rue des Minimes',
-        address: '24 rue des Minimes',
-        city: 'Lyon 5ème',
-        rent: 850,
-        status: 'ACTIVE',
-        views: 147,
-        shareLink: `https://getpatrimo.com/apply/${propertyId}`,
-        shortLink: 'patrimo.link/minimes',
-      });
-
-      setCandidatures([
-        {
-          id: '1',
-          token: 'abc123',
-          profile: { firstName: 'Louna', lastName: 'Cogoni', email: 'louna@email.com' },
-          patrimometer: { score: 98, grade: 'SOUVERAIN' },
-          diditStatus: 'VERIFIED',
-          income: { monthly: 3250, type: 'CDI', verified: true },
-          effortRate: 28,
-          guarantor: { status: 'CERTIFIED', type: 'PatrimoTrust' },
-          documentsComplete: true,
-          submittedAt: '2026-02-02T14:30:00Z',
-          isUnlocked: false,
-        },
-        {
-          id: '2',
-          token: 'def456',
-          profile: { firstName: 'Thomas', lastName: 'Martin', email: 'thomas@email.com' },
-          patrimometer: { score: 82, grade: 'A' },
-          diditStatus: 'VERIFIED',
-          income: { monthly: 2800, type: 'CDI', verified: true },
-          effortRate: 32,
-          guarantor: { status: 'PENDING', type: 'Physical' },
-          documentsComplete: true,
-          submittedAt: '2026-02-01T10:15:00Z',
-          isUnlocked: false,
-        },
-        {
-          id: '3',
-          token: 'ghi789',
-          profile: { firstName: 'Marie', lastName: 'Durand', email: 'marie@email.com' },
-          patrimometer: { score: 65, grade: 'B' },
-          diditStatus: 'VERIFIED',
-          income: { monthly: 2200, type: 'CDD', verified: true },
-          effortRate: 38,
-          documentsComplete: false,
-          submittedAt: '2026-01-30T16:45:00Z',
-          isUnlocked: false,
-        },
-      ]);
-      setLoading(false);
-    }, 500);
-  }, [propertyId]);
-
-  const handleCopyLink = () => {
-    if (property) {
-      navigator.clipboard.writeText(property.shareLink);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    }
-  };
-
-  const getGradeConfig = (grade: string) => {
-    if (grade === 'SOUVERAIN' || grade === 'S') {
-      return {
-        label: 'GRADE S - SOUVERAIN',
-        emoji: '🏆',
-        colors: 'from-amber-400 via-yellow-400 to-amber-500',
-        textColor: 'text-amber-700',
-        bgColor: 'bg-amber-50',
-        borderColor: 'border-amber-200',
-        glow: 'shadow-amber-500/20',
-      };
-    }
-    if (grade === 'A' || grade === 'PREMIUM') {
-      return {
-        label: 'GRADE A - PREMIUM',
-        emoji: '⭐',
-        colors: 'from-emerald-400 to-emerald-600',
-        textColor: 'text-emerald-700',
-        bgColor: 'bg-emerald-50',
-        borderColor: 'border-emerald-200',
-        glow: 'shadow-emerald-500/10',
-      };
-    }
-    if (grade === 'B' || grade === 'STANDARD') {
-      return {
-        label: 'GRADE B - STANDARD',
-        emoji: '✓',
-        colors: 'from-blue-400 to-blue-600',
-        textColor: 'text-blue-700',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
-        glow: '',
-      };
-    }
-    return {
-      label: `GRADE ${grade}`,
-      emoji: '○',
-      colors: 'from-slate-300 to-slate-400',
-      textColor: 'text-slate-600',
-      bgColor: 'bg-slate-50',
-      borderColor: 'border-slate-200',
-      glow: '',
+type PropertyRecord = {
+  _id?: string;
+  name?: string;
+  address?: string;
+  applyToken?: string;
+  rentAmount?: number;
+  chargesAmount?: number;
+  surfaceM2?: number;
+  managed?: boolean;
+  archived?: boolean;
+  status?: string;
+  acceptedTenantId?: string | null;
+  isRented?: boolean;
+  flow?: {
+    stage: 'search' | 'analysis' | 'selection' | 'contract' | 'management';
+    stageLabel: string;
+    stageTone: string;
+    progress: number;
+    unlocked?: boolean;
+    summary: string;
+    compareHref?: string;
+    nextAction: { id: string; label: string; description?: string; href: string; kind: string; applicationId?: string | null };
+    focusCard?: {
+      title: string;
+      reason: string;
+      summary: string;
+    };
+    guidance?: {
+      currentStage: { id: string; label: string; tip: string; progress: number };
+      contextualAdvice: string;
+      whyThisStage: string;
+    };
+    selectionState?: {
+      mode: 'empty' | 'review' | 'compare' | 'selected';
+      defaultTab: 'overview' | 'compare' | 'selected';
+      compareHref: string;
+      selectedCandidateId?: string | null;
+      selectedCandidateLabel?: string | null;
+      selectionReason?: string | null;
+      finalistsCount: number;
+      otherCandidatesCount: number;
+      headline: string;
+      body: string;
+      primaryAction?: { label: string; href: string; kind: string } | null;
+    };
+    sealedCount: number;
+    readyToContractCount: number;
+    totalCandidates: number;
+    alerts: string[];
+    blockers: string[];
+    managementSummary: {
+      tenantLabel: string;
+      leaseStatusLabel: string;
+      documentsLabel: string;
+      nextMilestone: string;
+      nextActions: string[];
+      summary: string;
     };
   };
+  managementTools?: {
+    leaseId?: string | null;
+    signatureStatus?: string;
+    edlStatus?: string;
+    vaultDocuments?: Array<{
+      id: string;
+      label: string;
+      status: string;
+      kind: string;
+      fileName?: string | null;
+      downloadUrl?: string | null;
+    }>;
+  } | null;
+};
 
-  const sortedCandidatures = [...candidatures].sort((a, b) => b.patrimometer.score - a.patrimometer.score);
-  const topCandidate = sortedCandidatures[0];
-  const otherCandidates = sortedCandidatures.slice(1);
+type CandidateRecord = {
+  id: string;
+  rank?: number;
+  isTop3?: boolean;
+  isOwnerSelected?: boolean;
+  isUnlocked?: boolean;
+  isSealed?: boolean;
+  sealedLabel?: string;
+  sealedId?: string;
+  profile?: { firstName?: string; lastName?: string; email?: string | null };
+  patrimometer?: { score?: number; grade?: string };
+  ownerInsights?: {
+    aiAudit?: { status?: string; summary?: string; blockers?: string[]; reviewReasons?: string[] };
+    financial?: { monthlyIncomeLabel?: string | null; remainingIncomeLabel?: string | null; effortRateLabel?: string | null };
+    quality?: { status?: { label?: string; tone?: string }; score?: number };
+    contractReadiness?: { ready?: boolean };
+    guarantee?: { label?: string };
+    decisionSummary?: {
+      headline?: string;
+      strengths?: string[];
+      watchouts?: string[];
+      identityVerified?: boolean;
+      readyToLease?: boolean;
+      riskLabel?: string;
+    };
+    comparison?: {
+      scoreValue?: number;
+      scoreLabel?: string;
+      identityVerified?: boolean;
+      identityVerifiedLabel?: string;
+      monthlyIncomeLabel?: string;
+      remainingIncomeLabel?: string;
+      effortRateLabel?: string;
+      qualityLabel?: string;
+      qualityScore?: number;
+      guaranteeLabel?: string;
+      readyToLease?: boolean;
+      readyToLeaseLabel?: string;
+      riskLabel?: string;
+      auditLabel?: string;
+      masked?: boolean;
+    };
+  } | null;
+  passport?: { previewUrl?: string | null; shareUrl?: string | null };
+  documentsCount?: number;
+  certifiedDocumentsCount?: number;
+};
+
+type CheckoutTarget = { propertyLabel: string; candidateCount: number } | null;
+
+function formatCurrency(value?: number | null, fallback = '—') {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+}
+
+function candidateName(candidate?: CandidateRecord | null) {
+  if (!candidate) return 'Candidat';
+  if (candidate.isSealed) return candidate.sealedLabel || candidate.sealedId || 'Profil masqué';
+  return [candidate.profile?.firstName, candidate.profile?.lastName].filter(Boolean).join(' ').trim() || 'Candidat';
+}
+
+function stageTone(tone?: string) {
+  if (tone === 'success') return 'success' as const;
+  if (tone === 'warning') return 'warning' as const;
+  if (tone === 'danger') return 'danger' as const;
+  if (tone === 'dark') return 'dark' as const;
+  if (tone === 'info') return 'info' as const;
+  return 'neutral' as const;
+}
+
+const JOURNEY_ITEMS = [
+  { id: 'overview', label: 'Vue d’ensemble', caption: 'Lire le contexte du bien' },
+  { id: 'receive', label: 'Recevoir des dossiers', caption: 'Partager le lien candidat' },
+  { id: 'compare', label: 'Comparer les finalistes', caption: 'Arbitrer sur des critères stables' },
+  { id: 'selected', label: 'Sélection confirmée', caption: 'Passer ensuite au bail' },
+] as const;
+
+export default function PropertyDetailClient({ propertyId }: { propertyId: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const checkoutSuccess = searchParams.get('checkout') === 'success';
+
+  const [property, setProperty] = useState<PropertyRecord | null>(null);
+  const [candidatures, setCandidatures] = useState<CandidateRecord[]>([]);
+  const [unlocked, setUnlocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget>(null);
+  const [copied, setCopied] = useState(false);
+  const [selectionBusyId, setSelectionBusyId] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [pendingSelectionId, setPendingSelectionId] = useState<string | null>(null);
+  const [unlockPolling, setUnlockPolling] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pRes, cRes] = await Promise.all([
+        fetch(`/api/owner/properties/${propertyId}`, { cache: 'no-store' }),
+        fetch(`/api/owner/properties/${propertyId}/candidatures`, { cache: 'no-store' }),
+      ]);
+      const pData = pRes.ok ? await pRes.json() : null;
+      const cData = cRes.ok ? await cRes.json() : { candidatures: [], unlocked: false };
+      setProperty(pData);
+      setCandidatures(Array.isArray(cData?.candidatures) ? cData.candidatures : []);
+      setUnlocked(Boolean(cData?.unlocked));
+      return Boolean(cData?.unlocked);
+    } catch {
+      setProperty(null);
+      setCandidatures([]);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [propertyId]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (!checkoutSuccess) return;
+    let attempts = 0;
+    const maxAttempts = 10;
+    setUnlockPolling(true);
+
+    async function poll() {
+      attempts += 1;
+      try {
+        const res = await fetch(`/api/owner/properties/${propertyId}/candidatures`, { cache: 'no-store' });
+        const data = res.ok ? await res.json() : {};
+        if (data.unlocked) {
+          setUnlocked(true);
+          setCandidatures(Array.isArray(data.candidatures) ? data.candidatures : []);
+          setUnlockPolling(false);
+          return;
+        }
+      } catch {
+        // noop
+      }
+      if (attempts < maxAttempts) {
+        pollRef.current = setTimeout(poll, 3000);
+      } else {
+        setUnlockPolling(false);
+      }
+    }
+
+    poll();
+    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
+  }, [checkoutSuccess, propertyId]);
+
+  const sorted = useMemo(() => {
+    return [...candidatures].sort((left, right) => {
+      const leftRank = Number(left.rank || 999);
+      const rightRank = Number(right.rank || 999);
+      if (leftRank !== rightRank) return leftRank - rightRank;
+      return Number(right.patrimometer?.score || 0) - Number(left.patrimometer?.score || 0);
+    });
+  }, [candidatures]);
+
+  const ownerSelected = sorted.find((candidate) => candidate.isOwnerSelected)
+    || sorted.find((candidate) => property?.acceptedTenantId && String(candidate.id) === String(property.acceptedTenantId))
+    || null;
+
+  const finalists = sorted.slice(0, 3);
+  const otherCandidates = sorted.slice(3);
+  const showManagement = property?.flow?.stage === 'management' || property?.isRented;
+  const selectionState = property?.flow?.selectionState;
+
+  const requestedTab = searchParams.get('tab');
+  const currentTab = useMemo(() => {
+    const wanted = requestedTab === 'compare' || requestedTab === 'selected' || requestedTab === 'overview'
+      ? requestedTab
+      : selectionState?.defaultTab || 'overview';
+
+    if (wanted === 'selected' && !ownerSelected) {
+      return selectionState?.defaultTab === 'compare' ? 'compare' : 'overview';
+    }
+    if (wanted === 'compare' && finalists.length === 0) return 'overview';
+    return wanted;
+  }, [finalists.length, ownerSelected, requestedTab, selectionState?.defaultTab]);
+
+  const activeJourneyId = currentTab === 'selected'
+    ? 'selected'
+    : currentTab === 'compare'
+      ? 'compare'
+      : sorted.length === 0
+        ? 'receive'
+        : 'overview';
+
+  const openUnlockModal = () => {
+    setCheckoutTarget({
+      propertyLabel: property?.address || property?.name || 'ce bien',
+      candidateCount: Number(property?.flow?.sealedCount || sorted.filter((candidate) => candidate.isSealed).length || 0),
+    });
+  };
+
+  const handleCopyLink = async () => {
+    if (!property?.applyToken) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/apply/${property.applyToken}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // noop
+    }
+  };
+
+  const goToTab = (tab: 'overview' | 'compare' | 'selected', applicationId?: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    if (applicationId) params.set('applicationId', applicationId); else params.delete('applicationId');
+    router.replace(`/dashboard/owner/property/${propertyId}?${params.toString()}`);
+  };
+
+  const handleRequestChoose = (candidateId: string) => {
+    setPendingSelectionId(candidateId);
+    if (currentTab !== 'compare') goToTab('compare', candidateId);
+  };
+
+  const handleConfirmChoose = async () => {
+    if (!pendingSelectionId) return;
+    setSelectionBusyId(pendingSelectionId);
+    setSelectionError(null);
+    try {
+      const res = await fetch(`/api/owner/properties/${propertyId}/selection`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: pendingSelectionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
+      setPendingSelectionId(null);
+      await loadData();
+      goToTab('selected', pendingSelectionId);
+    } catch (err) {
+      setSelectionError(err instanceof Error ? err.message : 'Erreur.');
+    } finally {
+      setSelectionBusyId(null);
+    }
+  };
+
+  const launchContractDesk = () => {
+    if (!ownerSelected) return;
+    if (ownerSelected.isSealed) {
+      openUnlockModal();
+      return;
+    }
+    router.push(`/properties/${propertyId}/contract?applicationId=${encodeURIComponent(ownerSelected.id)}`);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full"
-        />
+      <div className="flex min-h-[55vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
       </div>
     );
   }
 
+  if (!property) {
+    return (
+      <EmptyState
+        title="Bien introuvable"
+        description="La fiche de ce bien n'est pas accessible."
+        action={
+          <Link href="/dashboard/owner" className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
+            <ArrowLeft className="h-4 w-4" />
+            Retour
+          </Link>
+        }
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Header Crystal */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard/owner" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-sm font-medium">Retour</span>
-            </Link>
-            
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
-              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">PatrimoTrust™</span>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-12">
+      <CheckoutModal
+        open={Boolean(checkoutTarget)}
+        onClose={() => setCheckoutTarget(null)}
+        propertyId={propertyId}
+        propertyLabel={checkoutTarget?.propertyLabel || ''}
+        candidateCount={checkoutTarget?.candidateCount || 0}
+        unlockScope="property"
+      />
+
+      {checkoutSuccess ? (
+        <PremiumSurface padding="md" className="rounded-3xl border-emerald-200 bg-emerald-50">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
+              {unlockPolling ? <Loader2 className="h-5 w-5 animate-spin text-emerald-700" /> : <CheckCircle2 className="h-5 w-5 text-emerald-700" />}
+            </div>
+            <div>
+              <h2 className="font-serif text-2xl tracking-tight text-emerald-950">
+                {unlocked ? 'Accès complet activé' : unlockPolling ? 'Activation en cours...' : 'Paiement reçu'}
+              </h2>
+              <p className="mt-2 text-sm text-emerald-800">
+                {unlocked
+                  ? 'Les dossiers complets sont maintenant accessibles pour ce bien.'
+                  : unlockPolling
+                    ? 'Le déverrouillage est en cours de synchronisation.'
+                    : 'Rechargez la page dans quelques instants si le détail complet n’apparaît pas encore.'}
+              </p>
             </div>
           </div>
+        </PremiumSurface>
+      ) : null}
+
+      {selectionError ? (
+        <PremiumSurface padding="sm" className="rounded-3xl border-rose-200 bg-rose-50">
+          <p className="text-sm font-medium text-rose-700">{selectionError}</p>
+        </PremiumSurface>
+      ) : null}
+
+      <PremiumSurface tone="hero" padding="lg" className="rounded-[2.25rem] border-stone-200/80">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_auto] xl:items-start">
+          <div className="min-w-0">
+            <Link href="/dashboard/owner" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800">
+              <ArrowLeft className="h-4 w-4" />
+              Retour au portefeuille
+            </Link>
+
+            <div className="mt-5 flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white/75">
+                <Building2 className="h-6 w-6 text-emerald-900" />
+              </div>
+              <div className="min-w-0">
+                <ActionBar className="gap-2">
+                  <StatusBadge tone={stageTone(property.flow?.stageTone)} label={property.flow?.stageLabel || 'Pipeline'} className="normal-case tracking-normal text-[11px] font-semibold" />
+                  {property.flow?.selectionState?.mode === 'selected' ? (
+                    <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
+                  ) : null}
+                </ActionBar>
+                <h1 className="mt-4 break-words font-serif text-[2.45rem] tracking-tight text-slate-950 sm:text-[3rem]">
+                  {property.address || property.name || 'Bien'}
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {formatCurrency(property.rentAmount)} HC
+                  {Number(property.chargesAmount || 0) > 0 ? ` + ${formatCurrency(property.chargesAmount)} charges` : ''}
+                  {property.surfaceM2 ? ` · ${property.surfaceM2} m²` : ''}
+                </p>
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-700">
+                  {property.flow?.selectionState?.headline || property.flow?.focusCard?.title || property.flow?.summary}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 xl:w-[240px]">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              disabled={!property.applyToken}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              <Link2 className="h-4 w-4" />
+              {copied ? 'Lien copié' : 'Copier le lien candidat'}
+            </button>
+
+            {property.flow?.selectionState?.primaryAction ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (property.flow?.selectionState?.primaryAction?.kind === 'unlock') {
+                    openUnlockModal();
+                  } else {
+                    router.push(property.flow?.selectionState?.primaryAction?.href || property.flow?.nextAction?.href || `/dashboard/owner/property/${propertyId}`);
+                  }
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+              >
+                {property.flow?.selectionState?.primaryAction?.kind === 'unlock' ? <Lock className="h-4 w-4 text-amber-300" /> : <ArrowLeft className="h-4 w-4 rotate-180" />}
+                {property.flow.selectionState.primaryAction.label}
+              </button>
+            ) : null}
+          </div>
         </div>
-        
-        {/* Progress Bar */}
-        <div className="max-w-6xl mx-auto px-6 pb-4">
-          <div className="flex items-center justify-center gap-8">
-            {[
-              { label: 'Recherche', done: true },
-              { label: 'Sélection', active: true },
-              { label: 'Signature', done: false },
-            ].map((step, i, arr) => (
-              <React.Fragment key={step.label}>
-                <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    step.done ? 'bg-emerald-500 text-white' :
-                    step.active ? 'bg-amber-400 text-white ring-4 ring-amber-100' :
-                    'bg-slate-200 text-slate-400'
-                  }`}>
-                    {step.done ? '✓' : i + 1}
+      </PremiumSurface>
+
+      <PropertyJourneyStrip
+        items={JOURNEY_ITEMS as unknown as { id: string; label: string; caption?: string }[]}
+        activeId={activeJourneyId}
+        onSelect={(id) => {
+          if (id === 'overview' || id === 'receive') {
+            goToTab('overview', sorted[0]?.id || null);
+            return;
+          }
+          if (id === 'compare') {
+            goToTab('compare', finalists[0]?.id || null);
+            return;
+          }
+          if (ownerSelected) {
+            goToTab('selected', ownerSelected.id);
+          }
+        }}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricTile label="Dossiers reçus" value={property.flow?.totalCandidates || 0} caption="Entrées du bien" />
+        <MetricTile label="Dossiers comparables" value={selectionState?.finalistsCount || 0} caption="Finalistes visibles" />
+        <MetricTile label="Dossiers masqués" value={property.flow?.sealedCount || 0} caption="Accès complet optionnel" />
+        <MetricTile label="Prêts pour le bail" value={property.flow?.readyToContractCount || 0} caption="Après choix explicite" />
+      </div>
+
+      <section className="space-y-6">
+        <PremiumSectionHeader
+          eyebrow="Vue d’ensemble"
+          title="Comprendre le bien avant de décider"
+          description={property.flow?.summary || 'L’espace vous guide du premier dossier jusqu’à la sélection confirmée.'}
+        />
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+              Pourquoi cette étape
+            </div>
+            <p className="mt-3 text-sm leading-7 text-slate-700">
+              {property.flow?.guidance?.whyThisStage || property.flow?.focusCard?.reason || property.flow?.summary}
+            </p>
+            <div className="mt-5 rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Conseil
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {property.flow?.guidance?.contextualAdvice || property.flow?.selectionState?.body || 'Le prochain geste utile est indiqué juste en dessous.'}
+              </p>
+            </div>
+          </PremiumSurface>
+
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/75">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+              Priorité active
+            </div>
+            <h2 className="mt-3 font-serif text-3xl tracking-tight text-slate-950">
+              {property.flow?.focusCard?.title || property.flow?.selectionState?.headline || 'Étape en cours'}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              {property.flow?.focusCard?.reason || property.flow?.summary}
+            </p>
+            {(property.flow?.alerts || []).length > 0 ? (
+              <div className="mt-5 space-y-3">
+                {property.flow?.alerts?.map((alert) => (
+                  <div key={alert} className="rounded-[1.35rem] border border-amber-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                    {alert}
                   </div>
-                  <span className={`text-sm font-medium ${
-                    step.active ? 'text-slate-900' : step.done ? 'text-emerald-600' : 'text-slate-400'
-                  }`}>
-                    {step.label}
-                  </span>
+                ))}
+              </div>
+            ) : null}
+          </PremiumSurface>
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <PremiumSectionHeader
+          eyebrow="Recevoir des dossiers"
+          title="Lien candidat"
+          description="Le dépôt de dossier démarre depuis ce lien unique. Les vérifications et le classement se font ensuite automatiquement."
+        />
+
+        {property.applyToken ? (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+                Adresse à partager
+              </div>
+              <code className="mt-4 block break-all rounded-[1.45rem] border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-700">
+                {typeof window !== 'undefined' ? `${window.location.origin}/apply/${property.applyToken}` : `/apply/${property.applyToken}`}
+              </code>
+              <ActionBar className="mt-4 gap-2">
+                <button type="button" onClick={handleCopyLink} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">
+                  <Copy className="h-4 w-4" />
+                  {copied ? 'Copié' : 'Copier'}
+                </button>
+                <button type="button" onClick={() => window.open(`/apply/${property.applyToken}`, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  <ExternalLink className="h-4 w-4" />
+                  Voir la page candidat
+                </button>
+              </ActionBar>
+            </PremiumSurface>
+
+            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/75">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+                Effet attendu
+              </div>
+              <h3 className="mt-3 font-serif text-3xl tracking-tight text-slate-950">
+                Moins de friction, plus de dossiers comparables
+              </h3>
+              <div className="mt-5 space-y-3">
+                <InfoRow label="Dossiers reçus" value={property.flow?.totalCandidates || 0} />
+                <InfoRow label="Analyses prêtes" value={property.flow?.readyToContractCount || 0} />
+                <InfoRow label="Étape suivante" value={property.flow?.nextAction?.label || 'Suivre le tunnel'} />
+              </div>
+            </PremiumSurface>
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Link2 className="h-7 w-7 text-slate-300" />}
+            title="Lien candidat indisponible"
+            description="Le lien apparaîtra automatiquement dès que ce bien sera prêt à recevoir des dossiers."
+          />
+        )}
+      </section>
+
+      {currentTab === 'overview' && sorted.length > 0 ? (
+        <section className="space-y-6">
+          <PremiumSectionHeader
+            eyebrow="Aperçu décisionnel"
+            title="Voir si ce bien mérite déjà une comparaison"
+            description={selectionState?.body || 'Les finalistes sont résumés ici avant d’ouvrir le comparateur complet.'}
+          />
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            {finalists.map((candidate) => (
+              <PremiumSurface key={candidate.id} padding="md" className="rounded-3xl border-slate-200 bg-white">
+                <ActionBar className="gap-2">
+                  {candidate.rank ? <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
+                  {candidate.isOwnerSelected ? <StatusBadge tone="dark" label="Retenu" className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
+                  {candidate.isSealed ? <StatusBadge tone="warning" label="Masqué" className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
+                </ActionBar>
+                <h3 className="mt-4 break-words font-serif text-2xl tracking-tight text-slate-950">
+                  {candidateName(candidate)}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {candidate.ownerInsights?.decisionSummary?.headline || 'Profil en attente de lecture détaillée.'}
+                </p>
+                <div className="mt-4 space-y-3">
+                  <InfoRow label="Score de confiance" value={candidate.ownerInsights?.comparison?.scoreLabel || '—'} />
+                  <InfoRow label="Garantie" value={candidate.ownerInsights?.comparison?.guaranteeLabel || '—'} />
+                  <InfoRow label="Prêt pour le bail" value={candidate.ownerInsights?.comparison?.readyToLeaseLabel || '—'} />
                 </div>
-                {i < arr.length - 1 && (
-                  <div className={`w-16 h-0.5 rounded-full ${step.done ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                )}
-              </React.Fragment>
+              </PremiumSurface>
             ))}
           </div>
-        </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Property Header - Statutaire */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: 'Georgia, Playfair Display, serif' }}>
-                  {property?.name}
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">En Recrutement</span>
-                </span>
-              </div>
-              <p className="text-slate-500">{property?.address}, {property?.city}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Georgia, serif' }}>{property?.rent}€</p>
-              <p className="text-sm text-slate-400">/mois</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Performance Panel - Glassmorphism Premium */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-10 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/50 shadow-xl overflow-hidden"
-        >
-          <div className="p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              {/* Gauche - Les Chiffres Clés */}
-              <div className="flex items-center gap-10">
-                <div className="text-center">
-                  <p className="text-4xl font-bold text-slate-900" style={{ fontFamily: 'Georgia, serif' }}>
-                    {property?.views}
-                  </p>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">Vues</p>
-                </div>
-                <div className="w-px h-12 bg-slate-200" />
-                <div className="text-center">
-                  <p className="text-4xl font-bold text-slate-900" style={{ fontFamily: 'Georgia, serif' }}>
-                    {candidatures.length}
-                  </p>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">Candidatures</p>
-                </div>
-                <div className="w-px h-12 bg-slate-200" />
-                <div className="text-center">
-                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
-                    {topCandidate?.patrimometer.score || 0}/100
-                  </p>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">Meilleur Score</p>
-                </div>
-              </div>
-
-              {/* Droite - Lien de Diffusion */}
-              <div className="lg:border-l lg:border-slate-200 lg:pl-8">
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">Lien de Candidature Sécurisé</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-sm font-mono text-slate-600 truncate">{property?.shortLink}</p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleCopyLink}
-                    className={`px-5 py-3 rounded-xl font-medium text-sm transition-all ${
-                      linkCopied
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40'
-                    }`}
-                  >
-                    {linkCopied ? '✓ Copié !' : 'Copier'}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Section Titre */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-800">
-            Sélection des Meilleurs Profils
-          </h2>
-          <span className="text-sm text-slate-400">
-            Triés par PatrimoScore™
-          </span>
-        </div>
-
-        {/* Liste des Candidats */}
-        <div className="space-y-6">
-          {/* Top Candidat - Grade S - Mise en avant Premium */}
-          {topCandidate && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className={`relative bg-white rounded-3xl border-2 overflow-hidden ${
-                topCandidate.patrimometer.grade === 'SOUVERAIN' || topCandidate.patrimometer.grade === 'S'
-                  ? 'border-amber-300 shadow-2xl shadow-amber-500/20'
-                  : 'border-emerald-300 shadow-xl shadow-emerald-500/10'
-              }`}
+          <ActionBar className="gap-3">
+            <button
+              type="button"
+              onClick={() => goToTab('compare', finalists[0]?.id || null)}
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
             >
-              {/* Lueur de fond */}
-              {(topCandidate.patrimometer.grade === 'SOUVERAIN' || topCandidate.patrimometer.grade === 'S') && (
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-white to-emerald-50/50 pointer-events-none" />
-              )}
-              
-              <div className="relative p-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Gauche - Avatar et Badge */}
-                  <div className="flex flex-col items-center lg:items-start gap-4">
-                    {/* Avatar */}
-                    <div className="relative">
-                      <div className="w-28 h-28 bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center overflow-hidden">
-                        {!topCandidate.isUnlocked ? (
-                          <div className="relative w-full h-full flex items-center justify-center">
-                            <span className="text-5xl filter blur-sm">👤</span>
-                            <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px]" />
-                          </div>
-                        ) : (
-                          <span className="text-5xl">👤</span>
-                        )}
-                      </div>
-                      {topCandidate.diditStatus === 'VERIFIED' && (
-                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center border-4 border-white shadow-lg">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Badge Grade */}
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.4, type: 'spring' }}
-                      className={`px-4 py-2 bg-gradient-to-r ${getGradeConfig(topCandidate.patrimometer.grade).colors} rounded-full shadow-lg`}
-                    >
-                      <span className="text-white text-sm font-bold">
-                        {getGradeConfig(topCandidate.patrimometer.grade).emoji} {getGradeConfig(topCandidate.patrimometer.grade).label}
-                      </span>
-                    </motion.div>
-                    
-                    {/* Score */}
-                    <div className="text-center lg:text-left">
-                      <p className="text-5xl font-bold text-slate-900" style={{ fontFamily: 'Georgia, serif' }}>
-                        {topCandidate.patrimometer.score}
-                        <span className="text-2xl text-slate-400">/100</span>
-                      </p>
-                      <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">PatrimoScore™</p>
-                    </div>
-                  </div>
-
-                  {/* Centre - Infos */}
-                  <div className="flex-1">
-                    <div className="mb-4">
-                      <h3 className="text-2xl font-bold text-slate-900 mb-1">
-                        {topCandidate.isUnlocked 
-                          ? `${topCandidate.profile.firstName} ${topCandidate.profile.lastName}`
-                          : `${topCandidate.profile.firstName} ${topCandidate.profile.lastName.charAt(0)}.`
-                        }
-                      </h3>
-                      <p className="text-emerald-600 text-sm font-medium flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        Dossier certifié complet par l'IA
-                      </p>
-                    </div>
-
-                    {/* Données Certifiées */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      {/* Revenus */}
-                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Revenus Certifiés</p>
-                        <p className="text-xl font-bold text-slate-900">
-                          {topCandidate.income?.monthly.toLocaleString('fr-FR')} €<span className="text-sm font-normal text-slate-500">/mois</span>
-                        </p>
-                        {topCandidate.income?.verified && (
-                          <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] text-emerald-700 font-medium">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            {topCandidate.income.type} Confirmé
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Solvabilité */}
-                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Solvabilité</p>
-                        <p className="text-xl font-bold text-emerald-600">Excellente</p>
-                        <p className="text-sm text-slate-500 mt-1">
-                          Taux d'effort : <span className="font-semibold text-slate-700">{topCandidate.effortRate}%</span>
-                        </p>
-                      </div>
-
-                      {/* Garantie */}
-                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-                        <p className="text-xs text-emerald-600 uppercase tracking-wider mb-1">Garantie</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">🛡️</span>
-                          <div>
-                            <p className="text-sm font-bold text-emerald-800">Éligible Protection Totale</p>
-                            <p className="text-xs text-emerald-600">Garantie PatrimoTrust™</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Date de candidature */}
-                    <p className="text-xs text-slate-400">
-                      Candidature reçue le {new Date(topCandidate.submittedAt).toLocaleDateString('fr-FR', { 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-
-                  {/* Droite - CTA */}
-                  <div className="flex flex-col items-center lg:items-end justify-center gap-4">
-                    <motion.button
-                      whileHover={{ scale: 1.03, boxShadow: '0 20px 40px -10px rgba(245, 158, 11, 0.4)' }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-white text-lg font-bold rounded-2xl shadow-xl shadow-amber-500/30 transition-all"
-                    >
-                      DÉVERROUILLER CE DOSSIER
-                    </motion.button>
-                    <p className="text-xs text-slate-400 text-center lg:text-right">
-                      Accédez aux documents vérifiés
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Autres Candidats */}
-          {otherCandidates.map((candidature, index) => {
-            const config = getGradeConfig(candidature.patrimometer.grade);
-            
-            return (
-              <motion.div
-                key={candidature.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className={`bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg ${config.borderColor}`}
-              >
-                <div className="p-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                    {/* Avatar */}
-                    <div className="relative">
-                      <div className="w-16 h-16 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl filter blur-[1px]">👤</span>
-                      </div>
-                      {candidature.diditStatus === 'VERIFIED' && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-lg flex items-center justify-center border-2 border-white">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Infos */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <h4 className="font-bold text-slate-900">
-                          {candidature.profile.firstName} {candidature.profile.lastName.charAt(0)}.
-                        </h4>
-                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r ${config.colors} text-white`}>
-                          {config.emoji} {candidature.patrimometer.grade}
-                        </span>
-                        <span className="text-sm font-bold text-slate-700">
-                          {candidature.patrimometer.score}/100
-                        </span>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                        {candidature.income && (
-                          <span>{candidature.income.monthly.toLocaleString('fr-FR')}€/mois • {candidature.income.type}</span>
-                        )}
-                        {candidature.effortRate && (
-                          <span>Taux d'effort : {candidature.effortRate}%</span>
-                        )}
-                        {!candidature.documentsComplete && (
-                          <span className="text-amber-600 flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            En cours de complétion
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action */}
-                    <button className="px-5 py-2.5 border-2 border-slate-200 text-slate-700 font-medium rounded-xl hover:border-slate-300 hover:bg-slate-50 transition-all text-sm">
-                      Voir le profil
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-
-          {/* État vide */}
-          {candidatures.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📋</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Aucune candidature pour le moment</h3>
-              <p className="text-slate-500 mb-6">Partagez votre lien de candidature pour recevoir des dossiers certifiés.</p>
+              <Shield className="h-4 w-4" />
+              Ouvrir le comparateur
+            </button>
+            {ownerSelected ? (
               <button
-                onClick={handleCopyLink}
-                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+                type="button"
+                onClick={() => goToTab('selected', ownerSelected.id)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
               >
-                Copier le lien de candidature
+                <CheckCircle2 className="h-4 w-4" />
+                Voir la sélection confirmée
               </button>
-            </div>
-          )}
-        </div>
-      </main>
+            ) : null}
+          </ActionBar>
+        </section>
+      ) : null}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-100 mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-6 text-center">
-          <p className="text-xs text-slate-400">
-            PatrimoTrust™ • Standard de Confiance Immobilier 2026 • Conforme Loi Alur
-          </p>
-        </div>
-      </footer>
-    </div>
+      {currentTab === 'compare' ? (
+        <section className="space-y-6">
+          <PremiumSectionHeader
+            eyebrow="Comparer les finalistes"
+            title="Décider avec les mêmes critères pour chaque dossier"
+            description="Le comparateur rassemble uniquement les informations utiles au choix. L’analyse complète reste disponible en second niveau."
+          />
+
+          {finalists.length === 0 ? (
+            <EmptyState
+              icon={<Shield className="h-7 w-7 text-slate-300" />}
+              title="Aucun finaliste à comparer"
+              description="Revenez à la vue d’ensemble pour partager le lien candidat ou attendre les prochains dossiers."
+            />
+          ) : (
+            <CandidateComparisonMatrix
+              propertyId={propertyId}
+              candidates={finalists}
+              otherCandidates={otherCandidates}
+              selectedCandidateId={ownerSelected?.id || null}
+              pendingCandidateId={pendingSelectionId}
+              selectionBusyId={selectionBusyId}
+              canChangeSelection={!['LEASE_IN_PROGRESS', 'OCCUPIED'].includes(String(property.status || '').toUpperCase())}
+              onRequestChoose={handleRequestChoose}
+              onConfirmChoose={handleConfirmChoose}
+              onCancelChoose={() => setPendingSelectionId(null)}
+              onUnlock={openUnlockModal}
+            />
+          )}
+        </section>
+      ) : null}
+
+      {currentTab === 'selected' && ownerSelected ? (
+        <section className="space-y-6">
+          <PremiumSectionHeader
+            eyebrow="Sélection confirmée"
+            title="Le locataire retenu est clairement identifié"
+            description="Le tunnel se referme ici côté sélection. Le prochain geste utile est de préparer le bail."
+          />
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <PremiumSurface padding="lg" className="rounded-3xl border-emerald-200 bg-emerald-50">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                    Locataire retenu
+                  </div>
+                  <h3 className="mt-2 font-serif text-3xl tracking-tight text-emerald-950">
+                    {candidateName(ownerSelected)}
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-emerald-900/85">
+                    {selectionState?.selectionReason || ownerSelected.ownerInsights?.decisionSummary?.headline || 'Le choix a été confirmé pour ce bien.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {(ownerSelected.ownerInsights?.decisionSummary?.strengths || []).slice(0, 4).map((item) => (
+                  <div key={item} className="flex items-start gap-2 text-sm text-emerald-950">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </PremiumSurface>
+
+            <PremiumSurface padding="lg" className="rounded-3xl border-slate-200 bg-white">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+                Suite du tunnel
+              </div>
+              <div className="mt-5 space-y-3">
+                <InfoRow label="Score de confiance" value={ownerSelected.ownerInsights?.comparison?.scoreLabel || '—'} />
+                <InfoRow label="Garantie" value={ownerSelected.ownerInsights?.comparison?.guaranteeLabel || '—'} />
+                <InfoRow label="Prêt pour le bail" value={ownerSelected.ownerInsights?.comparison?.readyToLeaseLabel || '—'} />
+              </div>
+              <ActionBar className="mt-6 gap-3">
+                <button
+                  type="button"
+                  onClick={launchContractDesk}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+                >
+                  <ScrollText className="h-4 w-4" />
+                  Préparer le bail
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToTab('compare', ownerSelected.id)}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                >
+                  Revoir la comparaison
+                </button>
+              </ActionBar>
+            </PremiumSurface>
+          </div>
+        </section>
+      ) : null}
+
+      {showManagement ? (
+        <section className="space-y-6">
+          <PremiumSectionHeader
+            eyebrow="Gestion locative"
+            title="L’essentiel reste accessible"
+            description="Le lot de refonte s’arrête à la sélection, mais les outils de gestion déjà en place restent disponibles ici."
+          />
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+              <InfoRow label="Locataire" value={property.flow?.managementSummary?.tenantLabel || candidateName(ownerSelected)} />
+            </PremiumSurface>
+            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+              <InfoRow label="Bail" value={property.managementTools?.signatureStatus || property.flow?.managementSummary?.leaseStatusLabel || 'Prospection'} />
+            </PremiumSurface>
+            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+              <InfoRow label="Prochaine étape" value={property.flow?.managementSummary?.nextMilestone || 'Aucune échéance'} />
+            </PremiumSurface>
+          </div>
+
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/70">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+              Coffre-fort documentaire
+            </div>
+            <div className="mt-5 space-y-3">
+              {(property.managementTools?.vaultDocuments || []).length > 0 ? (
+                property.managementTools?.vaultDocuments?.map((doc) => (
+                  <div key={doc.id} className="flex flex-col gap-3 rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-950">{doc.label}</div>
+                      <div className="mt-1 text-xs uppercase tracking-wider text-slate-400">{doc.status}</div>
+                    </div>
+                    {doc.downloadUrl ? (
+                      <a href={doc.downloadUrl} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                        <FileText className="h-4 w-4" />
+                        Ouvrir
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400">
+                        <Lock className="h-4 w-4" />
+                        En attente
+                      </span>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-[1.35rem] border border-dashed border-slate-300 bg-white/70 px-4 py-5 text-sm text-slate-500">
+                  Aucun document archivé.
+                </div>
+              )}
+            </div>
+          </PremiumSurface>
+        </section>
+      ) : null}
+    </motion.div>
   );
 }

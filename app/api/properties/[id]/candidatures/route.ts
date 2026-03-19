@@ -19,11 +19,26 @@ export async function GET(
     const { id } = await params;
     
     // Trouver la propriété
-    const property = await Property.findById(id);
+    const property = await Property.findById(id).select('_id title address applyToken');
     if (!property) {
       return NextResponse.json(
         { error: 'Propriété introuvable' },
         { status: 404 }
+      );
+    }
+
+    if ((property as any).applyToken) {
+      await Application.updateMany(
+        {
+          applyToken: (property as any).applyToken,
+          $or: [
+            { property: { $exists: false } },
+            { property: null },
+          ],
+        },
+        {
+          $set: { property: (property as any)._id },
+        }
       );
     }
 

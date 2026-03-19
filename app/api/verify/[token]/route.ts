@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
+import '@/models/Property';
 import { notifyPassportViewed } from '@/app/actions/share-passport';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { buildPassportViewModel } = require('@/src/utils/passportViewModel');
 
 /**
  * GET /api/verify/[token]
- * Retourne les données "teasing" d'une candidature pour un propriétaire externe
- * Le token est soit un shareToken soit un passportSlug
+ * Alias legacy vers les donnees publiques du passeport
  */
 export async function GET(
   request: NextRequest,
@@ -15,92 +17,40 @@ export async function GET(
   try {
     await connectDiditDb();
     const { token } = await params;
-    
-    // Chercher par slug ou par shareToken
-    // Pour l'instant on utilise le slug comme identifiant
-    const app = await Application.findOne({
-      $or: [
-        { passportSlug: token },
-        // On pourrait ajouter un champ shareTokens[] pour les tokens de partage
-      ]
-    }).lean();
-    
+
+    const app = await Application.findOne({ passportSlug: token })
+      .populate('property', 'name address rentAmount')
+      .lean();
+
     if (!app) {
       return NextResponse.json({ error: 'Dossier introuvable' }, { status: 404 });
     }
-    
-    const appData = app as any;
-    const profile = appData.profile || {};
-    const patrimometer = appData.patrimometer || {};
-    const didit = appData.didit || {};
-    const guarantor = appData.guarantor || {};
-    const financialSummary = appData.financialSummary || {};
-    const breakdown = patrimometer.breakdown || {};
-    
-    // Incrémenter le compteur de vues
-    await Application.findByIdAndUpdate(appData._id, {
-      $inc: { passportViewCount: 1 },
-      passportLastViewedAt: new Date()
-    });
-    
-    // Notifier le locataire (en arrière-plan)
-    notifyPassportViewed(appData._id.toString()).catch(console.error);
-    
-    // Calculer l'âge si date de naissance disponible
-    let age: number | undefined;
-    const birthDate = profile.birthDate || didit.identityData?.birthDate;
-    if (birthDate) {
-      const birth = new Date(birthDate);
-      const today = new Date();
-      age = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-      }
+
+    const shouldTrack = request.nextUrl.searchParams.get('track') !== 'false';
+    if (shouldTrack) {
+      await Application.findByIdAndUpdate((app as any)._id, {
+        $inc: { passportViewCount: 1 },
+        passportLastViewedAt: new Date(),
+      });
+      notifyPassportViewed((app as any)._id.toString()).catch(console.error);
     }
 
-    // Générer le passportId
-    const passportId = `PT-${new Date().getFullYear()}-${appData._id.toString().slice(-8).toUpperCase()}`;
+    const host = request.headers.get('host') || '';
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL ||
+      (host ? `${proto === 'https' ? 'https' : 'http'}://${host}` : '') ||
+      'https://doc2loc.com';
 
-    // Retourner les données "teasing" (pas les documents sensibles)
-    return NextResponse.json({
-      firstName: profile.firstName || 'Candidat',
-      lastName: profile.lastName ? profile.lastName.charAt(0) + '.' : '',
-      age,
-      profession: 'Salarié(e)', // TODO: Récupérer depuis les documents
-      contractType: 'CDI', // TODO: Récupérer depuis attestation employeur
-      location: 'Île-de-France', // TODO: Récupérer depuis justificatif domicile
-      score: patrimometer.score || 0,
-      grade: patrimometer.grade || 'F',
-      identityVerified: didit.status === 'VERIFIED',
-      incomeVerified: financialSummary.certifiedIncome || false,
-      guarantorCertified: guarantor.status === 'CERTIFIED' || guarantor.status === 'AUDITED',
-      monthlyIncome: financialSummary.totalMonthlyIncome > 0 
-        ? Math.round(financialSummary.totalMonthlyIncome / 100) * 100 // Arrondir pour le teasing
-        : undefined,
-      effortRate: 28, // Valeur teasing - la vraie valeur après inscription
-      passportId,
-      pillars: {
-        identity: {
-          verified: didit.status === 'VERIFIED',
-        },
-        domicile: {
-          verified: appData.documents?.some((d: any) => d.category === 'address' && d.status === 'certified') || false,
-        },
-        activity: {
-          verified: appData.documents?.some((d: any) => 
-            (d.type === 'contrat_travail' || d.type === 'attestation_employeur') && d.status === 'certified'
-          ) || false,
-        },
-        resources: {
-          verified: financialSummary.certifiedIncome || false,
-        },
-      },
-      certificationDate: appData.updatedAt 
-        ? new Date(appData.updatedAt).toLocaleDateString('fr-FR')
-        : new Date().toLocaleDateString('fr-FR'),
+    const passport = buildPassportViewModel({
+      application: shouldTrack
+        ? { ...(app as any), passportViewCount: Number((app as any).passportViewCount || 0) + 1, passportLastViewedAt: new Date() }
+        : app as any,
+      audience: 'public',
+      baseUrl,
+      slug: token,
     });
-    
+
+    return NextResponse.json(passport);
   } catch (error) {
     console.error('GET /api/verify/[token]', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

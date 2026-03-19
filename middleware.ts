@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const protectedRoutes = ['/dashboard/tenant', '/dashboard/owner'];
-  const authRoutes = ['/auth/signin', '/auth/verify-request', '/auth/register'];
+  const authRoutes = ['/auth/login', '/auth/signin', '/auth/verify-request', '/auth/register'];
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!token && isProtectedRoute) {
-    const signInUrl = new URL('/auth/signin', request.url);
+    const signInUrl = new URL('/auth/login', request.url);
     signInUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(signInUrl);
   }

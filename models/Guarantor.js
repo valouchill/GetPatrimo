@@ -7,6 +7,7 @@ const GuarantorSchema = new mongoose.Schema({
   // Lien vers la Property (via applyToken)
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
   applyToken: { type: String, default: '' }, // Token de la page apply
+  slot: { type: Number, enum: [1, 2], default: 1 },
   
   // Informations du garant
   email: { type: String, required: true, trim: true, lowercase: true },
@@ -59,6 +60,7 @@ const GuarantorSchema = new mongoose.Schema({
 GuarantorSchema.index({ candidature: 1, status: 1 });
 GuarantorSchema.index({ property: 1, status: 1 });
 GuarantorSchema.index({ applyToken: 1, status: 1 });
+GuarantorSchema.index({ applyToken: 1, slot: 1, email: 1 });
 GuarantorSchema.index({ invitationToken: 1 });
 
 // Éviter la recompilation du modèle dans Next.js

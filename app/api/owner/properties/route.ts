@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
@@ -30,20 +34,136 @@ export async function GET() {
     const userId = await resolveUserId(session);
     if (!userId) return NextResponse.json([]);
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '';
     const properties = await Property.find({ user: userId })
       .sort({ archived: 1, createdAt: -1 })
       .lean();
 
     const result = await Promise.all(
       properties.map(async (prop: any) => {
+        if (prop.applyToken) {
+          await Application.updateMany(
+            {
+              applyToken: prop.applyToken,
+              $or: [
+                { property: { $exists: false } },
+                { property: null },
+              ],
+            },
+            {
+              $set: { property: prop._id },
+            }
+          );
+        }
+
         const applications = await Application.find({
           property: prop._id,
           status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
         })
-          .select('profile patrimometer didit guarantor financialSummary status submittedAt documents')
+          .select('applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
           .lean();
 
         const isManaged = prop.managed === true || !!prop.stripeSubscriptionId;
+        const mappedCandidates = applications.map((app: any, idx: number) => {
+          const firstName = app.profile?.firstName || '';
+          const lastName = app.profile?.lastName || '';
+          const ownerInsights = buildOwnerApplicationInsights({
+            application: app,
+            property: prop,
+            baseUrl,
+            isSealed: !isManaged,
+          });
+
+          const maskedPassport = !isManaged
+            ? {
+                ...ownerInsights.passport,
+                previewUrl: null,
+                shareUrl: null,
+                downloadUrl: null,
+                shareEnabled: false,
+              }
+            : ownerInsights.passport;
+
+          const normalizedFinancialSummary = {
+            totalMonthlyIncome: Number(app.financialSummary?.totalMonthlyIncome || 0) || 0,
+            monthlyNetIncome: ownerInsights.financial.monthlyIncome || 0,
+            contractType: app.financialSummary?.incomeSource || '',
+            incomeSource: app.financialSummary?.incomeSource || '',
+            certifiedIncome: Boolean(app.financialSummary?.certifiedIncome),
+            remainingIncome: ownerInsights.financial.remainingIncome,
+            riskLevel: ownerInsights.financial.riskBand.label,
+            riskPercent: ownerInsights.financial.riskBand.score,
+            effortRate: ownerInsights.financial.effortRate,
+          };
+
+          if (!isManaged) {
+            return {
+              id: app._id.toString(),
+              applyToken: app.applyToken,
+              isSealed: true,
+              sealedLabel: `${firstName.charAt(0) || '?'}. ${lastName.charAt(0) || '?'}.`,
+              sealedId: `#${String(400 + idx + 1)}`,
+              profile: {
+                firstName: `${firstName.charAt(0)}.`,
+                lastName: `${lastName.charAt(0)}.`,
+                phone: null,
+                email: null,
+              },
+              patrimometer: app.patrimometer,
+              financialSummary: normalizedFinancialSummary,
+              didit: { status: app.didit?.status || 'UNKNOWN' },
+              guarantor: { status: app.guarantor?.status || 'NONE' },
+              guarantee: app.guarantee || null,
+              ownerInsights: {
+                ...ownerInsights,
+                passport: maskedPassport,
+              },
+              passport: maskedPassport,
+              documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
+              certifiedDocumentsCount: Array.isArray(app.documents)
+                ? app.documents.filter((d: any) => d?.status === 'certified' && !d?.flagged).length
+                : 0,
+              status: app.status,
+              submittedAt: app.submittedAt,
+            };
+          }
+
+          return {
+            id: app._id.toString(),
+            applyToken: app.applyToken,
+            isSealed: false,
+            profile: app.profile,
+            patrimometer: app.patrimometer,
+            financialSummary: normalizedFinancialSummary,
+            didit: app.didit,
+            guarantor: app.guarantor,
+            guarantee: app.guarantee || null,
+            ownerInsights,
+            passport: ownerInsights.passport,
+            documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
+            certifiedDocumentsCount: Array.isArray(app.documents)
+              ? app.documents.filter((d: any) => d?.status === 'certified' && !d?.flagged).length
+              : 0,
+            status: app.status,
+            submittedAt: app.submittedAt,
+          };
+        });
+
+        const orderedCandidates = decorateCandidatesForOwner(
+          mappedCandidates,
+          String(prop.acceptedTenantId || ''),
+          isManaged
+        );
+        const flow = buildOwnerPropertyFlow({
+          property: {
+            ...prop,
+            id: prop._id.toString(),
+            managed: isManaged,
+            acceptedTenantId: prop.acceptedTenantId ? String(prop.acceptedTenantId) : null,
+            isRented: prop.status === 'OCCUPIED',
+          },
+          candidates: orderedCandidates,
+        });
 
         return {
           property: {
@@ -59,53 +179,9 @@ export async function GET() {
             managed: isManaged,
             isRented: prop.status === 'OCCUPIED',
           },
-          candidatures: applications.map((app: any, idx: number) => {
-            const firstName = app.profile?.firstName || '';
-            const lastName = app.profile?.lastName || '';
-
-            if (!isManaged) {
-              return {
-                id: app._id.toString(),
-                applyToken: app.applyToken,
-                isSealed: true,
-                sealedLabel: `${firstName.charAt(0) || '?'}. ${lastName.charAt(0) || '?'}.`,
-                sealedId: `#${String(400 + idx + 1)}`,
-                profile: {
-                  firstName: `${firstName.charAt(0)}.`,
-                  lastName: `${lastName.charAt(0)}.`,
-                  phone: null,
-                  email: null,
-                },
-                patrimometer: app.patrimometer,
-                financialSummary: app.financialSummary || null,
-                didit: { status: app.didit?.status || 'UNKNOWN' },
-                guarantor: { status: app.guarantor?.status || 'NONE' },
-                documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
-                certifiedDocumentsCount: Array.isArray(app.documents)
-                  ? app.documents.filter((d: any) => d.analysisResult?.isAuthentic === true).length
-                  : 0,
-                status: app.status,
-                submittedAt: app.submittedAt,
-              };
-            }
-
-            return {
-              id: app._id.toString(),
-              applyToken: app.applyToken,
-              isSealed: false,
-              profile: app.profile,
-              patrimometer: app.patrimometer,
-              financialSummary: app.financialSummary || null,
-              didit: app.didit,
-              guarantor: app.guarantor,
-              documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
-              certifiedDocumentsCount: Array.isArray(app.documents)
-                ? app.documents.filter((d: any) => d.analysisResult?.isAuthentic === true).length
-                : 0,
-              status: app.status,
-              submittedAt: app.submittedAt,
-            };
-          }),
+          flow,
+          primaryCandidate: flow.primaryCandidate,
+          candidatures: orderedCandidates,
         };
       })
     );

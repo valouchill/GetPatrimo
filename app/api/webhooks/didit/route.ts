@@ -4,6 +4,11 @@ import { connectDiditDb } from '../../didit/db';
 import IdentitySession from '@/models/IdentitySession';
 import Property from '@/models/Property';
 import Candidature from '@/models/Candidature';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  buildDiditCompletionUrl,
+  renderDiditCompletionHtml,
+} = require('@/src/utils/diditCompletion');
 
 function verifySignature(rawBody: string, signature: string | null, secret?: string) {
   if (!secret || !signature) return false;
@@ -36,12 +41,14 @@ export async function GET(request: NextRequest) {
   }
   
   // Si le statut est "Approved", on met à jour la DB
+  let existingSession = null;
+
   if (status?.toLowerCase() === 'approved') {
     try {
       await connectDiditDb();
       
       // Récupérer la session existante pour avoir l'applyToken
-      const existingSession = await IdentitySession.findOne({ sessionId });
+      existingSession = await IdentitySession.findOne({ sessionId });
       
       // D'abord, utiliser les données des paramètres GET si disponibles
       let extractedFirstName = firstName;
@@ -139,9 +146,44 @@ export async function GET(request: NextRequest) {
     }
   }
   
-  // Rediriger vers la page d'application
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://getpatrimo.com';
-  return NextResponse.redirect(`${baseUrl}/apply?didit_status=${status}&session_id=${sessionId}`);
+  if (!existingSession) {
+    try {
+      await connectDiditDb();
+      existingSession = await IdentitySession.findOne({ sessionId });
+    } catch (error) {
+      console.error('[DIDIT WEBHOOK GET] Impossible de relire la session:', error);
+    }
+  }
+
+  const baseUrl = (process.env.NEXTAUTH_URL || request.nextUrl.origin).replace(/\/+$/, '');
+  const appOrigin = new URL(baseUrl).origin;
+  const applyToken =
+    existingSession?.applyToken ||
+    allParams.vendor_data ||
+    allParams.reference ||
+    allParams.token ||
+    '';
+  const redirectUrl = buildDiditCompletionUrl(baseUrl, applyToken, status, sessionId);
+  const acceptsHtml = (request.headers.get('accept') || '').includes('text/html');
+
+  if (acceptsHtml) {
+    const html = renderDiditCompletionHtml({
+      status,
+      sessionId,
+      redirectUrl,
+      appOrigin,
+    });
+
+    return new NextResponse(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
+  return NextResponse.redirect(redirectUrl);
 }
 
 export async function POST(request: NextRequest) {

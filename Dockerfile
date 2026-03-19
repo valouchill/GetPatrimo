@@ -31,6 +31,12 @@ COPY . .
 
 # Build Next.js pour la production
 ENV NODE_ENV=production
+ARG JWT_SECRET=build-time-placeholder
+ARG NEXTAUTH_SECRET=build-time-placeholder
+ARG MONGO_URI=mongodb://127.0.0.1:27017/doc2loc-build
+ENV JWT_SECRET=$JWT_SECRET
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV MONGO_URI=$MONGO_URI
 RUN npm run build
 
 # Suppression des devDependencies après le build

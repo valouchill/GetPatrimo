@@ -1,20 +1,51 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Loader2, CheckCircle2, Download, Send, X, Share2 } from 'lucide-react';
-import { sharePassportByEmail } from '@/app/actions/share-passport';
+import { CheckCircle2, Copy, Download, Eye, Loader2, Send, Share2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { sharePassportByEmail } from '@/app/actions/share-passport';
+import {
+  ActionBar,
+  MetricTile,
+  PremiumSectionHeader,
+  PremiumSurface,
+  StatusBadge,
+} from '@/app/components/ui/premium';
 
 interface PassportData {
-  slug: string;
-  shareUrl: string;
-  viewCount: number;
-  shareCount: number;
-  lastViewedAt: string | null;
-  grade: string;
-  firstName: string;
-  score?: number;
+  state: 'draft' | 'review' | 'ready' | 'sealed';
+  stateLabel: string;
+  shareEnabled: boolean;
+  previewUrl: string | null;
+  shareUrl: string | null;
+  downloadUrl: string | null;
+  score: number;
+  summary: string;
+  hero: {
+    fullName: string;
+    gradeLabel: string;
+    profession: string;
+    region: string;
+    badge: string;
+  };
+  solvency: {
+    exactMonthlyIncomeLabel: string | null;
+    effortRateLabel: string | null;
+  };
+  guarantee: {
+    label: string;
+    status: string;
+  };
+  readinessReasons: string[];
+  warnings: string[];
+  metrics: {
+    viewCount: number;
+    shareCount: number;
+    passportId: string;
+    certificationDate: string | null;
+    validUntil: string | null;
+  };
 }
 
 export default function SuccessClient({
@@ -39,63 +70,90 @@ export default function SuccessClient({
   const [emailError, setEmailError] = useState('');
 
   const launchConfetti = useCallback(() => {
-    const duration = 3000;
+    const duration = 2600;
     const animationEnd = Date.now() + duration;
-    const colors = ['#10B981', '#D4AF37', '#F59E0B', '#34D399', '#FBBF24'];
+    const colors = ['#0F766E', '#D97706', '#111827', '#14B8A6', '#FBBF24'];
     const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) { clearInterval(interval); return; }
-      const particleCount = 50 * (timeLeft / duration);
+      if (timeLeft <= 0) {
+        window.clearInterval(interval);
+        return;
+      }
+      const particleCount = 40 * (timeLeft / duration);
       confetti({
-        particleCount: Math.floor(particleCount), startVelocity: 30, spread: 360,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors, ticks: 60, gravity: 0.8, scalar: 1.2, shapes: ['circle', 'square'],
+        particleCount: Math.floor(particleCount),
+        startVelocity: 26,
+        spread: 340,
+        origin: { x: randomInRange(0.08, 0.26), y: Math.random() - 0.2 },
+        colors,
+        ticks: 70,
+        gravity: 0.8,
+        scalar: 1.1,
       });
       confetti({
-        particleCount: Math.floor(particleCount), startVelocity: 30, spread: 360,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        colors, ticks: 60, gravity: 0.8, scalar: 1.2, shapes: ['circle', 'square'],
+        particleCount: Math.floor(particleCount),
+        startVelocity: 26,
+        spread: 340,
+        origin: { x: randomInRange(0.74, 0.92), y: Math.random() - 0.2 },
+        colors,
+        ticks: 70,
+        gravity: 0.8,
+        scalar: 1.1,
       });
-    }, 250);
+    }, 240);
   }, []);
 
   useEffect(() => {
-    if (!candidatureId) { setLoading(false); return; }
+    if (!candidatureId) {
+      setLoading(false);
+      return;
+    }
+
     fetch(`/api/passport/application/${candidatureId}`)
-      .then((res) => { if (!res.ok) throw new Error('Invalid'); return res.json(); })
+      .then((res) => {
+        if (!res.ok) throw new Error('passport-load-failed');
+        return res.json();
+      })
       .then((data) => {
         setPassport(data);
-        setLoading(false);
-        setTimeout(() => launchConfetti(), 600);
+        setTimeout(() => launchConfetti(), 500);
       })
-      .catch(() => { setLoadError(true); setLoading(false); });
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
   }, [candidatureId, launchConfetti]);
 
-  const handleCopy = () => {
-    if (!passport?.shareUrl) return;
-    navigator.clipboard.writeText(passport.shareUrl);
+  const handleOpenPreview = () => {
+    const url = passport?.shareUrl || passport?.previewUrl;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopy = async () => {
+    const url = passport?.shareUrl || passport?.previewUrl;
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
-    fetch(`/api/passport/share/${passport.slug}`, { method: 'POST' }).catch(() => {});
   };
 
   const handleDownloadPdf = async () => {
-    if (!candidatureId) return;
+    const url = passport?.downloadUrl;
+    if (!url) return;
     setDownloadingPdf(true);
     try {
-      const response = await fetch(`/api/passport/pdf/${candidatureId}`);
-      if (!response.ok) throw new Error('Erreur');
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('pdf-download-failed');
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Passeport_PatrimoTrust_${passport?.firstName || 'Dossier'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `Passeport_PatrimoTrust_${passport?.hero.fullName || 'Dossier'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
     } catch {
       alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
     } finally {
@@ -119,8 +177,10 @@ export default function SuccessClient({
         setTimeout(() => {
           setShowEmailModal(false);
           setEmailSent(false);
-          setEmailRecipient(''); setEmailRecipientName(''); setEmailMessage('');
-        }, 2000);
+          setEmailRecipient('');
+          setEmailRecipientName('');
+          setEmailMessage('');
+        }, 1900);
       } else {
         setEmailError(result.error || "Erreur lors de l'envoi");
       }
@@ -131,29 +191,30 @@ export default function SuccessClient({
     }
   };
 
-  const displayName = passport?.firstName?.trim() || '';
   const ownerLabel = ownerName ? decodeURIComponent(ownerName) : 'Le propriétaire';
+  const highlights = passport?.warnings?.slice(0, 3).length
+    ? passport.warnings.slice(0, 3)
+    : passport?.readinessReasons || [];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 border-4 border-emerald-200 rounded-full" />
-            <div className="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(180deg,#f8fafc,#fff7ed)]">
+        <div className="text-center">
+          <div className="relative mx-auto mb-4 h-16 w-16">
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-200" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
           </div>
-          <p className="text-slate-500 text-sm">Scellement de votre Passeport…</p>
-        </motion.div>
+          <p className="text-sm text-slate-500">Scellement du passeport en cours…</p>
+        </div>
       </div>
     );
   }
 
   if (!candidatureId) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          <p className="text-slate-600 mb-4">Cette page est réservée aux candidats ayant transmis leur dossier.</p>
-          <a href="/" className="text-emerald-600 font-medium hover:underline">Retour à l&apos;accueil</a>
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(180deg,#f8fafc,#fff7ed)] p-6">
+        <div className="max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-slate-600">Cette page est réservée aux candidats ayant transmis leur dossier.</p>
         </div>
       </div>
     );
@@ -161,240 +222,222 @@ export default function SuccessClient({
 
   if (loadError || !passport) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          <p className="text-slate-600 mb-4">Impossible de charger votre dossier.</p>
-          <a href="/" className="text-emerald-600 font-medium hover:underline">Retour à l&apos;accueil</a>
+      <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(180deg,#f8fafc,#fff7ed)] p-6">
+        <div className="max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-slate-600">Impossible de charger votre passeport.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-
-        {/* ── SECTION 1 : CÉLÉBRATION — LE SCEAU ── */}
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fffaf0_45%,#f8fafc_100%)]">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 120, damping: 14, delay: 0.2 }}
-          className="relative inline-block mb-8"
-        >
-          <motion.div
-            className="absolute inset-0 bg-amber-300/40 rounded-full blur-3xl -z-10"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
-          <svg width="160" height="160" viewBox="0 0 160 160" fill="none" className="drop-shadow-2xl">
-            <circle cx="80" cy="80" r="78" stroke="url(#gld)" strokeWidth="3" opacity="0.4" />
-            <circle cx="80" cy="80" r="70" stroke="url(#gld)" strokeWidth="2" />
-            <circle cx="80" cy="80" r="62" fill="url(#seal)" />
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-              <rect key={a} x="76" y="4" width="8" height="14" rx="4" fill="url(#gld)" transform={`rotate(${a} 80 80)`} />
-            ))}
-            <path d="M80 45C80 45 55 55 55 75C55 95 80 115 80 115C80 115 105 95 105 75C105 55 80 45 80 45Z" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-            <path d="M71 78L77 84L91 70" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-            <defs>
-              <linearGradient id="gld" x1="0" y1="0" x2="160" y2="160">
-                <stop offset="0%" stopColor="#D4AF37" /><stop offset="50%" stopColor="#F5D060" /><stop offset="100%" stopColor="#D4AF37" />
-              </linearGradient>
-              <linearGradient id="seal" x1="20" y1="20" x2="140" y2="140">
-                <stop offset="0%" stopColor="#10B981" /><stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-4xl md:text-5xl font-bold text-slate-900 mt-6 mb-2"
-          style={{ fontFamily: 'Georgia, "Playfair Display", serif' }}
+          transition={{ duration: 0.45 }}
+          className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-[radial-gradient(circle_at_top,#fff8dc,transparent_38%),linear-gradient(135deg,#0f172a,#111827_40%,#0f766e)] p-8 text-white shadow-[0_35px_100px_-55px_rgba(15,23,42,0.85)]"
         >
-          {displayName ? `Félicitations ${displayName},` : 'Félicitations,'}<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-500">
-            votre Passeport est scellé.
-          </span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="text-emerald-700 font-medium mb-12"
-        >
-          {ownerLabel} a été notifié de l&apos;excellence de votre dossier.
-          <br />
-          <span className="text-slate-500 font-normal">
-            Vous faites désormais partie du <strong className="text-slate-700">top 5%</strong> des candidats certifiés.
-          </span>
-        </motion.p>
-
-        {/* ── SECTION 2 : VIRALITÉ — LE LEVIER ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="bg-white shadow-xl rounded-3xl p-8 border border-slate-100 text-left mb-8"
-        >
-          <h2 className="text-xl font-bold text-slate-900 mb-3">
-            Prenez l&apos;avantage sur les autres annonces.
-          </h2>
-          <p className="text-slate-600 leading-relaxed">
-            Votre identité et vos revenus sont désormais <strong className="text-slate-800">certifiés par l&apos;IA</strong>.
-            Utilisez ce passeport pour postuler à d&apos;autres annonces sur LeBonCoin, SeLoger ou Jinka.
-            Les propriétaires adorent les dossiers PatrimoTrust car ils sont <strong className="text-slate-800">garantis sans fraude</strong>.
-          </p>
-
-          {/* ARME N°1 — Le Lien Magique */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3 mt-6 mb-4">
-            <span className="text-sm text-slate-700 font-medium truncate flex-1">{passport.shareUrl}</span>
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors shrink-0"
-            >
-              {copied ? (
-                <><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Copié !</>
-              ) : (
-                <><Copy className="w-4 h-4" /> Copier le lien</>
-              )}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <StatusBadge tone="premium" label={`Passeport ${passport.stateLabel}`} />
+            <StatusBadge tone="neutral" label={passport.hero.gradeLabel} className="bg-white text-slate-950" />
           </div>
 
-          {/* ARME N°2 — Le PDF Souverain */}
-          <button
-            onClick={handleDownloadPdf}
-            disabled={downloadingPdf}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl flex items-center justify-center gap-2 transition-colors font-semibold disabled:opacity-60 mb-4"
-          >
-            {downloadingPdf ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Génération en cours…</>
-            ) : (
-              <>⬇️ Télécharger le Passeport (PDF certifié)</>
-            )}
-          </button>
-
-          {/* Bonus — Partage par email */}
-          <button
-            onClick={() => setShowEmailModal(true)}
-            className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors font-medium text-sm"
-          >
-            <Share2 className="w-4 h-4" /> Envoyer par email à un propriétaire
-          </button>
-        </motion.div>
-
-        {/* ── SECTION 3 : CONSEIL EXPERT ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1 }}
-          className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-left"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">💡</span>
-            </div>
-            <div>
-              <p className="text-emerald-800 font-semibold text-sm mb-1">Conseil de l&apos;expert</p>
-              <p className="text-slate-700 text-sm leading-relaxed">
-                Ne vous arrêtez pas là. Envoyez votre lien à chaque propriétaire que vous contactez :
-                ils verront immédiatement que vos revenus et votre identité sont <strong>garantis sans fraude</strong>.
-                Votre audit est valable 3 mois.
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+            <div className="min-w-0">
+              <h1 className="break-words font-serif text-4xl tracking-tight sm:text-5xl">
+                {passport.hero.fullName}
+              </h1>
+              <p className="mt-4 max-w-2xl text-pretty text-lg leading-relaxed text-slate-200">{passport.summary}</p>
+              <p className="mt-4 break-anywhere text-sm uppercase tracking-[0.2em] text-slate-300">
+                {ownerLabel} a été notifié • Passeport ID {passport.metrics.passportId}
               </p>
+
+              <ActionBar className="mt-8">
+                <button
+                  type="button"
+                  onClick={handleOpenPreview}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-50"
+                >
+                  <Eye className="h-4 w-4" />
+                  Voir la page web
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                >
+                  {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  Télécharger le PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                >
+                  {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Lien copié' : 'Copier le lien'}
+                </button>
+              </ActionBar>
+            </div>
+
+            <div className="min-w-0 rounded-[1.9rem] border border-white/10 bg-white/10 p-6 backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">Synthèse du passeport</p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <MetricTile label="Score" value={passport.score} tone="dark" valueClassName="text-3xl font-black" />
+                <MetricTile label="Garantie" value={passport.guarantee.label} caption={passport.guarantee.status} tone="dark" valueClassName="text-sm sm:text-base" />
+                <MetricTile label="Revenus" value={passport.solvency.exactMonthlyIncomeLabel || 'En attente'} tone="dark" valueClassName="text-sm sm:text-base" />
+                <MetricTile label="Validité" value={passport.metrics.validUntil || 'À confirmer'} tone="dark" valueClassName="text-sm sm:text-base" />
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Stats de consultation */}
-        {(passport.viewCount > 0 || passport.shareCount > 0) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="grid grid-cols-2 gap-4 mt-8"
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.45 }}
+            className="min-w-0"
           >
-            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
-              <p className="text-3xl font-bold text-slate-900">{passport.viewCount}</p>
-              <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Consultations</p>
-            </div>
-            <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
-              <p className="text-3xl font-bold text-slate-900">{passport.shareCount}</p>
-              <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">Partages</p>
-            </div>
-          </motion.div>
-        )}
+            <PremiumSurface className="h-full">
+              <PremiumSectionHeader
+                eyebrow="Ce que voit un propriétaire"
+                title="Un passeport riche, prêt à envoyer"
+                description="Votre lien partageable et votre PDF montrent la synthèse de solvabilité, la garantie, la couverture documentaire et le journal d’audit, sans exposer vos pièces brutes ni vos coordonnées sensibles."
+              />
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="mt-12 text-slate-400 text-xs"
-        >
-          Certification PatrimoTrust™ • Conforme Loi Alur 2026
-        </motion.p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <MetricTile
+                  label="Page web"
+                  value="Version publique masquée"
+                  caption="Nom masqué, revenus arrondis, région au lieu de l’adresse complète."
+                />
+                <MetricTile
+                  label="PDF"
+                  value="Document premium multi-pages"
+                  caption="Score, garantie, 4 piliers, matrice documentaire et QR de vérification."
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowEmailModal(true)}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Share2 className="h-4 w-4" />
+                Envoyer par email à un propriétaire
+              </button>
+            </PremiumSurface>
+          </motion.section>
+
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16, duration: 0.45 }}
+            className="min-w-0"
+          >
+            <PremiumSurface className="h-full">
+              <PremiumSectionHeader eyebrow="Points saillants" title="Lecture d’audit" />
+
+              <ul className="mt-5 space-y-3 text-sm leading-relaxed text-slate-700">
+                {highlights.length > 0 ? (
+                  highlights.map((item) => (
+                    <li key={item} className="break-anywhere">• {item}</li>
+                  ))
+                ) : (
+                  <li>• Aucun point d’attention critique n’a été remonté lors du scellement.</li>
+                )}
+              </ul>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <MetricTile label="Consultations" value={passport.metrics.viewCount} />
+                <MetricTile label="Partages" value={passport.metrics.shareCount} />
+              </div>
+            </PremiumSurface>
+          </motion.section>
+        </div>
       </div>
 
-      {/* ── MODAL PARTAGE PAR EMAIL ── */}
       <AnimatePresence>
         {showEmailModal && (
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 18 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: 18 }}
+              className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl"
             >
-              <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center justify-between bg-[linear-gradient(135deg,#0f766e,#0f172a)] px-6 py-5">
                 <div>
-                  <h3 className="text-white font-bold text-lg">Partager mon Passeport</h3>
-                  <p className="text-emerald-200 text-xs">Envoyez votre dossier certifié à un propriétaire</p>
+                  <h3 className="text-lg font-semibold text-white">Partager mon passeport</h3>
+                  <p className="text-xs text-emerald-100">Envoyez votre lien certifié à un propriétaire</p>
                 </div>
-                <button onClick={() => setShowEmailModal(false)} className="text-emerald-200 hover:text-white transition-colors">
-                  <X className="w-5 h-5" />
+                <button type="button" onClick={() => setShowEmailModal(false)} className="text-emerald-100 transition hover:text-white">
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
               {emailSent ? (
                 <div className="p-8 text-center">
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-                  </motion.div>
-                  <h4 className="text-xl font-bold text-slate-900 mb-2">Email envoyé !</h4>
-                  <p className="text-slate-500 text-sm">Votre Passeport a été partagé avec succès.</p>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-slate-900">Email envoyé</h4>
+                  <p className="mt-2 text-sm text-slate-500">Votre passeport a bien été partagé.</p>
                 </div>
               ) : (
-                <form onSubmit={handleSendEmail} className="p-6 space-y-4">
+                <form onSubmit={handleSendEmail} className="space-y-4 p-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email du propriétaire *</label>
-                    <input type="email" required value={emailRecipient} onChange={(e) => setEmailRecipient(e.target.value)}
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Email du propriétaire *</label>
+                    <input
+                      type="email"
+                      required
+                      value={emailRecipient}
+                      onChange={(e) => setEmailRecipient(e.target.value)}
                       placeholder="proprietaire@example.com"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent" />
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nom du propriétaire <span className="text-slate-400">(optionnel)</span></label>
-                    <input type="text" value={emailRecipientName} onChange={(e) => setEmailRecipientName(e.target.value)}
-                      placeholder="M. Dupont"
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent" />
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Nom du propriétaire</label>
+                    <input
+                      type="text"
+                      value={emailRecipientName}
+                      onChange={(e) => setEmailRecipientName(e.target.value)}
+                      placeholder="Mme Martin"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Message personnel <span className="text-slate-400">(optionnel)</span></label>
-                    <textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)}
-                      placeholder="Bonjour, suite à notre échange…" rows={3}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent resize-none" />
+                    <label className="mb-1 block text-sm font-medium text-slate-700">Message personnel</label>
+                    <textarea
+                      value={emailMessage}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      rows={3}
+                      placeholder="Bonjour, suite à notre échange..."
+                      className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                    />
                   </div>
-                  {emailError && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{emailError}</div>}
-                  <button type="submit" disabled={sendingEmail || !emailRecipient}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    {sendingEmail ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Envoi en cours…</>
-                    ) : (
-                      <><Send className="w-5 h-5" /> Envoyer mon Passeport</>
-                    )}
+                  {emailError && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {emailError}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={sendingEmail || !emailRecipient}
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {sendingEmail ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    Envoyer le passeport
                   </button>
                 </form>
               )}

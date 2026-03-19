@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateMRZ } from '@/app/actions/validate-mrz';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  buildCategoryMismatchMessage,
+  computeLegacyConfidenceScore,
+  getDocumentCertificationDecision,
+  inferAnalysisDocumentTypeFromSignals,
+  normalizeAnalysisDocumentType,
+} = require('@/src/utils/documentCertificationRules');
+const {
+  buildPdfRenderStrategies,
+  cloneStablePdfBytes,
+  getPdfConversionUserMessage,
+  isDetachedArrayBufferError,
+  toStableBuffer,
+} = require('@/src/utils/pdfBufferUtils');
+const { buildE2EDocumentAnalysis } = require('@/src/utils/e2eDocumentAnalysis');
+const {
+  getDocumentIncomeContribution,
+  pickBestDocumentNetIncome,
+} = require('@/src/utils/financialExtraction');
 
 // Polyfills pour pdfjs-dist dans Node.js 20
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -158,6 +178,55 @@ interface DocumentAnalysisV2Result {
   errorMessage?: string;
 }
 
+function buildLegacyCompatibilityPayload(
+  result: NormalizedDocumentAnalysis,
+  documentCategory?: string | null
+) {
+  const normalizedType = normalizeAnalysisDocumentType(result.document_metadata.type);
+  const decision =
+    documentCategory
+      ? getDocumentCertificationDecision({
+          uploadCategory: documentCategory,
+          aiDocumentType: normalizedType,
+          fraudScore: result.trust_and_security.fraud_score || 0,
+          isIllegible: false,
+          needsHumanReview: Boolean(result.trust_and_security.needs_human_review),
+          partialExtraction: Boolean(result.trust_and_security.partial_extraction),
+          hasCompatibleChecklistHint: false,
+        })
+      : null;
+
+  const confidenceScore = computeLegacyConfidenceScore({
+    fraudScore: result.trust_and_security.fraud_score || 0,
+    needsHumanReview: Boolean(result.trust_and_security.needs_human_review),
+    partialExtraction: Boolean(result.trust_and_security.partial_extraction),
+    categoryMatch: decision ? decision.categoryMatch : true,
+    recognizedType: normalizedType !== 'AUTRE',
+    isIllegible: false,
+  });
+
+  const categoryMismatchReason =
+    decision && !decision.categoryMatch
+      ? buildCategoryMismatchMessage(documentCategory, normalizedType)
+      : '';
+
+  return {
+    documentType: normalizedType,
+    ownerName: result.document_metadata.owner_name,
+    date: result.document_metadata.date_emission,
+    suggestedFileName: result.document_metadata.suggested_file_name,
+    confidenceScore,
+    recommendations: [result.ai_analysis.expert_advice].filter(Boolean),
+    fraudIndicators: {
+      suspicious: (result.trust_and_security.fraud_score || 0) > 30,
+      reasons: result.trust_and_security.forensic_alerts || [],
+    },
+    fraudScore: result.trust_and_security.fraud_score || 0,
+    categoryMatch: decision ? decision.categoryMatch : true,
+    categoryMismatchReason,
+  };
+}
+
 /**
  * Normalise un montant financier : supprime les symboles €, transforme les virgules en points
  * Exemples: "1 234,56 €" → 1234.56, "1.234,56€" → 1234.56, "1234.56" → 1234.56
@@ -189,7 +258,7 @@ function normalizeAmount(value: string | number | undefined | null): number {
 /**
  * Extrait les métadonnées d'un PDF pour détecter le logiciel de création
  */
-async function extractPDFMetadata(pdfBuffer: ArrayBuffer): Promise<{
+async function extractPDFMetadata(pdfBuffer: ArrayBuffer | Uint8Array | Buffer): Promise<{
   creator?: string;
   producer?: string;
   creationDate?: string;
@@ -199,7 +268,7 @@ async function extractPDFMetadata(pdfBuffer: ArrayBuffer): Promise<{
 }> {
   try {
     const pdfParse = (await import('pdf-parse')).default;
-    const buffer = Buffer.from(pdfBuffer);
+    const buffer = toStableBuffer(pdfBuffer);
     const data = await pdfParse(buffer);
     
     const metadata = data.info || {};
@@ -280,20 +349,23 @@ async function extractPDFMetadata(pdfBuffer: ArrayBuffer): Promise<{
  * Essaie plusieurs stratégies de conversion en cas d'échec
  */
 async function convertPDFToImages(
-  pdfBuffer: ArrayBuffer,
+  pdfBuffer: ArrayBuffer | Uint8Array | Buffer,
   maxPages: number = 3,
   dpi: number = 200
 ): Promise<string[]> {
   const images: string[] = [];
-  
-  // Stratégies de conversion à essayer (du plus précis au moins précis)
-  const strategies = [
-    { dpi: 200, name: 'Haute résolution (200 DPI)' },
-    { dpi: 150, name: 'Résolution moyenne (150 DPI)' },
-    { dpi: 100, name: 'Résolution standard (100 DPI)' },
-  ];
+  const stablePdfBytes = toStableBuffer(pdfBuffer);
+  const strategies = buildPdfRenderStrategies(dpi);
   
   for (const strategy of strategies) {
+    let loadingTask: { promise: Promise<any>; destroy?: () => Promise<void> | void } | null = null;
+    let pdf: {
+      numPages: number;
+      getPage: (pageNum: number) => Promise<any>;
+      cleanup?: () => void;
+      destroy?: () => Promise<void> | void;
+    } | null = null;
+
     try {
       // Import du legacy build (obligatoire pour Node.js avec pdfjs-dist v5+)
       const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -301,23 +373,24 @@ async function convertPDFToImages(
       
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.mjs';
       
-      // Charger le document PDF
-      const uint8Array = new Uint8Array(pdfBuffer);
-      const loadingTask = pdfjsLib.getDocument({
-        data: uint8Array,
+      // Pdf.js peut prendre possession du buffer fourni. On clone donc les bytes
+      // a chaque tentative pour eviter les "detached ArrayBuffer" entre retries.
+      loadingTask = pdfjsLib.getDocument({
+        data: cloneStablePdfBytes(stablePdfBytes),
         useSystemFonts: true,
         verbosity: 0, // Réduire les logs
       });
       
-      const pdf = await loadingTask.promise;
-      const numPages = Math.min(pdf.numPages, maxPages);
+      const loadedPdf = await loadingTask.promise;
+      pdf = loadedPdf;
+      const numPages = Math.min(loadedPdf.numPages, maxPages);
       
-      console.log(`📄 PDF chargé: ${pdf.numPages} pages, conversion de ${numPages} pages (${strategy.name})`);
+      console.log(`📄 PDF chargé: ${loadedPdf.numPages} pages, conversion de ${numPages} pages (${strategy.name})`);
       
       // Convertir chaque page en image
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
         try {
-          const page = await pdf.getPage(pageNum);
+          const page = await loadedPdf.getPage(pageNum);
           
           // Calculer la résolution (scale basée sur le DPI souhaité)
           const viewport = page.getViewport({ scale: 1 });
@@ -333,7 +406,6 @@ async function convertPDFToImages(
             const context = canvas.getContext('2d');
             
             await page.render({
-              // @ts-expect-error - Type incompatibility between pdfjs and canvas contexts
               canvasContext: context,
               viewport: adjustedViewport,
             }).promise;
@@ -348,7 +420,6 @@ async function convertPDFToImages(
             
             // Rendre la page sur le canvas
             await page.render({
-              // @ts-expect-error - Type incompatibility between pdfjs and canvas contexts
               canvasContext: context,
               viewport: scaledViewport,
             }).promise;
@@ -374,6 +445,9 @@ async function convertPDFToImages(
         return images;
       }
     } catch (error) {
+      if (isDetachedArrayBufferError(error)) {
+        console.warn(`⚠️ Pdf.js a detache le buffer pendant ${strategy.name}, nouvelle tentative avec copie fraiche...`);
+      }
       console.error(`❌ Échec conversion avec ${strategy.name}:`, error);
       // Si ce n'est pas la dernière stratégie, continuer avec la suivante
       if (strategy !== strategies[strategies.length - 1]) {
@@ -382,6 +456,24 @@ async function convertPDFToImages(
       }
       // Si c'est la dernière stratégie, lancer l'erreur
       throw new Error(`Impossible de convertir le PDF en images après ${strategies.length} tentatives. Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      try {
+        pdf?.cleanup?.();
+      } catch {
+        // Ignore cleanup errors.
+      }
+
+      try {
+        await pdf?.destroy?.();
+      } catch {
+        // Ignore destroy errors.
+      }
+
+      try {
+        await loadingTask?.destroy?.();
+      } catch {
+        // Ignore destroy errors.
+      }
     }
   }
   
@@ -528,7 +620,7 @@ TYPES DE DOCUMENTS RECONNUS:
 - "Contrat de Travail" : CDI, CDD, contrat
 - "Carte d'Identité" : CNI recto/verso
 - "Passeport" : Passeport français ou étranger
-- "Justificatif Domicile" : Facture EDF, téléphone, quittance
+- "Justificatif Domicile" : Facture EDF/Engie/eau/téléphone/internet, assurance habitation, avis d'échéance, quittance
 - "Attestation Employeur" : Attestation de l'employeur
 - "Relevé Bancaire" : Relevé de compte
 - "Acte Cautionnement" : Acte de caution, garant
@@ -641,7 +733,7 @@ RÈGLES CRITIQUES:
    - PENSION: Pension de retraite
    - CONTRAT_TRAVAIL: CDI, CDD, contrat
    - CARTE_IDENTITE: CNI, passeport (extrait également la date d'expiration principale sous forme date_validite au format YYYY-MM-DD)
-   - JUSTIFICATIF_DOMICILE: Facture, quittance
+   - JUSTIFICATIF_DOMICILE: Facture d'énergie/eau/téléphone/internet, assurance habitation, avis d'échéance, quittance
    - CERTIFICAT_VISALE: Certificat de garantie Visale (Action Logement)
    - AUTRE: Si non identifiable
 
@@ -663,7 +755,9 @@ RÈGLES CRITIQUES:
    - UNKNOWN: Non déterminable
 
 4. CALCUL monthly_net_income:
-   - Pour BULLETIN_SALAIRE: utiliser salaireNet mensuel
+   - Pour BULLETIN_SALAIRE: utiliser EXCLUSIVEMENT le "Net à payer", "Net payé" ou "Salaire net" mensuel du bulletin
+   - Ne jamais utiliser le salaire brut, le cumul annuel, le net imposable cumulé, le PAS, ni une somme de plusieurs montants
+   - Si plusieurs montants apparaissent, choisis celui qui correspond au net mensuel effectivement versé au salarié
    - Pour AVIS_IMPOSITION: revenu_fiscal_reference / 12 (approximation)
    - Pour ATTESTATION_BOURSE: montant_bourse mensuel
    - Pour AIDE_LOGEMENT: montant_apl mensuel
@@ -700,11 +794,23 @@ RÈGLES CRITIQUES:
  */
 function normalizeAndValidateAnalysis(
   rawResult: any,
-  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null }
+  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null },
+  fileName?: string | null
 ): NormalizedDocumentAnalysis {
   // Vérifier si c'est déjà la nouvelle structure
   if (rawResult.document_metadata && rawResult.financial_data) {
     const normalized = rawResult as NormalizedDocumentAnalysis;
+
+    normalized.document_metadata.type = inferAnalysisDocumentTypeFromSignals({
+      aiDocumentType: normalized.document_metadata.type,
+      fileName,
+      rawText: [
+        normalized.document_metadata.suggested_file_name,
+        normalized.document_metadata.owner_name,
+        normalized.ai_analysis?.expert_advice,
+        normalized.ai_analysis?.improvement_tip,
+      ].filter(Boolean).join(' '),
+    }) as NormalizedDocumentAnalysis['document_metadata']['type'];
     
     // Normaliser tous les montants
     normalized.financial_data.monthly_net_income = normalizeAmount(normalized.financial_data.monthly_net_income);
@@ -717,6 +823,14 @@ function normalizeAndValidateAnalysis(
       normalized.financial_data.extra_details.montant_bourse = normalizeAmount(normalized.financial_data.extra_details.montant_bourse);
       normalized.financial_data.extra_details.montant_apl = normalizeAmount(normalized.financial_data.extra_details.montant_apl);
       normalized.financial_data.extra_details.montant_pension = normalizeAmount(normalized.financial_data.extra_details.montant_pension);
+    }
+
+    const repairedIncome = pickBestDocumentNetIncome({
+      documentType: normalized.document_metadata.type,
+      financialData: normalized.financial_data,
+    });
+    if (repairedIncome.amount > 0) {
+      normalized.financial_data.monthly_net_income = repairedIncome.amount;
     }
     
     // Vérifier is_owner_match si Didit identity disponible
@@ -732,35 +846,22 @@ function normalizeAndValidateAnalysis(
   // Sinon, transformer depuis l'ancienne structure (compatibilité)
   const legacy = rawResult as DocumentAnalysisV2Result;
   
-  // Déterminer le type de document
-  let docType: NormalizedDocumentAnalysis['document_metadata']['type'] = 'AUTRE';
-  const docTypeLower = legacy.documentType?.toLowerCase() || '';
-  if (docTypeLower.includes('bulletin') || docTypeLower.includes('salaire') || docTypeLower.includes('paie')) {
-    docType = 'BULLETIN_SALAIRE';
-  } else if (docTypeLower.includes('avis') || docTypeLower.includes('imposition')) {
-    docType = 'AVIS_IMPOSITION';
-  } else if (docTypeLower.includes('bourse') || docTypeLower.includes('crous')) {
-    docType = 'ATTESTATION_BOURSE';
-  } else if (docTypeLower.includes('apl') || docTypeLower.includes('caf') || docTypeLower.includes('aide')) {
-    docType = 'AIDE_LOGEMENT';
-  } else if (docTypeLower.includes('pension') || docTypeLower.includes('retraite')) {
-    docType = 'PENSION';
-  } else if (docTypeLower.includes('contrat')) {
-    docType = 'CONTRAT_TRAVAIL';
-  } else if (docTypeLower.includes('carte') || docTypeLower.includes('identité') || docTypeLower.includes('cni')) {
-    docType = 'CARTE_IDENTITE';
-  } else if (docTypeLower.includes('domicile') || docTypeLower.includes('facture') || docTypeLower.includes('quittance')) {
-    docType = 'JUSTIFICATIF_DOMICILE';
-  }
+  const docType = inferAnalysisDocumentTypeFromSignals({
+    aiDocumentType: legacy.documentType,
+    fileName,
+    rawText: [
+      legacy.ownerName,
+      legacy.suggestedFileName,
+      legacy.recommendations?.join(' '),
+    ].filter(Boolean).join(' '),
+  }) as NormalizedDocumentAnalysis['document_metadata']['type'];
   
   // Calculer monthly_net_income
-  let monthlyNetIncome = 0;
-  if (legacy.extractedData?.salaireNet) {
-    monthlyNetIncome = normalizeAmount(legacy.extractedData.salaireNet);
-  } else if (legacy.extractedData?.montants && legacy.extractedData.montants.length > 0) {
-    // Prendre le plus grand montant comme revenu net
-    monthlyNetIncome = Math.max(...legacy.extractedData.montants.map(m => normalizeAmount(m)));
-  }
+  const resolvedLegacyIncome = getDocumentIncomeContribution({
+    documentType: docType,
+    analysis: legacy,
+  });
+  const monthlyNetIncome = normalizeAmount(resolvedLegacyIncome.amount);
   
   // Déterminer le profil
   let detectedProfile: NormalizedDocumentAnalysis['ai_analysis']['detected_profile'] = 'UNKNOWN';
@@ -853,7 +954,8 @@ async function analyzeWithVision(
   prompt: string,
   openaiApiKey: string,
   pdfMetadata?: { creator?: string; producer?: string; suspicious: boolean; details: string[] },
-  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null }
+  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null },
+  fileName?: string | null
 ): Promise<NormalizedDocumentAnalysis> {
   // Ajouter les métadonnées PDF au prompt si disponibles
   let enhancedPrompt = prompt;
@@ -948,7 +1050,7 @@ async function analyzeWithVision(
   }
   
   // Normaliser et valider la structure
-  const normalized = normalizeAndValidateAnalysis(rawResult, diditIdentity);
+  const normalized = normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName);
   
   console.log('✅ Analyse normalisée:', {
     type: normalized.document_metadata.type,
@@ -978,6 +1080,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
+    const fileName = originalFileName || file.name;
+    if (process.env.E2E_TEST_MODE === 'true') {
+      const e2eResult = buildE2EDocumentAnalysis({
+        fileName,
+        candidateStatus,
+        candidateName,
+        diditIdentity: {
+          firstName: diditFirstName,
+          lastName: diditLastName,
+          birthDate: diditBirthDate,
+        },
+        rentAmount,
+      });
+
+      return NextResponse.json({
+        ...e2eResult,
+        ...buildLegacyCompatibilityPayload(e2eResult, documentCategory),
+        originalFileName: fileName,
+      });
+    }
+
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       return NextResponse.json(
@@ -987,8 +1110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const buffer = await file.arrayBuffer();
-    const fileName = originalFileName || file.name;
+    const buffer = toStableBuffer(await file.arrayBuffer());
     const fileSizeKB = file.size / 1024;
     const fileSizeMB = fileSizeKB / 1024;
     
@@ -1034,6 +1156,19 @@ export async function POST(request: NextRequest) {
             impact_on_patrimometer: 0,
             expert_advice: `Le fichier "${fileName}" ne semble pas être un PDF valide. Veuillez vérifier que le fichier n'est pas corrompu.`,
           },
+          documentType: 'AUTRE',
+          ownerName: '',
+          date: '',
+          suggestedFileName: fileName,
+          confidenceScore: 0,
+          recommendations: [`Le fichier "${fileName}" ne semble pas être un PDF valide. Veuillez vérifier que le fichier n'est pas corrompu.`],
+          fraudIndicators: {
+            suspicious: false,
+            reasons: ['Header PDF invalide - fichier corrompu ou non-PDF'],
+          },
+          fraudScore: 0,
+          categoryMatch: false,
+          categoryMismatchReason: buildCategoryMismatchMessage(documentCategory, 'AUTRE'),
           originalFileName: fileName,
           isIllegible: true,
           errorMessage: `Le fichier "${fileName}" ne semble pas être un PDF valide. Veuillez vérifier que le fichier n'est pas corrompu.`,
@@ -1076,8 +1211,7 @@ export async function POST(request: NextRequest) {
         try {
           console.log('🔄 Fallback 1: Extraction de texte du PDF...');
           const pdfParse = (await import('pdf-parse')).default;
-          const pdfBuffer = Buffer.from(buffer);
-          const data = await pdfParse(pdfBuffer);
+          const data = await pdfParse(Buffer.from(buffer));
           
           console.log(`📝 Texte extrait: ${data.text?.length || 0} caractères`);
           
@@ -1137,7 +1271,7 @@ export async function POST(request: NextRequest) {
                 lastName: diditLastName,
                 birthDate: diditBirthDate,
               };
-              const result = normalizeAndValidateAnalysis(rawResult, diditIdentity);
+              const result = normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName);
               
               console.log('✅ Analyse par extraction de texte réussie');
               
@@ -1169,7 +1303,8 @@ export async function POST(request: NextRequest) {
       
       // Si toujours pas d'images après tous les fallbacks
       if (images.length === 0) {
-        const errorDetails = conversionError?.message || 'Erreur inconnue';
+        const userMessage = getPdfConversionUserMessage(conversionError);
+        const errorDetails = userMessage.details;
         console.error('❌ Tous les fallbacks ont échoué');
         
         return NextResponse.json({
@@ -1194,16 +1329,18 @@ export async function POST(request: NextRequest) {
           ai_analysis: {
             detected_profile: 'UNKNOWN',
             impact_on_patrimometer: 0,
-            expert_advice: 'Document non analysable. Essayez de convertir votre PDF en image JPG/PNG, vérifiez que le PDF n\'est pas protégé par mot de passe, ou utilisez un PDF natif (non scanné) si possible.',
+            expert_advice: userMessage.advice,
           },
           originalFileName: fileName,
           isIllegible: true,
-          errorMessage: `Ce document PDF n'a pas pu être analysé automatiquement. Raison: ${errorDetails}. Solutions: 1) Convertissez le PDF en image JPG/PNG et réessayez, 2) Vérifiez que le PDF n'est pas protégé ou corrompu, 3) Utilisez un PDF natif (non scanné) si possible.`,
+          errorMessage: isDetachedArrayBufferError(conversionError)
+            ? `Ce document PDF n'a pas pu être analysé automatiquement en raison d'une erreur interne de conversion serveur. Raison: ${errorDetails}. Reessayez une fois. Si le probleme persiste, contactez le support ou utilisez temporairement une image JPG/PNG.`
+            : `Ce document PDF n'a pas pu être analysé automatiquement. Raison: ${errorDetails}. Solutions: 1) Convertissez le PDF en image JPG/PNG et réessayez, 2) Vérifiez que le PDF n'est pas protégé ou corrompu, 3) Utilisez un PDF natif (non scanné) si possible.`,
         });
       }
     } else {
       // Pour les images: encoder en base64 directement
-      const base64 = Buffer.from(buffer).toString('base64');
+      const base64 = buffer.toString('base64');
       let mimeType = 'image/jpeg';
       if (file.type.includes('png')) mimeType = 'image/png';
       if (file.type.includes('webp')) mimeType = 'image/webp';
@@ -1243,7 +1380,8 @@ export async function POST(request: NextRequest) {
       prompt, 
       OPENAI_API_KEY, 
       pdfMetadata,
-      diditIdentity
+      diditIdentity,
+      fileName
     );
 
     // --- Ajustements backend supplémentaires pour la sécurité documentaire ---
@@ -1357,6 +1495,7 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json({
         ...result,
+        ...buildLegacyCompatibilityPayload(result, documentCategory),
         originalFileName: fileName,
         analysisMethod: isPDF ? 'pdf_to_image_vision' : 'direct_vision',
         requiresManualReview: true,
@@ -1503,6 +1642,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...result,
+      ...buildLegacyCompatibilityPayload(result, documentCategory),
       originalFileName: fileName,
       analysisMethod: isPDF ? 'pdf_to_image_vision' : 'direct_vision',
       // Champs de niveau supérieur pour compatibilité frontend

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Candidature from '@/models/Candidature';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
+  fetchDiditSessionVerification,
+} = require('@/src/utils/guarantorDidit');
 
 /**
  * Webhook Didit pour les garanties
@@ -13,7 +17,6 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     const sessionId = body.session_id || body.sessionId;
-    const reference = body.reference || '';
 
     if (!sessionId) {
       return NextResponse.json({ error: 'session_id requis' }, { status: 400 });
@@ -33,43 +36,36 @@ export async function POST(request: NextRequest) {
       console.warn('DIDIT_API_KEY non configuré');
       return NextResponse.json({ received: true });
     }
-    
-    const statusResponse = await fetch(
-      `https://verification.didit.me/v2/session/${sessionId}`,
-      {
-        headers: {
-          'x-api-key': apiKey,
-        },
-      }
-    );
 
-    if (statusResponse.ok) {
-      const statusData = await statusResponse.json();
-      
-      if (statusData.status === 'VERIFIED' || statusData.verified === true) {
-        // Mettre à jour le garant
-        guarantor.status = 'CERTIFIED';
-        guarantor.identityVerification = {
-          status: 'CERTIFIEE',
-          firstName: statusData.first_name || statusData.firstName || guarantor.firstName,
-          lastName: statusData.last_name || statusData.lastName || guarantor.lastName,
-          birthDate: statusData.birth_date || statusData.birthDate || '',
-          humanVerified: statusData.human_verified || statusData.humanVerified || false,
-          verifiedAt: new Date(),
-        };
-        guarantor.certifiedAt = new Date();
-        await guarantor.save();
+    const diditStatus = await fetchDiditSessionVerification(sessionId, apiKey);
 
-        // Mettre à jour la candidature pour indiquer qu'un garant est certifié
+    if (diditStatus?.verified) {
+      // Mettre à jour le garant
+      guarantor.status = 'CERTIFIED';
+      guarantor.firstName = diditStatus.firstName || guarantor.firstName;
+      guarantor.lastName = diditStatus.lastName || guarantor.lastName;
+      guarantor.identityVerification = {
+        status: 'CERTIFIEE',
+        firstName: diditStatus.firstName || guarantor.firstName,
+        lastName: diditStatus.lastName || guarantor.lastName,
+        birthDate: diditStatus.birthDate || '',
+        humanVerified: diditStatus.humanVerified || false,
+        verifiedAt: new Date(),
+      };
+      guarantor.certifiedAt = new Date();
+      await guarantor.save();
+
+      // Mettre à jour la candidature pour indiquer qu'un garant est certifié
+      if (guarantor.candidature) {
         const candidature = await Candidature.findById(guarantor.candidature);
         if (candidature) {
           candidature.hasGuarantor = true;
           candidature.guarantorType = 'PHYSIQUE';
           await candidature.save();
         }
-
-        console.log(`✅ Garant certifié: ${guarantor.email} pour candidature ${guarantor.candidature}`);
       }
+
+      console.log(`✅ Garant certifié: ${guarantor.email} pour candidature ${guarantor.candidature}`);
     }
 
     return NextResponse.json({ received: true });

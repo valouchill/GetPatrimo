@@ -51,6 +51,7 @@ export async function sendGuarantorInvitation(
 
     if (guarantor) {
       // Mettre à jour le token si le garant existe déjà
+      guarantor.slot = guarantor.slot === 2 ? 2 : 1;
       guarantor.invitationToken = invitationToken;
       guarantor.invitationSentAt = new Date();
       if (guarantorFirstName) guarantor.firstName = guarantorFirstName;
@@ -60,6 +61,7 @@ export async function sendGuarantorInvitation(
       guarantor = new Guarantor({
         property: property._id, // Référence à la Property
         applyToken: applyToken, // Token de la page apply
+        slot: 1,
         email: guarantorEmail.toLowerCase(),
         firstName: guarantorFirstName || '',
         lastName: guarantorLastName || '',

@@ -52,20 +52,18 @@ async function handleOpenSignWebhook(req, res) {
       return res.status(404).json({ msg: 'Bail introuvable' });
     }
 
-    // Vérifie que le documentId correspond
-    if (lease.opensignDocumentId !== documentId) {
-      console.warn(`⚠️ DocumentId mismatch: ${lease.opensignDocumentId} !== ${documentId}`);
-      // Continue quand même, peut-être que le documentId n'a pas encore été sauvegardé
-    }
+    const documentKind = metadata?.kind
+      || (lease.opensignDocuments || []).find((item) => item.documentId === documentId)?.kind
+      || 'lease';
 
     // Traite selon le type d'événement
     switch (event) {
       case 'document.signed':
-        await handleDocumentSigned(lease, signers, documentId);
+        await handleDocumentSigned(lease, signers, documentId, documentKind);
         break;
 
       case 'document.completed':
-        await handleDocumentCompleted(lease, documentId, signedPdfUrl);
+        await handleDocumentCompleted(lease, documentId, signedPdfUrl, documentKind);
         break;
 
       case 'document.expired':
@@ -93,11 +91,44 @@ async function handleOpenSignWebhook(req, res) {
 /**
  * Gère l'événement 'document.signed' - Un signataire a signé
  */
-async function handleDocumentSigned(lease, signers, documentId) {
+function updateTrackedDocument(lease, documentId, patch) {
+  const tracked = Array.isArray(lease.opensignDocuments) ? lease.opensignDocuments : [];
+  const existing = tracked.find((item) => item.documentId === documentId);
+  if (existing) {
+    Object.assign(existing, patch);
+    return existing;
+  }
+
+  tracked.push({
+    kind: patch.kind || 'lease',
+    documentId,
+    status: patch.status || 'pending',
+    signingLinks: patch.signingLinks || {},
+    signedPdfPath: patch.signedPdfPath || '',
+    completedAt: patch.completedAt,
+  });
+  lease.opensignDocuments = tracked;
+  return tracked[tracked.length - 1];
+}
+
+function computeAggregateStatus(lease) {
+  const statuses = (lease.opensignDocuments || []).map((item) => item.status).filter(Boolean);
+  if (!statuses.length) return lease.opensignStatus || 'pending';
+  if (statuses.includes('declined')) return 'declined';
+  if (statuses.includes('expired')) return 'expired';
+  if (statuses.every((status) => status === 'completed')) return 'completed';
+  if (statuses.includes('signed') || statuses.includes('completed')) return 'signed';
+  return 'pending';
+}
+
+async function handleDocumentSigned(lease, signers, documentId, documentKind) {
   try {
-    // Met à jour le statut OpenSign
-    lease.opensignStatus = 'signed';
+    updateTrackedDocument(lease, documentId, {
+      kind: documentKind,
+      status: 'signed',
+    });
     lease.opensignDocumentId = documentId;
+    lease.opensignStatus = computeAggregateStatus(lease);
 
     // Identifie quel signataire a signé
     const signedSigners = signers?.filter(s => s.signedAt) || [];
@@ -139,20 +170,35 @@ async function handleDocumentSigned(lease, signers, documentId) {
 /**
  * Gère l'événement 'document.completed' - Tous les signataires ont signé
  */
-async function handleDocumentCompleted(lease, documentId, signedPdfUrl) {
+async function handleDocumentCompleted(lease, documentId, signedPdfUrl, documentKind) {
   try {
     // Met à jour le statut
-    lease.opensignStatus = 'completed';
+    updateTrackedDocument(lease, documentId, {
+      kind: documentKind,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+    lease.opensignStatus = computeAggregateStatus(lease);
     lease.opensignDocumentId = documentId;
-    lease.signatureStatus = 'SIGNED_BOTH';
-    lease.opensignCompletedAt = new Date();
+    if (documentKind === 'lease') {
+      lease.signatureStatus = 'SIGNED_BOTH';
+      lease.opensignCompletedAt = new Date();
+    }
 
     // Télécharge le PDF final certifié
-    const signedPdfPath = `uploads/leases/signed/bail_${lease._id}_signed_${Date.now()}.pdf`;
+    const signedPdfPath = `uploads/leases/signed/${documentKind}_${lease._id}_signed_${Date.now()}.pdf`;
     
     try {
       const downloadedPath = await downloadSignedPdf(documentId, signedPdfPath);
-      lease.signedPdfPath = downloadedPath;
+      if (documentKind === 'lease') {
+        lease.signedPdfPath = downloadedPath;
+      }
+      updateTrackedDocument(lease, documentId, {
+        kind: documentKind,
+        status: 'completed',
+        signedPdfPath: downloadedPath,
+        completedAt: new Date(),
+      });
       console.log(`✅ PDF signé téléchargé: ${downloadedPath}`);
     } catch (downloadError) {
       console.error('❌ Erreur téléchargement PDF signé:', downloadError);
@@ -163,18 +209,18 @@ async function handleDocumentCompleted(lease, documentId, signedPdfUrl) {
 
     // Met à jour le statut du bien en 'Loué'
     const property = await Property.findById(lease.property._id || lease.property);
-    if (property) {
-      property.status = 'RENTED';
+    if (property && computeAggregateStatus(lease) === 'completed') {
+      property.status = 'OCCUPIED';
       await property.save();
-      console.log(`✅ Bien ${property._id} mis à jour: RENTED`);
+      console.log(`✅ Bien ${property._id} mis à jour: OCCUPIED`);
     }
 
     // Met à jour le statut de la candidature
     const candidature = await Candidature.findById(lease.candidature);
     if (candidature) {
-      candidature.status = 'LEASE_SIGNED';
+      candidature.status = 'SELECTED_FOR_LEASE';
       await candidature.save();
-      console.log(`✅ Candidature ${candidature._id} mise à jour: LEASE_SIGNED`);
+      console.log(`✅ Candidature ${candidature._id} confirmée en SELECTED_FOR_LEASE`);
     }
 
     // Log l'événement
@@ -200,7 +246,8 @@ async function handleDocumentCompleted(lease, documentId, signedPdfUrl) {
  */
 async function handleDocumentExpired(lease, documentId) {
   try {
-    lease.opensignStatus = 'expired';
+    updateTrackedDocument(lease, documentId, { status: 'expired' });
+    lease.opensignStatus = computeAggregateStatus(lease);
     await lease.save();
 
     await logEvent(lease.user._id || lease.user, {
@@ -224,7 +271,8 @@ async function handleDocumentExpired(lease, documentId) {
  */
 async function handleDocumentDeclined(lease, documentId) {
   try {
-    lease.opensignStatus = 'declined';
+    updateTrackedDocument(lease, documentId, { status: 'declined' });
+    lease.opensignStatus = computeAggregateStatus(lease);
     await lease.save();
 
     await logEvent(lease.user._id || lease.user, {

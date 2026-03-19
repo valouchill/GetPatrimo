@@ -1,6 +1,7 @@
 // Service IA pour l'extraction de données et détection de fraude documentaire (GetPatrimo)
 const fs = require('fs');
 const path = require('path');
+const { pickBestDocumentNetIncome } = require('../utils/financialExtraction');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
@@ -139,7 +140,7 @@ function normalizeIdData(extracted) {
  * Normalise les données d'une fiche de paie avec audits mathématiques
  */
 function normalizePayslipData(extracted) {
-  return {
+  const normalized = {
     netSalary: Number(extracted.netSalary || 0) || 0,
     grossSalary: Number(extracted.grossSalary || 0) || 0,
     totalDeductions: Number(extracted.totalDeductions || 0) || 0,
@@ -166,6 +167,29 @@ function normalizePayslipData(extracted) {
     score: Number(extracted.score || 100),
     alerts: Array.isArray(extracted.alerts) ? extracted.alerts : []
   };
+
+  const resolvedNet = pickBestDocumentNetIncome({
+    documentType: 'BULLETIN_SALAIRE',
+    financialData: {
+      monthly_net_income: normalized.netSalary,
+      extra_details: {
+        salaire_brut_mensuel: normalized.grossSalary,
+        cotisations_mensuelles: normalized.totalDeductions,
+      },
+    },
+    extractedData: {
+      salaireNet: normalized.netSalary,
+      salaireBrut: normalized.grossSalary,
+      cotisations: normalized.totalDeductions,
+      taxableIncome: normalized.taxableIncome,
+    },
+  });
+
+  if (resolvedNet.amount > 0) {
+    normalized.netSalary = resolvedNet.amount;
+  }
+
+  return normalized;
 }
 
 /**

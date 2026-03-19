@@ -20,6 +20,9 @@ const upload = multer({
 });
 
 const { 
+  checkLeaseReadiness,
+  compileLease,
+  getCompiledLeaseAsset,
   getLeaseById, 
   getLeasesByProperty, 
   updateLeaseSignature, 
@@ -31,6 +34,15 @@ const {
   resendSigningLink,
   getSignatureStatus
 } = require('../controllers/leaseController');
+
+// Compile un bundle Smart Lease
+router.post('/compile', auth, compileLease);
+
+// Pré-validation non bloquante des données Smart Lease
+router.post('/check-readiness', auth, checkLeaseReadiness);
+
+// Sert un artefact Smart Lease compilé
+router.get('/compiled/:fileName', auth, getCompiledLeaseAsset);
 
 // Crée un nouveau bail (doit être avant /:id)
 router.post('/', auth, createLease);

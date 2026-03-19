@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { OwnerProvider } from './OwnerContext';
 import OwnerHeader from './OwnerHeader';
 
@@ -15,7 +15,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
     <OwnerProvider userEmail={session.user.email}>
       <div className="min-h-screen bg-slate-50">
         <OwnerHeader />
-        <div className="max-w-5xl mx-auto py-12 px-6">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           {children}
         </div>
       </div>

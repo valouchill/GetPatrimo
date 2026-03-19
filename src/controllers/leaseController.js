@@ -3,6 +3,153 @@ const Property = require('../../models/Property');
 const Candidature = require('../../models/Candidature');
 const path = require('path');
 const fs = require('fs');
+const {
+  COMPILED_DIR,
+  compileLeaseBundle,
+  prepareLeaseCompilation,
+} = require('../services/leaseCompileService');
+const { deriveLeaseType } = require('../utils/leaseWizardShared');
+
+function sanitizeFileSegment(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'document';
+}
+
+function mapLegacyPropertyType(leaseType) {
+  if (leaseType === 'meuble') return 'MEUBLE';
+  if (leaseType === 'mobilite') return 'MOBILITE';
+  if (leaseType === 'garage_parking') return 'GARAGE_PARKING';
+  return 'NU';
+}
+
+function buildCompileFormDataFromLease(lease) {
+  const durationMonths = lease.durationMonths
+    || (lease.startDate && lease.endDate
+      ? Math.max(1, Math.round((new Date(lease.endDate) - new Date(lease.startDate)) / (30 * 24 * 60 * 60 * 1000)))
+      : 12);
+
+  return {
+    leaseType: lease.leaseType || deriveLeaseType(lease.property, lease.propertyType),
+    startDate: lease.startDate,
+    endDate: lease.endDate,
+    rentHC: lease.rentAmount,
+    charges: lease.chargesAmount,
+    deposit: lease.depositAmount,
+    paymentDay: lease.paymentDay || 5,
+    durationMonths,
+    additionalClauses: lease.additionalClauses || '',
+    guarantorOverrides: lease.guarantor || {},
+  };
+}
+
+function mapGeneratedDocuments(documents) {
+  return documents.map((document) => ({
+    kind: document.kind,
+    template: document.template,
+    fileName: document.fileName,
+    mimeType: document.mimeType,
+    docxPath: document.docxPath,
+    pdfPath: document.pdfPath,
+    createdAt: new Date(),
+  }));
+}
+
+function getPrimaryLeaseDocument(documents) {
+  return documents.find((document) => document.kind === 'lease') || documents[0] || null;
+}
+
+function getSignatureSummary(statuses) {
+  const values = statuses.map((item) => item.status);
+  if (values.length === 0) return null;
+  if (values.includes('declined')) return 'declined';
+  if (values.includes('expired')) return 'expired';
+  if (values.every((status) => status === 'completed')) return 'completed';
+  if (values.includes('signed') || values.includes('completed')) return 'signed';
+  return 'pending';
+}
+
+/**
+ * Compile un bundle Smart Lease sans créer de bail
+ */
+async function compileLease(req, res) {
+  try {
+    const userId = req.user.id;
+    const { propertyId, applicationId, candidatureId, formData } = req.body || {};
+
+    const compiled = await compileLeaseBundle({
+      propertyId,
+      applicationId,
+      candidatureId,
+      formData: formData || {},
+      userId,
+    });
+
+    return res.json({
+      documents: compiled.documents.map((document) => ({
+        kind: document.kind,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+        secureUrl: document.secureUrl,
+        pdfUrl: document.pdfUrl,
+      })),
+      warnings: compiled.warnings || [],
+      compileMeta: compiled.compileMeta,
+    });
+  } catch (error) {
+    console.error('Erreur compileLease:', error);
+    return res.status(500).json({ msg: 'Erreur serveur', error: error.message });
+  }
+}
+
+async function checkLeaseReadiness(req, res) {
+  try {
+    const userId = req.user.id;
+    const { propertyId, applicationId, candidatureId, formData } = req.body || {};
+
+    const prepared = await prepareLeaseCompilation({
+      propertyId,
+      applicationId,
+      candidatureId,
+      formData: formData || {},
+      userId,
+    });
+
+    return res.json({
+      warnings: prepared.warnings || [],
+      compileMeta: prepared.compileMeta,
+    });
+  } catch (error) {
+    console.error('Erreur checkLeaseReadiness:', error);
+    return res.status(500).json({ msg: 'Erreur serveur', error: error.message, warnings: [] });
+  }
+}
+
+/**
+ * Sert un artefact compilé Smart Lease
+ */
+async function getCompiledLeaseAsset(req, res) {
+  try {
+    const userPrefix = `${sanitizeFileSegment(req.user.id)}-`;
+    const fileName = path.basename(String(req.params.fileName || ''));
+
+    if (!fileName.startsWith(userPrefix)) {
+      return res.status(403).json({ msg: 'Accès refusé' });
+    }
+
+    const absolutePath = path.join(COMPILED_DIR, fileName);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ msg: 'Fichier introuvable' });
+    }
+
+    return res.sendFile(absolutePath);
+  } catch (error) {
+    console.error('Erreur getCompiledLeaseAsset:', error);
+    return res.status(500).json({ msg: 'Erreur serveur' });
+  }
+}
 
 /**
  * Récupère un bail par son ID
@@ -289,16 +436,21 @@ async function createLease(req, res) {
     const userId = req.user.id;
     const {
       propertyId,
+      applicationId,
       candidatureId,
       startDate,
       endDate,
       rentAmount,
       chargesAmount,
       depositAmount,
+      leaseType,
+      paymentDay,
+      durationMonths,
       propertyType,
       additionalClauses,
       guarantorType,
-      guarantor
+      guarantor,
+      formData,
     } = req.body;
 
     // Validation des champs requis
@@ -323,10 +475,27 @@ async function createLease(req, res) {
     }
 
     // Prépare les données du bail
+    const resolvedLeaseType = deriveLeaseType(property, leaseType || propertyType);
+    const compileFormData = {
+      ...(formData || {}),
+      leaseType: resolvedLeaseType,
+      startDate,
+      endDate,
+      rentHC: rentAmount,
+      charges: chargesAmount,
+      deposit: depositAmount,
+      paymentDay,
+      durationMonths,
+      additionalClauses,
+      guarantorType,
+      guarantorOverrides: guarantor,
+    };
+
     const leaseData = {
       user: userId,
       property: propertyId,
       candidature: candidatureId,
+      applicationId: applicationId || undefined,
       tenantFirstName: candidature.firstName || '',
       tenantLastName: candidature.lastName || '',
       tenantEmail: candidature.email,
@@ -336,7 +505,10 @@ async function createLease(req, res) {
       rentAmount: Number(rentAmount) || property.rentAmount,
       chargesAmount: Number(chargesAmount) || property.chargesAmount,
       depositAmount: Number(depositAmount) || 0,
-      propertyType: propertyType || 'NU',
+      propertyType: propertyType || mapLegacyPropertyType(resolvedLeaseType),
+      leaseType: resolvedLeaseType,
+      paymentDay: Number(paymentDay) || 5,
+      durationMonths: Number(durationMonths) || 12,
       additionalClauses: additionalClauses || '',
       signatureStatus: 'PENDING'
     };
@@ -370,10 +542,17 @@ async function createLease(req, res) {
     property.status = 'LEASE_IN_PROGRESS';
     await property.save();
 
-    // Génère le PDF du bail (synchrone pour pouvoir l'envoyer à OpenSign)
-    const { generateLeasePdf } = require('../services/pdfService');
-    const pdfPath = await generateLeasePdf(lease, property, candidature);
-    lease.contractPdfPath = pdfPath;
+    const compiled = await compileLeaseBundle({
+      propertyId,
+      applicationId,
+      candidatureId,
+      formData: compileFormData,
+      userId,
+    });
+    const primaryDocument = getPrimaryLeaseDocument(compiled.documents);
+
+    lease.generatedDocuments = mapGeneratedDocuments(compiled.documents);
+    lease.contractPdfPath = primaryDocument?.pdfPath || '';
     await lease.save();
 
     return res.json({
@@ -415,11 +594,6 @@ async function launchElectronicSignature(req, res) {
       return res.status(403).json({ msg: 'Accès refusé' });
     }
 
-    // Vérifie que le PDF existe
-    if (!lease.contractPdfPath) {
-      return res.status(400).json({ msg: 'PDF du bail non généré. Veuillez d\'abord générer le bail.' });
-    }
-
     // Vérifie qu'OpenSign est configuré
     if (!process.env.OPENSIGN_API_KEY) {
       return res.status(503).json({ msg: 'Service de signature électronique non configuré' });
@@ -452,42 +626,35 @@ async function launchElectronicSignature(req, res) {
       } : null
     };
 
-    // Génère le PDF d'annexes (diagnostics) - optionnel mais recommandé
-    const { generateAnnexesPdf } = require('../services/pdfService');
-    const Document = require('../../models/Document');
-    const diagnosticDocuments = await Document.find({
-      property: property._id || property.id,
-      type: { $in: ['dpe', 'electricite', 'gaz', 'erp', 'plomb', 'amiante', 'surface'] }
-    }).sort({ createdAt: -1 });
-
-    let annexesPdfPath = null;
-    if (diagnosticDocuments.length > 0) {
-      try {
-        annexesPdfPath = await generateAnnexesPdf(diagnosticDocuments, property);
-        console.log('✅ PDF d\'annexes généré:', annexesPdfPath);
-        // Sauvegarde le chemin des annexes dans le bail pour référence future
-        lease.annexesPdfPath = annexesPdfPath;
-        await lease.save();
-      } catch (error) {
-        console.error('❌ Erreur génération PDF annexes:', error);
-        // Continue même si la génération des annexes échoue
-      }
-    }
-
-    // Envoie à OpenSign
-    const { sendLeaseForSignature } = require('../services/opensignService');
-    const opensignResult = await sendLeaseForSignature(
+    const compiled = await compileLeaseBundle({
+      propertyId: String(lease.property._id || lease.property),
+      applicationId: lease.applicationId ? String(lease.applicationId) : undefined,
+      candidatureId: lease.candidature ? String(lease.candidature) : undefined,
+      formData: buildCompileFormDataFromLease(lease),
+      userId,
+    });
+    const { sendDocumentsForSignature } = require('../services/opensignService');
+    const opensignResult = await sendDocumentsForSignature({
       lease,
-      lease.property,
+      property: lease.property,
       parties,
-      lease.contractPdfPath,
-      annexesPdfPath
-    );
+      documents: compiled.documents,
+    });
+    const primaryDocument = opensignResult.documents.find((document) => document.kind === 'lease') || opensignResult.documents[0];
 
     // Met à jour le bail avec les informations OpenSign
-    lease.opensignDocumentId = opensignResult.documentId;
-    lease.opensignStatus = 'pending';
-    lease.opensignSigningLinks = opensignResult.signingLinks;
+    lease.generatedDocuments = mapGeneratedDocuments(compiled.documents);
+    lease.contractPdfPath = getPrimaryLeaseDocument(compiled.documents)?.pdfPath || lease.contractPdfPath;
+    lease.opensignDocuments = opensignResult.documents.map((document) => ({
+      kind: document.kind,
+      documentId: document.documentId,
+      status: document.status,
+      signingLinks: document.signingLinks,
+      completedAt: document.completedAt,
+    }));
+    lease.opensignDocumentId = primaryDocument?.documentId;
+    lease.opensignStatus = primaryDocument?.status || 'pending';
+    lease.opensignSigningLinks = primaryDocument?.signingLinks || {};
     lease.signatureStatus = 'PENDING';
     await lease.save();
 
@@ -499,8 +666,7 @@ async function launchElectronicSignature(req, res) {
       lease: {
         id: lease._id,
         opensignStatus: lease.opensignStatus,
-        // Ne pas exposer opensignDocumentId dans la réponse API
-        // Les liens de signature sont envoyés par email directement par OpenSign
+        documentsCount: opensignResult.documents.length,
         hasSigningLinks: !!(lease.opensignSigningLinks && (
           lease.opensignSigningLinks.tenant || 
           lease.opensignSigningLinks.guarantor || 
@@ -536,12 +702,22 @@ async function resendSigningLink(req, res) {
       return res.status(403).json({ msg: 'Accès refusé' });
     }
 
-    if (!lease.opensignDocumentId) {
+    if (!lease.opensignDocumentId && !(lease.opensignDocuments || []).length) {
       return res.status(400).json({ msg: 'Document OpenSign non trouvé' });
     }
 
     const { resendSigningLink: resendLink } = require('../services/opensignService');
-    const result = await resendLink(lease.opensignDocumentId, signerEmail);
+    const documents = (lease.opensignDocuments || []).length
+      ? lease.opensignDocuments
+      : [{ documentId: lease.opensignDocumentId }];
+    const results = [];
+
+    for (const document of documents) {
+      if (!document.documentId) continue;
+      results.push(await resendLink(document.documentId, signerEmail));
+    }
+
+    const result = results[0] || { signingLink: null };
 
     return res.json({
       success: true,
@@ -571,7 +747,13 @@ async function getSignatureStatus(req, res) {
       return res.status(403).json({ msg: 'Accès refusé' });
     }
 
-    if (!lease.opensignDocumentId) {
+    const trackedDocuments = (lease.opensignDocuments || []).length
+      ? lease.opensignDocuments
+      : lease.opensignDocumentId
+        ? [{ kind: 'lease', documentId: lease.opensignDocumentId, status: lease.opensignStatus }]
+        : [];
+
+    if (!trackedDocuments.length) {
       return res.json({
         opensignStatus: null,
         signatureStatus: lease.signatureStatus,
@@ -581,22 +763,38 @@ async function getSignatureStatus(req, res) {
 
     // Récupère le statut depuis OpenSign
     const { getDocumentStatus } = require('../services/opensignService');
-    const status = await getDocumentStatus(lease.opensignDocumentId);
-
-    // Met à jour le bail si le statut a changé
-    if (status.status !== lease.opensignStatus) {
-      lease.opensignStatus = status.status;
-      if (status.completedAt) {
-        lease.opensignCompletedAt = new Date(status.completedAt);
-      }
-      await lease.save();
+    const statuses = [];
+    for (const document of trackedDocuments) {
+      const status = await getDocumentStatus(document.documentId);
+      statuses.push({
+        kind: document.kind || 'lease',
+        documentId: document.documentId,
+        status: status.status,
+        signers: status.signers,
+        completedAt: status.completedAt,
+      });
     }
+
+    lease.opensignDocuments = statuses.map((status) => ({
+      kind: status.kind,
+      documentId: status.documentId,
+      status: status.status,
+      signingLinks: (lease.opensignDocuments || []).find((item) => item.documentId === status.documentId)?.signingLinks || {},
+      completedAt: status.completedAt ? new Date(status.completedAt) : undefined,
+      signedPdfPath: (lease.opensignDocuments || []).find((item) => item.documentId === status.documentId)?.signedPdfPath || '',
+    }));
+    lease.opensignStatus = getSignatureSummary(statuses) || lease.opensignStatus;
+    if (statuses.every((status) => status.completedAt)) {
+      lease.opensignCompletedAt = new Date(statuses[statuses.length - 1].completedAt);
+    }
+    await lease.save();
 
     return res.json({
       opensignStatus: lease.opensignStatus,
       signatureStatus: lease.signatureStatus,
-      signers: status.signers,
-      completedAt: lease.opensignCompletedAt
+      signers: statuses.flatMap((status) => status.signers || []),
+      completedAt: lease.opensignCompletedAt,
+      documents: statuses,
     });
   } catch (error) {
     console.error('Erreur getSignatureStatus:', error);
@@ -605,6 +803,9 @@ async function getSignatureStatus(req, res) {
 }
 
 module.exports = {
+  checkLeaseReadiness,
+  compileLease,
+  getCompiledLeaseAsset,
   getLeaseById,
   getLeasesByProperty,
   updateLeaseSignature,

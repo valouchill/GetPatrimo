@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
 
 const Property = require('@/models/Property');
-const Application = require('@/models/Application');
 const User = require('@/models/User');
 
 function getStripe() {
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    const { propertyId, tenantId, userId } = session.metadata || {};
+    const { propertyId, userId } = session.metadata || {};
 
     if (!propertyId) {
       console.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
@@ -50,8 +49,6 @@ export async function POST(request: NextRequest) {
         managed: true,
         stripeCustomerId: session.customer as string,
         stripeSubscriptionId: session.subscription as string,
-        acceptedTenantId: tenantId || null,
-        status: 'LEASE_IN_PROGRESS',
       });
 
       if (userId && session.customer) {
@@ -60,15 +57,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      if (tenantId) {
-        await Application.findByIdAndUpdate(tenantId, {
-          status: 'ACCEPTED',
-          ownerDecision: 'ACCEPTED',
-          viewedByOwnerAt: new Date(),
-        });
-      }
-
-      console.log(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId} → cus ${session.customer}, locataire ${tenantId} accepté.`);
+      console.log(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId} → cus ${session.customer}.`);
     } catch (e) {
       console.error('[stripe-webhook] Erreur DB:', e);
     }

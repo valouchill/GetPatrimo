@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import VerifyLandingClient from './VerifyLandingClient';
+import PassportLandingClient from '../../p/[slug]/PassportLandingClient';
 
 export const metadata: Metadata = {
   title: 'Dossier Certifié PatrimoTrust™ | Vérification Propriétaire',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 
 export default async function VerifyPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  return <VerifyLandingClient token={token} />;
+  return <PassportLandingClient slug={token} />;
 }

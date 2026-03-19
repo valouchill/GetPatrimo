@@ -388,7 +388,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="bg-white rounded-2xl border border-slate-200 shadow-lg p-12"
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-lg sm:p-12"
               >
                 <div className="text-center mb-8">
                   <p className="text-slate-700 text-base leading-relaxed">
@@ -401,24 +401,24 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                   <button
                     onClick={handleDiditVerification}
                     disabled={isVerifying}
-                    className="group relative bg-gradient-to-br from-navy to-slate-800 text-white rounded-2xl p-8 text-left transition-all hover:scale-[1.02] hover:shadow-xl disabled:opacity-50"
+                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy to-slate-800 p-5 text-left text-white transition-all hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 sm:p-8"
                   >
-                    <div className="flex items-start gap-6">
+                    <div className="flex min-w-0 flex-col items-start gap-5 sm:flex-row sm:gap-6">
                       <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
                         <ShieldCheckIcon className="w-8 h-8 text-emerald-400" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
                           <h3 className="text-xl font-bold">Certification Didit</h3>
-                          <span className="px-2 py-0.5 bg-emerald-500 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          <span className="self-start rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                             Recommandé
                           </span>
                         </div>
-                        <p className="text-slate-300 text-sm mb-4">
+                        <p className="mb-4 break-words text-sm text-slate-300">
                           Certification cryptographique instantanée via selfie et pièce d&apos;identité. 
                           <strong className="text-white"> +40 points PatrimoMeter</strong>
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 sm:gap-4">
                           <span>⚡ 30 secondes</span>
                           <span>🔒 Infalsifiable</span>
                           <span>✨ Badge Premium</span>
@@ -435,19 +435,19 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                   {/* Option Audit PatrimoTrust (Fallback) */}
                   <button
                     onClick={switchToAuditMode}
-                    className="group bg-white border-2 border-slate-200 rounded-2xl p-8 text-left transition-all hover:border-blue-300 hover:shadow-lg"
+                    className="group overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 text-left transition-all hover:border-blue-300 hover:shadow-lg sm:p-8"
                   >
-                    <div className="flex items-start gap-6">
+                    <div className="flex min-w-0 flex-col items-start gap-5 sm:flex-row sm:gap-6">
                       <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                         <DocumentMagnifyingGlassIcon className="w-8 h-8 text-blue-600" />
                       </div>
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <h3 className="text-xl font-bold text-slate-800 mb-2">Audit Documentaire PatrimoTrust</h3>
-                        <p className="text-slate-600 text-sm mb-4">
+                        <p className="mb-4 break-words text-sm text-slate-600">
                           Vérification par analyse croisée de vos documents officiels (CNI, avis d&apos;imposition).
                           <strong className="text-slate-800"> +30 points PatrimoMeter</strong>
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 sm:gap-4">
                           <span>📄 Upload documents</span>
                           <span>🔍 Cross-check IA</span>
                           <span>✅ MRZ validée</span>

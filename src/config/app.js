@@ -25,7 +25,9 @@ if (!JWT_SECRET) {
 const LIMITS = { FREE: 3, PRO: 999999 };
 
 // Configuration des dossiers d'upload
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = process.env.DOC2LOC_UPLOADS_DIR
+  ? path.resolve(process.env.DOC2LOC_UPLOADS_DIR)
+  : path.resolve(process.cwd(), 'uploads');
 const propertyDocUploadDir = path.join(uploadsDir, 'property-documents');
 const candidatsUploadDir = path.join(uploadsDir, 'candidats');
 
