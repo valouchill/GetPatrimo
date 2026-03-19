@@ -12,7 +12,6 @@ import {
   ExternalLink,
   FileText,
   Link2,
-  Loader2,
   Lock,
   ScrollText,
   Shield,
@@ -23,13 +22,14 @@ import {
   ActionBar,
   EmptyState,
   InfoRow,
-  MetricTile,
   PremiumSectionHeader,
   PremiumSurface,
+  QuickStat,
   StatusBadge,
 } from '@/app/components/ui/premium';
 import CandidateComparisonMatrix from '../../components/CandidateComparisonMatrix';
-import PropertyJourneyStrip from '../../components/PropertyJourneyStrip';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type PropertyRecord = {
   _id?: string;
@@ -53,16 +53,8 @@ type PropertyRecord = {
     summary: string;
     compareHref?: string;
     nextAction: { id: string; label: string; description?: string; href: string; kind: string; applicationId?: string | null };
-    focusCard?: {
-      title: string;
-      reason: string;
-      summary: string;
-    };
-    guidance?: {
-      currentStage: { id: string; label: string; tip: string; progress: number };
-      contextualAdvice: string;
-      whyThisStage: string;
-    };
+    focusCard?: { title: string; reason: string; summary: string };
+    guidance?: { currentStage: { id: string; label: string; tip: string; progress: number }; contextualAdvice: string; whyThisStage: string };
     selectionState?: {
       mode: 'empty' | 'review' | 'compare' | 'selected';
       defaultTab: 'overview' | 'compare' | 'selected';
@@ -154,6 +146,9 @@ type CandidateRecord = {
 };
 
 type CheckoutTarget = { propertyLabel: string; candidateCount: number } | null;
+type Tab = 'overview' | 'passports' | 'compare' | 'selection';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(value?: number | null, fallback = '—') {
   const n = Number(value || 0);
@@ -167,7 +162,7 @@ function candidateName(candidate?: CandidateRecord | null) {
   return [candidate.profile?.firstName, candidate.profile?.lastName].filter(Boolean).join(' ').trim() || 'Candidat';
 }
 
-function stageTone(tone?: string) {
+function resolveStageTone(tone?: string) {
   if (tone === 'success') return 'success' as const;
   if (tone === 'warning') return 'warning' as const;
   if (tone === 'danger') return 'danger' as const;
@@ -176,12 +171,40 @@ function stageTone(tone?: string) {
   return 'neutral' as const;
 }
 
-const JOURNEY_ITEMS = [
-  { id: 'overview', label: 'Vue d’ensemble', caption: 'Lire le contexte du bien' },
-  { id: 'receive', label: 'Recevoir des dossiers', caption: 'Partager le lien candidat' },
-  { id: 'compare', label: 'Comparer les finalistes', caption: 'Arbitrer sur des critères stables' },
-  { id: 'selected', label: 'Sélection confirmée', caption: 'Passer ensuite au bail' },
-] as const;
+const GRADE_BG: Record<string, string> = {
+  SOUVERAIN: 'bg-gradient-to-br from-amber-400 to-amber-600',
+  A: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+  B: 'bg-gradient-to-br from-blue-400 to-blue-600',
+  C: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
+  D: 'bg-gradient-to-br from-slate-400 to-slate-600',
+  E: 'bg-gradient-to-br from-orange-400 to-orange-600',
+  F: 'bg-gradient-to-br from-red-400 to-red-600',
+};
+
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+
+function Skeleton() {
+  return (
+    <div className="animate-pulse space-y-5 pb-12">
+      <div className="h-72 rounded-[2.25rem] bg-slate-200" />
+      <div className="flex gap-2">
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-10 w-32 rounded-xl bg-slate-200" />)}
+      </div>
+      <div className="h-52 rounded-3xl bg-slate-200" />
+    </div>
+  );
+}
+
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'overview' as Tab, label: "Vue d'ensemble", Icon: Building2 },
+  { id: 'passports' as Tab, label: 'Passeports', Icon: FileText },
+  { id: 'compare' as Tab, label: 'Comparer', Icon: Shield },
+  { id: 'selection' as Tab, label: 'Sélection', Icon: CheckCircle2 },
+];
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PropertyDetailClient({ propertyId }: { propertyId: string }) {
   const router = useRouter();
@@ -256,16 +279,16 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   }, [checkoutSuccess, propertyId]);
 
   const sorted = useMemo(() => {
-    return [...candidatures].sort((left, right) => {
-      const leftRank = Number(left.rank || 999);
-      const rightRank = Number(right.rank || 999);
-      if (leftRank !== rightRank) return leftRank - rightRank;
-      return Number(right.patrimometer?.score || 0) - Number(left.patrimometer?.score || 0);
+    return [...candidatures].sort((a, b) => {
+      const aRank = Number(a.rank || 999);
+      const bRank = Number(b.rank || 999);
+      if (aRank !== bRank) return aRank - bRank;
+      return Number(b.patrimometer?.score || 0) - Number(a.patrimometer?.score || 0);
     });
   }, [candidatures]);
 
-  const ownerSelected = sorted.find((candidate) => candidate.isOwnerSelected)
-    || sorted.find((candidate) => property?.acceptedTenantId && String(candidate.id) === String(property.acceptedTenantId))
+  const ownerSelected = sorted.find((c) => c.isOwnerSelected)
+    || sorted.find((c) => property?.acceptedTenantId && String(c.id) === String(property.acceptedTenantId))
     || null;
 
   const finalists = sorted.slice(0, 3);
@@ -274,30 +297,19 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const selectionState = property?.flow?.selectionState;
 
   const requestedTab = searchParams.get('tab');
-  const currentTab = useMemo(() => {
-    const wanted = requestedTab === 'compare' || requestedTab === 'selected' || requestedTab === 'overview'
-      ? requestedTab
-      : selectionState?.defaultTab || 'overview';
-
-    if (wanted === 'selected' && !ownerSelected) {
-      return selectionState?.defaultTab === 'compare' ? 'compare' : 'overview';
-    }
-    if (wanted === 'compare' && finalists.length === 0) return 'overview';
-    return wanted;
-  }, [finalists.length, ownerSelected, requestedTab, selectionState?.defaultTab]);
-
-  const activeJourneyId = currentTab === 'selected'
-    ? 'selected'
-    : currentTab === 'compare'
-      ? 'compare'
-      : sorted.length === 0
-        ? 'receive'
-        : 'overview';
+  const currentTab = useMemo((): Tab => {
+    if (requestedTab === 'passports') return 'passports';
+    if (requestedTab === 'compare') return 'compare';
+    if (requestedTab === 'selected') return 'selection';
+    if (selectionState?.defaultTab === 'compare') return 'compare';
+    if (selectionState?.defaultTab === 'selected' && ownerSelected) return 'selection';
+    return 'overview';
+  }, [requestedTab, selectionState?.defaultTab, ownerSelected]);
 
   const openUnlockModal = () => {
     setCheckoutTarget({
       propertyLabel: property?.address || property?.name || 'ce bien',
-      candidateCount: Number(property?.flow?.sealedCount || sorted.filter((candidate) => candidate.isSealed).length || 0),
+      candidateCount: Number(property?.flow?.sealedCount || sorted.filter((c) => c.isSealed).length || 0),
     });
   };
 
@@ -312,10 +324,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
     }
   };
 
-  const goToTab = (tab: 'overview' | 'compare' | 'selected', applicationId?: string | null) => {
+  const goToTab = (tab: Tab, applicationId?: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', tab);
-    if (applicationId) params.set('applicationId', applicationId); else params.delete('applicationId');
+    params.set('tab', tab === 'selection' ? 'selected' : tab);
+    if (applicationId) params.set('applicationId', applicationId);
+    else params.delete('applicationId');
     router.replace(`/dashboard/owner/property/${propertyId}?${params.toString()}`);
   };
 
@@ -338,7 +351,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
       setPendingSelectionId(null);
       await loadData();
-      goToTab('selected', pendingSelectionId);
+      goToTab('selection', pendingSelectionId);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur.');
     } finally {
@@ -348,20 +361,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
 
   const launchContractDesk = () => {
     if (!ownerSelected) return;
-    if (ownerSelected.isSealed) {
-      openUnlockModal();
-      return;
-    }
+    if (ownerSelected.isSealed) { openUnlockModal(); return; }
     router.push(`/properties/${propertyId}/contract?applicationId=${encodeURIComponent(ownerSelected.id)}`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[55vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
-      </div>
-    );
-  }
+  if (loading) return <Skeleton />;
 
   if (!property) {
     return (
@@ -370,16 +374,17 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
         description="La fiche de ce bien n'est pas accessible."
         action={
           <Link href="/dashboard/owner" className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
-            <ArrowLeft className="h-4 w-4" />
-            Retour
+            <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
         }
       />
     );
   }
 
+  const primaryAction = selectionState?.primaryAction;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-12">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-12">
       <CheckoutModal
         open={Boolean(checkoutTarget)}
         onClose={() => setCheckoutTarget(null)}
@@ -393,18 +398,18 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
         <PremiumSurface padding="md" className="rounded-3xl border-emerald-200 bg-emerald-50">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
-              {unlockPolling ? <Loader2 className="h-5 w-5 animate-spin text-emerald-700" /> : <CheckCircle2 className="h-5 w-5 text-emerald-700" />}
+              <CheckCircle2 className="h-5 w-5 text-emerald-700" />
             </div>
             <div>
               <h2 className="font-serif text-2xl tracking-tight text-emerald-950">
-                {unlocked ? 'Accès complet activé' : unlockPolling ? 'Activation en cours...' : 'Paiement reçu'}
+                {unlocked ? 'Accès complet activé' : unlockPolling ? 'Activation en cours…' : 'Paiement reçu'}
               </h2>
-              <p className="mt-2 text-sm text-emerald-800">
+              <p className="mt-1 text-sm text-emerald-800">
                 {unlocked
-                  ? 'Les dossiers complets sont maintenant accessibles pour ce bien.'
+                  ? 'Les passeports complets sont maintenant accessibles.'
                   : unlockPolling
-                    ? 'Le déverrouillage est en cours de synchronisation.'
-                    : 'Rechargez la page dans quelques instants si le détail complet n’apparaît pas encore.'}
+                    ? 'Synchronisation en cours, quelques secondes.'
+                    : "Rechargez dans quelques instants si les passeports ne s'affichent pas encore."}
               </p>
             </div>
           </div>
@@ -417,262 +422,249 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
         </PremiumSurface>
       ) : null}
 
+      {/* ── HERO ──────────────────────────────────────────────────────── */}
       <PremiumSurface tone="hero" padding="lg" className="rounded-[2.25rem] border-stone-200/80">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_auto] xl:items-start">
-          <div className="min-w-0">
-            <Link href="/dashboard/owner" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800">
-              <ArrowLeft className="h-4 w-4" />
-              Retour au portefeuille
-            </Link>
+        <div className="space-y-6">
+          <Link href="/dashboard/owner" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800">
+            <ArrowLeft className="h-4 w-4" /> Retour au portefeuille
+          </Link>
 
-            <div className="mt-5 flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white/75">
-                <Building2 className="h-6 w-6 text-emerald-900" />
-              </div>
-              <div className="min-w-0">
-                <ActionBar className="gap-2">
-                  <StatusBadge tone={stageTone(property.flow?.stageTone)} label={property.flow?.stageLabel || 'Pipeline'} className="normal-case tracking-normal text-[11px] font-semibold" />
-                  {property.flow?.selectionState?.mode === 'selected' ? (
-                    <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
-                  ) : null}
-                </ActionBar>
-                <h1 className="mt-4 break-words font-serif text-[2.45rem] tracking-tight text-slate-950 sm:text-[3rem]">
-                  {property.address || property.name || 'Bien'}
-                </h1>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {formatCurrency(property.rentAmount)} HC
-                  {Number(property.chargesAmount || 0) > 0 ? ` + ${formatCurrency(property.chargesAmount)} charges` : ''}
-                  {property.surfaceM2 ? ` · ${property.surfaceM2} m²` : ''}
-                </p>
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-700">
-                  {property.flow?.selectionState?.headline || property.flow?.focusCard?.title || property.flow?.summary}
-                </p>
-              </div>
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white/75">
+              <Building2 className="h-6 w-6 text-emerald-900" />
+            </div>
+            <div className="min-w-0">
+              <ActionBar className="gap-2">
+                <StatusBadge
+                  tone={resolveStageTone(property.flow?.stageTone)}
+                  label={property.flow?.stageLabel || 'Pipeline'}
+                  className="normal-case tracking-normal text-[11px] font-semibold"
+                />
+                {ownerSelected ? (
+                  <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
+                ) : null}
+              </ActionBar>
+              <h1 className="mt-3 break-words font-serif text-[2.4rem] tracking-tight text-slate-950">
+                {property.address || property.name || 'Actif'}
+              </h1>
+              <p className="mt-1.5 text-sm text-slate-600">
+                {formatCurrency(property.rentAmount)} HC
+                {Number(property.chargesAmount || 0) > 0 ? ` + ${formatCurrency(property.chargesAmount)} charges` : ''}
+                {property.surfaceM2 ? ` · ${property.surfaceM2} m²` : ''}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 xl:w-[240px]">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <QuickStat label="Passeports" value={property.flow?.totalCandidates || 0} className="bg-white/80 backdrop-blur" />
+            <QuickStat label="Finalistes" value={selectionState?.finalistsCount || 0} className="bg-white/80 backdrop-blur" />
+            <QuickStat label="Masqués" value={property.flow?.sealedCount || 0} className="bg-white/80 backdrop-blur" />
+            <QuickStat label="Prêts au bail" value={property.flow?.readyToContractCount || 0} className="bg-white/80 backdrop-blur" />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={handleCopyLink}
               disabled={!property.applyToken}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
             >
-              <Link2 className="h-4 w-4" />
-              {copied ? 'Lien copié' : 'Copier le lien candidat'}
+              {copied ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+              {copied ? 'Sésame copié !' : 'Copier le Sésame candidat'}
             </button>
-
-            {property.flow?.selectionState?.primaryAction ? (
+            {primaryAction ? (
               <button
                 type="button"
                 onClick={() => {
-                  if (property.flow?.selectionState?.primaryAction?.kind === 'unlock') {
-                    openUnlockModal();
-                  } else {
-                    router.push(property.flow?.selectionState?.primaryAction?.href || property.flow?.nextAction?.href || `/dashboard/owner/property/${propertyId}`);
-                  }
+                  if (primaryAction.kind === 'unlock') { openUnlockModal(); return; }
+                  router.push(primaryAction.href || `/dashboard/owner/property/${propertyId}`);
                 }}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
               >
-                {property.flow?.selectionState?.primaryAction?.kind === 'unlock' ? <Lock className="h-4 w-4 text-amber-300" /> : <ArrowLeft className="h-4 w-4 rotate-180" />}
-                {property.flow.selectionState.primaryAction.label}
+                {primaryAction.kind === 'unlock' ? <Lock className="h-4 w-4 text-amber-300" /> : <Shield className="h-4 w-4" />}
+                {primaryAction.label}
               </button>
             ) : null}
           </div>
         </div>
       </PremiumSurface>
 
-      <PropertyJourneyStrip
-        items={JOURNEY_ITEMS as unknown as { id: string; label: string; caption?: string }[]}
-        activeId={activeJourneyId}
-        onSelect={(id) => {
-          if (id === 'overview' || id === 'receive') {
-            goToTab('overview', sorted[0]?.id || null);
-            return;
-          }
-          if (id === 'compare') {
-            goToTab('compare', finalists[0]?.id || null);
-            return;
-          }
-          if (ownerSelected) {
-            goToTab('selected', ownerSelected.id);
-          }
-        }}
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricTile label="Dossiers reçus" value={property.flow?.totalCandidates || 0} caption="Entrées du bien" />
-        <MetricTile label="Dossiers comparables" value={selectionState?.finalistsCount || 0} caption="Finalistes visibles" />
-        <MetricTile label="Dossiers masqués" value={property.flow?.sealedCount || 0} caption="Accès complet optionnel" />
-        <MetricTile label="Prêts pour le bail" value={property.flow?.readyToContractCount || 0} caption="Après choix explicite" />
+      {/* ── TABS ──────────────────────────────────────────────────────── */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => goToTab(id)}
+            className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+              currentTab === id
+                ? 'bg-slate-950 text-white shadow-md'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+            {id === 'passports' && sorted.length > 0 ? (
+              <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                currentTab === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {sorted.length}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
-      <section className="space-y-6">
-        <PremiumSectionHeader
-          eyebrow="Vue d’ensemble"
-          title="Comprendre le bien avant de décider"
-          description={property.flow?.summary || 'L’espace vous guide du premier dossier jusqu’à la sélection confirmée.'}
-        />
-
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+      {/* ── TAB : VUE D'ENSEMBLE ──────────────────────────────────────── */}
+      {currentTab === 'overview' ? (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-              Pourquoi cette étape
+              Contexte de l'étape
             </div>
             <p className="mt-3 text-sm leading-7 text-slate-700">
               {property.flow?.guidance?.whyThisStage || property.flow?.focusCard?.reason || property.flow?.summary}
             </p>
-            <div className="mt-5 rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Conseil
-              </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {property.flow?.guidance?.contextualAdvice || property.flow?.selectionState?.body || 'Le prochain geste utile est indiqué juste en dessous.'}
-              </p>
-            </div>
-          </PremiumSurface>
-
-          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/75">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-              Priorité active
-            </div>
-            <h2 className="mt-3 font-serif text-3xl tracking-tight text-slate-950">
-              {property.flow?.focusCard?.title || property.flow?.selectionState?.headline || 'Étape en cours'}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              {property.flow?.focusCard?.reason || property.flow?.summary}
-            </p>
             {(property.flow?.alerts || []).length > 0 ? (
               <div className="mt-5 space-y-3">
                 {property.flow?.alerts?.map((alert) => (
-                  <div key={alert} className="rounded-[1.35rem] border border-amber-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                  <div key={alert} className="rounded-[1.35rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-slate-700">
                     {alert}
                   </div>
                 ))}
               </div>
             ) : null}
           </PremiumSurface>
-        </div>
-      </section>
 
-      <section className="space-y-6">
-        <PremiumSectionHeader
-          eyebrow="Recevoir des dossiers"
-          title="Lien candidat"
-          description="Le dépôt de dossier démarre depuis ce lien unique. Les vérifications et le classement se font ensuite automatiquement."
-        />
-
-        {property.applyToken ? (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          {property.applyToken ? (
             <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                Adresse à partager
+                Sésame candidat
               </div>
               <code className="mt-4 block break-all rounded-[1.45rem] border border-slate-200 bg-slate-50 px-4 py-4 font-mono text-sm text-slate-700">
-                {typeof window !== 'undefined' ? `${window.location.origin}/apply/${property.applyToken}` : `/apply/${property.applyToken}`}
+                {typeof window !== 'undefined'
+                  ? `${window.location.origin}/apply/${property.applyToken}`
+                  : `/apply/${property.applyToken}`}
               </code>
               <ActionBar className="mt-4 gap-2">
-                <button type="button" onClick={handleCopyLink} className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
+                >
                   <Copy className="h-4 w-4" />
-                  {copied ? 'Copié' : 'Copier'}
+                  {copied ? 'Copié !' : 'Copier'}
                 </button>
-                <button type="button" onClick={() => window.open(`/apply/${property.applyToken}`, '_blank', 'noopener,noreferrer')} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <button
+                  type="button"
+                  onClick={() => window.open(`/apply/${property.applyToken}`, '_blank', 'noopener,noreferrer')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
                   <ExternalLink className="h-4 w-4" />
                   Voir la page candidat
                 </button>
               </ActionBar>
             </PremiumSurface>
-
-            <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/75">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                Effet attendu
-              </div>
-              <h3 className="mt-3 font-serif text-3xl tracking-tight text-slate-950">
-                Moins de friction, plus de dossiers comparables
-              </h3>
-              <div className="mt-5 space-y-3">
-                <InfoRow label="Dossiers reçus" value={property.flow?.totalCandidates || 0} />
-                <InfoRow label="Analyses prêtes" value={property.flow?.readyToContractCount || 0} />
-                <InfoRow label="Étape suivante" value={property.flow?.nextAction?.label || 'Suivre le tunnel'} />
-              </div>
-            </PremiumSurface>
-          </div>
-        ) : (
-          <EmptyState
-            icon={<Link2 className="h-7 w-7 text-slate-300" />}
-            title="Lien candidat indisponible"
-            description="Le lien apparaîtra automatiquement dès que ce bien sera prêt à recevoir des dossiers."
-          />
-        )}
-      </section>
-
-      {currentTab === 'overview' && sorted.length > 0 ? (
-        <section className="space-y-6">
-          <PremiumSectionHeader
-            eyebrow="Aperçu décisionnel"
-            title="Voir si ce bien mérite déjà une comparaison"
-            description={selectionState?.body || 'Les finalistes sont résumés ici avant d’ouvrir le comparateur complet.'}
-          />
-
-          <div className="grid gap-4 xl:grid-cols-3">
-            {finalists.map((candidate) => (
-              <PremiumSurface key={candidate.id} padding="md" className="rounded-3xl border-slate-200 bg-white">
-                <ActionBar className="gap-2">
-                  {candidate.rank ? <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
-                  {candidate.isOwnerSelected ? <StatusBadge tone="dark" label="Retenu" className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
-                  {candidate.isSealed ? <StatusBadge tone="warning" label="Masqué" className="normal-case tracking-normal text-[10px] font-semibold" /> : null}
-                </ActionBar>
-                <h3 className="mt-4 break-words font-serif text-2xl tracking-tight text-slate-950">
-                  {candidateName(candidate)}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {candidate.ownerInsights?.decisionSummary?.headline || 'Profil en attente de lecture détaillée.'}
-                </p>
-                <div className="mt-4 space-y-3">
-                  <InfoRow label="Score de confiance" value={candidate.ownerInsights?.comparison?.scoreLabel || '—'} />
-                  <InfoRow label="Garantie" value={candidate.ownerInsights?.comparison?.guaranteeLabel || '—'} />
-                  <InfoRow label="Prêt pour le bail" value={candidate.ownerInsights?.comparison?.readyToLeaseLabel || '—'} />
-                </div>
-              </PremiumSurface>
-            ))}
-          </div>
-
-          <ActionBar className="gap-3">
-            <button
-              type="button"
-              onClick={() => goToTab('compare', finalists[0]?.id || null)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
-            >
-              <Shield className="h-4 w-4" />
-              Ouvrir le comparateur
-            </button>
-            {ownerSelected ? (
-              <button
-                type="button"
-                onClick={() => goToTab('selected', ownerSelected.id)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Voir la sélection confirmée
-              </button>
-            ) : null}
-          </ActionBar>
-        </section>
+          ) : null}
+        </motion.div>
       ) : null}
 
-      {currentTab === 'compare' ? (
-        <section className="space-y-6">
-          <PremiumSectionHeader
-            eyebrow="Comparer les finalistes"
-            title="Décider avec les mêmes critères pour chaque dossier"
-            description="Le comparateur rassemble uniquement les informations utiles au choix. L’analyse complète reste disponible en second niveau."
-          />
+      {/* ── TAB : PASSEPORTS ──────────────────────────────────────────── */}
+      {currentTab === 'passports' ? (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <PremiumSurface padding="md" className="overflow-hidden rounded-3xl border-slate-200 bg-white">
+            <PremiumSectionHeader
+              eyebrow="Passeports reçus"
+              title={`${sorted.length} candidature${sorted.length !== 1 ? 's' : ''}`}
+            />
+            {sorted.length > 0 ? (
+              <div className="mt-6 divide-y divide-slate-100">
+                {sorted.map((candidate) => {
+                  const grade = candidate.patrimometer?.grade;
+                  const gradeBg = grade ? (GRADE_BG[grade] || GRADE_BG.F) : null;
+                  const initials = [candidate.profile?.firstName?.[0], candidate.profile?.lastName?.[0]]
+                    .filter(Boolean).join('').toUpperCase();
+                  return (
+                    <div
+                      key={candidate.id}
+                      className="flex flex-col gap-4 p-4 transition-colors hover:bg-slate-50 sm:flex-row sm:items-center"
+                    >
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                        candidate.isSealed ? 'bg-slate-100' : 'border border-emerald-100 bg-emerald-50'
+                      }`}>
+                        {candidate.isSealed
+                          ? <Lock className="h-5 w-5 text-slate-400" />
+                          : <span className="text-sm font-bold text-emerald-700">{initials || '?'}</span>}
+                      </div>
 
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900">{candidateName(candidate)}</p>
+                        <p className="text-sm text-slate-500">
+                          {candidate.ownerInsights?.decisionSummary?.headline
+                            || candidate.ownerInsights?.financial?.monthlyIncomeLabel
+                            || 'Profil en attente de lecture'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {candidate.rank != null ? (
+                          <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[11px] font-semibold" />
+                        ) : null}
+                        {candidate.isOwnerSelected ? (
+                          <StatusBadge tone="success" label="Retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
+                        ) : null}
+                        {grade && !candidate.isSealed && gradeBg ? (
+                          <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white ${gradeBg}`}>
+                            {grade === 'SOUVERAIN' ? '👑' : grade}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {candidate.isSealed ? (
+                        <button
+                          type="button"
+                          onClick={openUnlockModal}
+                          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400"
+                        >
+                          <Lock className="h-4 w-4" /> Déverrouiller
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/dashboard/owner/property/${propertyId}/candidate/${candidate.id}`}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Voir le dossier <ArrowLeft className="h-4 w-4 rotate-180" />
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-6">
+                <EmptyState
+                  icon={<FileText className="h-7 w-7 text-slate-300" />}
+                  title="Aucun passeport reçu"
+                  description="Partagez le Sésame candidat depuis Vue d'ensemble pour recevoir des dossiers."
+                />
+              </div>
+            )}
+          </PremiumSurface>
+        </motion.div>
+      ) : null}
+
+      {/* ── TAB : COMPARER ────────────────────────────────────────────── */}
+      {currentTab === 'compare' ? (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <PremiumSectionHeader
+            eyebrow="Comparaison"
+            title="Décider sur des critères stables"
+          />
           {finalists.length === 0 ? (
             <EmptyState
               icon={<Shield className="h-7 w-7 text-slate-300" />}
               title="Aucun finaliste à comparer"
-              description="Revenez à la vue d’ensemble pour partager le lien candidat ou attendre les prochains dossiers."
+              description="Revenez sur Vue d'ensemble pour partager le Sésame candidat."
             />
           ) : (
             <CandidateComparisonMatrix
@@ -689,85 +681,100 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
               onUnlock={openUnlockModal}
             />
           )}
-        </section>
+        </motion.div>
       ) : null}
 
-      {currentTab === 'selected' && ownerSelected ? (
-        <section className="space-y-6">
+      {/* ── TAB : SÉLECTION ───────────────────────────────────────────── */}
+      {currentTab === 'selection' ? (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
           <PremiumSectionHeader
             eyebrow="Sélection confirmée"
             title="Le locataire retenu est clairement identifié"
-            description="Le tunnel se referme ici côté sélection. Le prochain geste utile est de préparer le bail."
           />
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-            <PremiumSurface padding="lg" className="rounded-3xl border-emerald-200 bg-emerald-50">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-700" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
-                    Locataire retenu
+          {ownerSelected ? (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <PremiumSurface padding="lg" className="rounded-3xl border-emerald-200 bg-emerald-50">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-700" />
                   </div>
-                  <h3 className="mt-2 font-serif text-3xl tracking-tight text-emerald-950">
-                    {candidateName(ownerSelected)}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-emerald-900/85">
-                    {selectionState?.selectionReason || ownerSelected.ownerInsights?.decisionSummary?.headline || 'Le choix a été confirmé pour ce bien.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {(ownerSelected.ownerInsights?.decisionSummary?.strengths || []).slice(0, 4).map((item) => (
-                  <div key={item} className="flex items-start gap-2 text-sm text-emerald-950">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-                    <span>{item}</span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                      Locataire retenu
+                    </div>
+                    <h3 className="mt-2 font-serif text-3xl tracking-tight text-emerald-950">
+                      {candidateName(ownerSelected)}
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-emerald-900/85">
+                      {selectionState?.selectionReason || ownerSelected.ownerInsights?.decisionSummary?.headline || 'Le choix a été confirmé pour ce bien.'}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </PremiumSurface>
+                </div>
+                {(ownerSelected.ownerInsights?.decisionSummary?.strengths || []).length > 0 ? (
+                  <div className="mt-6 space-y-3">
+                    {ownerSelected.ownerInsights?.decisionSummary?.strengths?.slice(0, 4).map((item) => (
+                      <div key={item} className="flex items-start gap-2 text-sm text-emerald-950">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </PremiumSurface>
 
-            <PremiumSurface padding="lg" className="rounded-3xl border-slate-200 bg-white">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                Suite du tunnel
-              </div>
-              <div className="mt-5 space-y-3">
-                <InfoRow label="Score de confiance" value={ownerSelected.ownerInsights?.comparison?.scoreLabel || '—'} />
-                <InfoRow label="Garantie" value={ownerSelected.ownerInsights?.comparison?.guaranteeLabel || '—'} />
-                <InfoRow label="Prêt pour le bail" value={ownerSelected.ownerInsights?.comparison?.readyToLeaseLabel || '—'} />
-              </div>
-              <ActionBar className="mt-6 gap-3">
+              <PremiumSurface padding="lg" className="rounded-3xl border-slate-200 bg-white">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+                  Suite du tunnel
+                </div>
+                <div className="mt-5 space-y-3">
+                  <InfoRow label="Score de confiance" value={ownerSelected.ownerInsights?.comparison?.scoreLabel || '—'} />
+                  <InfoRow label="Garantie" value={ownerSelected.ownerInsights?.comparison?.guaranteeLabel || '—'} />
+                  <InfoRow label="Prêt pour le bail" value={ownerSelected.ownerInsights?.comparison?.readyToLeaseLabel || '—'} />
+                </div>
+                <ActionBar className="mt-6 gap-3">
+                  <button
+                    type="button"
+                    onClick={launchContractDesk}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+                  >
+                    <ScrollText className="h-4 w-4" /> Préparer le bail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToTab('compare', ownerSelected.id)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                  >
+                    Revoir la comparaison
+                  </button>
+                </ActionBar>
+              </PremiumSurface>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<CheckCircle2 className="h-7 w-7 text-slate-300" />}
+              title="Aucun locataire sélectionné"
+              description="Comparez les finalistes depuis l'onglet Comparer, puis confirmez votre choix."
+              action={
                 <button
                   type="button"
-                  onClick={launchContractDesk}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+                  onClick={() => goToTab('compare')}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
                 >
-                  <ScrollText className="h-4 w-4" />
-                  Préparer le bail
+                  <Shield className="h-4 w-4" /> Comparer les finalistes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => goToTab('compare', ownerSelected.id)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-                >
-                  Revoir la comparaison
-                </button>
-              </ActionBar>
-            </PremiumSurface>
-          </div>
-        </section>
+              }
+            />
+          )}
+        </motion.div>
       ) : null}
 
+      {/* ── GESTION LOCATIVE ──────────────────────────────────────────── */}
       {showManagement ? (
-        <section className="space-y-6">
+        <section className="space-y-5">
           <PremiumSectionHeader
             eyebrow="Gestion locative"
-            title="L’essentiel reste accessible"
-            description="Le lot de refonte s’arrête à la sélection, mais les outils de gestion déjà en place restent disponibles ici."
+            title="L'essentiel reste accessible"
           />
-
           <div className="grid gap-4 xl:grid-cols-3">
             <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
               <InfoRow label="Locataire" value={property.flow?.managementSummary?.tenantLabel || candidateName(ownerSelected)} />
@@ -782,7 +789,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
 
           <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/70">
             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-              Coffre-fort documentaire
+              Coffre-Fort documentaire
             </div>
             <div className="mt-5 space-y-3">
               {(property.managementTools?.vaultDocuments || []).length > 0 ? (
@@ -794,13 +801,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                     </div>
                     {doc.downloadUrl ? (
                       <a href={doc.downloadUrl} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                        <FileText className="h-4 w-4" />
-                        Ouvrir
+                        <FileText className="h-4 w-4" /> Ouvrir
                       </a>
                     ) : (
                       <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400">
-                        <Lock className="h-4 w-4" />
-                        En attente
+                        <Lock className="h-4 w-4" /> En attente
                       </span>
                     )}
                   </div>
