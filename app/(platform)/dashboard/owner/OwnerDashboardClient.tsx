@@ -8,15 +8,14 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
-  Crown,
+  Copy,
   Download,
   ExternalLink,
   FileSignature,
-  FileText,
   LayoutDashboard,
   Lock,
-  PenLine,
   Plus,
+  RefreshCw,
   ScrollText,
   ShieldCheck,
   Users,
@@ -24,6 +23,16 @@ import {
 } from 'lucide-react';
 import { useOwner } from './OwnerContext';
 import type { Candidature as RealCandidature, PropertyWithCandidatures } from './OwnerContext';
+
+// ── Stage labels ──────────────────────────────────────────────────────────────
+
+const STAGE_FR: Record<string, string> = {
+  search:     'Recherche',
+  analysis:   'Analyse',
+  selection:  'Sélection',
+  contract:   'Contrat',
+  management: 'Gestion',
+};
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
@@ -43,15 +52,10 @@ const palette = (id: string | number) => {
 };
 
 function Avatar({ name, id = 0, size = 'md' }: { name: string; id?: string | number; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
-  const ini = (name || '?').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-  const cls = {
-    xs: 'h-7 w-7 rounded-lg text-[10px]',
-    sm: 'h-9 w-9 rounded-xl text-xs',
-    md: 'h-11 w-11 rounded-xl text-sm',
-    lg: 'h-14 w-14 rounded-2xl text-base',
-  }[size];
+  const ini = (name || '?').split(' ').map((s) => s[0] || '').join('').slice(0, 2).toUpperCase() || '?';
+  const cls = { xs: 'h-7 w-7 rounded-lg text-[10px]', sm: 'h-9 w-9 rounded-xl text-xs', md: 'h-11 w-11 rounded-xl text-sm', lg: 'h-14 w-14 rounded-2xl text-base' }[size];
   return (
-    <div className={`flex shrink-0 items-center justify-center bg-gradient-to-br font-bold text-white ${cls} bg-gradient-to-br ${palette(id)}`}>
+    <div className={`flex shrink-0 items-center justify-center bg-gradient-to-br font-bold text-white ${cls} ${palette(id)}`}>
       {ini}
     </div>
   );
@@ -60,10 +64,8 @@ function Avatar({ name, id = 0, size = 'md' }: { name: string; id?: string | num
 // ── Score pill ────────────────────────────────────────────────────────────────
 
 function ScorePill({ score }: { score: number }) {
-  const cls = score >= 70
-    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-    : score >= 45
-    ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+  const cls = score >= 70 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+    : score >= 45 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
     : 'bg-red-50 text-red-700 ring-1 ring-red-200';
   const dot = score >= 70 ? 'bg-emerald-500' : score >= 45 ? 'bg-amber-500' : 'bg-red-500';
   return (
@@ -78,19 +80,12 @@ function ScorePill({ score }: { score: number }) {
 
 type TagType = 'slate' | 'green' | 'amber' | 'red' | 'indigo' | 'violet';
 const TAG_CLS: Record<TagType, string> = {
-  slate:  'bg-slate-100 text-slate-700',
-  green:  'bg-emerald-50 text-emerald-700',
-  amber:  'bg-amber-50 text-amber-700',
-  red:    'bg-red-50 text-red-700',
-  indigo: 'bg-emerald-50 text-emerald-700',
-  violet: 'bg-teal-50 text-teal-700',
+  slate: 'bg-slate-100 text-slate-700', green: 'bg-emerald-50 text-emerald-700',
+  amber: 'bg-amber-50 text-amber-700',  red:   'bg-red-50 text-red-700',
+  indigo: 'bg-emerald-50 text-emerald-700', violet: 'bg-teal-50 text-teal-700',
 };
 function Tag({ children, type = 'slate' }: { children: React.ReactNode; type?: TagType }) {
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TAG_CLS[type] || TAG_CLS.slate}`}>
-      {children}
-    </span>
-  );
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TAG_CLS[type]}`}>{children}</span>;
 }
 
 // ── Button ────────────────────────────────────────────────────────────────────
@@ -104,16 +99,12 @@ const BTN_CLS: Record<BtnVariant, string> = {
   danger:    'bg-red-50 text-red-700 border border-red-200',
   amber:     'bg-amber-500 text-slate-950 hover:bg-amber-400',
 };
-function Btn({
-  children, variant = 'primary', onClick, disabled, className = '',
-}: { children: React.ReactNode; variant?: BtnVariant; onClick?: () => void; disabled?: boolean; className?: string }) {
+function Btn({ children, variant = 'primary', onClick, disabled, className = '' }: {
+  children: React.ReactNode; variant?: BtnVariant; onClick?: () => void; disabled?: boolean; className?: string;
+}) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${BTN_CLS[variant]} ${className}`}
-    >
+    <button type="button" disabled={disabled} onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${BTN_CLS[variant]} ${className}`}>
       {children}
     </button>
   );
@@ -136,12 +127,12 @@ function StatCard({ icon, value, label, bg = 'bg-emerald-50' }: { icon: string; 
 function Bar({ value, color = 'bg-emerald-500' }: { value: number; color?: string }) {
   return (
     <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-      <div className={`h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${Math.min(value, 100)}%` }} />
+      <div className={`h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }} />
     </div>
   );
 }
 
-// ── Tunnel step bar ───────────────────────────────────────────────────────────
+// ── Step bar ──────────────────────────────────────────────────────────────────
 
 function StepBar({ step, steps }: { step: number; steps: string[] }) {
   return (
@@ -172,47 +163,26 @@ function StepBar({ step, steps }: { step: number; steps: string[] }) {
 // ── Types & mapping ───────────────────────────────────────────────────────────
 
 type LocalBien = {
-  id: string;
-  label: string;
-  adresse: string;
-  loyer: number;
-  surface: number;
-  applyToken?: string;
-  isRented?: boolean;
-  flowStage?: string;
-  flowProgress?: number;
-  totalCandidates?: number;
-  tenantLabel?: string;
-  leaseStatusLabel?: string;
-  nextMilestone?: string;
+  id: string; label: string; adresse: string; loyer: number; surface: number;
+  applyToken?: string; isRented?: boolean; flowStage?: string; flowStageLabel?: string;
+  flowProgress?: number; flowSummary?: string; totalCandidates?: number;
+  tenantLabel?: string; leaseStatusLabel?: string; nextMilestone?: string;
+  nextActionLabel?: string; nextActionHref?: string;
 };
 
 type LocalDossier = {
-  id: string;
-  prenom: string;
-  nom: string;
-  bien_id: string;
-  loyer: number;
-  revenus: number;
-  contrat: string;
-  score: number;
-  grade: string;
-  statut: 'en_attente' | 'selectionne' | 'refuse';
-  isSealed: boolean;
-  sealedLabel?: string;
-  garantie?: string;
-  auditStatus?: string;
-  auditSummary?: string;
-  effortRateLabel?: string;
-  remainingIncomeLabel?: string;
-  qualityScore?: number;
-  contractReady?: boolean;
-  submittedAt?: string;
+  id: string; prenom: string; nom: string; bien_id: string; loyer: number;
+  revenus: number; contrat: string; score: number; grade: string;
+  statut: 'en_attente' | 'selectionne' | 'refuse'; isSealed: boolean;
+  sealedLabel?: string; garantie?: string; auditStatus?: string; auditSummary?: string;
+  effortRateLabel?: string; remainingIncomeLabel?: string; qualityScore?: number;
+  contractReady?: boolean; submittedAt?: string;
 };
 
 function toBien(e: PropertyWithCandidatures): LocalBien {
   const p = e.property;
-  const ms = e.flow?.managementSummary;
+  const flow = e.flow;
+  const ms = flow?.managementSummary;
   return {
     id: p.id,
     label: p.title || p.address?.split(',')[0]?.trim() || 'Bien',
@@ -221,12 +191,16 @@ function toBien(e: PropertyWithCandidatures): LocalBien {
     surface: p.surfaceM2 || 0,
     applyToken: p.applyToken,
     isRented: p.isRented,
-    flowStage: e.flow?.stage,
-    flowProgress: e.flow?.progress,
-    totalCandidates: e.flow?.totalCandidates || e.candidatures.length,
+    flowStage: flow?.stage,
+    flowStageLabel: flow?.stageLabel || STAGE_FR[flow?.stage || ''] || '',
+    flowProgress: flow?.progress ?? 0,
+    flowSummary: flow?.summary,
+    totalCandidates: flow?.totalCandidates ?? e.candidatures.length,
     tenantLabel: ms?.tenantLabel,
     leaseStatusLabel: ms?.leaseStatusLabel,
     nextMilestone: ms?.nextMilestone,
+    nextActionLabel: flow?.nextAction?.label,
+    nextActionHref: flow?.nextAction?.href,
   };
 }
 
@@ -256,28 +230,38 @@ function toDossier(c: RealCandidature, bienId: string, loyer: number): LocalDoss
   };
 }
 
-// ── Candidat card (tunnel sélection) ─────────────────────────────────────────
+// ── Candidat card ─────────────────────────────────────────────────────────────
 
-function CandidatCard({
-  c, bien, onSelect, onDetail, compareMode, inCompare, onToggleCompare,
-}: {
-  c: LocalDossier;
-  bien: LocalBien;
-  onSelect: (c: LocalDossier) => void;
-  onDetail: (c: LocalDossier) => void;
-  compareMode: boolean;
-  inCompare: boolean;
-  onToggleCompare: (id: string) => void;
+function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompare, onToggleCompare }: {
+  c: LocalDossier; bien: LocalBien;
+  onSelect: (c: LocalDossier) => void; onDetail: (c: LocalDossier) => void;
+  compareMode: boolean; inCompare: boolean; onToggleCompare: (id: string) => void;
 }) {
+  if (c.isSealed) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-400">
+            <Lock className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-400">{c.sealedLabel || 'Candidat scellé'}</div>
+            <div className="mt-1 text-xs text-slate-400">Déverrouillez pour voir le dossier</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const ratio = bien.loyer > 0 ? c.revenus / bien.loyer : 0;
   const ratioColor = ratio >= 3 ? 'text-emerald-600' : ratio >= 2 ? 'text-amber-600' : 'text-red-600';
   const auditPct = c.auditStatus === 'CLEAR' ? 100 : c.auditStatus === 'ALERT' ? 20 : 60;
   const auditColor = c.auditStatus === 'CLEAR' ? 'bg-emerald-500' : c.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500';
   const metrics: [string, number, string][] = [
     ['Solvabilité', Math.min((ratio / 3) * 100, 100), ratio >= 3 ? 'bg-emerald-500' : ratio >= 2 ? 'bg-amber-500' : 'bg-red-500'],
-    ['Stabilité pro', c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 100 : c.contrat === 'CDD' ? 55 : 35,
+    ['Stabilité', c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 100 : c.contrat === 'CDD' ? 55 : 35,
       c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'bg-emerald-500' : 'bg-amber-500'],
-    ['Qualité dossier', c.qualityScore ?? 50, (c.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
+    ['Qualité', c.qualityScore ?? 50, (c.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
     ['Audit IA', auditPct, auditColor],
   ];
   return (
@@ -291,19 +275,18 @@ function CandidatCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-slate-900">{c.prenom} {c.nom}</span>
             <ScorePill score={c.score} />
-            {c.grade && <Tag type="indigo">Grade {c.grade}</Tag>}
           </div>
           <p className="mt-0.5 text-xs text-slate-500">{c.contrat}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag>
-            {c.garantie && c.garantie !== 'Aucune garantie' && <Tag type="indigo">{c.garantie}</Tag>}
-            {c.contractReady && <Tag type="green">Prêt à contracter</Tag>}
+            {c.garantie && c.garantie !== 'Aucune garantie' && c.garantie !== 'Sans garantie' && <Tag type="indigo">{c.garantie}</Tag>}
+            {c.contractReady && <Tag type="green">✓ Prêt à signer</Tag>}
           </div>
         </div>
         <div className="shrink-0 text-right">
           <div className="font-bold text-emerald-700">{c.revenus.toLocaleString()} €</div>
           <div className="text-[10px] text-slate-400">nets/mois</div>
-          <div className={`mt-1 text-xs font-bold ${ratioColor}`}>Ratio {ratio.toFixed(1)}x</div>
+          <div className={`mt-1 text-xs font-bold ${ratioColor}`}>{ratio.toFixed(1)}× loyer</div>
         </div>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -317,34 +300,21 @@ function CandidatCard({
           </div>
         ))}
       </div>
-      {c.auditSummary && (
-        <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">{c.auditSummary}</p>
-      )}
+      {c.auditSummary && <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">{c.auditSummary}</p>}
       <div className="flex gap-2">
         {compareMode ? (
-          <button
-            type="button"
-            onClick={() => onToggleCompare(c.id)}
+          <button type="button" onClick={() => onToggleCompare(c.id)}
             className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-all ${
               inCompare ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            }`}
-          >
-            {inCompare ? '✓ Sélectionné' : 'Ajouter à la comparaison'}
+            }`}>
+            {inCompare ? '✓ Sélectionné' : 'Ajouter'}
           </button>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => onDetail(c)}
-              className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
+            <button type="button" onClick={() => onDetail(c)} className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Voir le dossier
             </button>
-            <button
-              type="button"
-              onClick={() => onSelect(c)}
-              className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400"
-            >
+            <button type="button" onClick={() => onSelect(c)} className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400">
               Sélectionner →
             </button>
           </>
@@ -357,23 +327,21 @@ function CandidatCard({
 // ── Compare view ──────────────────────────────────────────────────────────────
 
 function CompareView({ ids, candidats, bien, onSelect }: {
-  ids: string[];
-  candidats: LocalDossier[];
-  bien: LocalBien;
-  onSelect: (c: LocalDossier) => void;
+  ids: string[]; candidats: LocalDossier[]; bien: LocalBien; onSelect: (c: LocalDossier) => void;
 }) {
   const cs = candidats.filter((c) => ids.includes(c.id));
   const rows: { label: string; fn: (c: LocalDossier) => React.ReactNode }[] = [
     { label: 'Score IA',      fn: (c) => <ScorePill score={c.score} /> },
     { label: 'Grade',         fn: (c) => <Tag type="indigo">Grade {c.grade}</Tag> },
     { label: 'Revenus',       fn: (c) => <b className="text-emerald-700">{c.revenus.toLocaleString()} €</b> },
-    { label: 'Ratio loyer',   fn: (c) => { const r = c.revenus / (bien.loyer || 1); return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}x</span>; } },
+    { label: 'Ratio',         fn: (c) => { const r = c.revenus / (bien.loyer || 1); return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}×</span>; } },
     { label: 'Contrat',       fn: (c) => <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag> },
     { label: 'Reste à vivre', fn: (c) => <span className="text-xs">{c.remainingIncomeLabel || '—'}</span> },
-    { label: 'Garantie',      fn: (c) => <span className={c.garantie && c.garantie !== 'Aucune garantie' ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.garantie || '—'}</span> },
+    { label: 'Effort locatif',fn: (c) => <span className="text-xs">{c.effortRateLabel || '—'}</span> },
+    { label: 'Garantie',      fn: (c) => <span className={(c.garantie && c.garantie !== 'Aucune garantie') ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.garantie || '—'}</span> },
     { label: 'Qualité',       fn: (c) => <span className={(c.qualityScore ?? 0) >= 70 ? 'font-semibold text-emerald-600' : 'text-amber-600'}>{c.qualityScore ?? '—'}/100</span> },
-    { label: 'Audit IA',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus || '—'}</Tag> },
-    { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? '✓ Oui' : '✗ Non'}</span> },
+    { label: 'Audit IA',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus === 'CLEAR' ? 'Validé' : c.auditStatus === 'ALERT' ? 'Alerte' : 'En cours'}</Tag> },
+    { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? '✓ Oui' : '—'}</span> },
   ];
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
@@ -398,9 +366,7 @@ function CompareView({ ids, candidats, bien, onSelect }: {
           {rows.map((row, ri) => (
             <tr key={row.label} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
               <td className="px-4 py-3 text-sm font-medium text-slate-600">{row.label}</td>
-              {cs.map((c) => (
-                <td key={c.id} className="border-l border-slate-100 px-4 py-3 text-center text-sm">{row.fn(c)}</td>
-              ))}
+              {cs.map((c) => <td key={c.id} className="border-l border-slate-100 px-4 py-3 text-center text-sm">{row.fn(c)}</td>)}
             </tr>
           ))}
         </tbody>
@@ -409,11 +375,7 @@ function CompareView({ ids, candidats, bien, onSelect }: {
             <td className="px-4 py-3" />
             {cs.map((c) => (
               <td key={c.id} className="border-l border-slate-100 px-3 py-3">
-                <button
-                  type="button"
-                  onClick={() => onSelect(c)}
-                  className="w-full rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400"
-                >
+                <button type="button" onClick={() => onSelect(c)} className="w-full rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400">
                   Choisir {c.prenom} →
                 </button>
               </td>
@@ -425,15 +387,13 @@ function CompareView({ ids, candidats, bien, onSelect }: {
   );
 }
 
-// ── Tunnel sélection (modal) ──────────────────────────────────────────────────
+// ── Tunnel sélection ──────────────────────────────────────────────────────────
 
 const SEL_STEPS = ['Dossiers', 'Comparaison', 'Confirmation', 'Succès'];
 
-function TunnelSelection({ bien, candidats, onClose, onDone }: {
-  bien: LocalBien;
-  candidats: LocalDossier[];
-  onClose: () => void;
-  onDone: (c: LocalDossier) => void;
+function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty }: {
+  bien: LocalBien; candidats: LocalDossier[];
+  onClose: () => void; onConfirmed: () => void; onGoToProperty: () => void;
 }) {
   const [step, setStep] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
@@ -442,17 +402,18 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
   const [detail, setDetail] = useState<LocalDossier | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cands = [...candidats].sort((a, b) => b.score - a.score);
+
+  const unlockedCands = candidats.filter((c) => !c.isSealed);
+  const sealedCands = candidats.filter((c) => c.isSealed);
+  const cands = [...unlockedCands].sort((a, b) => b.score - a.score);
 
   const toggleCompare = (id: string) =>
     setCompareIds((p) => p.includes(id) ? p.filter((x) => x !== id) : p.length < 3 ? [...p, id] : p);
-
   const handleSelect = (c: LocalDossier) => { setSelected(c); setStep(2); setCompareMode(false); };
 
   const handleConfirm = async () => {
     if (!selected) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const res = await fetch(`/api/owner/properties/${bien.id}/selection`, {
         method: 'PUT',
@@ -461,75 +422,78 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error || 'Erreur lors de la sélection.');
-        return;
+        setError(j.error || 'Erreur lors de la sélection.'); return;
       }
-      setStep(3);
-      onDone(selected);
-    } catch {
-      setError('Erreur réseau.');
-    } finally {
-      setLoading(false);
-    }
+      setStep(3); onConfirmed();
+    } catch { setError('Erreur réseau.'); }
+    finally { setLoading(false); }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/50 backdrop-blur-sm">
-      {/* Header */}
       <div className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-4 px-6 py-4">
           <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
             <X className="h-4 w-4" /> Fermer
           </button>
           <div className="h-6 w-px bg-slate-200" />
-          <div className="flex items-center gap-2">
-            <span className="rounded-xl border border-slate-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">🏠 {bien.label}</span>
-            <span className="text-sm text-slate-500">{bien.adresse}</span>
-            <Tag type="slate">{bien.loyer} €/mois</Tag>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="rounded-xl border border-slate-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shrink-0">🏠 {bien.label}</span>
+            <span className="hidden truncate text-sm text-slate-500 sm:block">{bien.adresse}</span>
+            <Tag type="slate">{bien.loyer.toLocaleString()} €/mois</Tag>
           </div>
-          <div className="ml-auto w-80">
+          <div className="ml-auto hidden w-72 shrink-0 sm:block">
             <StepBar step={step} steps={SEL_STEPS} />
           </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-8">
+      <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-8 sm:px-6">
         <div className="mx-auto max-w-5xl">
 
           {/* Step 0 — liste */}
           {step === 0 && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="mb-6 flex items-start justify-between">
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-slate-950">{cands.length} candidature{cands.length !== 1 ? 's' : ''} · {bien.label}</h2>
-                  <p className="mt-1 text-sm text-slate-500">Analysées et scorées par IA · Triées par score</p>
+                  <h2 className="font-serif text-2xl font-bold text-slate-950">
+                    {candidats.length} candidature{candidats.length !== 1 ? 's' : ''}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {unlockedCands.length} dossier{unlockedCands.length !== 1 ? 's' : ''} déverrouillé{unlockedCands.length !== 1 ? 's' : ''}
+                    {sealedCands.length > 0 && ` · ${sealedCands.length} scellé${sealedCands.length !== 1 ? 's' : ''}`}
+                    {' · '}Triés par score IA
+                  </p>
                 </div>
-                <div className="flex gap-2">
-                  {compareMode ? (
-                    <>
-                      <Btn variant="secondary" onClick={() => { setCompareMode(false); setCompareIds([]); }}>Annuler</Btn>
-                      <Btn variant="amber" disabled={compareIds.length < 2} onClick={() => setStep(1)}>Comparer ({compareIds.length}) →</Btn>
-                    </>
-                  ) : (
-                    <Btn variant="ghost" onClick={() => setCompareMode(true)}>Comparer des dossiers</Btn>
-                  )}
-                </div>
+                {!compareMode ? (
+                  <Btn variant="ghost" onClick={() => setCompareMode(true)} disabled={unlockedCands.length < 2}>Comparer des dossiers</Btn>
+                ) : (
+                  <div className="flex gap-2">
+                    <Btn variant="secondary" onClick={() => { setCompareMode(false); setCompareIds([]); }}>Annuler</Btn>
+                    <Btn variant="amber" disabled={compareIds.length < 2} onClick={() => setStep(1)}>Comparer ({compareIds.length}) →</Btn>
+                  </div>
+                )}
               </div>
               {compareMode && (
                 <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                  Sélectionnez 2 ou 3 candidats à comparer. {compareIds.length}/3 sélectionnés.
+                  Sélectionnez 2 ou 3 candidats à comparer côte à côte · {compareIds.length}/3
                 </div>
               )}
-              {cands.length === 0 ? (
+              {unlockedCands.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                  <div className="mb-3 text-4xl">📭</div>
-                  <p className="text-slate-500">Aucune candidature pour ce bien.</p>
+                  <div className="mb-3 text-4xl">🔒</div>
+                  <p className="text-slate-500">Aucun dossier déverrouillé pour ce bien.</p>
+                  <p className="mt-2 text-xs text-slate-400">Déverrouillez les candidatures depuis la fiche du bien.</p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {cands.map((c) => (
-                    <CandidatCard key={c.id} c={c} bien={bien} onSelect={handleSelect} onDetail={setDetail} compareMode={compareMode} inCompare={compareIds.includes(c.id)} onToggleCompare={toggleCompare} />
+                    <CandidatCard key={c.id} c={c} bien={bien} onSelect={handleSelect} onDetail={setDetail}
+                      compareMode={compareMode} inCompare={compareIds.includes(c.id)} onToggleCompare={toggleCompare} />
+                  ))}
+                  {sealedCands.map((c) => (
+                    <CandidatCard key={c.id} c={c} bien={bien} onSelect={handleSelect} onDetail={setDetail}
+                      compareMode={false} inCompare={false} onToggleCompare={toggleCompare} />
                   ))}
                 </div>
               )}
@@ -542,9 +506,9 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-slate-950">Comparaison côte à côte</h2>
-                  <p className="mt-1 text-sm text-slate-500">Analysez les critères clés</p>
+                  <p className="mt-1 text-sm text-slate-500">{compareIds.length} candidats · Critères clés</p>
                 </div>
-                <Btn variant="secondary" onClick={() => setStep(0)}>← Retour à la liste</Btn>
+                <Btn variant="secondary" onClick={() => setStep(0)}>← Liste complète</Btn>
               </div>
               <CompareView ids={compareIds} candidats={cands} bien={bien} onSelect={handleSelect} />
             </motion.div>
@@ -555,8 +519,8 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-lg">
               <div className="mb-8 text-center">
                 <div className="mb-3 text-5xl">🏆</div>
-                <h2 className="font-serif text-2xl font-bold text-slate-950">Votre locataire sélectionné</h2>
-                <p className="mt-2 text-sm text-slate-500">Confirmez pour enregistrer la sélection</p>
+                <h2 className="font-serif text-2xl font-bold text-slate-950">Confirmer la sélection</h2>
+                <p className="mt-2 text-sm text-slate-500">Cette action notifiera automatiquement tous les candidats</p>
               </div>
               <div className="mb-4 rounded-2xl border-2 border-emerald-500 bg-white p-6 shadow-lg shadow-emerald-500/10">
                 <div className="mb-5 flex items-center gap-4">
@@ -564,36 +528,36 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
                   <div>
                     <div className="text-lg font-bold text-slate-950">{selected.prenom} {selected.nom}</div>
                     <div className="text-sm text-slate-500">{selected.contrat}</div>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <ScorePill score={selected.score} />
                       <Tag type={selected.contrat === 'CDI' || selected.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{selected.contrat}</Tag>
                     </div>
                   </div>
                 </div>
-                <div className="mb-4 grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {[
                     ['Revenus', `${selected.revenus.toLocaleString()} €`, 'text-emerald-700'],
-                    ['Ratio', `${(selected.revenus / (bien.loyer || 1)).toFixed(1)}x`, selected.revenus / (bien.loyer || 1) >= 3 ? 'text-emerald-600' : 'text-amber-600'],
-                    ['Audit IA', selected.auditStatus || '—', selected.auditStatus === 'CLEAR' ? 'text-emerald-600' : 'text-amber-600'],
+                    ['Ratio', `${(selected.revenus / (bien.loyer || 1)).toFixed(1)}×`, selected.revenus / (bien.loyer || 1) >= 3 ? 'text-emerald-600' : 'text-amber-600'],
+                    ['Audit', selected.auditStatus === 'CLEAR' ? 'Validé' : selected.auditStatus === 'ALERT' ? 'Alerte' : '—', selected.auditStatus === 'CLEAR' ? 'text-emerald-600' : 'text-amber-600'],
                   ].map(([l, v, c]) => (
                     <div key={l} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                      <div className={`text-lg font-bold ${c}`}>{v}</div>
+                      <div className={`text-base font-bold ${c}`}>{v}</div>
                       <div className="mt-0.5 text-xs text-slate-500">{l}</div>
                     </div>
                   ))}
                 </div>
                 {selected.contractReady && (
-                  <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
-                    ✓ Prêt à contracter · Dossier complet
+                  <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                    ✓ Prêt à contracter · Dossier validé
                   </div>
                 )}
               </div>
               {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                Les autres candidats seront notifiés automatiquement par e-mail.
+                ⚠ Les autres candidats seront notifiés automatiquement par e-mail.
               </div>
               <div className="flex gap-3">
-                <Btn variant="secondary" onClick={() => setStep(0)} className="flex-1">← Modifier</Btn>
+                <Btn variant="secondary" onClick={() => setStep(0)} className="flex-1">← Retour</Btn>
                 <Btn variant="amber" onClick={handleConfirm} disabled={loading} className="flex-[2]">
                   {loading ? 'Enregistrement…' : 'Confirmer la sélection →'}
                 </Btn>
@@ -605,14 +569,16 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
           {step === 3 && selected && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-lg py-12 text-center">
               <div className="mb-4 text-6xl">🎉</div>
-              <h2 className="font-serif text-2xl font-bold text-slate-950">Sélection enregistrée !</h2>
-              <p className="mt-2 mb-8 text-sm text-slate-500">
-                {selected.prenom} {selected.nom} a été sélectionné(e) pour {bien.label}.
-                Rendez-vous sur la fiche du bien pour rédiger le bail.
+              <h2 className="font-serif text-2xl font-bold text-slate-950">Locataire sélectionné !</h2>
+              <p className="mt-2 mb-2 text-sm text-slate-600">
+                <span className="font-semibold">{selected.prenom} {selected.nom}</span> a été retenu(e) pour <span className="font-semibold">{bien.label}</span>.
+              </p>
+              <p className="mb-8 text-sm text-slate-500">
+                Rendez-vous sur la fiche du bien pour rédiger et envoyer le bail pour signature.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
                 <Btn variant="secondary" onClick={onClose}>Retour au tableau de bord</Btn>
-                <Btn variant="amber" onClick={() => { onClose(); window.location.href = `/dashboard/owner/property/${bien.id}`; }}>
+                <Btn variant="amber" onClick={() => { onClose(); onGoToProperty(); }}>
                   <FileSignature className="h-4 w-4" /> Rédiger le bail →
                 </Btn>
               </div>
@@ -621,41 +587,39 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
         </div>
       </div>
 
-      {/* Détail candidat (modale secondaire) */}
+      {/* Détail candidat */}
       <AnimatePresence>
         {detail && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4"
-            onClick={() => setDetail(null)}
-          >
+            onClick={() => setDetail(null)}>
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
               className="max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+              onClick={(e) => e.stopPropagation()}>
               <div className="mb-5 flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar name={`${detail.prenom} ${detail.nom}`} id={detail.id} />
                   <div>
                     <div className="font-bold text-slate-950">{detail.prenom} {detail.nom}</div>
-                    <div className="text-xs text-slate-500">{detail.contrat}</div>
+                    <div className="mt-0.5 text-xs text-slate-500">{detail.contrat}</div>
                     <div className="mt-1"><ScorePill score={detail.score} /></div>
                   </div>
                 </div>
-                <button type="button" onClick={() => setDetail(null)} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100">
+                <button type="button" onClick={() => setDetail(null)} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100" aria-label="Fermer">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="mb-4 divide-y divide-slate-100">
-                {[
-                  ['Contrat', detail.contrat],
+                {([
                   ['Revenus', `${detail.revenus.toLocaleString()} €/mois`],
-                  ['Ratio', `${(detail.revenus / (bien.loyer || 1)).toFixed(2)}x`],
+                  ['Ratio loyer', `${(detail.revenus / (bien.loyer || 1)).toFixed(2)}×`],
                   ['Reste à vivre', detail.remainingIncomeLabel || '—'],
                   ['Effort locatif', detail.effortRateLabel || '—'],
                   ['Garantie', detail.garantie || 'Aucune'],
-                  ['Audit IA', detail.auditStatus || '—'],
-                ].map(([k, v]) => (
-                  <div key={String(k)} className="flex justify-between py-2.5 text-sm">
+                  ['Audit IA', detail.auditStatus === 'CLEAR' ? '✓ Validé' : detail.auditStatus === 'ALERT' ? '⚠ Alerte' : '—'],
+                  ['Qualité dossier', detail.qualityScore ? `${detail.qualityScore}/100` : '—'],
+                ] as [string, string][]).map(([k, v]) => (
+                  <div key={k} className="flex justify-between py-2.5 text-sm">
                     <span className="text-slate-500">{k}</span>
                     <span className="font-semibold text-slate-900">{v}</span>
                   </div>
@@ -664,7 +628,8 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
               {detail.auditSummary && (
                 <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs italic leading-5 text-slate-600">{detail.auditSummary}</div>
               )}
-              <button type="button" onClick={() => { handleSelect(detail); setDetail(null); }} className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">
+              <button type="button" onClick={() => { handleSelect(detail); setDetail(null); }}
+                className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">
                 Sélectionner {detail.prenom} →
               </button>
             </motion.div>
@@ -675,7 +640,7 @@ function TunnelSelection({ bien, candidats, onClose, onDone }: {
   );
 }
 
-// ── Nouvel actif (création de bien) ──────────────────────────────────────────
+// ── Nouvel actif ──────────────────────────────────────────────────────────────
 
 const ACTIF_STEPS = ['Adresse', 'Paramètres', 'Récap'];
 
@@ -684,32 +649,19 @@ function NouvelActifForm({ onDone }: { onDone: () => void }) {
   const [form, setForm] = useState({ address: '', rentAmount: '', surfaceM2: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const f = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  const f = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleSubmit = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const res = await fetch('/api/owner/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: form.address,
-          rentAmount: parseFloat(form.rentAmount) || 0,
-          surfaceM2: parseFloat(form.surfaceM2) || 0,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: form.address, rentAmount: parseFloat(form.rentAmount) || 0, surfaceM2: parseFloat(form.surfaceM2) || undefined }),
       });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setError(j.error || 'Erreur lors de la création.');
-        return;
-      }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); setError(j.error || 'Erreur lors de la création.'); return; }
       onDone();
-    } catch {
-      setError('Erreur réseau.');
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Erreur réseau. Vérifiez votre connexion.'); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -724,13 +676,9 @@ function NouvelActifForm({ onDone }: { onDone: () => void }) {
             <p className="mb-5 text-sm text-slate-500">Entrez l&apos;adresse complète du logement à mettre en gestion.</p>
             <div className="mb-6">
               <label className="mb-1.5 block text-xs font-semibold text-slate-700">Adresse complète</label>
-              <input
-                type="text"
-                placeholder="Ex : 42 rue de la Roquette, 75011 Paris"
+              <input type="text" placeholder="Ex : 42 rue de la Roquette, 75011 Paris"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                value={form.address}
-                onChange={(e) => f('address', e.target.value)}
-              />
+                value={form.address} onChange={(e) => f('address', e.target.value)} />
             </div>
             <div className="flex justify-end">
               <Btn variant="amber" disabled={!form.address.trim()} onClick={() => setStep(1)}>
@@ -742,27 +690,19 @@ function NouvelActifForm({ onDone }: { onDone: () => void }) {
         {step === 1 && (
           <>
             <h3 className="mb-1 font-semibold text-slate-900">Paramètres locatifs</h3>
-            <p className="mb-5 text-sm text-slate-500">Définissez le loyer et la surface pour le scoring des candidatures.</p>
+            <p className="mb-5 text-sm text-slate-500">Ces données alimentent le scoring automatique des candidatures.</p>
             <div className="mb-6 grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Loyer mensuel (€)</label>
-                <input
-                  type="number"
-                  placeholder="1 200"
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Loyer charges exclues (€)</label>
+                <input type="number" min={0} placeholder="1 200"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                  value={form.rentAmount}
-                  onChange={(e) => f('rentAmount', e.target.value)}
-                />
+                  value={form.rentAmount} onChange={(e) => f('rentAmount', e.target.value)} />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Surface (m²)</label>
-                <input
-                  type="number"
-                  placeholder="45"
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Surface (m²) <span className="font-normal text-slate-400">optionnel</span></label>
+                <input type="number" min={0} placeholder="45"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                  value={form.surfaceM2}
-                  onChange={(e) => f('surfaceM2', e.target.value)}
-                />
+                  value={form.surfaceM2} onChange={(e) => f('surfaceM2', e.target.value)} />
               </div>
             </div>
             <div className="flex justify-between">
@@ -776,20 +716,15 @@ function NouvelActifForm({ onDone }: { onDone: () => void }) {
             <h3 className="mb-1 font-semibold text-slate-900">Récapitulatif</h3>
             <p className="mb-5 text-sm text-slate-500">Vérifiez avant de créer la fiche.</p>
             <div className="mb-5 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50">
-              {[
-                ['Adresse', form.address],
-                ['Loyer', `${parseFloat(form.rentAmount) || 0} €/mois`],
-                ['Surface', `${parseFloat(form.surfaceM2) || '—'} m²`],
-              ].map(([k, v]) => (
-                <div key={String(k)} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span className="text-slate-500">{k}</span>
-                  <span className="font-semibold text-slate-900">{v}</span>
+              {([['Adresse', form.address], ['Loyer', `${parseFloat(form.rentAmount) || 0} €/mois`], ['Surface', form.surfaceM2 ? `${parseFloat(form.surfaceM2)} m²` : '—']] as [string, string][]).map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between px-4 py-3 text-sm">
+                  <span className="text-slate-500">{k}</span><span className="font-semibold text-slate-900">{v}</span>
                 </div>
               ))}
             </div>
             <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-800">Un lien de candidature unique sera généré pour partager à vos candidats.</span>
+              <span className="text-sm font-medium text-emerald-800">Un lien Sésame unique sera généré pour partager aux candidats.</span>
             </div>
             {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
             <div className="flex justify-between">
@@ -805,20 +740,20 @@ function NouvelActifForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ── Navigation sidebar ────────────────────────────────────────────────────────
+// ── Sidebar nav ───────────────────────────────────────────────────────────────
 
 type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'edl';
 const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean }[] = [
-  { id: 'dashboard',    label: "Vue d'ensemble",    Icon: LayoutDashboard, group: 'Principal' },
-  { id: 'candidatures', label: 'Candidatures',       Icon: Users,           group: 'Principal', badge: true },
-  { id: 'biens',        label: 'Mes actifs',         Icon: Building2,       group: 'Principal' },
-  { id: 'depot',        label: 'Nouvel actif',       Icon: Plus,            group: 'Actions' },
-  { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,   group: 'Actions' },
-  { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,      group: 'Actions' },
-  { id: 'edl',          label: 'États des lieux',    Icon: ClipboardList,   group: 'Actions' },
+  { id: 'dashboard',    label: "Vue d'ensemble",   Icon: LayoutDashboard, group: 'Principal' },
+  { id: 'candidatures', label: 'Candidatures',      Icon: Users,           group: 'Principal', badge: true },
+  { id: 'biens',        label: 'Mes actifs',        Icon: Building2,       group: 'Principal' },
+  { id: 'depot',        label: 'Nouvel actif',      Icon: Plus,            group: 'Actions' },
+  { id: 'baux',         label: 'Baux & Signatures', Icon: FileSignature,   group: 'Actions' },
+  { id: 'gestion',      label: 'Gestion locative',  Icon: ScrollText,      group: 'Actions' },
+  { id: 'edl',          label: 'États des lieux',   Icon: ClipboardList,   group: 'Actions' },
 ];
 
-// ── Main app ──────────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function OwnerDashboardClient() {
   const router = useRouter();
@@ -826,18 +761,35 @@ export default function OwnerDashboardClient() {
   const [page, setPage] = useState<NavId>('dashboard');
   const [selBienId, setSelBienId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // ── Derived data ──────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────
   const biens = data.map(toBien);
+  const bienById = new Map(biens.map((b) => [b.id, b]));
   const allDossiers: LocalDossier[] = data.flatMap((e) =>
     e.candidatures.map((c) => toDossier(c, e.property.id, e.property.rent || 0))
   );
-  const managed = data.filter((e) => e.flow.stage === 'management' || e.property.isRented);
-  const pending = allDossiers.filter((d) => d.statut === 'en_attente' && !d.isSealed).length;
+  const pending = allDossiers.filter((d) => !d.isSealed && d.statut === 'en_attente').length;
   const selectionnes = biens.filter((b) => b.isRented || b.flowStage === 'management').length;
+  // Baux: contract OR management stage
+  const biensAvecBail = data.filter((e) => e.flow.stage === 'contract' || e.flow.stage === 'management');
+  // EDL / Gestion: management stage
+  const biensGeres = data.filter((e) => e.flow.stage === 'management' || e.property.isRented);
 
   const go = (p: NavId) => { setPage(p); setExpandedId(null); };
 
+  const copyLink = async (token: string, id: string) => {
+    const url = `${window.location.origin}/apply/${token}`;
+    try { await navigator.clipboard.writeText(url); }
+    catch { /* fallback: select/copy */ const el = document.createElement('textarea'); el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const selBien = selBienId ? bienById.get(selBienId) ?? null : null;
+  const selCands = selBienId ? allDossiers.filter((d) => d.bien_id === selBienId) : [];
+
+  // ── Table helpers (local, stable refs) ────────────────────────
   function Th({ children }: { children?: React.ReactNode }) {
     return <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">{children}</th>;
   }
@@ -845,36 +797,33 @@ export default function OwnerDashboardClient() {
     return <td className={`border-t border-slate-100 px-5 py-4 text-sm ${className}`}>{children}</td>;
   }
 
-  const selBien = biens.find((b) => b.id === selBienId) ?? null;
-  const selCands = selBienId ? allDossiers.filter((d) => d.bien_id === selBienId) : [];
-
-  const handleSelectDone = (c: LocalDossier) => {
-    refresh();
-    // Keep tunnel open to show success step — tunnel handles close itself
-  };
-
+  // ── Loading / error ────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
           <p className="text-sm text-slate-500">Chargement de votre espace…</p>
         </div>
       </div>
     );
   }
 
+  // ── Stage tag helper ───────────────────────────────────────────
+  function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: string }) {
+    const label = stageLabel || STAGE_FR[stage || ''] || stage || 'Inconnu';
+    const type: TagType = stage === 'management' ? 'green' : stage === 'contract' ? 'indigo' : stage === 'selection' ? 'amber' : 'slate';
+    return <Tag type={type}>{label}</Tag>;
+  }
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/20 font-sans">
 
-      {/* ── SIDEBAR ───────────────────────────────────────────── */}
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/90 backdrop-blur-xl">
-        {/* Logo */}
+      {/* ── SIDEBAR ─────────────────────────────────────────────── */}
+      <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-600 text-lg">
-              🛡️
-            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-600 text-lg">🛡️</div>
             <div>
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
               <div className="mt-0.5 inline-block rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Propriétaire</div>
@@ -882,7 +831,6 @@ export default function OwnerDashboardClient() {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {[...new Set(NAV.map((n) => n.group))].map((grp) => (
             <div key={grp} className="mb-4">
@@ -890,16 +838,10 @@ export default function OwnerDashboardClient() {
               {NAV.filter((n) => n.group === grp).map(({ id, label, Icon, badge }) => {
                 const active = page === id;
                 return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => go(id)}
+                  <button key={id} type="button" onClick={() => go(id)}
                     className={`mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
-                      active
-                        ? 'bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-200'
-                        : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
+                      active ? 'bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-200' : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}>
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 text-left">{label}</span>
                     {badge && pending > 0 && (
@@ -912,7 +854,6 @@ export default function OwnerDashboardClient() {
           ))}
         </nav>
 
-        {/* Footer */}
         <div className="border-t border-slate-200 px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-800 to-emerald-600 text-xs font-bold text-white">
@@ -920,13 +861,16 @@ export default function OwnerDashboardClient() {
             </div>
             <div className="min-w-0">
               <div className="truncate text-xs font-semibold text-slate-900">{userEmail || 'Propriétaire'}</div>
-              <div className="text-[11px] text-slate-500">Espace sécurisé</div>
+              <div className="text-[11px] text-slate-400">Espace sécurisé</div>
             </div>
+            <button type="button" onClick={refresh} aria-label="Actualiser" className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* ── MAIN ──────────────────────────────────────────────── */}
+      {/* ── MAIN ────────────────────────────────────────────────── */}
       <main className="ml-60 flex-1 px-8 py-8">
 
         {/* ─ DASHBOARD ─ */}
@@ -938,17 +882,17 @@ export default function OwnerDashboardClient() {
                   Bonjour{userEmail ? ` ${userEmail.split('@')[0]}` : ''} 👋
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
-                  {biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille · Cockpit Souverain
+                  {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
                 </p>
               </div>
               <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouvel actif</Btn>
             </div>
 
-            <div className="mb-6 grid grid-cols-4 gap-4">
-              <StatCard icon="🏠" value={biens.length}           label="Actifs en portefeuille"  bg="bg-emerald-50" />
-              <StatCard icon="📋" value={allDossiers.length}     label="Candidatures reçues"     bg="bg-teal-50" />
-              <StatCard icon="✓"  value={selectionnes}           label="Locataires sélectionnés" bg="bg-blue-50" />
-              <StatCard icon="⏳" value={pending}                label="En attente d'analyse"    bg="bg-amber-50" />
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatCard icon="🏠" value={biens.length}    label="Actifs en portefeuille" bg="bg-emerald-50" />
+              <StatCard icon="📋" value={allDossiers.length} label="Candidatures reçues"  bg="bg-teal-50" />
+              <StatCard icon="✓"  value={selectionnes}    label="Locataires sélectionnés" bg="bg-blue-50" />
+              <StatCard icon="⏳" value={pending}         label="En attente d'examen"    bg="bg-amber-50" />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">
@@ -959,25 +903,24 @@ export default function OwnerDashboardClient() {
                   <button type="button" onClick={() => go('candidatures')} className="text-xs font-semibold text-emerald-600 hover:underline">Voir tout →</button>
                 </div>
                 {allDossiers.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-slate-400">Aucune candidature reçue.</p>
+                  <div className="py-8 text-center">
+                    <p className="mb-2 text-sm text-slate-400">Aucune candidature reçue.</p>
+                    <p className="text-xs text-slate-400">Partagez le lien Sésame de vos biens pour commencer.</p>
+                  </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {[...allDossiers]
                       .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
                       .slice(0, 5)
                       .map((d) => {
-                        const bien = biens.find((b) => b.id === d.bien_id);
+                        const bien = bienById.get(d.bien_id);
                         return (
-                          <button
-                            key={d.id}
-                            type="button"
-                            onClick={() => router.push(`/dashboard/owner/property/${d.bien_id}`)}
-                            className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50"
-                          >
+                          <button key={d.id} type="button" onClick={() => router.push(`/dashboard/owner/property/${d.bien_id}`)}
+                            className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50">
                             <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-semibold text-slate-900">{d.prenom} {d.nom}</div>
-                              <div className="truncate text-xs text-slate-500">{bien?.label || '—'}</div>
+                              <div className="truncate text-xs text-slate-500">{bien?.label || '—'} · {d.contrat}</div>
                             </div>
                             <ScorePill score={d.score} />
                           </button>
@@ -987,33 +930,41 @@ export default function OwnerDashboardClient() {
                 )}
               </div>
 
-              {/* Biens actifs */}
+              {/* Biens avec prochaine action */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="font-semibold text-slate-900">Mes actifs</div>
-                  <button type="button" onClick={() => go('biens')} className="text-xs font-semibold text-emerald-600 hover:underline">Voir tout →</button>
+                  <div className="font-semibold text-slate-900">Prochaines actions</div>
+                  <button type="button" onClick={() => go('biens')} className="text-xs font-semibold text-emerald-600 hover:underline">Tous les actifs →</button>
                 </div>
                 {biens.length === 0 ? (
                   <div className="py-8 text-center">
-                    <p className="mb-3 text-sm text-slate-400">Aucun bien en portefeuille.</p>
-                    <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Ajouter un bien</Btn>
+                    <p className="mb-3 text-sm text-slate-400">Aucun bien enregistré.</p>
+                    <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {biens.slice(0, 5).map((b) => (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
-                        className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50"
-                      >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-base">🏠</div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
-                          <div className="truncate text-xs text-slate-500">{b.loyer.toLocaleString()} €/mois · {b.totalCandidates || 0} candidature{(b.totalCandidates || 0) !== 1 ? 's' : ''}</div>
+                      <div key={b.id} className="py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="text-base">🏠</span>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
+                              <div className="text-xs text-slate-500">{b.loyer.toLocaleString()} €/mois</div>
+                            </div>
+                          </div>
+                          <StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} />
                         </div>
-                        <Tag type={b.isRented ? 'green' : 'indigo'}>{b.isRented ? 'Loué' : b.flowStage || 'Disponible'}</Tag>
-                      </button>
+                        {b.flowSummary && (
+                          <p className="mt-2 text-xs text-slate-500 line-clamp-2">{b.flowSummary}</p>
+                        )}
+                        {b.nextActionLabel && (
+                          <button type="button" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
+                            className="mt-2 text-xs font-semibold text-emerald-600 hover:underline">
+                            → {b.nextActionLabel}
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1032,39 +983,44 @@ export default function OwnerDashboardClient() {
               </div>
             </div>
 
-            {biens.length === 0 ? (
+            {data.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
                 <div className="mb-3 text-4xl">📭</div>
-                <p className="mb-4 text-slate-500">Aucun bien en portefeuille. Créez votre premier actif.</p>
+                <p className="mb-4 text-slate-500">Aucun bien en portefeuille.</p>
                 <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
               </div>
             ) : (
               <div className="space-y-5">
                 {data.map((entry) => {
-                  const bien = toBien(entry);
-                  const cands = allDossiers.filter((d) => d.bien_id === bien.id);
+                  const b = bienById.get(entry.property.id)!;
+                  const cands = allDossiers.filter((d) => d.bien_id === b.id);
                   const hasSel = cands.some((d) => d.statut === 'selectionne');
                   return (
-                    <div key={bien.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                    <div key={b.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
                           <div>
-                            <div className="font-semibold text-slate-900">{bien.label}</div>
-                            <div className="text-xs text-slate-500">{bien.adresse} · {bien.loyer} €/mois · {cands.length} candidature{cands.length !== 1 ? 's' : ''}</div>
+                            <div className="font-semibold text-slate-900">{b.label}</div>
+                            <div className="text-xs text-slate-500">
+                              {b.loyer.toLocaleString()} €/mois · {cands.length} candidature{cands.length !== 1 ? 's' : ''}
+                              {cands.filter(c => !c.isSealed).length > 0 && ` · ${cands.filter(c => !c.isSealed).length} déverrouillé${cands.filter(c => !c.isSealed).length !== 1 ? 's' : ''}`}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => router.push(`/dashboard/owner/property/${bien.id}`)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                          <button type="button" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                             <ExternalLink className="h-3.5 w-3.5" /> Fiche complète
                           </button>
                           {hasSel ? (
                             <Tag type="green">✓ Locataire sélectionné</Tag>
-                          ) : cands.length > 0 ? (
-                            <Btn variant="amber" onClick={() => setSelBienId(bien.id)}>Sélectionner <ArrowRight className="h-4 w-4" /></Btn>
+                          ) : cands.filter(c => !c.isSealed).length > 0 ? (
+                            <Btn variant="amber" onClick={() => setSelBienId(b.id)}>Sélectionner <ArrowRight className="h-4 w-4" /></Btn>
                           ) : null}
                         </div>
                       </div>
+
                       {cands.length > 0 ? (
                         <table className="w-full border-collapse">
                           <thead className="bg-slate-50">
@@ -1073,68 +1029,75 @@ export default function OwnerDashboardClient() {
                             </tr>
                           </thead>
                           <tbody>
-                            {[...cands].sort((a, b) => b.score - a.score).map((d) => (
+                            {[...cands].sort((a, b) => (a.isSealed ? 1 : 0) - (b.isSealed ? 1 : 0) || b.score - a.score).map((d) => (
                               <Fragment key={d.id}>
-                                <tr
-                                  onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
-                                  className="cursor-pointer transition-colors hover:bg-slate-50"
-                                >
+                                <tr onClick={() => !d.isSealed && setExpandedId(expandedId === d.id ? null : d.id)}
+                                  className={`transition-colors ${d.isSealed ? 'opacity-50' : 'cursor-pointer hover:bg-slate-50'}`}>
                                   <Td>
                                     <div className="flex items-center gap-3">
-                                      <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
+                                      {d.isSealed
+                                        ? <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100"><Lock className="h-4 w-4 text-slate-400" /></div>
+                                        : <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
+                                      }
                                       <div>
-                                        <div className="font-semibold text-slate-900">{d.prenom} {d.nom}</div>
-                                        <div className="text-xs text-slate-400">{d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('fr-FR') : '—'}</div>
+                                        <div className="font-semibold text-slate-900">
+                                          {d.isSealed ? (d.sealedLabel || 'Candidat scellé') : `${d.prenom} ${d.nom}`}
+                                        </div>
+                                        <div className="text-xs text-slate-400">
+                                          {d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('fr-FR') : '—'}
+                                        </div>
                                       </div>
                                     </div>
                                   </Td>
-                                  <Td><b className="text-slate-900">{d.revenus.toLocaleString()} €</b></Td>
-                                  <Td><ScorePill score={d.score} /></Td>
+                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <b className="text-slate-900">{d.revenus.toLocaleString()} €</b>}</Td>
+                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <ScorePill score={d.score} />}</Td>
                                   <Td>
-                                    <Tag type={d.statut === 'selectionne' ? 'green' : d.isSealed ? 'slate' : 'indigo'}>
-                                      {d.statut === 'selectionne' ? 'Sélectionné' : d.isSealed ? (d.sealedLabel || 'Scellé') : 'En attente'}
-                                    </Tag>
+                                    {d.isSealed
+                                      ? <Tag type="slate">🔒 Scellé</Tag>
+                                      : <Tag type={d.statut === 'selectionne' ? 'green' : 'indigo'}>
+                                          {d.statut === 'selectionne' ? '✓ Sélectionné' : 'En attente'}
+                                        </Tag>
+                                    }
                                   </Td>
-                                  <Td>{d.garantie || <span className="text-slate-400">—</span>}</Td>
+                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : (d.garantie || <span className="text-slate-400">—</span>)}</Td>
                                   <Td>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/owner/property/${d.bien_id}`); }}
-                                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                                    >
-                                      Voir →
-                                    </button>
+                                    {!d.isSealed && (
+                                      <button type="button"
+                                        onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/owner/property/${d.bien_id}`); }}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                                        Voir →
+                                      </button>
+                                    )}
                                   </Td>
                                 </tr>
-                                {expandedId === d.id && (
+                                {expandedId === d.id && !d.isSealed && (
                                   <tr>
-                                    <td colSpan={6} className="border-t border-slate-100 bg-slate-50 px-5 py-5">
+                                    <td colSpan={6} className="border-t border-slate-100 bg-slate-50/80 px-5 py-5">
                                       <div className="grid gap-5 xl:grid-cols-2">
                                         <div>
-                                          <div className="mb-3 font-semibold text-slate-900">Analyse IA — {d.prenom} {d.nom}</div>
-                                          {[
-                                            ['Solvabilité', bien.loyer > 0 ? Math.min((d.revenus / bien.loyer / 3) * 100, 100) : 0, d.revenus / (bien.loyer || 1) >= 3 ? 'bg-emerald-500' : 'bg-amber-500'],
+                                          <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Analyse IA</div>
+                                          {([
+                                            ['Solvabilité', b.loyer > 0 ? Math.min((d.revenus / b.loyer / 3) * 100, 100) : 0, d.revenus / (b.loyer || 1) >= 3 ? 'bg-emerald-500' : 'bg-amber-500'],
                                             ['Qualité dossier', d.qualityScore ?? 50, (d.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
-                                            ['Audit IA', d.auditStatus === 'CLEAR' ? 100 : d.auditStatus === 'ALERT' ? 20 : 60, d.auditStatus === 'CLEAR' ? 'bg-emerald-500' : d.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500'],
-                                          ].map(([l, v, c]) => (
-                                            <div key={String(l)} className="mb-3">
+                                            ['Audit IA', d.auditStatus === 'CLEAR' ? 100 : d.auditStatus === 'ALERT' ? 15 : 60, d.auditStatus === 'CLEAR' ? 'bg-emerald-500' : d.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500'],
+                                          ] as [string, number, string][]).map(([l, v, c]) => (
+                                            <div key={l} className="mb-3">
                                               <div className="mb-1 flex justify-between text-xs font-semibold">
-                                                <span className="text-slate-500">{l}</span>
-                                                <span className="text-slate-700">{Math.round(Number(v))}%</span>
+                                                <span className="text-slate-500">{l}</span><span className="text-slate-700">{Math.round(v)}%</span>
                                               </div>
-                                              <Bar value={Number(v)} color={String(c)} />
+                                              <Bar value={v} color={c} />
                                             </div>
                                           ))}
                                         </div>
                                         <div className="divide-y divide-slate-100">
-                                          {[
+                                          {([
                                             ['Contrat', d.contrat],
                                             ['Revenus', `${d.revenus.toLocaleString()} €`],
-                                            ['Ratio', `${(d.revenus / (bien.loyer || 1)).toFixed(1)}×`],
+                                            ['Ratio', `${(d.revenus / (b.loyer || 1)).toFixed(1)}×`],
                                             ['Reste à vivre', d.remainingIncomeLabel || '—'],
                                             ['Effort locatif', d.effortRateLabel || '—'],
-                                          ].map(([k, v]) => (
-                                            <div key={String(k)} className="flex justify-between py-2 text-sm">
+                                          ] as [string, string][]).map(([k, v]) => (
+                                            <div key={k} className="flex justify-between py-2 text-sm">
                                               <span className="text-slate-500">{k}</span>
                                               <span className="font-semibold text-slate-900">{v}</span>
                                             </div>
@@ -1142,9 +1105,7 @@ export default function OwnerDashboardClient() {
                                         </div>
                                       </div>
                                       {d.auditSummary && (
-                                        <div className="mt-4 rounded-xl bg-white px-4 py-3 text-xs italic text-slate-600 border border-slate-200">
-                                          {d.auditSummary}
-                                        </div>
+                                        <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs italic text-slate-600">{d.auditSummary}</div>
                                       )}
                                     </td>
                                   </tr>
@@ -1155,14 +1116,13 @@ export default function OwnerDashboardClient() {
                         </table>
                       ) : (
                         <div className="flex items-center justify-between px-5 py-4">
-                          <p className="text-sm text-slate-400">Aucune candidature reçue pour ce bien.</p>
-                          {bien.applyToken && (
-                            <button
-                              type="button"
-                              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${bien.applyToken}`); }}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" /> Copier le lien candidature
+                          <p className="text-sm text-slate-400">Aucune candidature reçue — partagez le lien Sésame.</p>
+                          {b.applyToken && (
+                            <button type="button" onClick={() => copyLink(b.applyToken!, b.id)}
+                              aria-label="Copier le lien candidature"
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                              <Copy className="h-3.5 w-3.5" />
+                              {copiedId === b.id ? 'Copié !' : 'Copier le lien Sésame'}
                             </button>
                           )}
                         </div>
@@ -1195,20 +1155,21 @@ export default function OwnerDashboardClient() {
               <div className="grid gap-5 xl:grid-cols-2">
                 {biens.map((b) => {
                   const selTenant = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                  const candCount = allDossiers.filter((d) => d.bien_id === b.id).length;
                   return (
-                    <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md">
-                      <div className="mb-4 flex items-start justify-between">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
-                        <Tag type={b.isRented ? 'green' : 'indigo'}>{b.isRented ? 'Loué' : b.flowStage || 'Disponible'}</Tag>
+                    <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                        <StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} />
                       </div>
                       <div className="font-bold text-slate-950">{b.label}</div>
-                      <div className="mt-0.5 mb-3 text-sm text-slate-500">{b.adresse}</div>
+                      <div className="mt-0.5 mb-3 text-sm text-slate-500 line-clamp-1">{b.adresse}</div>
                       <div className="mb-3 text-[1.75rem] font-bold text-emerald-700">
                         {b.loyer.toLocaleString()} <span className="text-sm font-normal text-slate-400">€/mois</span>
                       </div>
                       <div className="mb-3 flex flex-wrap gap-2">
                         {b.surface > 0 && <Tag>{b.surface} m²</Tag>}
-                        <Tag>{b.totalCandidates || 0} candidature{(b.totalCandidates || 0) !== 1 ? 's' : ''}</Tag>
+                        <Tag>{candCount} candidature{candCount !== 1 ? 's' : ''}</Tag>
                       </div>
                       {selTenant && (
                         <div className="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm">
@@ -1216,7 +1177,10 @@ export default function OwnerDashboardClient() {
                           <b className="text-slate-900">{selTenant.prenom} {selTenant.nom}</b>
                         </div>
                       )}
-                      {b.flowProgress !== undefined && (
+                      {b.flowSummary && (
+                        <p className="mb-3 text-xs leading-5 text-slate-500 line-clamp-2">{b.flowSummary}</p>
+                      )}
+                      {typeof b.flowProgress === 'number' && (
                         <div className="mb-4">
                           <div className="mb-1 flex justify-between text-xs text-slate-400">
                             <span>Progression</span><span>{b.flowProgress}%</span>
@@ -1224,23 +1188,23 @@ export default function OwnerDashboardClient() {
                           <Bar value={b.flowProgress} />
                         </div>
                       )}
-                      <div className="flex gap-2">
+                      <div className="mt-auto flex flex-wrap gap-2">
                         <Btn variant="secondary" className="flex-1 py-2 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
                           <ExternalLink className="h-3.5 w-3.5" /> Voir la fiche
                         </Btn>
-                        {!b.isRented && (allDossiers.filter((d) => d.bien_id === b.id).length > 0) && (
+                        {!b.isRented && allDossiers.filter(d => d.bien_id === b.id && !d.isSealed).length > 0 && (
                           <Btn variant="amber" className="flex-1 py-2 text-xs" onClick={() => setSelBienId(b.id)}>
                             Sélectionner →
                           </Btn>
                         )}
                         {b.applyToken && !b.isRented && (
-                          <button
-                            type="button"
-                            title="Copier le lien candidature"
-                            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/apply/${b.applyToken}`)}
-                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                          <button type="button" onClick={() => copyLink(b.applyToken!, b.id)} title="Copier le lien Sésame" aria-label="Copier le lien Sésame"
+                            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                              copiedId === b.id
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                            }`}>
+                            {copiedId === b.id ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                           </button>
                         )}
                       </div>
@@ -1257,7 +1221,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8">
               <h1 className="font-serif text-3xl font-bold text-slate-950">Nouvel actif</h1>
-              <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille</p>
+              <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille PatrimoTrust</p>
             </div>
             <NouvelActifForm onDone={() => { refresh(); go('biens'); }} />
           </motion.div>
@@ -1270,37 +1234,39 @@ export default function OwnerDashboardClient() {
               <h1 className="font-serif text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
               <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Signature électronique</p>
             </div>
-            {managed.length === 0 ? (
+            {biensAvecBail.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
                 <div className="mb-3 text-4xl">📄</div>
-                <p className="text-slate-500">Aucun bail en cours. Sélectionnez un locataire depuis vos candidatures.</p>
+                <p className="mb-2 text-slate-500">Aucun bail en cours.</p>
+                <p className="text-xs text-slate-400">Sélectionnez un locataire depuis vos candidatures pour démarrer la rédaction.</p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50">
-                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Statut bail</Th><Th>Prochaine étape</Th><Th>Actions</Th></tr>
+                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Étape</Th><Th>Statut bail</Th><Th>Actions</Th></tr>
                   </thead>
                   <tbody>
-                    {managed.map((entry) => {
-                      const b = toBien(entry);
+                    {biensAvecBail.map((entry) => {
+                      const b = bienById.get(entry.property.id)!;
                       const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
                       return (
                         <tr key={b.id} className="transition-colors hover:bg-slate-50">
                           <Td>
                             <div className="flex items-center gap-3">
-                              <Avatar name={b.tenantLabel || selCand ? `${selCand?.prenom} ${selCand?.nom}` : '?'} id={b.id} size="sm" />
-                              <b className="text-slate-900">{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                              <Avatar name={tenantName} id={b.id} size="sm" />
+                              <b className="text-slate-900">{tenantName}</b>
                             </div>
                           </Td>
-                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><span className="text-slate-600">{b.label}</span></Td>
                           <Td><b className="text-emerald-700">{b.loyer.toLocaleString()} €</b></Td>
+                          <Td><StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} /></Td>
                           <Td>
                             <Tag type={b.leaseStatusLabel?.toLowerCase().includes('signé') ? 'green' : 'amber'}>
-                              {b.leaseStatusLabel || 'En cours'}
+                              {b.leaseStatusLabel || (entry.flow.stage === 'contract' ? 'En cours de rédaction' : 'En gestion')}
                             </Tag>
                           </Td>
-                          <Td><span className="text-xs text-slate-500">{b.nextMilestone || '—'}</span></Td>
                           <Td>
                             <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
                               <FileSignature className="h-3.5 w-3.5" /> Gérer →
@@ -1321,46 +1287,42 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-3xl font-bold text-slate-950">Gestion locative</h1>
-              <p className="mt-1 text-sm text-slate-500">Loyers · Quittances · Encaissements</p>
+              <p className="mt-1 text-sm text-slate-500">Suivi des locataires actifs</p>
             </div>
-            <div className="mb-6 grid grid-cols-4 gap-4">
-              <StatCard icon="🏠" value={managed.length}        label="Biens en gestion"   bg="bg-emerald-50" />
-              <StatCard icon="📋" value={allDossiers.length}    label="Candidatures totales" bg="bg-teal-50" />
-              <StatCard icon="✓"  value={selectionnes}          label="Locataires actifs"  bg="bg-blue-50" />
-              <StatCard icon="⏳" value={pending}               label="En attente"         bg="bg-amber-50" />
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatCard icon="🏠" value={biensGeres.length}   label="Biens en gestion"    bg="bg-emerald-50" />
+              <StatCard icon="📋" value={allDossiers.length}  label="Candidatures totales" bg="bg-teal-50" />
+              <StatCard icon="✓"  value={selectionnes}        label="Locataires actifs"   bg="bg-blue-50" />
+              <StatCard icon="⏳" value={pending}             label="En attente"          bg="bg-amber-50" />
             </div>
-            {managed.length === 0 ? (
+            {biensGeres.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center">
                 <div className="mb-3 text-4xl">📊</div>
-                <p className="text-slate-500">Aucun bien en gestion pour le moment.</p>
+                <p className="text-slate-500">Aucun bien en gestion active pour le moment.</p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <div className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">
-                  Biens sous gestion
-                </div>
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50">
                     <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Statut</Th><Th>Résumé</Th><Th>Actions</Th></tr>
                   </thead>
                   <tbody>
-                    {managed.map((entry) => {
-                      const b = toBien(entry);
+                    {biensGeres.map((entry) => {
+                      const b = bienById.get(entry.property.id)!;
                       const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
                       return (
                         <tr key={b.id} className="transition-colors hover:bg-slate-50">
                           <Td>
                             <div className="flex items-center gap-3">
-                              <Avatar name={b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '?')} id={b.id} size="sm" />
-                              <b>{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                              <Avatar name={tenantName} id={b.id} size="sm" />
+                              <b>{tenantName}</b>
                             </div>
                           </Td>
-                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><span className="text-slate-600">{b.label}</span></Td>
                           <Td><b className="text-emerald-700">{b.loyer.toLocaleString()} €</b></Td>
-                          <Td>
-                            <Tag type={b.isRented ? 'green' : 'amber'}>{b.isRented ? 'Occupé' : 'En cours'}</Tag>
-                          </Td>
-                          <Td><span className="text-xs text-slate-500">{b.leaseStatusLabel || '—'}</span></Td>
+                          <Td><Tag type="green">{b.isRented ? 'Occupé' : 'En gestion'}</Tag></Td>
+                          <Td><span className="text-xs text-slate-500 line-clamp-2">{b.leaseStatusLabel || entry.flow.managementSummary?.summary || '—'}</span></Td>
                           <Td>
                             <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
                               <ScrollText className="h-3.5 w-3.5" /> Détail →
@@ -1379,13 +1341,11 @@ export default function OwnerDashboardClient() {
         {/* ─ ÉTATS DES LIEUX ─ */}
         {page === 'edl' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">États des lieux</h1>
-                <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Rapport numérique</p>
-              </div>
+            <div className="mb-6">
+              <h1 className="font-serif text-3xl font-bold text-slate-950">États des lieux</h1>
+              <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Rapport numérique · Signature</p>
             </div>
-            {managed.length === 0 ? (
+            {biensGeres.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
                 <div className="mb-3 text-4xl">🔑</div>
                 <p className="text-slate-500">Aucun bien en gestion avec un état des lieux.</p>
@@ -1394,33 +1354,30 @@ export default function OwnerDashboardClient() {
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50">
-                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Statut EDL</Th><Th>Actions</Th></tr>
+                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Étape</Th><Th>Actions</Th></tr>
                   </thead>
                   <tbody>
-                    {managed.map((entry) => {
-                      const b = toBien(entry);
+                    {biensGeres.map((entry) => {
+                      const b = bienById.get(entry.property.id)!;
                       const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
                       return (
                         <tr key={b.id} className="transition-colors hover:bg-slate-50">
                           <Td>
                             <div className="flex items-center gap-3">
-                              <Avatar name={b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '?')} id={b.id} size="sm" />
-                              <b>{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                              <Avatar name={tenantName} id={b.id} size="sm" />
+                              <b>{tenantName}</b>
                             </div>
                           </Td>
-                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><span className="text-slate-600">{b.label}</span></Td>
                           <Td><Tag type="indigo">Entrée</Tag></Td>
                           <Td>
                             <Tag type={entry.flow.stage === 'management' ? 'green' : 'amber'}>
-                              {entry.flow.stage === 'management' ? 'En gestion' : 'À planifier'}
+                              {entry.flow.stage === 'management' ? 'EDL réalisé' : 'À planifier'}
                             </Tag>
                           </Td>
                           <Td>
-                            <Btn
-                              variant="ghost"
-                              className="py-1.5 text-xs"
-                              onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
-                            >
+                            <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
                               <Download className="h-3.5 w-3.5" /> Voir l&apos;EDL →
                             </Btn>
                           </Td>
@@ -1435,7 +1392,7 @@ export default function OwnerDashboardClient() {
         )}
       </main>
 
-      {/* ── TUNNEL SÉLECTION (overlay) ─────────────────────────── */}
+      {/* ── TUNNEL SÉLECTION ────────────────────────────────────── */}
       <AnimatePresence>
         {selBienId && selBien && (
           <motion.div key="tunnel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -1443,7 +1400,8 @@ export default function OwnerDashboardClient() {
               bien={selBien}
               candidats={selCands}
               onClose={() => setSelBienId(null)}
-              onDone={handleSelectDone}
+              onConfirmed={() => refresh()}
+              onGoToProperty={() => router.push(`/dashboard/owner/property/${selBienId}`)}
             />
           </motion.div>
         )}
