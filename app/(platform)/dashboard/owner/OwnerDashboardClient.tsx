@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   Building2,
@@ -21,6 +22,8 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { useOwner } from './OwnerContext';
+import type { Candidature as RealCandidature, PropertyWithCandidatures } from './OwnerContext';
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
@@ -32,9 +35,14 @@ const AVATAR_PALETTE = [
   'from-emerald-400 to-emerald-600',
   'from-slate-500 to-slate-700',
 ];
-const palette = (id: number) => AVATAR_PALETTE[id % AVATAR_PALETTE.length];
+const palette = (id: string | number) => {
+  const n = typeof id === 'string'
+    ? id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+    : id;
+  return AVATAR_PALETTE[Math.abs(n) % AVATAR_PALETTE.length];
+};
 
-function Avatar({ name, id = 0, size = 'md' }: { name: string; id?: number; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
+function Avatar({ name, id = 0, size = 'md' }: { name: string; id?: string | number; size?: 'xs' | 'sm' | 'md' | 'lg' }) {
   const ini = (name || '?').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const cls = {
     xs: 'h-7 w-7 rounded-lg text-[10px]',
@@ -161,67 +169,116 @@ function StepBar({ step, steps }: { step: number; steps: string[] }) {
   );
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// ── Types & mapping ───────────────────────────────────────────────────────────
 
-const BIENS = [
-  { id: 1, label: 'Apt T3', adresse: '42 rue de la Roquette, Paris 11e', loyer: 1200, surface: 68, dpe: 'B', pieces: 3 },
-  { id: 2, label: 'Studio', adresse: '7 rue Mercière, Lyon 2e',           loyer: 650,  surface: 24, dpe: 'C', pieces: 1 },
-  { id: 3, label: 'Apt T2', adresse: '18 rue Ordener, Paris 18e',         loyer: 900,  surface: 45, dpe: 'C', pieces: 2 },
-  { id: 4, label: 'Studio', adresse: '14 cours Victor Hugo, Bordeaux',    loyer: 550,  surface: 22, dpe: 'D', pieces: 1 },
-];
-
-type Dossier = {
-  id: number; prenom: string; nom: string; age: number; bien_id: number;
-  loyer: number; revenus: number; profession: string; contrat: string; anciennete: number;
-  score: number; statut: string; date: string; bail: { type: string; signe: boolean; date: string } | null;
-  note: string; garant: boolean; animaux: boolean; fumeur: boolean;
-  docs: Record<string, boolean>; employeur: string;
+type LocalBien = {
+  id: string;
+  label: string;
+  adresse: string;
+  loyer: number;
+  surface: number;
+  applyToken?: string;
+  isRented?: boolean;
+  flowStage?: string;
+  flowProgress?: number;
+  totalCandidates?: number;
+  tenantLabel?: string;
+  leaseStatusLabel?: string;
+  nextMilestone?: string;
 };
 
-const DOSSIERS_INIT: Dossier[] = [
-  { id:1, prenom:"Sophie",  nom:"Martin",   age:31, bien_id:1, loyer:1200, revenus:3800, profession:"Ingénieure logiciel",  contrat:"CDI",        anciennete:5,   score:82, statut:"en_attente",  date:"12/03/2026", bail:null,                                          note:"Dossier complet, situation très stable.", garant:true,  animaux:false, fumeur:false, docs:{identite:true,salaires:true,imposition:true,contrat_travail:true,domicile:true},   employeur:"Thales Group" },
-  { id:2, prenom:"Thomas",  nom:"Durand",   age:27, bien_id:2, loyer:650,  revenus:1700, profession:"Commercial B2B",       contrat:"CDD",        anciennete:1,   score:54, statut:"en_attente",  date:"14/03/2026", bail:null,                                          note:"CDD en cours de CDIsation.",             garant:true,  animaux:true,  fumeur:false, docs:{identite:true,salaires:true,imposition:true,contrat_travail:true,domicile:false},  employeur:"Salesforce" },
-  { id:3, prenom:"Amina",   nom:"Benali",   age:34, bien_id:3, loyer:900,  revenus:2600, profession:"Responsable RH",       contrat:"CDI",        anciennete:3,   score:74, statut:"selectionne", date:"15/03/2026", bail:{ type:"non-meuble", signe:true,  date:"18/03/2026" }, note:"Dossier solide.",                        garant:false, animaux:false, fumeur:false, docs:{identite:true,salaires:true,imposition:true,contrat_travail:true,domicile:true},   employeur:"L'Oréal" },
-  { id:4, prenom:"Lucas",   nom:"Petit",    age:24, bien_id:1, loyer:1200, revenus:1800, profession:"Designer freelance",   contrat:"Indépendant",anciennete:0.5, score:34, statut:"en_attente",  date:"16/03/2026", bail:null,                                          note:"Revenus variables, garant solide.",       garant:true,  animaux:false, fumeur:true,  docs:{identite:true,salaires:false,imposition:true,contrat_travail:false,domicile:true},  employeur:"Freelance" },
-  { id:5, prenom:"Clara",   nom:"Fontaine", age:38, bien_id:1, loyer:1200, revenus:2650, profession:"Enseignante",          contrat:"CDI",        anciennete:8,   score:76, statut:"en_attente",  date:"17/03/2026", bail:null,                                          note:"Fonctionnaire, très bonne stabilité.",   garant:false, animaux:false, fumeur:false, docs:{identite:true,salaires:true,imposition:true,contrat_travail:true,domicile:true},   employeur:"Éducation Nationale" },
-  { id:6, prenom:"Mehdi",   nom:"Larbi",    age:29, bien_id:1, loyer:1200, revenus:3200, profession:"Dev fullstack",        contrat:"CDI",        anciennete:2,   score:78, statut:"en_attente",  date:"17/03/2026", bail:null,                                          note:"Profil tech stable, très bon dossier.",  garant:false, animaux:false, fumeur:false, docs:{identite:true,salaires:true,imposition:true,contrat_travail:true,domicile:true},   employeur:"Doctolib" },
-];
-
-const LOYERS_INIT = [
-  { id:1, locataire:"Amina Benali",  bien:"Apt T2 — Paris 18e", loyer:900,  mois:"Mars 2026",  statut:"paye",    date:"05/03/2026" },
-  { id:2, locataire:"Amina Benali",  bien:"Apt T2 — Paris 18e", loyer:900,  mois:"Fév 2026",   statut:"paye",    date:"05/02/2026" },
-  { id:3, locataire:"Sophie Martin", bien:"Apt T3 — Paris 11e", loyer:1200, mois:"Mars 2026",  statut:"attente", date:"—" },
-];
-
-const EDL_INIT = [
-  { id:1, locataire:"Amina Benali",  bien:"Apt T2 — Paris 18e", type:"Entrée", date:"01/01/2026", statut:"signe" },
-  { id:2, locataire:"Sophie Martin", bien:"Apt T3 — Paris 11e", type:"Entrée", date:"01/04/2026", statut:"planifie" },
-];
-
-const computeScore = (rev: number, loyer: number, anc: number, contrat: string) => {
-  let s = 0; const r = rev / loyer;
-  s += (r >= 3 ? 40 : r >= 2.5 ? 28 : r >= 2 ? 15 : 5);
-  s += (contrat === 'CDI' || contrat === 'Fonctionnaire' ? 30 : contrat === 'CDD' ? 15 : 8);
-  s += (parseFloat(String(anc)) >= 3 ? 20 : parseFloat(String(anc)) >= 1 ? 12 : 4);
-  if (rev > 0) s += 10;
-  return Math.min(s, 100);
+type LocalDossier = {
+  id: string;
+  prenom: string;
+  nom: string;
+  bien_id: string;
+  loyer: number;
+  revenus: number;
+  contrat: string;
+  score: number;
+  grade: string;
+  statut: 'en_attente' | 'selectionne' | 'refuse';
+  isSealed: boolean;
+  sealedLabel?: string;
+  garantie?: string;
+  auditStatus?: string;
+  auditSummary?: string;
+  effortRateLabel?: string;
+  remainingIncomeLabel?: string;
+  qualityScore?: number;
+  contractReady?: boolean;
+  submittedAt?: string;
 };
+
+function toBien(e: PropertyWithCandidatures): LocalBien {
+  const p = e.property;
+  const ms = e.flow?.managementSummary;
+  return {
+    id: p.id,
+    label: p.title || p.address?.split(',')[0]?.trim() || 'Bien',
+    adresse: p.address || '',
+    loyer: p.rent || 0,
+    surface: p.surfaceM2 || 0,
+    applyToken: p.applyToken,
+    isRented: p.isRented,
+    flowStage: e.flow?.stage,
+    flowProgress: e.flow?.progress,
+    totalCandidates: e.flow?.totalCandidates || e.candidatures.length,
+    tenantLabel: ms?.tenantLabel,
+    leaseStatusLabel: ms?.leaseStatusLabel,
+    nextMilestone: ms?.nextMilestone,
+  };
+}
+
+function toDossier(c: RealCandidature, bienId: string, loyer: number): LocalDossier {
+  const ins = c.ownerInsights;
+  return {
+    id: c.id,
+    prenom: c.profile.firstName,
+    nom: c.profile.lastName,
+    bien_id: bienId,
+    loyer,
+    revenus: ins?.financial?.monthlyIncome || c.financialSummary?.monthlyNetIncome || 0,
+    contrat: c.financialSummary?.contractType || 'N/A',
+    score: c.patrimometer.score,
+    grade: c.patrimometer.grade,
+    statut: c.isOwnerSelected ? 'selectionne' : 'en_attente',
+    isSealed: c.isSealed,
+    sealedLabel: c.sealedLabel,
+    garantie: ins?.guarantee?.label,
+    auditStatus: ins?.aiAudit?.status,
+    auditSummary: ins?.aiAudit?.summary,
+    effortRateLabel: ins?.financial?.effortRateLabel ?? undefined,
+    remainingIncomeLabel: ins?.financial?.remainingIncomeLabel ?? undefined,
+    qualityScore: ins?.quality?.score,
+    contractReady: ins?.contractReadiness?.ready,
+    submittedAt: c.submittedAt,
+  };
+}
 
 // ── Candidat card (tunnel sélection) ─────────────────────────────────────────
 
 function CandidatCard({
-  c, bienLoyer, onSelect, onDetail, compareMode, inCompare, onToggleCompare,
+  c, bien, onSelect, onDetail, compareMode, inCompare, onToggleCompare,
 }: {
-  c: Dossier; bienLoyer: number; onSelect: (c: Dossier) => void; onDetail: (c: Dossier) => void;
-  compareMode: boolean; inCompare: boolean; onToggleCompare: (id: number) => void;
+  c: LocalDossier;
+  bien: LocalBien;
+  onSelect: (c: LocalDossier) => void;
+  onDetail: (c: LocalDossier) => void;
+  compareMode: boolean;
+  inCompare: boolean;
+  onToggleCompare: (id: string) => void;
 }) {
-  const ratio = c.revenus / bienLoyer;
+  const ratio = bien.loyer > 0 ? c.revenus / bien.loyer : 0;
   const ratioColor = ratio >= 3 ? 'text-emerald-600' : ratio >= 2 ? 'text-amber-600' : 'text-red-600';
+  const auditPct = c.auditStatus === 'CLEAR' ? 100 : c.auditStatus === 'ALERT' ? 20 : 60;
+  const auditColor = c.auditStatus === 'CLEAR' ? 'bg-emerald-500' : c.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500';
   const metrics: [string, number, string][] = [
     ['Solvabilité', Math.min((ratio / 3) * 100, 100), ratio >= 3 ? 'bg-emerald-500' : ratio >= 2 ? 'bg-amber-500' : 'bg-red-500'],
-    ['Stabilité pro', c.contrat === 'CDI' ? 100 : c.contrat === 'CDD' ? 55 : 35, c.contrat === 'CDI' ? 'bg-emerald-500' : 'bg-amber-500'],
-    ['Ancienneté', Math.min((c.anciennete / 5) * 100, 100), c.anciennete >= 3 ? 'bg-emerald-500' : 'bg-amber-500'],
-    ['Dossier', (Object.values(c.docs).filter(Boolean).length / 5) * 100, 'bg-emerald-500'],
+    ['Stabilité pro', c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 100 : c.contrat === 'CDD' ? 55 : 35,
+      c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'bg-emerald-500' : 'bg-amber-500'],
+    ['Qualité dossier', c.qualityScore ?? 50, (c.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
+    ['Audit IA', auditPct, auditColor],
   ];
   return (
     <div className={`relative overflow-hidden rounded-2xl border-2 bg-white p-5 transition-all ${
@@ -233,15 +290,14 @@ function CandidatCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-slate-900">{c.prenom} {c.nom}</span>
-            <span className="text-xs text-slate-400">{c.age} ans</span>
             <ScorePill score={c.score} />
+            {c.grade && <Tag type="indigo">Grade {c.grade}</Tag>}
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">{c.profession} · {c.employeur}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{c.contrat}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <Tag type={c.contrat === 'CDI' ? 'green' : 'amber'}>{c.contrat}</Tag>
-            {c.garant && <Tag type="indigo">Garant</Tag>}
-            {c.animaux && <Tag type="amber">Animaux</Tag>}
-            {c.fumeur && <Tag type="red">Fumeur</Tag>}
+            <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag>
+            {c.garantie && c.garantie !== 'Aucune garantie' && <Tag type="indigo">{c.garantie}</Tag>}
+            {c.contractReady && <Tag type="green">Prêt à contracter</Tag>}
           </div>
         </div>
         <div className="shrink-0 text-right">
@@ -261,7 +317,9 @@ function CandidatCard({
           </div>
         ))}
       </div>
-      <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">{c.note}</p>
+      {c.auditSummary && (
+        <p className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">{c.auditSummary}</p>
+      )}
       <div className="flex gap-2">
         {compareMode ? (
           <button
@@ -298,17 +356,24 @@ function CandidatCard({
 
 // ── Compare view ──────────────────────────────────────────────────────────────
 
-function CompareView({ ids, candidats, bienLoyer, onSelect }: { ids: number[]; candidats: Dossier[]; bienLoyer: number; onSelect: (c: Dossier) => void }) {
+function CompareView({ ids, candidats, bien, onSelect }: {
+  ids: string[];
+  candidats: LocalDossier[];
+  bien: LocalBien;
+  onSelect: (c: LocalDossier) => void;
+}) {
   const cs = candidats.filter((c) => ids.includes(c.id));
-  const rows: { label: string; fn: (c: Dossier) => React.ReactNode }[] = [
-    { label: 'Score IA',    fn: (c) => <ScorePill score={c.score} /> },
-    { label: 'Revenus',     fn: (c) => <b className="text-emerald-700">{c.revenus.toLocaleString()} €</b> },
-    { label: 'Ratio loyer', fn: (c) => { const r = c.revenus / bienLoyer; return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}x</span>; } },
-    { label: 'Contrat',     fn: (c) => <Tag type={c.contrat === 'CDI' ? 'green' : 'amber'}>{c.contrat}</Tag> },
-    { label: 'Ancienneté',  fn: (c) => <span>{c.anciennete} an(s)</span> },
-    { label: 'Employeur',   fn: (c) => <span className="text-xs">{c.employeur}</span> },
-    { label: 'Garant',      fn: (c) => <span className={c.garant ? 'text-emerald-600 font-semibold' : 'text-slate-400'}>{c.garant ? '✓ Oui' : '✗ Non'}</span> },
-    { label: 'Documents',   fn: (c) => { const n = Object.values(c.docs).filter(Boolean).length; return <span className={n === 5 ? 'text-emerald-600 font-semibold' : 'text-amber-600 font-semibold'}>{n}/5 pièces</span>; } },
+  const rows: { label: string; fn: (c: LocalDossier) => React.ReactNode }[] = [
+    { label: 'Score IA',      fn: (c) => <ScorePill score={c.score} /> },
+    { label: 'Grade',         fn: (c) => <Tag type="indigo">Grade {c.grade}</Tag> },
+    { label: 'Revenus',       fn: (c) => <b className="text-emerald-700">{c.revenus.toLocaleString()} €</b> },
+    { label: 'Ratio loyer',   fn: (c) => { const r = c.revenus / (bien.loyer || 1); return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}x</span>; } },
+    { label: 'Contrat',       fn: (c) => <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag> },
+    { label: 'Reste à vivre', fn: (c) => <span className="text-xs">{c.remainingIncomeLabel || '—'}</span> },
+    { label: 'Garantie',      fn: (c) => <span className={c.garantie && c.garantie !== 'Aucune garantie' ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.garantie || '—'}</span> },
+    { label: 'Qualité',       fn: (c) => <span className={(c.qualityScore ?? 0) >= 70 ? 'font-semibold text-emerald-600' : 'text-amber-600'}>{c.qualityScore ?? '—'}/100</span> },
+    { label: 'Audit IA',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus || '—'}</Tag> },
+    { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? '✓ Oui' : '✗ Non'}</span> },
   ];
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
@@ -322,7 +387,7 @@ function CompareView({ ids, candidats, bienLoyer, onSelect }: { ids: number[]; c
                   <Avatar name={`${c.prenom} ${c.nom}`} id={c.id} size="sm" />
                   <div>
                     <div className="text-sm font-bold text-slate-900">{c.prenom} {c.nom}</div>
-                    <div className="text-xs text-slate-500">{c.profession}</div>
+                    <div className="text-xs text-slate-500">{c.contrat}</div>
                   </div>
                 </div>
               </th>
@@ -362,25 +427,51 @@ function CompareView({ ids, candidats, bienLoyer, onSelect }: { ids: number[]; c
 
 // ── Tunnel sélection (modal) ──────────────────────────────────────────────────
 
-const SEL_STEPS = ['Dossiers', 'Comparaison', 'Confirmation', 'Bail'];
+const SEL_STEPS = ['Dossiers', 'Comparaison', 'Confirmation', 'Succès'];
 
-function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
-  bienId: number; dossiers: Dossier[];
-  onClose: () => void; onBailCreated: (c: Dossier, b: typeof BIENS[0], type: string) => void;
+function TunnelSelection({ bien, candidats, onClose, onDone }: {
+  bien: LocalBien;
+  candidats: LocalDossier[];
+  onClose: () => void;
+  onDone: (c: LocalDossier) => void;
 }) {
-  const bien = BIENS.find((b) => b.id === bienId)!;
-  const cands = dossiers.filter((d) => d.bien_id === bienId).sort((a, b) => b.score - a.score);
   const [step, setStep] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
-  const [compareIds, setCompareIds] = useState<number[]>([]);
-  const [selected, setSelected] = useState<Dossier | null>(null);
-  const [detail, setDetail] = useState<Dossier | null>(null);
-  const [bailType, setBailType] = useState('non-meuble');
-  const [done, setDone] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [selected, setSelected] = useState<LocalDossier | null>(null);
+  const [detail, setDetail] = useState<LocalDossier | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cands = [...candidats].sort((a, b) => b.score - a.score);
 
-  const toggleCompare = (id: number) =>
+  const toggleCompare = (id: string) =>
     setCompareIds((p) => p.includes(id) ? p.filter((x) => x !== id) : p.length < 3 ? [...p, id] : p);
-  const handleSelect = (c: Dossier) => { setSelected(c); setStep(2); setCompareMode(false); };
+
+  const handleSelect = (c: LocalDossier) => { setSelected(c); setStep(2); setCompareMode(false); };
+
+  const handleConfirm = async () => {
+    if (!selected) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/owner/properties/${bien.id}/selection`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: selected.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setError(j.error || 'Erreur lors de la sélection.');
+        return;
+      }
+      setStep(3);
+      onDone(selected);
+    } catch {
+      setError('Erreur réseau.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/50 backdrop-blur-sm">
@@ -411,7 +502,7 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
               <div className="mb-6 flex items-start justify-between">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-slate-950">{cands.length} candidatures · {bien.label}</h2>
+                  <h2 className="font-serif text-2xl font-bold text-slate-950">{cands.length} candidature{cands.length !== 1 ? 's' : ''} · {bien.label}</h2>
                   <p className="mt-1 text-sm text-slate-500">Analysées et scorées par IA · Triées par score</p>
                 </div>
                 <div className="flex gap-2">
@@ -430,11 +521,18 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
                   Sélectionnez 2 ou 3 candidats à comparer. {compareIds.length}/3 sélectionnés.
                 </div>
               )}
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {cands.map((c) => (
-                  <CandidatCard key={c.id} c={c} bienLoyer={bien.loyer} onSelect={handleSelect} onDetail={setDetail} compareMode={compareMode} inCompare={compareIds.includes(c.id)} onToggleCompare={toggleCompare} />
-                ))}
-              </div>
+              {cands.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+                  <div className="mb-3 text-4xl">📭</div>
+                  <p className="text-slate-500">Aucune candidature pour ce bien.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {cands.map((c) => (
+                    <CandidatCard key={c.id} c={c} bien={bien} onSelect={handleSelect} onDetail={setDetail} compareMode={compareMode} inCompare={compareIds.includes(c.id)} onToggleCompare={toggleCompare} />
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -448,7 +546,7 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
                 </div>
                 <Btn variant="secondary" onClick={() => setStep(0)}>← Retour à la liste</Btn>
               </div>
-              <CompareView ids={compareIds} candidats={cands} bienLoyer={bien.loyer} onSelect={handleSelect} />
+              <CompareView ids={compareIds} candidats={cands} bien={bien} onSelect={handleSelect} />
             </motion.div>
           )}
 
@@ -458,90 +556,66 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
               <div className="mb-8 text-center">
                 <div className="mb-3 text-5xl">🏆</div>
                 <h2 className="font-serif text-2xl font-bold text-slate-950">Votre locataire sélectionné</h2>
-                <p className="mt-2 text-sm text-slate-500">Confirmez pour lancer la rédaction du bail</p>
+                <p className="mt-2 text-sm text-slate-500">Confirmez pour enregistrer la sélection</p>
               </div>
               <div className="mb-4 rounded-2xl border-2 border-emerald-500 bg-white p-6 shadow-lg shadow-emerald-500/10">
                 <div className="mb-5 flex items-center gap-4">
                   <Avatar name={`${selected.prenom} ${selected.nom}`} id={selected.id} size="lg" />
                   <div>
                     <div className="text-lg font-bold text-slate-950">{selected.prenom} {selected.nom}</div>
-                    <div className="text-sm text-slate-500">{selected.profession} · {selected.employeur}</div>
+                    <div className="text-sm text-slate-500">{selected.contrat}</div>
                     <div className="mt-2 flex gap-2">
                       <ScorePill score={selected.score} />
-                      <Tag type={selected.contrat === 'CDI' ? 'green' : 'amber'}>{selected.contrat}</Tag>
+                      <Tag type={selected.contrat === 'CDI' || selected.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{selected.contrat}</Tag>
                     </div>
                   </div>
                 </div>
                 <div className="mb-4 grid grid-cols-3 gap-3">
-                  {[['Revenus', `${selected.revenus.toLocaleString()} €`, 'text-emerald-700'],
-                    ['Ratio', `${(selected.revenus / bien.loyer).toFixed(1)}x`, selected.revenus / bien.loyer >= 3 ? 'text-emerald-600' : 'text-amber-600'],
-                    ['Ancienneté', `${selected.anciennete} an(s)`, 'text-slate-700']].map(([l, v, c]) => (
+                  {[
+                    ['Revenus', `${selected.revenus.toLocaleString()} €`, 'text-emerald-700'],
+                    ['Ratio', `${(selected.revenus / (bien.loyer || 1)).toFixed(1)}x`, selected.revenus / (bien.loyer || 1) >= 3 ? 'text-emerald-600' : 'text-amber-600'],
+                    ['Audit IA', selected.auditStatus || '—', selected.auditStatus === 'CLEAR' ? 'text-emerald-600' : 'text-amber-600'],
+                  ].map(([l, v, c]) => (
                     <div key={l} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
                       <div className={`text-lg font-bold ${c}`}>{v}</div>
                       <div className="mt-0.5 text-xs text-slate-500">{l}</div>
                     </div>
                   ))}
                 </div>
-                <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
-                  ✓ {Object.values(selected.docs).filter(Boolean).length}/5 pièces vérifiées
-                </div>
+                {selected.contractReady && (
+                  <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                    ✓ Prêt à contracter · Dossier complet
+                  </div>
+                )}
               </div>
+              {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 Les autres candidats seront notifiés automatiquement par e-mail.
               </div>
               <div className="flex gap-3">
                 <Btn variant="secondary" onClick={() => setStep(0)} className="flex-1">← Modifier</Btn>
-                <Btn variant="amber" onClick={() => setStep(3)} className="flex-[2]">Confirmer et rédiger le bail →</Btn>
+                <Btn variant="amber" onClick={handleConfirm} disabled={loading} className="flex-[2]">
+                  {loading ? 'Enregistrement…' : 'Confirmer la sélection →'}
+                </Btn>
               </div>
             </motion.div>
           )}
 
-          {/* Step 3 — bail */}
+          {/* Step 3 — succès */}
           {step === 3 && selected && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl">
-              {done ? (
-                <div className="py-12 text-center">
-                  <div className="mb-4 text-6xl">🎉</div>
-                  <h2 className="font-serif text-2xl font-bold text-slate-950">Bail généré et envoyé !</h2>
-                  <p className="mt-2 mb-8 text-sm text-slate-500">Le bail a été envoyé à {selected.prenom} pour signature électronique.</p>
-                  <Btn variant="primary" onClick={() => { onBailCreated(selected, bien, bailType); onClose(); }}>Retour au tableau de bord</Btn>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                    <Avatar name={`${selected.prenom} ${selected.nom}`} id={selected.id} size="sm" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-slate-900">{selected.prenom} {selected.nom}</div>
-                      <div className="text-xs text-slate-500">{bien.label} · {bien.adresse}</div>
-                    </div>
-                    <ScorePill score={selected.score} />
-                  </div>
-                  <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-5">
-                    <div className="mb-4 font-semibold text-slate-900">Paramètres du bail</div>
-                    <div className="mb-5 flex gap-3">
-                      {[['non-meuble', 'Non meublé — 3 ans'], ['meuble', 'Meublé — 1 an']].map(([v, l]) => (
-                        <button key={v} type="button" onClick={() => setBailType(v)} className={`flex-1 rounded-xl border-2 py-2.5 text-sm font-semibold transition-all ${bailType === v ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>{l}</button>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {[["Date d'entrée", '01/05/2026'], ["Loyer (€/mois)", String(bien.loyer)], ['Charges (€/mois)', '80'], ['Dépôt de garantie (€)', String(bien.loyer)]].map(([l, v]) => (
-                        <div key={l}>
-                          <label className="mb-1.5 block text-xs font-semibold text-slate-700">{l}</label>
-                          <input defaultValue={v} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5">
-                    <div className="mb-3 font-semibold text-slate-900">Clauses particulières</div>
-                    <textarea rows={3} placeholder="Ex : Interdiction de sous-location, animaux autorisés sous conditions…" className="w-full resize-vertical rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50" />
-                  </div>
-                  <div className="flex gap-3">
-                    <Btn variant="secondary" className="flex-1"><FileText className="h-4 w-4" /> Prévisualiser</Btn>
-                    <Btn variant="amber" onClick={() => setDone(true)} className="flex-[2]">Générer et envoyer pour signature →</Btn>
-                  </div>
-                </>
-              )}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-lg py-12 text-center">
+              <div className="mb-4 text-6xl">🎉</div>
+              <h2 className="font-serif text-2xl font-bold text-slate-950">Sélection enregistrée !</h2>
+              <p className="mt-2 mb-8 text-sm text-slate-500">
+                {selected.prenom} {selected.nom} a été sélectionné(e) pour {bien.label}.
+                Rendez-vous sur la fiche du bien pour rédiger le bail.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <Btn variant="secondary" onClick={onClose}>Retour au tableau de bord</Btn>
+                <Btn variant="amber" onClick={() => { onClose(); window.location.href = `/dashboard/owner/property/${bien.id}`; }}>
+                  <FileSignature className="h-4 w-4" /> Rédiger le bail →
+                </Btn>
+              </div>
             </motion.div>
           )}
         </div>
@@ -563,7 +637,7 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
                   <Avatar name={`${detail.prenom} ${detail.nom}`} id={detail.id} />
                   <div>
                     <div className="font-bold text-slate-950">{detail.prenom} {detail.nom}</div>
-                    <div className="text-xs text-slate-500">{detail.profession}</div>
+                    <div className="text-xs text-slate-500">{detail.contrat}</div>
                     <div className="mt-1"><ScorePill score={detail.score} /></div>
                   </div>
                 </div>
@@ -572,22 +646,24 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
                 </button>
               </div>
               <div className="mb-4 divide-y divide-slate-100">
-                {[['Employeur', detail.employeur], ['Contrat', detail.contrat], ['Ancienneté', `${detail.anciennete} an(s)`], ['Revenus', `${detail.revenus.toLocaleString()} €/mois`], ['Ratio', `${(detail.revenus / bien.loyer).toFixed(2)}x`], ['Garant', detail.garant ? 'Oui' : 'Non'], ['Animaux', detail.animaux ? 'Oui' : 'Non']].map(([k, v]) => (
+                {[
+                  ['Contrat', detail.contrat],
+                  ['Revenus', `${detail.revenus.toLocaleString()} €/mois`],
+                  ['Ratio', `${(detail.revenus / (bien.loyer || 1)).toFixed(2)}x`],
+                  ['Reste à vivre', detail.remainingIncomeLabel || '—'],
+                  ['Effort locatif', detail.effortRateLabel || '—'],
+                  ['Garantie', detail.garantie || 'Aucune'],
+                  ['Audit IA', detail.auditStatus || '—'],
+                ].map(([k, v]) => (
                   <div key={String(k)} className="flex justify-between py-2.5 text-sm">
                     <span className="text-slate-500">{k}</span>
                     <span className="font-semibold text-slate-900">{v}</span>
                   </div>
                 ))}
               </div>
-              <div className="mb-4">
-                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Documents fournis</div>
-                {[['identite', "Pièce d'identité"], ['salaires', 'Bulletins de salaire'], ['imposition', "Avis d'imposition"], ['contrat_travail', 'Contrat de travail'], ['domicile', 'Justif. de domicile']].map(([k, l]) => (
-                  <div key={String(k)} className={`mb-1.5 flex items-center gap-2 text-xs ${detail.docs[k] ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    <span>{detail.docs[k] ? '✓' : '○'}</span>{l}
-                  </div>
-                ))}
-              </div>
-              <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs italic leading-5 text-slate-600">{detail.note}</div>
+              {detail.auditSummary && (
+                <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs italic leading-5 text-slate-600">{detail.auditSummary}</div>
+              )}
               <button type="button" onClick={() => { handleSelect(detail); setDetail(null); }} className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">
                 Sélectionner {detail.prenom} →
               </button>
@@ -599,103 +675,112 @@ function TunnelSelection({ bienId, dossiers, onClose, onBailCreated }: {
   );
 }
 
-// ── Tunnel dépôt dossier ──────────────────────────────────────────────────────
+// ── Nouvel actif (création de bien) ──────────────────────────────────────────
 
-const DEP_STEPS = ['Bien visé', 'Identité', 'Situation', 'Revenus', 'Récap'];
+const ACTIF_STEPS = ['Adresse', 'Paramètres', 'Récap'];
 
-function DepotTunnel({ onDone }: { onDone: (data: any) => void }) {
+function NouvelActifForm({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ nom: '', prenom: '', email: '', tel: '', profession: '', contrat: 'CDI', anciennete: '', revenus: '', bien: '1' });
+  const [form, setForm] = useState({ address: '', rentAmount: '', surfaceM2: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const f = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
-  const bien = BIENS.find((b) => b.id === parseInt(form.bien));
-  const score = computeScore(parseFloat(form.revenus) || 0, bien?.loyer || 0, parseFloat(form.anciennete), form.contrat);
-  const ratio = bien ? (parseFloat(form.revenus) || 0) / bien.loyer : 0;
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/owner/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: form.address,
+          rentAmount: parseFloat(form.rentAmount) || 0,
+          surfaceM2: parseFloat(form.surfaceM2) || 0,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setError(j.error || 'Erreur lors de la création.');
+        return;
+      }
+      onDone();
+    } catch {
+      setError('Erreur réseau.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-5">
-        <StepBar step={step} steps={DEP_STEPS} />
+        <StepBar step={step} steps={ACTIF_STEPS} />
       </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         {step === 0 && (
           <>
-            <h3 className="mb-1 font-semibold text-slate-900">Quel bien vous intéresse ?</h3>
-            <p className="mb-5 text-sm text-slate-500">Sélectionnez le logement pour lequel vous souhaitez candidater.</p>
-            <div className="mb-6 grid grid-cols-2 gap-3">
-              {BIENS.map((b) => (
-                <div key={b.id} onClick={() => f('bien', String(b.id))} className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${form.bien === String(b.id) ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <div className="font-semibold text-slate-900">{b.label}</div>
-                  <div className="mt-1 mb-3 text-xs text-slate-500">{b.adresse}</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Tag type="indigo">{b.loyer} €/mois</Tag><Tag>{b.surface} m²</Tag><Tag>DPE {b.dpe}</Tag>
-                  </div>
-                </div>
-              ))}
+            <h3 className="mb-1 font-semibold text-slate-900">Adresse du bien</h3>
+            <p className="mb-5 text-sm text-slate-500">Entrez l&apos;adresse complète du logement à mettre en gestion.</p>
+            <div className="mb-6">
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">Adresse complète</label>
+              <input
+                type="text"
+                placeholder="Ex : 42 rue de la Roquette, 75011 Paris"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                value={form.address}
+                onChange={(e) => f('address', e.target.value)}
+              />
             </div>
-            <div className="flex justify-end"><Btn variant="amber" onClick={() => setStep(1)}>Continuer <ArrowRight className="h-4 w-4" /></Btn></div>
+            <div className="flex justify-end">
+              <Btn variant="amber" disabled={!form.address.trim()} onClick={() => setStep(1)}>
+                Continuer <ArrowRight className="h-4 w-4" />
+              </Btn>
+            </div>
           </>
         )}
         {step === 1 && (
           <>
-            <h3 className="mb-1 font-semibold text-slate-900">Informations personnelles</h3>
-            <p className="mb-5 text-sm text-slate-500">Ces informations permettent d&apos;identifier votre candidature.</p>
+            <h3 className="mb-1 font-semibold text-slate-900">Paramètres locatifs</h3>
+            <p className="mb-5 text-sm text-slate-500">Définissez le loyer et la surface pour le scoring des candidatures.</p>
             <div className="mb-6 grid grid-cols-2 gap-4">
-              {[['Nom', 'nom', 'text'], ['Prénom', 'prenom', 'text'], ['Email', 'email', 'email'], ['Téléphone', 'tel', 'tel']].map(([l, k, t]) => (
-                <div key={k}>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">{l}</label>
-                  <input type={t} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50" value={(form as any)[k]} onChange={(e) => f(k, e.target.value)} />
-                </div>
-              ))}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Loyer mensuel (€)</label>
+                <input
+                  type="number"
+                  placeholder="1 200"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                  value={form.rentAmount}
+                  onChange={(e) => f('rentAmount', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Surface (m²)</label>
+                <input
+                  type="number"
+                  placeholder="45"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                  value={form.surfaceM2}
+                  onChange={(e) => f('surfaceM2', e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex justify-between"><Btn variant="secondary" onClick={() => setStep(0)}>← Retour</Btn><Btn variant="amber" onClick={() => setStep(2)}>Continuer →</Btn></div>
+            <div className="flex justify-between">
+              <Btn variant="secondary" onClick={() => setStep(0)}>← Retour</Btn>
+              <Btn variant="amber" disabled={!form.rentAmount} onClick={() => setStep(2)}>Continuer →</Btn>
+            </div>
           </>
         )}
         {step === 2 && (
           <>
-            <h3 className="mb-1 font-semibold text-slate-900">Situation professionnelle</h3>
-            <p className="mb-5 text-sm text-slate-500">Nous évaluons la stabilité de votre emploi.</p>
-            <div className="mb-6 grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Profession</label>
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50" value={form.profession} onChange={(e) => f('profession', e.target.value)} />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Type de contrat</label>
-                <select className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-400" value={form.contrat} onChange={(e) => f('contrat', e.target.value)}>
-                  {['CDI', 'CDD', 'Fonctionnaire', 'Auto-entrepreneur', 'Étudiant', 'Sans emploi'].map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Ancienneté (années)</label>
-                <input type="number" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400" value={form.anciennete} onChange={(e) => f('anciennete', e.target.value)} />
-              </div>
-            </div>
-            <div className="flex justify-between"><Btn variant="secondary" onClick={() => setStep(1)}>← Retour</Btn><Btn variant="amber" onClick={() => setStep(3)}>Continuer →</Btn></div>
-          </>
-        )}
-        {step === 3 && (
-          <>
-            <h3 className="mb-1 font-semibold text-slate-900">Ressources financières</h3>
-            <p className="mb-5 text-sm text-slate-500">Le propriétaire requiert généralement 3× le loyer.</p>
-            <div className="mb-4 max-w-xs">
-              <label className="mb-1.5 block text-xs font-semibold text-slate-700">Revenus mensuels nets (€)</label>
-              <input type="number" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400" value={form.revenus} onChange={(e) => f('revenus', e.target.value)} />
-            </div>
-            {form.revenus && bien && (
-              <div className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${ratio >= 3 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-                {ratio >= 3 ? '✓ Ratio suffisant' : '⚠ Ratio limite'} — {ratio.toFixed(1)}× le loyer
-              </div>
-            )}
-            <div className="flex justify-between"><Btn variant="secondary" onClick={() => setStep(2)}>← Retour</Btn><Btn variant="amber" onClick={() => setStep(4)}>Continuer →</Btn></div>
-          </>
-        )}
-        {step === 4 && (
-          <>
             <h3 className="mb-1 font-semibold text-slate-900">Récapitulatif</h3>
-            <p className="mb-5 text-sm text-slate-500">Vérifiez vos informations avant de soumettre.</p>
+            <p className="mb-5 text-sm text-slate-500">Vérifiez avant de créer la fiche.</p>
             <div className="mb-5 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50">
-              {[['Bien', bien?.label || ''], ['Loyer', `${bien?.loyer || 0} €/mois`], ['Nom', `${form.prenom} ${form.nom}`], ['Contrat', form.contrat], ['Revenus', `${parseFloat(form.revenus) || 0} €`]].map(([k, v]) => (
+              {[
+                ['Adresse', form.address],
+                ['Loyer', `${parseFloat(form.rentAmount) || 0} €/mois`],
+                ['Surface', `${parseFloat(form.surfaceM2) || '—'} m²`],
+              ].map(([k, v]) => (
                 <div key={String(k)} className="flex items-center justify-between px-4 py-3 text-sm">
                   <span className="text-slate-500">{k}</span>
                   <span className="font-semibold text-slate-900">{v}</span>
@@ -704,12 +789,13 @@ function DepotTunnel({ onDone }: { onDone: (data: any) => void }) {
             </div>
             <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-800">Vos documents sont sécurisés et partagés uniquement avec le gestionnaire.</span>
+              <span className="text-sm font-medium text-emerald-800">Un lien de candidature unique sera généré pour partager à vos candidats.</span>
             </div>
+            {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
             <div className="flex justify-between">
-              <Btn variant="secondary" onClick={() => setStep(3)}>← Retour</Btn>
-              <Btn variant="amber" onClick={() => onDone({ ...form, score, statut: 'en_attente', date: new Date().toLocaleDateString('fr-FR'), bail: null, bien_id: parseInt(form.bien), loyer: bien?.loyer || 0, revenus: parseFloat(form.revenus) || 0, anciennete: parseFloat(form.anciennete) || 0, profession: `${form.contrat} · ${form.profession}`, docs: { identite: false, salaires: false, imposition: false, contrat_travail: false, domicile: false }, note: 'Nouveau dossier.', garant: false, animaux: false, fumeur: false, employeur: '-', age: 30 })}>
-                <CheckCircle2 className="h-4 w-4" /> Soumettre mon dossier
+              <Btn variant="secondary" onClick={() => setStep(1)}>← Retour</Btn>
+              <Btn variant="amber" disabled={loading} onClick={handleSubmit}>
+                <CheckCircle2 className="h-4 w-4" /> {loading ? 'Création…' : 'Créer le bien'}
               </Btn>
             </div>
           </>
@@ -726,7 +812,7 @@ const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; b
   { id: 'dashboard',    label: "Vue d'ensemble",    Icon: LayoutDashboard, group: 'Principal' },
   { id: 'candidatures', label: 'Candidatures',       Icon: Users,           group: 'Principal', badge: true },
   { id: 'biens',        label: 'Mes actifs',         Icon: Building2,       group: 'Principal' },
-  { id: 'depot',        label: 'Nouveau dossier',    Icon: Plus,            group: 'Actions' },
+  { id: 'depot',        label: 'Nouvel actif',       Icon: Plus,            group: 'Actions' },
   { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,   group: 'Actions' },
   { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,      group: 'Actions' },
   { id: 'edl',          label: 'États des lieux',    Icon: ClipboardList,   group: 'Actions' },
@@ -735,35 +821,47 @@ const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; b
 // ── Main app ──────────────────────────────────────────────────────────────────
 
 export default function OwnerDashboardClient() {
+  const router = useRouter();
+  const { data, loading, userEmail, refresh } = useOwner();
   const [page, setPage] = useState<NavId>('dashboard');
-  const [dossiers, setDossiers] = useState<Dossier[]>(DOSSIERS_INIT);
-  const [loyers, setLoyers] = useState(LOYERS_INIT);
-  const [edl, setEdl] = useState(EDL_INIT);
-  const [selBienId, setSelBienId] = useState<number | null>(null);
-  const [detailId, setDetailId] = useState<number | null>(null);
+  const [selBienId, setSelBienId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const go = (p: NavId) => { setPage(p); setDetailId(null); };
-  const addDossier = (data: any) => {
-    setDossiers((p) => [...p, { ...data, id: p.length + 1 }]);
-    go('candidatures');
-  };
-  const onBailCreated = (candidat: Dossier, bien: typeof BIENS[0], type: string) => {
-    setDossiers((p) => p.map((d) => d.id === candidat.id ? { ...d, statut: 'selectionne', bail: { type, signe: true, date: new Date().toLocaleDateString('fr-FR') } } : d));
-    setLoyers((p) => [...p, { id: p.length + 1, locataire: `${candidat.prenom} ${candidat.nom}`, bien: `${bien.label} — ${bien.adresse.split(',')[1]?.trim() || ''}`, loyer: bien.loyer, mois: 'Avril 2026', statut: 'attente', date: '—' }]);
-  };
+  // ── Derived data ──────────────────────────────────────────────
+  const biens = data.map(toBien);
+  const allDossiers: LocalDossier[] = data.flatMap((e) =>
+    e.candidatures.map((c) => toDossier(c, e.property.id, e.property.rent || 0))
+  );
+  const managed = data.filter((e) => e.flow.stage === 'management' || e.property.isRented);
+  const pending = allDossiers.filter((d) => d.statut === 'en_attente' && !d.isSealed).length;
+  const selectionnes = biens.filter((b) => b.isRented || b.flowStage === 'management').length;
 
-  const encaisse = loyers.filter((l) => l.statut === 'paye').reduce((a, b) => a + b.loyer, 0);
-  const acceptes = dossiers.filter((d) => d.statut === 'selectionne').length;
-  const signes   = dossiers.filter((d) => d.bail?.signe).length;
-  const pending  = dossiers.filter((d) => d.statut === 'en_attente').length;
-  const detailDossier = dossiers.find((d) => d.id === detailId);
+  const go = (p: NavId) => { setPage(p); setExpandedId(null); };
 
-  // ── Table helper ────────────────────────────────────────────
   function Th({ children }: { children?: React.ReactNode }) {
     return <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">{children}</th>;
   }
   function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     return <td className={`border-t border-slate-100 px-5 py-4 text-sm ${className}`}>{children}</td>;
+  }
+
+  const selBien = biens.find((b) => b.id === selBienId) ?? null;
+  const selCands = selBienId ? allDossiers.filter((d) => d.bien_id === selBienId) : [];
+
+  const handleSelectDone = (c: LocalDossier) => {
+    refresh();
+    // Keep tunnel open to show success step — tunnel handles close itself
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
+          <p className="text-sm text-slate-500">Chargement de votre espace…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -817,9 +915,11 @@ export default function OwnerDashboardClient() {
         {/* Footer */}
         <div className="border-t border-slate-200 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-800 to-emerald-600 text-xs font-bold text-white">P</div>
-            <div>
-              <div className="text-xs font-semibold text-slate-900">Propriétaire</div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-800 to-emerald-600 text-xs font-bold text-white">
+              {userEmail ? userEmail[0].toUpperCase() : 'P'}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-xs font-semibold text-slate-900">{userEmail || 'Propriétaire'}</div>
               <div className="text-[11px] text-slate-500">Espace sécurisé</div>
             </div>
           </div>
@@ -834,54 +934,89 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">Bonjour 👋</h1>
-                <p className="mt-1 text-sm text-slate-500">Tableau de bord · Mars 2026</p>
+                <h1 className="font-serif text-3xl font-bold text-slate-950">
+                  Bonjour{userEmail ? ` ${userEmail.split('@')[0]}` : ''} 👋
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille · Cockpit Souverain
+                </p>
               </div>
-              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouveau dossier</Btn>
+              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouvel actif</Btn>
             </div>
 
             <div className="mb-6 grid grid-cols-4 gap-4">
-              <StatCard icon="📋" value={dossiers.length}                         label="Dossiers reçus"          bg="bg-emerald-50" />
-              <StatCard icon="✓"  value={acceptes}                                label="Locataires sélectionnés" bg="bg-teal-50" />
-              <StatCard icon="◎"  value={signes}                                  label="Baux signés"             bg="bg-blue-50" />
-              <StatCard icon="💳" value={`${encaisse.toLocaleString()} €`}        label="Encaissé ce mois"        bg="bg-amber-50" />
+              <StatCard icon="🏠" value={biens.length}           label="Actifs en portefeuille"  bg="bg-emerald-50" />
+              <StatCard icon="📋" value={allDossiers.length}     label="Candidatures reçues"     bg="bg-teal-50" />
+              <StatCard icon="✓"  value={selectionnes}           label="Locataires sélectionnés" bg="bg-blue-50" />
+              <StatCard icon="⏳" value={pending}                label="En attente d'analyse"    bg="bg-amber-50" />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">
+              {/* Dernières candidatures */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 font-semibold text-slate-900">Dernières candidatures</div>
-                <div className="divide-y divide-slate-100">
-                  {dossiers.slice(-4).reverse().map((d) => (
-                    <button key={d.id} type="button" onClick={() => { setDetailId(d.id); go('candidatures'); }}
-                      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-slate-50 -mx-1 px-1 rounded-xl"
-                    >
-                      <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-slate-900">{d.prenom} {d.nom}</div>
-                        <div className="text-xs text-slate-500">{BIENS.find((b) => b.id === d.bien_id)?.label}</div>
-                      </div>
-                      <ScorePill score={d.score} />
-                    </button>
-                  ))}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="font-semibold text-slate-900">Dernières candidatures</div>
+                  <button type="button" onClick={() => go('candidatures')} className="text-xs font-semibold text-emerald-600 hover:underline">Voir tout →</button>
                 </div>
+                {allDossiers.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-slate-400">Aucune candidature reçue.</p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {[...allDossiers]
+                      .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
+                      .slice(0, 5)
+                      .map((d) => {
+                        const bien = biens.find((b) => b.id === d.bien_id);
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onClick={() => router.push(`/dashboard/owner/property/${d.bien_id}`)}
+                            className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50"
+                          >
+                            <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-slate-900">{d.prenom} {d.nom}</div>
+                              <div className="truncate text-xs text-slate-500">{bien?.label || '—'}</div>
+                            </div>
+                            <ScorePill score={d.score} />
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
 
+              {/* Biens actifs */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 font-semibold text-slate-900">Loyers · Mars 2026</div>
-                <div className="divide-y divide-slate-100">
-                  {loyers.filter((l) => l.mois === 'Mars 2026').map((l) => (
-                    <div key={l.id} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={l.locataire} id={1} size="sm" />
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900">{l.locataire}</div>
-                          <div className="text-xs text-slate-500">{l.loyer} €/mois</div>
-                        </div>
-                      </div>
-                      <Tag type={l.statut === 'paye' ? 'green' : 'amber'}>{l.statut === 'paye' ? 'Payé' : 'En attente'}</Tag>
-                    </div>
-                  ))}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="font-semibold text-slate-900">Mes actifs</div>
+                  <button type="button" onClick={() => go('biens')} className="text-xs font-semibold text-emerald-600 hover:underline">Voir tout →</button>
                 </div>
+                {biens.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="mb-3 text-sm text-slate-400">Aucun bien en portefeuille.</p>
+                    <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Ajouter un bien</Btn>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {biens.slice(0, 5).map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
+                        className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-base">🏠</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
+                          <div className="truncate text-xs text-slate-500">{b.loyer.toLocaleString()} €/mois · {b.totalCandidates || 0} candidature{(b.totalCandidates || 0) !== 1 ? 's' : ''}</div>
+                        </div>
+                        <Tag type={b.isRented ? 'green' : 'indigo'}>{b.isRented ? 'Loué' : b.flowStage || 'Disponible'}</Tag>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -893,139 +1028,238 @@ export default function OwnerDashboardClient() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h1 className="font-serif text-3xl font-bold text-slate-950">Candidatures</h1>
-                <p className="mt-1 text-sm text-slate-500">{dossiers.length} dossiers · Analyse IA activée</p>
+                <p className="mt-1 text-sm text-slate-500">{allDossiers.length} dossier{allDossiers.length !== 1 ? 's' : ''} · Analyse IA activée</p>
               </div>
-              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouveau dossier</Btn>
             </div>
 
-            <div className="space-y-5">
-              {BIENS.map((bien) => {
-                const cands = dossiers.filter((d) => d.bien_id === bien.id);
-                if (!cands.length) return null;
-                const hasSel = cands.some((d) => d.statut === 'selectionne');
-                return (
-                  <div key={bien.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
-                        <div>
-                          <div className="font-semibold text-slate-900">{bien.label} — {bien.adresse}</div>
-                          <div className="text-xs text-slate-500">{bien.loyer} €/mois · {cands.length} candidature(s)</div>
+            {biens.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+                <div className="mb-3 text-4xl">📭</div>
+                <p className="mb-4 text-slate-500">Aucun bien en portefeuille. Créez votre premier actif.</p>
+                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {data.map((entry) => {
+                  const bien = toBien(entry);
+                  const cands = allDossiers.filter((d) => d.bien_id === bien.id);
+                  const hasSel = cands.some((d) => d.statut === 'selectionne');
+                  return (
+                    <div key={bien.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                          <div>
+                            <div className="font-semibold text-slate-900">{bien.label}</div>
+                            <div className="text-xs text-slate-500">{bien.adresse} · {bien.loyer} €/mois · {cands.length} candidature{cands.length !== 1 ? 's' : ''}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => router.push(`/dashboard/owner/property/${bien.id}`)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                            <ExternalLink className="h-3.5 w-3.5" /> Fiche complète
+                          </button>
+                          {hasSel ? (
+                            <Tag type="green">✓ Locataire sélectionné</Tag>
+                          ) : cands.length > 0 ? (
+                            <Btn variant="amber" onClick={() => setSelBienId(bien.id)}>Sélectionner <ArrowRight className="h-4 w-4" /></Btn>
+                          ) : null}
                         </div>
                       </div>
-                      {hasSel ? <Tag type="green">✓ Locataire sélectionné</Tag> : (
-                        <Btn variant="amber" onClick={() => setSelBienId(bien.id)}>Sélectionner un locataire <ArrowRight className="h-4 w-4" /></Btn>
+                      {cands.length > 0 ? (
+                        <table className="w-full border-collapse">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <Th>Candidat</Th><Th>Revenus</Th><Th>Score IA</Th><Th>Statut</Th><Th>Garantie</Th><Th></Th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[...cands].sort((a, b) => b.score - a.score).map((d) => (
+                              <Fragment key={d.id}>
+                                <tr
+                                  onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
+                                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                                >
+                                  <Td>
+                                    <div className="flex items-center gap-3">
+                                      <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
+                                      <div>
+                                        <div className="font-semibold text-slate-900">{d.prenom} {d.nom}</div>
+                                        <div className="text-xs text-slate-400">{d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('fr-FR') : '—'}</div>
+                                      </div>
+                                    </div>
+                                  </Td>
+                                  <Td><b className="text-slate-900">{d.revenus.toLocaleString()} €</b></Td>
+                                  <Td><ScorePill score={d.score} /></Td>
+                                  <Td>
+                                    <Tag type={d.statut === 'selectionne' ? 'green' : d.isSealed ? 'slate' : 'indigo'}>
+                                      {d.statut === 'selectionne' ? 'Sélectionné' : d.isSealed ? (d.sealedLabel || 'Scellé') : 'En attente'}
+                                    </Tag>
+                                  </Td>
+                                  <Td>{d.garantie || <span className="text-slate-400">—</span>}</Td>
+                                  <Td>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/owner/property/${d.bien_id}`); }}
+                                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                    >
+                                      Voir →
+                                    </button>
+                                  </Td>
+                                </tr>
+                                {expandedId === d.id && (
+                                  <tr>
+                                    <td colSpan={6} className="border-t border-slate-100 bg-slate-50 px-5 py-5">
+                                      <div className="grid gap-5 xl:grid-cols-2">
+                                        <div>
+                                          <div className="mb-3 font-semibold text-slate-900">Analyse IA — {d.prenom} {d.nom}</div>
+                                          {[
+                                            ['Solvabilité', bien.loyer > 0 ? Math.min((d.revenus / bien.loyer / 3) * 100, 100) : 0, d.revenus / (bien.loyer || 1) >= 3 ? 'bg-emerald-500' : 'bg-amber-500'],
+                                            ['Qualité dossier', d.qualityScore ?? 50, (d.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
+                                            ['Audit IA', d.auditStatus === 'CLEAR' ? 100 : d.auditStatus === 'ALERT' ? 20 : 60, d.auditStatus === 'CLEAR' ? 'bg-emerald-500' : d.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500'],
+                                          ].map(([l, v, c]) => (
+                                            <div key={String(l)} className="mb-3">
+                                              <div className="mb-1 flex justify-between text-xs font-semibold">
+                                                <span className="text-slate-500">{l}</span>
+                                                <span className="text-slate-700">{Math.round(Number(v))}%</span>
+                                              </div>
+                                              <Bar value={Number(v)} color={String(c)} />
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                          {[
+                                            ['Contrat', d.contrat],
+                                            ['Revenus', `${d.revenus.toLocaleString()} €`],
+                                            ['Ratio', `${(d.revenus / (bien.loyer || 1)).toFixed(1)}×`],
+                                            ['Reste à vivre', d.remainingIncomeLabel || '—'],
+                                            ['Effort locatif', d.effortRateLabel || '—'],
+                                          ].map(([k, v]) => (
+                                            <div key={String(k)} className="flex justify-between py-2 text-sm">
+                                              <span className="text-slate-500">{k}</span>
+                                              <span className="font-semibold text-slate-900">{v}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      {d.auditSummary && (
+                                        <div className="mt-4 rounded-xl bg-white px-4 py-3 text-xs italic text-slate-600 border border-slate-200">
+                                          {d.auditSummary}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="flex items-center justify-between px-5 py-4">
+                          <p className="text-sm text-slate-400">Aucune candidature reçue pour ce bien.</p>
+                          {bien.applyToken && (
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/apply/${bien.applyToken}`); }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" /> Copier le lien candidature
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <table className="w-full border-collapse">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <Th>Candidat</Th><Th>Revenus</Th><Th>Score IA</Th><Th>Statut</Th><Th>Bail</Th><Th></Th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cands.sort((a, b) => b.score - a.score).map((d) => (
-                          <>
-                            <tr key={d.id} onClick={() => setDetailId(detailId === d.id ? null : d.id)} className="cursor-pointer hover:bg-slate-50 transition-colors">
-                              <Td>
-                                <div className="flex items-center gap-3">
-                                  <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
-                                  <div>
-                                    <div className="font-semibold text-slate-900">{d.prenom} {d.nom}</div>
-                                    <div className="text-xs text-slate-400">{d.date}</div>
-                                  </div>
-                                </div>
-                              </Td>
-                              <Td><b className="text-slate-900">{d.revenus.toLocaleString()} €</b></Td>
-                              <Td><ScorePill score={d.score} /></Td>
-                              <Td><Tag type={d.statut === 'selectionne' ? 'green' : d.statut === 'en_attente' ? 'indigo' : 'red'}>{d.statut === 'selectionne' ? 'Sélectionné' : d.statut === 'en_attente' ? 'En attente' : 'Refusé'}</Tag></Td>
-                              <Td>{!d.bail ? <Tag>Non généré</Tag> : d.bail.signe ? <Tag type="green">Signé</Tag> : <Tag type="amber">En attente</Tag>}</Td>
-                              <Td><Btn variant="ghost" className="py-1.5 text-xs">Détail</Btn></Td>
-                            </tr>
-                            {detailDossier?.id === d.id && (
-                              <tr key={`detail-${d.id}`}>
-                                <td colSpan={6} className="border-t border-slate-100 bg-slate-50 px-5 py-5">
-                                  <div className="grid gap-5 xl:grid-cols-2">
-                                    <div>
-                                      <div className="mb-3 font-semibold text-slate-900">Analyse IA — {detailDossier.prenom} {detailDossier.nom}</div>
-                                      {[['Solvabilité', Math.min((detailDossier.revenus / detailDossier.loyer / 3) * 100, 100), detailDossier.revenus / detailDossier.loyer >= 3 ? 'bg-emerald-500' : 'bg-amber-500'], ['Stabilité', detailDossier.contrat === 'CDI' ? 100 : 50, detailDossier.contrat === 'CDI' ? 'bg-emerald-500' : 'bg-amber-500'], ['Ancienneté', Math.min((detailDossier.anciennete / 5) * 100, 100), detailDossier.anciennete >= 3 ? 'bg-emerald-500' : 'bg-amber-500']].map(([l, v, c]) => (
-                                        <div key={String(l)} className="mb-3">
-                                          <div className="mb-1 flex justify-between text-xs font-semibold">
-                                            <span className="text-slate-500">{l}</span>
-                                            <span className="text-slate-700">{Math.round(Number(v))}%</span>
-                                          </div>
-                                          <Bar value={Number(v)} color={String(c)} />
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="divide-y divide-slate-100">
-                                      {[['Profession', detailDossier.profession], ['Employeur', detailDossier.employeur || '—'], ['Revenus', `${detailDossier.revenus.toLocaleString()} €`], ['Ratio', `${(detailDossier.revenus / detailDossier.loyer).toFixed(1)}×`]].map(([k, v]) => (
-                                        <div key={String(k)} className="flex justify-between py-2 text-sm">
-                                          <span className="text-slate-500">{k}</span>
-                                          <span className="font-semibold text-slate-900">{v}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
 
         {/* ─ MES ACTIFS ─ */}
         {page === 'biens' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-6">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">Mes actifs</h1>
-              <p className="mt-1 text-sm text-slate-500">{BIENS.length} biens en portefeuille</p>
+            <div className="mb-6 flex items-start justify-between">
+              <div>
+                <h1 className="font-serif text-3xl font-bold text-slate-950">Mes actifs</h1>
+                <p className="mt-1 text-sm text-slate-500">{biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille</p>
+              </div>
+              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouvel actif</Btn>
             </div>
-            <div className="grid gap-5 xl:grid-cols-2">
-              {BIENS.map((b) => {
-                const loc = dossiers.find((d) => d.bien_id === b.id && d.bail?.signe);
-                const nb = dossiers.filter((d) => d.bien_id === b.id).length;
-                return (
-                  <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-5">
-                    <div className="mb-4 flex items-start justify-between">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
-                      <Tag type={loc ? 'green' : 'indigo'}>{loc ? 'Loué' : 'Disponible'}</Tag>
+            {biens.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+                <div className="mb-3 text-4xl">🏠</div>
+                <p className="mb-4 text-slate-500">Aucun bien enregistré.</p>
+                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer votre premier actif</Btn>
+              </div>
+            ) : (
+              <div className="grid gap-5 xl:grid-cols-2">
+                {biens.map((b) => {
+                  const selTenant = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                  return (
+                    <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md">
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                        <Tag type={b.isRented ? 'green' : 'indigo'}>{b.isRented ? 'Loué' : b.flowStage || 'Disponible'}</Tag>
+                      </div>
+                      <div className="font-bold text-slate-950">{b.label}</div>
+                      <div className="mt-0.5 mb-3 text-sm text-slate-500">{b.adresse}</div>
+                      <div className="mb-3 text-[1.75rem] font-bold text-emerald-700">
+                        {b.loyer.toLocaleString()} <span className="text-sm font-normal text-slate-400">€/mois</span>
+                      </div>
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {b.surface > 0 && <Tag>{b.surface} m²</Tag>}
+                        <Tag>{b.totalCandidates || 0} candidature{(b.totalCandidates || 0) !== 1 ? 's' : ''}</Tag>
+                      </div>
+                      {selTenant && (
+                        <div className="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm">
+                          <span className="text-slate-500">Locataire · </span>
+                          <b className="text-slate-900">{selTenant.prenom} {selTenant.nom}</b>
+                        </div>
+                      )}
+                      {b.flowProgress !== undefined && (
+                        <div className="mb-4">
+                          <div className="mb-1 flex justify-between text-xs text-slate-400">
+                            <span>Progression</span><span>{b.flowProgress}%</span>
+                          </div>
+                          <Bar value={b.flowProgress} />
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Btn variant="secondary" className="flex-1 py-2 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
+                          <ExternalLink className="h-3.5 w-3.5" /> Voir la fiche
+                        </Btn>
+                        {!b.isRented && (allDossiers.filter((d) => d.bien_id === b.id).length > 0) && (
+                          <Btn variant="amber" className="flex-1 py-2 text-xs" onClick={() => setSelBienId(b.id)}>
+                            Sélectionner →
+                          </Btn>
+                        )}
+                        {b.applyToken && !b.isRented && (
+                          <button
+                            type="button"
+                            title="Copier le lien candidature"
+                            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/apply/${b.applyToken}`)}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="font-bold text-slate-950">{b.label}</div>
-                    <div className="mt-0.5 mb-4 text-sm text-slate-500">{b.adresse}</div>
-                    <div className="mb-4 text-[1.75rem] font-bold text-emerald-700">
-                      {b.loyer.toLocaleString()} <span className="text-sm font-normal text-slate-400">€/mois</span>
-                    </div>
-                    <div className="mb-4 flex flex-wrap gap-2">
-                      <Tag>{b.surface} m²</Tag><Tag>DPE {b.dpe}</Tag><Tag>{b.pieces} pièce{b.pieces > 1 ? 's' : ''}</Tag>
-                    </div>
-                    {loc && <div className="mb-3 text-sm"><span className="text-slate-500">Locataire · </span><b>{loc.prenom} {loc.nom}</b></div>}
-                    <div className="text-xs text-slate-400">
-                      {nb} candidature(s) ·{' '}
-                      <button type="button" onClick={() => setSelBienId(b.id)} className="font-semibold text-emerald-600 hover:underline">Voir les dossiers →</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
 
-        {/* ─ NOUVEAU DOSSIER ─ */}
+        {/* ─ NOUVEL ACTIF ─ */}
         {page === 'depot' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">Nouveau dossier</h1>
-              <p className="mt-1 text-sm text-slate-500">Soumission et analyse automatique</p>
+              <h1 className="font-serif text-3xl font-bold text-slate-950">Nouvel actif</h1>
+              <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille</p>
             </div>
-            <DepotTunnel onDone={addDossier} />
+            <NouvelActifForm onDone={() => { refresh(); go('biens'); }} />
           </motion.div>
         )}
 
@@ -1034,31 +1268,51 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
-              <p className="mt-1 text-sm text-slate-500">Suivi des contrats générés</p>
+              <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Signature électronique</p>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <table className="w-full border-collapse">
-                <thead className="bg-slate-50">
-                  <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Loyer</Th><Th>Statut</Th><Th>Date</Th><Th>Actions</Th></tr>
-                </thead>
-                <tbody>
-                  {dossiers.filter((d) => d.bail).map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                      <Td><div className="flex items-center gap-3"><Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" /><b>{d.prenom} {d.nom}</b></div></Td>
-                      <Td><span className="text-slate-500">{BIENS.find((b) => b.id === d.bien_id)?.label}</span></Td>
-                      <Td>{d.bail?.type === 'meuble' ? 'Meublé — 1 an' : 'Non meublé — 3 ans'}</Td>
-                      <Td><b className="text-emerald-700">{d.loyer} €</b></Td>
-                      <Td>{d.bail?.signe ? <Tag type="green">Signé</Tag> : <Tag type="amber">En attente</Tag>}</Td>
-                      <Td className="text-slate-500">{d.bail?.date || '—'}</Td>
-                      <Td>{d.bail?.signe ? <Btn variant="ghost" className="py-1.5 text-xs"><Download className="h-3.5 w-3.5" /> Télécharger</Btn> : <Btn variant="primary" className="py-1.5 text-xs"><PenLine className="h-3.5 w-3.5" /> Signer</Btn>}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!dossiers.filter((d) => d.bail).length && (
-                <p className="py-12 text-center text-sm text-slate-400">Aucun bail généré pour le moment.</p>
-              )}
-            </div>
+            {managed.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+                <div className="mb-3 text-4xl">📄</div>
+                <p className="text-slate-500">Aucun bail en cours. Sélectionnez un locataire depuis vos candidatures.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <table className="w-full border-collapse">
+                  <thead className="bg-slate-50">
+                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Statut bail</Th><Th>Prochaine étape</Th><Th>Actions</Th></tr>
+                  </thead>
+                  <tbody>
+                    {managed.map((entry) => {
+                      const b = toBien(entry);
+                      const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      return (
+                        <tr key={b.id} className="transition-colors hover:bg-slate-50">
+                          <Td>
+                            <div className="flex items-center gap-3">
+                              <Avatar name={b.tenantLabel || selCand ? `${selCand?.prenom} ${selCand?.nom}` : '?'} id={b.id} size="sm" />
+                              <b className="text-slate-900">{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                            </div>
+                          </Td>
+                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><b className="text-emerald-700">{b.loyer.toLocaleString()} €</b></Td>
+                          <Td>
+                            <Tag type={b.leaseStatusLabel?.toLowerCase().includes('signé') ? 'green' : 'amber'}>
+                              {b.leaseStatusLabel || 'En cours'}
+                            </Tag>
+                          </Td>
+                          <Td><span className="text-xs text-slate-500">{b.nextMilestone || '—'}</span></Td>
+                          <Td>
+                            <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
+                              <FileSignature className="h-3.5 w-3.5" /> Gérer →
+                            </Btn>
+                          </Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1070,36 +1324,55 @@ export default function OwnerDashboardClient() {
               <p className="mt-1 text-sm text-slate-500">Loyers · Quittances · Encaissements</p>
             </div>
             <div className="mb-6 grid grid-cols-4 gap-4">
-              <StatCard icon="✓"  value={`${encaisse.toLocaleString()} €`}                                              label="Encaissé"          bg="bg-emerald-50" />
-              <StatCard icon="⏳" value={`${loyers.filter((l) => l.statut === 'attente').reduce((a, b) => a + b.loyer, 0)} €`} label="En attente"        bg="bg-amber-50" />
-              <StatCard icon="📄" value={loyers.filter((l) => l.statut === 'paye').length}                               label="Quittances"         bg="bg-blue-50" />
-              <StatCard icon="🏠" value={dossiers.filter((d) => d.bail?.signe).length}                                   label="Locataires actifs"  bg="bg-teal-50" />
+              <StatCard icon="🏠" value={managed.length}        label="Biens en gestion"   bg="bg-emerald-50" />
+              <StatCard icon="📋" value={allDossiers.length}    label="Candidatures totales" bg="bg-teal-50" />
+              <StatCard icon="✓"  value={selectionnes}          label="Locataires actifs"  bg="bg-blue-50" />
+              <StatCard icon="⏳" value={pending}               label="En attente"         bg="bg-amber-50" />
             </div>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">Historique des loyers</div>
-              <table className="w-full border-collapse">
-                <thead className="bg-slate-50">
-                  <tr><Th>Locataire</Th><Th>Bien</Th><Th>Période</Th><Th>Montant</Th><Th>Statut</Th><Th>Date</Th><Th>Actions</Th></tr>
-                </thead>
-                <tbody>
-                  {loyers.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-50 transition-colors">
-                      <Td><div className="flex items-center gap-3"><Avatar name={l.locataire} id={l.id} size="sm" /><b>{l.locataire}</b></div></Td>
-                      <Td><span className="text-slate-500">{l.bien}</span></Td>
-                      <Td>{l.mois}</Td>
-                      <Td><b className="text-emerald-700">{l.loyer} €</b></Td>
-                      <Td><Tag type={l.statut === 'paye' ? 'green' : 'amber'}>{l.statut === 'paye' ? 'Payé' : 'En attente'}</Tag></Td>
-                      <Td className="text-slate-500">{l.date}</Td>
-                      <Td>
-                        {l.statut === 'paye'
-                          ? <Btn variant="ghost" className="py-1.5 text-xs"><FileText className="h-3.5 w-3.5" /> Quittance</Btn>
-                          : <Btn variant="success" className="py-1.5 text-xs" onClick={() => setLoyers((p) => p.map((x) => x.id === l.id ? { ...x, statut: 'paye', date: new Date().toLocaleDateString('fr-FR') } : x))}><CheckCircle2 className="h-3.5 w-3.5" /> Marquer payé</Btn>}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {managed.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center">
+                <div className="mb-3 text-4xl">📊</div>
+                <p className="text-slate-500">Aucun bien en gestion pour le moment.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">
+                  Biens sous gestion
+                </div>
+                <table className="w-full border-collapse">
+                  <thead className="bg-slate-50">
+                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Statut</Th><Th>Résumé</Th><Th>Actions</Th></tr>
+                  </thead>
+                  <tbody>
+                    {managed.map((entry) => {
+                      const b = toBien(entry);
+                      const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      return (
+                        <tr key={b.id} className="transition-colors hover:bg-slate-50">
+                          <Td>
+                            <div className="flex items-center gap-3">
+                              <Avatar name={b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '?')} id={b.id} size="sm" />
+                              <b>{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                            </div>
+                          </Td>
+                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><b className="text-emerald-700">{b.loyer.toLocaleString()} €</b></Td>
+                          <Td>
+                            <Tag type={b.isRented ? 'green' : 'amber'}>{b.isRented ? 'Occupé' : 'En cours'}</Tag>
+                          </Td>
+                          <Td><span className="text-xs text-slate-500">{b.leaseStatusLabel || '—'}</span></Td>
+                          <Td>
+                            <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}>
+                              <ScrollText className="h-3.5 w-3.5" /> Détail →
+                            </Btn>
+                          </Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1109,48 +1382,68 @@ export default function OwnerDashboardClient() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h1 className="font-serif text-3xl font-bold text-slate-950">États des lieux</h1>
-                <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Signature numérique</p>
+                <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Rapport numérique</p>
               </div>
-              <Btn variant="amber" onClick={() => setEdl((p) => [...p, { id: p.length + 1, locataire: 'Nouveau locataire', bien: 'À définir', type: 'Entrée', date: new Date().toLocaleDateString('fr-FR'), statut: 'planifie' }])}>
-                <Plus className="h-4 w-4" /> Planifier un EDL
-              </Btn>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <table className="w-full border-collapse">
-                <thead className="bg-slate-50">
-                  <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Date</Th><Th>Statut</Th><Th>Actions</Th></tr>
-                </thead>
-                <tbody>
-                  {edl.map((e) => (
-                    <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                      <Td><div className="flex items-center gap-3"><Avatar name={e.locataire} id={e.id} size="sm" /><b>{e.locataire}</b></div></Td>
-                      <Td><span className="text-slate-500">{e.bien}</span></Td>
-                      <Td><Tag type={e.type === 'Entrée' ? 'indigo' : 'amber'}>{e.type}</Tag></Td>
-                      <Td>{e.date}</Td>
-                      <Td><Tag type={e.statut === 'signe' ? 'green' : 'amber'}>{e.statut === 'signe' ? 'Signé' : 'Planifié'}</Tag></Td>
-                      <Td>
-                        {e.statut !== 'signe'
-                          ? <Btn variant="primary" className="py-1.5 text-xs" onClick={() => setEdl((p) => p.map((x) => x.id === e.id ? { ...x, statut: 'signe' } : x))}><PenLine className="h-3.5 w-3.5" /> Valider &amp; Signer</Btn>
-                          : <Btn variant="ghost" className="py-1.5 text-xs"><Download className="h-3.5 w-3.5" /> Télécharger</Btn>}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {managed.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
+                <div className="mb-3 text-4xl">🔑</div>
+                <p className="text-slate-500">Aucun bien en gestion avec un état des lieux.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <table className="w-full border-collapse">
+                  <thead className="bg-slate-50">
+                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Statut EDL</Th><Th>Actions</Th></tr>
+                  </thead>
+                  <tbody>
+                    {managed.map((entry) => {
+                      const b = toBien(entry);
+                      const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                      return (
+                        <tr key={b.id} className="transition-colors hover:bg-slate-50">
+                          <Td>
+                            <div className="flex items-center gap-3">
+                              <Avatar name={b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '?')} id={b.id} size="sm" />
+                              <b>{b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—')}</b>
+                            </div>
+                          </Td>
+                          <Td><span className="text-slate-500">{b.label}</span></Td>
+                          <Td><Tag type="indigo">Entrée</Tag></Td>
+                          <Td>
+                            <Tag type={entry.flow.stage === 'management' ? 'green' : 'amber'}>
+                              {entry.flow.stage === 'management' ? 'En gestion' : 'À planifier'}
+                            </Tag>
+                          </Td>
+                          <Td>
+                            <Btn
+                              variant="ghost"
+                              className="py-1.5 text-xs"
+                              onClick={() => router.push(`/dashboard/owner/property/${b.id}`)}
+                            >
+                              <Download className="h-3.5 w-3.5" /> Voir l&apos;EDL →
+                            </Btn>
+                          </Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
       </main>
 
       {/* ── TUNNEL SÉLECTION (overlay) ─────────────────────────── */}
       <AnimatePresence>
-        {selBienId && (
+        {selBienId && selBien && (
           <motion.div key="tunnel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <TunnelSelection
-              bienId={selBienId}
-              dossiers={dossiers}
+              bien={selBien}
+              candidats={selCands}
               onClose={() => setSelBienId(null)}
-              onBailCreated={(c, b, t) => { onBailCreated(c, b, t); setSelBienId(null); }}
+              onDone={handleSelectDone}
             />
           </motion.div>
         )}
