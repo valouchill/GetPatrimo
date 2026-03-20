@@ -13,12 +13,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
 
   return (
     <OwnerProvider userEmail={session.user.email}>
-      <div className="min-h-screen bg-slate-50">
-        <OwnerHeader />
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          {children}
-        </div>
-      </div>
+      {children}
     </OwnerProvider>
   );
 }
