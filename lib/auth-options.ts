@@ -1,5 +1,6 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import bcrypt from 'bcryptjs';
 
 import clientPromise from '@/lib/mongodb-client';
 import { connectDiditDb } from '@/app/api/didit/db';
@@ -23,10 +24,12 @@ const providers: any[] = [
         await connectDiditDb();
         const user = await User.findOne({
           email: credentials.email.trim().toLowerCase(),
-          magicSignInToken: credentials.token,
+          magicSignInToken: { $exists: true, $ne: '' },
           magicSignInExpiresAt: { $gt: new Date() },
         });
         if (!user) return null;
+        const tokenValid = await bcrypt.compare(credentials.token, user.magicSignInToken);
+        if (!tokenValid) return null;
         await User.findByIdAndUpdate(user._id, {
           $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1 },
         });

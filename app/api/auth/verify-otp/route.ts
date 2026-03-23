@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const User = require('@/models/User');
@@ -111,8 +112,9 @@ export async function POST(request: NextRequest) {
 
     const magicToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+    const hashedToken = await bcrypt.hash(magicToken, 10);
     await User.findByIdAndUpdate(userId, {
-      magicSignInToken: magicToken,
+      magicSignInToken: hashedToken,
       magicSignInExpiresAt: expiresAt,
     });
 
