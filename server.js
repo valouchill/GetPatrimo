@@ -36,8 +36,24 @@ const app = express();
 
 // --- Securite : headers HTTP ---
 app.use(helmet({
-  contentSecurityPolicy: false, // desactive pour Next.js (gere ses propres CSP)
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://apx.didit.me", "https://geo.api.gouv.fr", "https://api.openai.com"],
+      frameSrc: ["'self'", "https://js.stripe.com", "https://verify.didit.me"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
 // --- Securite : CORS ---
