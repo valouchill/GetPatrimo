@@ -143,8 +143,9 @@ app.use((req, res, next) => {
     return next(); // Skip express.json() pour les routes Next.js
   }
   
-  express.json({ limit: '10mb' })(req, res, next);
+  express.json({ limit: '1mb' })(req, res, next);
 });
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 // Route explicite pour la contractualisation plein écran (fallback statique)
 app.get('/properties/:id/contract', (req, res) => {
   if (nextApp && handle) {
