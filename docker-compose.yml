@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     environment:
-      - MONGO_URI=mongodb://admin:password123@mongodb:27017/doc2loc?authSource=admin
+      - MONGO_URI=${MONGO_URI}
       - NODE_ENV=production
     working_dir: /opt/doc2loc
     volumes:
