@@ -6,11 +6,11 @@ const { buildOwnerApplicationInsights } = require('../src/utils/ownerApplication
 
 function buildDoc({
   id,
-  category = 'income',
-  subjectType = 'tenant',
+  category = 'INCOME',
+  subjectType = 'TENANT',
   subjectSlot,
   type,
-  status = 'certified',
+  status = 'CERTIFIED',
   fileName,
   dateEmission,
   flagged = false,
@@ -31,13 +31,13 @@ function buildDoc({
 
 function buildStrongDocs() {
   return [
-    buildDoc({ id: 'id', category: 'identity', type: 'CARTE_IDENTITE', dateEmission: '2026-03-01' }),
+    buildDoc({ id: 'id', category: 'IDENTITY', type: 'CARTE_IDENTITE', dateEmission: '2026-03-01' }),
     buildDoc({ id: 'salary-1', type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
     buildDoc({ id: 'salary-2', type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
     buildDoc({ id: 'salary-3', type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
     buildDoc({ id: 'tax', type: 'AVIS_IMPOSITION', dateEmission: '2025-09-01' }),
     buildDoc({ id: 'employment', type: 'ATTESTATION_EMPLOYEUR', fileName: 'attestation_employeur.pdf', dateEmission: '2026-03-01' }),
-    buildDoc({ id: 'home', category: 'address', type: 'JUSTIFICATIF_DOMICILE', dateEmission: '2026-03-03' }),
+    buildDoc({ id: 'home', category: 'ADDRESS', type: 'JUSTIFICATIF_DOMICILE', dateEmission: '2026-03-03' }),
   ];
 }
 
@@ -131,7 +131,7 @@ test('owner insights keep a dossier in review when secondary pieces remain under
   const application = buildApplication({
     documents: [
       ...buildStrongDocs(),
-      buildDoc({ id: 'optional-income', type: 'ATTESTATION_BOURSE', status: 'needs_review', dateEmission: '2026-03-05' }),
+      buildDoc({ id: 'optional-income', type: 'ATTESTATION_BOURSE', status: 'NEEDS_REVIEW', dateEmission: '2026-03-05' }),
     ],
   });
 
@@ -158,7 +158,7 @@ test('owner insights block lease readiness when identity is not verified and cor
     diditStatus: 'PENDING',
     detectedIncome: 0,
     documents: [
-      buildDoc({ id: 'random', category: 'income', type: 'AUTRE', fileName: 'random.jpg', status: 'needs_review' }),
+      buildDoc({ id: 'random', category: 'income', type: 'AUTRE', fileName: 'random.jpg', status: 'NEEDS_REVIEW' }),
     ],
   });
 

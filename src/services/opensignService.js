@@ -39,7 +39,7 @@ function toSigner(name, email, role, order) {
 }
 
 function buildSignersForDocument(kind, parties) {
-  if (kind === 'guarantee') {
+  if (kind === 'GUARANTEE') {
     const signers = [];
     if (parties.guarantor?.email) {
       signers.push(toSigner(
@@ -81,14 +81,14 @@ async function sendDocumentForSignature({ lease, property, parties, document, in
 
   const signers = buildSignersForDocument(document.kind, parties);
   const documentData = {
-    name: document.kind === 'guarantee'
+    name: document.kind === 'GUARANTEE'
       ? `Acte de caution - ${property.address}`
       : `Bail de location - ${property.address}`,
-    description: document.kind === 'guarantee'
+    description: document.kind === 'GUARANTEE'
       ? `Acte de caution solidaire pour le bien situé à ${property.address}`
       : `Contrat de location pour le bien situé à ${property.address}`,
     file: {
-      name: document.kind === 'guarantee'
+      name: document.kind === 'GUARANTEE'
         ? `caution_${lease._id || lease.id}.pdf`
         : `bail_${lease._id || lease.id}.pdf`,
       content: document.pdfBuffer.toString('base64'),
@@ -143,7 +143,7 @@ async function sendDocumentForSignature({ lease, property, parties, document, in
   return {
     kind: document.kind,
     documentId,
-    status: 'pending',
+    status: 'PENDING',
     signingLinks,
     signers: signers.map((signer) => ({ role: signer.role, email: signer.email })),
   };
@@ -193,7 +193,7 @@ async function sendLeaseForSignature(leaseData, property, parties, pdfPath) {
     lease: leaseData,
     property,
     parties,
-    documents: [{ kind: 'lease', pdfBuffer }],
+    documents: [{ kind: 'LEASE', pdfBuffer }],
   });
 
   const first = result.documents[0];
@@ -218,9 +218,19 @@ async function getDocumentStatus(documentId) {
 
     const response = await opensignClient.get(`/v1.1/documents/${documentId}`);
 
+    const OPENSIGN_STATUS_MAP = {
+      pending: 'PENDING',
+      signed: 'SIGNED',
+      completed: 'COMPLETED',
+      expired: 'EXPIRED',
+      declined: 'DECLINED',
+    };
+    const rawStatus = String(response.data.status || '').toLowerCase();
+    const normalizedStatus = OPENSIGN_STATUS_MAP[rawStatus] || 'PENDING';
+
     return {
       success: true,
-      status: response.data.status, // 'pending', 'signed', 'completed', 'expired', 'declined'
+      status: normalizedStatus,
       signers: response.data.signers || [],
       completedAt: response.data.completedAt,
       signedPdfUrl: response.data.signedPdfUrl

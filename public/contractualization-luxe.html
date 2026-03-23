@@ -1101,7 +1101,7 @@
       // Si on a un bail, détermine le step selon son état
       if(lease) {
         // Si OpenSign est déjà lancé et complété → Step 5 (Dashboard de suivi)
-        if(lease.opensignStatus === 'completed') {
+        if(lease.opensignStatus === 'COMPLETED') {
           leasingJourney.currentStep = 5;
           leasingJourney.maxStep = 5;
           leasingJourney.updateData('signature', {
@@ -1115,9 +1115,9 @@
           await loadSignatureDashboard();
           return;
         }
-        
+
         // Si OpenSign est lancé mais pas complété → Step 5 (Suivi)
-        if(lease.opensignStatus && lease.opensignStatus !== 'completed') {
+        if(lease.opensignStatus && lease.opensignStatus !== 'COMPLETED') {
           leasingJourney.currentStep = 5;
           leasingJourney.maxStep = 5;
           leasingJourney.updateData('signature', {

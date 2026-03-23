@@ -64,7 +64,7 @@ function monthsBetween(from, to = new Date()) {
 }
 
 function isCertifiedDocument(doc) {
-  return doc && doc.status === 'certified' && !doc.flagged;
+  return doc && doc.status === 'CERTIFIED' && !doc.flagged;
 }
 
 function getDocumentSearchText(doc) {
@@ -129,18 +129,18 @@ function inferEvidenceKind(doc) {
 }
 
 function getDocumentSubject(doc) {
-  if (doc.subjectType === 'guarantor') {
+  if (doc.subjectType === 'GUARANTOR') {
     return {
       subjectType: 'guarantor',
       subjectSlot: doc.subjectSlot === 2 ? 2 : 1,
     };
   }
 
-  if (doc.subjectType === 'visale') {
+  if (doc.subjectType === 'VISALE') {
     return { subjectType: 'visale' };
   }
 
-  if (doc.category === 'guarantor') {
+  if (doc.category === 'GUARANTOR') {
     return {
       subjectType: 'guarantor',
       subjectSlot: doc.subjectSlot === 2 ? 2 : 1,
@@ -553,7 +553,7 @@ function computeApplicationPatrimometer(input = {}) {
   const detectedIncome = Number(input.detectedIncome) || 0;
   const documents = safeArray(input.documents).map((doc) => ({
     ...doc,
-    status: doc.status || 'pending',
+    status: doc.status || 'PENDING',
   }));
   const warnings = [];
 
@@ -699,7 +699,7 @@ function computeApplicationPatrimometer(input = {}) {
   const identityStarted =
     diditStatus !== 'idle' ||
     grouped.tenant.some((doc) => inferEvidenceKind(doc) === 'identity') ||
-    documents.some((doc) => doc.category === 'identity');
+    documents.some((doc) => doc.category === 'IDENTITY');
 
   const tenantComplete = tenant.identity === TENANT_WEIGHTS.identity &&
     tenant.income >= round(TENANT_WEIGHTS.income * 0.68) &&

@@ -34,7 +34,7 @@ test('deriveApplicationFinancialProfile averages certified payslips and adds rec
       documents: [
         {
           type: 'BULLETIN_SALAIRE',
-          status: 'certified',
+          status: 'CERTIFIED',
           dateEmission: '2026-03-01',
           aiAnalysis: {
             financial_data: {
@@ -45,7 +45,7 @@ test('deriveApplicationFinancialProfile averages certified payslips and adds rec
         },
         {
           type: 'BULLETIN_SALAIRE',
-          status: 'certified',
+          status: 'CERTIFIED',
           dateEmission: '2026-02-01',
           aiAnalysis: {
             financial_data: {
@@ -56,7 +56,7 @@ test('deriveApplicationFinancialProfile averages certified payslips and adds rec
         },
         {
           type: 'BULLETIN_SALAIRE',
-          status: 'certified',
+          status: 'CERTIFIED',
           dateEmission: '2026-01-01',
           aiAnalysis: {
             financial_data: {
@@ -67,7 +67,7 @@ test('deriveApplicationFinancialProfile averages certified payslips and adds rec
         },
         {
           type: 'AIDE_LOGEMENT',
-          status: 'certified',
+          status: 'CERTIFIED',
           dateEmission: '2026-03-02',
           aiAnalysis: {
             financial_data: {

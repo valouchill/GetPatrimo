@@ -154,7 +154,7 @@ function buildInitialFormState(property?: PropertyRecord | null) {
     rentHC,
     charges: Number(property?.chargesAmount || 0),
     deposit: computeSmartDeposit(leaseType, rentHC),
-    durationMonths: leaseType === "mobilite" ? 10 : 12,
+    durationMonths: leaseType === "MOBILITE" ? 10 : 12,
     clauses: "",
   };
 }
@@ -733,10 +733,10 @@ export default function LeaseWizard({ propertyId }: LeaseWizardProps) {
                     value={formData.leaseType}
                     onChange={(event) => handleFieldChange("leaseType", event.target.value)}
                   >
-                    <option value="vide">Vide</option>
-                    <option value="meuble">Meublé</option>
-                    <option value="mobilite">Mobilité</option>
-                    <option value="garage_parking">Garage / Parking</option>
+                    <option value="VIDE">Vide</option>
+                    <option value="MEUBLE">Meublé</option>
+                    <option value="MOBILITE">Mobilité</option>
+                    <option value="GARAGE_PARKING">Garage / Parking</option>
                   </select>
                 </label>
                 <label className="text-sm font-medium text-slate-700">

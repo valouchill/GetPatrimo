@@ -1,4 +1,4 @@
-const LEASE_TYPES = ['vide', 'meuble', 'mobilite', 'garage_parking'];
+const LEASE_TYPES = ['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'];
 
 function normalizeLeaseType(value) {
   if (!value) return null;
@@ -8,17 +8,21 @@ function normalizeLeaseType(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-  if (LEASE_TYPES.includes(normalized)) return normalized;
+  // Accept already-uppercase values
+  const upper = String(value).trim().toUpperCase();
+  if (LEASE_TYPES.includes(upper)) return upper;
+
+  if (normalized === 'vide' || normalized === 'nu') return 'VIDE';
   if (normalized === 'garage' || normalized === 'parking' || normalized === 'box') {
-    return 'garage_parking';
+    return 'GARAGE_PARKING';
   }
-  if (normalized === 'meublee') return 'meuble';
-  if (normalized === 'mobilite') return 'mobilite';
-  if (normalized === 'nu') return 'vide';
-  if (normalized.includes('garage') || normalized.includes('parking')) return 'garage_parking';
-  if (normalized.includes('mobilit')) return 'mobilite';
-  if (normalized.includes('meubl')) return 'meuble';
-  if (normalized.includes('vide') || normalized.includes('nu')) return 'vide';
+  if (normalized === 'meublee' || normalized === 'meuble') return 'MEUBLE';
+  if (normalized === 'mobilite') return 'MOBILITE';
+  if (normalized === 'garage_parking') return 'GARAGE_PARKING';
+  if (normalized.includes('garage') || normalized.includes('parking')) return 'GARAGE_PARKING';
+  if (normalized.includes('mobilit')) return 'MOBILITE';
+  if (normalized.includes('meubl')) return 'MEUBLE';
+  if (normalized.includes('vide') || normalized.includes('nu')) return 'VIDE';
   return null;
 }
 
@@ -38,16 +42,16 @@ function deriveLeaseType(property, explicitLeaseType) {
     if (normalized) return normalized;
   }
 
-  return 'vide';
+  return 'VIDE';
 }
 
 function computeSmartDeposit(leaseType, rentHC) {
-  const normalized = normalizeLeaseType(leaseType) || 'vide';
+  const normalized = normalizeLeaseType(leaseType) || 'VIDE';
   const rent = Number(rentHC) || 0;
 
-  if (normalized === 'meuble') return rent * 2;
-  if (normalized === 'mobilite') return 0;
-  if (normalized === 'vide') return rent;
+  if (normalized === 'MEUBLE') return rent * 2;
+  if (normalized === 'MOBILITE') return 0;
+  if (normalized === 'VIDE') return rent;
   return rent;
 }
 
@@ -65,7 +69,7 @@ function hasUsableGuarantor(guarantor) {
 }
 
 function shouldGenerateGuaranteeDocument(leaseType, guarantor) {
-  return (normalizeLeaseType(leaseType) || 'vide') !== 'mobilite' && hasUsableGuarantor(guarantor);
+  return (normalizeLeaseType(leaseType) || 'VIDE') !== 'MOBILITE' && hasUsableGuarantor(guarantor);
 }
 
 module.exports = {

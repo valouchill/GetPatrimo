@@ -44,7 +44,7 @@ test('unrelated files are rejected instead of certified', () => {
     hasCompatibleChecklistHint: false,
   });
 
-  assert.equal(decision.status, 'rejected');
+  assert.equal(decision.status, 'REJECTED');
   assert.equal(decision.flagged, false);
   assert.equal(decision.canForceSend, false);
   assert.equal(decision.isRelevantDocument, false);
@@ -60,7 +60,7 @@ test('recognized documents in the right category can be certified', () => {
     hasCompatibleChecklistHint: true,
   });
 
-  assert.equal(decision.status, 'certified');
+  assert.equal(decision.status, 'CERTIFIED');
   assert.equal(decision.flagged, false);
   assert.equal(decision.categoryMatch, true);
 });
@@ -75,7 +75,7 @@ test('ambiguous but plausible documents are routed to review instead of certifie
     hasCompatibleChecklistHint: true,
   });
 
-  assert.equal(decision.status, 'needs_review');
+  assert.equal(decision.status, 'NEEDS_REVIEW');
   assert.equal(decision.canForceSend, true);
   assert.equal(decision.flagged, false);
 });
@@ -88,7 +88,7 @@ test('category mismatches are rejected with a helpful message', () => {
     hasCompatibleChecklistHint: false,
   });
 
-  assert.equal(decision.status, 'rejected');
+  assert.equal(decision.status, 'REJECTED');
   assert.match(decision.reason, /Identite/i);
 });
 

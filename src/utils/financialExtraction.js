@@ -144,8 +144,9 @@ function pickBestDocumentNetIncome({ documentType, financialData, extractedData 
 function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } = {}) {
   const documents = Array.isArray(application?.documents) ? application.documents : [];
   const incomeDocs = documents.filter((document) => {
-    const type = normalizeDocumentType(document?.type || document?.aiAnalysis?.documentType);
-    if (document?.subjectType && document.subjectType !== 'tenant') return false;
+    const ai = document?.aiAnalysis || {};
+    const type = normalizeDocumentType(document?.type || ai?.documentType || ai?.document_metadata?.type);
+    if (document?.subjectType && document.subjectType !== 'TENANT') return false;
     return [
       'BULLETIN_SALAIRE',
       'AVIS_IMPOSITION',
@@ -163,11 +164,12 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
   const contractDocs = [];
 
   incomeDocs.forEach((document) => {
-    const type = normalizeDocumentType(document?.type || document?.aiAnalysis?.documentType);
+    const ai = document?.aiAnalysis || {};
+    const type = normalizeDocumentType(document?.type || ai?.documentType || ai?.document_metadata?.type);
     const resolved = pickBestDocumentNetIncome({
       documentType: type,
-      financialData: document?.aiAnalysis?.financial_data,
-      extractedData: document?.aiAnalysis?.extractedData,
+      financialData: ai?.financial_data || ai?.financialData,
+      extractedData: ai?.extractedData || ai?.extracted_data,
     });
 
     if (!resolved.amount || resolved.amount <= 0) return;
@@ -175,7 +177,7 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
     const payload = {
       amount: resolved.amount,
       date: document?.dateEmission || document?.uploadedAt || null,
-      status: String(document?.status || 'pending'),
+      status: String(document?.status || 'PENDING'),
       type,
     };
 
@@ -192,20 +194,20 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
     }
   });
 
-  const certifiedSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status === 'certified')).slice(0, 3);
-  const reviewSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status !== 'certified')).slice(0, 3);
+  const certifiedSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status === 'CERTIFIED')).slice(0, 3);
+  const reviewSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status !== 'CERTIFIED')).slice(0, 3);
   const chosenSalaryDocs = certifiedSalaryDocs.length > 0 ? certifiedSalaryDocs : reviewSalaryDocs;
   const monthlySalaryNet = average(chosenSalaryDocs.map((document) => document.amount));
 
-  const certifiedPension = sortByRecentDate(pensionDocs.filter((document) => document.status === 'certified'))[0];
+  const certifiedPension = sortByRecentDate(pensionDocs.filter((document) => document.status === 'CERTIFIED'))[0];
   const fallbackPension = sortByRecentDate(pensionDocs)[0];
   const pensionNet = certifiedPension?.amount || fallbackPension?.amount || 0;
 
-  const certifiedContract = sortByRecentDate(contractDocs.filter((document) => document.status === 'certified'))[0];
+  const certifiedContract = sortByRecentDate(contractDocs.filter((document) => document.status === 'CERTIFIED'))[0];
   const fallbackContract = sortByRecentDate(contractDocs)[0];
   const contractNet = certifiedContract?.amount || fallbackContract?.amount || 0;
 
-  const certifiedTax = sortByRecentDate(taxDocs.filter((document) => document.status === 'certified'))[0];
+  const certifiedTax = sortByRecentDate(taxDocs.filter((document) => document.status === 'CERTIFIED'))[0];
   const fallbackTax = sortByRecentDate(taxDocs)[0];
   const taxMonthlyEquivalent = certifiedTax?.amount || fallbackTax?.amount || 0;
 
@@ -231,7 +233,7 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
       certifiedPension ||
       certifiedContract ||
       certifiedTax ||
-      benefitDocs.some((document) => document.status === 'certified')
+      benefitDocs.some((document) => document.status === 'CERTIFIED')
   );
 
   let incomeSource = 'UNVERIFIED';

@@ -48,22 +48,17 @@ const ApplicationSchema = new mongoose.Schema({
   // Documents uploadés et analysés
   documents: [{
     id: { type: String },
-    category: { type: String, enum: ['identity', 'income', 'address', 'guarantor'] },
-    subjectType: { type: String, enum: ['tenant', 'guarantor', 'visale'], default: 'tenant' },
+    category: { type: String, enum: ['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR'] },
+    subjectType: { type: String, enum: ['TENANT', 'GUARANTOR', 'VISALE'], default: 'TENANT' },
     subjectSlot: { type: Number, enum: [1, 2] },
     type: { type: String }, // BULLETIN_SALAIRE, AVIS_IMPOSITION, etc.
     fileName: { type: String },
     fileUrl: { type: String },
-    status: { type: String, enum: ['pending', 'analyzing', 'certified', 'flagged', 'rejected', 'illegible', 'needs_review'], default: 'pending' },
+    status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' },
     uploadedAt: { type: Date, default: Date.now },
     
-    // Analyse IA
-    aiAnalysis: {
-      documentMetadata: mongoose.Schema.Types.Mixed,
-      financialData: mongoose.Schema.Types.Mixed,
-      trustAndSecurity: mongoose.Schema.Types.Mixed,
-      aiAdvice: mongoose.Schema.Types.Mixed,
-    },
+    // Analyse IA (Mixed pour accepter snake_case et camelCase)
+    aiAnalysis: { type: mongoose.Schema.Types.Mixed, default: null },
   }],
   
   // Données financières agrégées

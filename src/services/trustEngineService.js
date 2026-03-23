@@ -43,9 +43,9 @@ function calculatePatrimoTrustScore(applicationData = {}) {
   else if (contractType === 'FREELANCE' || contractType === 'INDEPENDANT') stabilityScore = 40;
 
   let integrityScore = 80;
-  if (applicationData.metadataStatus === 'flagged' || applicationData.idValidation === false) {
+  if (applicationData.metadataStatus === 'FLAGGED' || applicationData.idValidation === false) {
     integrityScore = 0;
-  } else if (applicationData.metadataStatus === 'warning') {
+  } else if (applicationData.metadataStatus === 'WARNING' || applicationData.metadataStatus === 'warning') {
     integrityScore = 60;
   } else if (applicationData.idValidation === true) {
     integrityScore = 100;

@@ -28,11 +28,11 @@ const COMPILED_DIR = path.join(uploadsDir, 'leases', 'compiled');
 fs.mkdirSync(COMPILED_DIR, { recursive: true });
 
 const TEMPLATE_MAP = {
-  vide: 'Modele_Bail_Type_Location_Vide_loi_ALUR_template.docx',
-  meuble: 'Modele_Bail_Type_Location_Meublee_loi_Alur_template.docx',
-  mobilite: 'Modele_type_bail_mobilite_template.docx',
-  garage_parking: 'Modele_Bail_Location_Garage_Parking_template.docx',
-  guarantee: 'acte_caution_solidaire_template.docx',
+  VIDE: 'Modele_Bail_Type_Location_Vide_loi_ALUR_template.docx',
+  MEUBLE: 'Modele_Bail_Type_Location_Meublee_loi_Alur_template.docx',
+  MOBILITE: 'Modele_type_bail_mobilite_template.docx',
+  GARAGE_PARKING: 'Modele_Bail_Location_Garage_Parking_template.docx',
+  GUARANTEE: 'acte_caution_solidaire_template.docx',
 };
 
 function sanitizeFileSegment(value) {
@@ -374,9 +374,9 @@ async function prepareLeaseCompilation({
   const leaseType = deriveLeaseType(property, formData.leaseType);
   const documentPlan = [
     {
-      kind: 'lease',
-      templateName: TEMPLATE_MAP[leaseType] || TEMPLATE_MAP.vide,
-      title: `Bail ${leaseType}`,
+      kind: 'LEASE',
+      templateName: TEMPLATE_MAP[leaseType] || TEMPLATE_MAP.VIDE,
+      title: `Bail ${leaseType.toLowerCase()}`,
     },
   ];
 
@@ -385,8 +385,8 @@ async function prepareLeaseCompilation({
     ...((formData && formData.guarantorOverrides) || {}),
   })) {
     documentPlan.push({
-      kind: 'guarantee',
-      templateName: TEMPLATE_MAP.guarantee,
+      kind: 'GUARANTEE',
+      templateName: TEMPLATE_MAP.GUARANTEE,
       title: 'Acte de caution solidaire',
     });
   }
@@ -401,7 +401,7 @@ async function prepareLeaseCompilation({
   );
 
   const signerRoles = ['tenant', 'owner'];
-  if (documentPlan.some((document) => document.kind === 'guarantee')) {
+  if (documentPlan.some((document) => document.kind === 'GUARANTEE')) {
     signerRoles.splice(1, 0, 'guarantor');
   }
 
@@ -417,7 +417,7 @@ async function prepareLeaseCompilation({
     warnings,
     compileMeta: {
       leaseType,
-      hasGuarantee: documentPlan.some((document) => document.kind === 'guarantee'),
+      hasGuarantee: documentPlan.some((document) => document.kind === 'GUARANTEE'),
       signerRoles,
       warnings,
     },

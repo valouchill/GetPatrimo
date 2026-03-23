@@ -19,7 +19,7 @@ const LeaseSchema = new mongoose.Schema({
   chargesAmount: { type: Number, default: 0 },
   depositAmount: { type: Number, default: 0 },
   propertyType: { type: String, enum: ['MEUBLE', 'NU', 'MOBILITE', 'GARAGE_PARKING'], default: 'NU' },
-  leaseType: { type: String, enum: ['vide', 'meuble', 'mobilite', 'garage_parking'], default: 'vide' },
+  leaseType: { type: String, enum: ['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'], default: 'VIDE' },
   paymentDay: { type: Number, default: 5 },
   durationMonths: { type: Number, default: 12 },
   additionalClauses: { type: String, default: '' },
@@ -49,12 +49,9 @@ const LeaseSchema = new mongoose.Schema({
   
   // OpenSign - Signature électronique
   opensignDocumentId: { type: String }, // ID du document dans OpenSign
-  opensignStatus: { 
-    type: String, 
-    enum: {
-      values: ['pending', 'signed', 'completed', 'expired', 'declined'],
-      message: 'opensignStatus doit être pending, signed, completed, expired ou declined'
-    },
+  opensignStatus: {
+    type: String,
+    enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'],
     required: false
   },
   opensignSigningLinks: {
@@ -65,12 +62,12 @@ const LeaseSchema = new mongoose.Schema({
   opensignCompletedAt: { type: Date },
   signedPdfPath: { type: String }, // Chemin vers le PDF final certifié
   opensignDocuments: [{
-    kind: { type: String, enum: ['lease', 'guarantee'] },
+    kind: { type: String, enum: ['LEASE', 'GUARANTEE'] },
     documentId: { type: String },
     status: {
       type: String,
-      enum: ['pending', 'signed', 'completed', 'expired', 'declined'],
-      default: 'pending',
+      enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'],
+      default: 'PENDING',
     },
     signingLinks: {
       tenant: { type: String },
@@ -106,7 +103,7 @@ const LeaseSchema = new mongoose.Schema({
   annexesPdfPath: { type: String }, // PDF des annexes DDT
   edlPdfPath: { type: String },
   generatedDocuments: [{
-    kind: { type: String, enum: ['lease', 'guarantee'] },
+    kind: { type: String, enum: ['LEASE', 'GUARANTEE'] },
     template: { type: String },
     fileName: { type: String },
     mimeType: { type: String },

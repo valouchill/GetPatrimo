@@ -19,9 +19,10 @@ function sanitizeFileSegment(value) {
 }
 
 function mapLegacyPropertyType(leaseType) {
-  if (leaseType === 'meuble') return 'MEUBLE';
-  if (leaseType === 'mobilite') return 'MOBILITE';
-  if (leaseType === 'garage_parking') return 'GARAGE_PARKING';
+  // Accepte aussi bien les anciennes valeurs lowercase que les nouvelles UPPER_SNAKE_CASE
+  if (leaseType === 'MEUBLE' || leaseType === 'meuble') return 'MEUBLE';
+  if (leaseType === 'MOBILITE' || leaseType === 'mobilite') return 'MOBILITE';
+  if (leaseType === 'GARAGE_PARKING' || leaseType === 'garage_parking') return 'GARAGE_PARKING';
   return 'NU';
 }
 
@@ -58,17 +59,17 @@ function mapGeneratedDocuments(documents) {
 }
 
 function getPrimaryLeaseDocument(documents) {
-  return documents.find((document) => document.kind === 'lease') || documents[0] || null;
+  return documents.find((document) => document.kind === 'LEASE') || documents[0] || null;
 }
 
 function getSignatureSummary(statuses) {
   const values = statuses.map((item) => item.status);
   if (values.length === 0) return null;
-  if (values.includes('declined')) return 'declined';
-  if (values.includes('expired')) return 'expired';
-  if (values.every((status) => status === 'completed')) return 'completed';
-  if (values.includes('signed') || values.includes('completed')) return 'signed';
-  return 'pending';
+  if (values.includes('DECLINED')) return 'DECLINED';
+  if (values.includes('EXPIRED')) return 'EXPIRED';
+  if (values.every((status) => status === 'COMPLETED')) return 'COMPLETED';
+  if (values.includes('SIGNED') || values.includes('COMPLETED')) return 'SIGNED';
+  return 'PENDING';
 }
 
 /**
@@ -640,7 +641,7 @@ async function launchElectronicSignature(req, res) {
       parties,
       documents: compiled.documents,
     });
-    const primaryDocument = opensignResult.documents.find((document) => document.kind === 'lease') || opensignResult.documents[0];
+    const primaryDocument = opensignResult.documents.find((document) => document.kind === 'LEASE') || opensignResult.documents[0];
 
     // Met à jour le bail avec les informations OpenSign
     lease.generatedDocuments = mapGeneratedDocuments(compiled.documents);
@@ -653,7 +654,7 @@ async function launchElectronicSignature(req, res) {
       completedAt: document.completedAt,
     }));
     lease.opensignDocumentId = primaryDocument?.documentId;
-    lease.opensignStatus = primaryDocument?.status || 'pending';
+    lease.opensignStatus = primaryDocument?.status || 'PENDING';
     lease.opensignSigningLinks = primaryDocument?.signingLinks || {};
     lease.signatureStatus = 'PENDING';
     await lease.save();
@@ -750,7 +751,7 @@ async function getSignatureStatus(req, res) {
     const trackedDocuments = (lease.opensignDocuments || []).length
       ? lease.opensignDocuments
       : lease.opensignDocumentId
-        ? [{ kind: 'lease', documentId: lease.opensignDocumentId, status: lease.opensignStatus }]
+        ? [{ kind: 'LEASE', documentId: lease.opensignDocumentId, status: lease.opensignStatus }]
         : [];
 
     if (!trackedDocuments.length) {
@@ -767,7 +768,7 @@ async function getSignatureStatus(req, res) {
     for (const document of trackedDocuments) {
       const status = await getDocumentStatus(document.documentId);
       statuses.push({
-        kind: document.kind || 'lease',
+        kind: document.kind || 'LEASE',
         documentId: document.documentId,
         status: status.status,
         signers: status.signers,

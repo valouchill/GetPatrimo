@@ -121,16 +121,16 @@ function applySoftFallbacks(data, templateVariables = []) {
 }
 
 const WARNING_RULES = [
-  { label: 'Surface habitable', keys: ['surface_habitable_m2', 'surface_totale_m2'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Classe DPE', keys: ['dpe_classe'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Date DPE', keys: ['date_dpe'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Montant du dernier loyer', keys: ['dernier_loyer_infos'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Nombre de pieces principales', keys: ['nb_pieces_principales'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Identifiant fiscal du logement', keys: ['logement_id_fiscal'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
-  { label: 'Periode de construction', keys: ['periode_construction', 'annee_construction'], leaseTypes: ['vide', 'meuble', 'mobilite'] },
+  { label: 'Surface habitable', keys: ['surface_habitable_m2', 'surface_totale_m2'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Classe DPE', keys: ['dpe_classe'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Date DPE', keys: ['date_dpe'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Montant du dernier loyer', keys: ['dernier_loyer_infos'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Nombre de pieces principales', keys: ['nb_pieces_principales'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Identifiant fiscal du logement', keys: ['logement_id_fiscal'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Periode de construction', keys: ['periode_construction', 'annee_construction'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
 ];
 
-function collectLeaseWarnings(rawData, templateVariables = [], leaseType = 'vide') {
+function collectLeaseWarnings(rawData, templateVariables = [], leaseType = 'VIDE') {
   const warnings = [];
 
   for (const rule of WARNING_RULES) {
@@ -199,7 +199,7 @@ function normalizeProperty(property, formData) {
   const deposit = Number(firstNonEmpty(formData?.deposit, formData?.depositAmount, computeSmartDeposit(leaseType, rentHC))) || 0;
   const startDate = firstNonEmpty(formData?.startDate, formData?.dateEffet, property?.startDate);
   const endDate = firstNonEmpty(formData?.endDate, formData?.dateFin, property?.endDate);
-  const durationMonths = Number(firstNonEmpty(formData?.durationMonths, formData?.dureeBailMois, leaseType === 'mobilite' ? 10 : 12)) || 0;
+  const durationMonths = Number(firstNonEmpty(formData?.durationMonths, formData?.dureeBailMois, leaseType === 'MOBILITE' ? 10 : 12)) || 0;
   const paymentDay = Number(firstNonEmpty(formData?.paymentDay, 5)) || 5;
   const constructionYear = firstNonEmpty(property?.constructionYear, property?.yearBuilt, property?.builtYear, formData?.constructionYear);
   const habitatType = firstNonEmpty(formData?.typeHabitat, property?.habitatType, 'collectif');
@@ -302,7 +302,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
   const normalizedTenant = normalizeTenant(tenant);
   const normalizedLandlord = normalizeLandlord(landlord, formData);
   const normalizedGuarantor = normalizeGuarantor(tenant, formData);
-  const leaseType = normalizeLeaseType(normalizedProperty.leaseType) || 'vide';
+  const leaseType = normalizeLeaseType(normalizedProperty.leaseType) || 'VIDE';
   const totalMonthly = normalizedProperty.rentHC + normalizedProperty.charges;
   const commitmentBase = totalMonthly * Math.max(normalizedProperty.durationMonths || 12, 1);
   const firstPaymentDate = new Date(normalizedProperty.startDate || new Date());
@@ -422,7 +422,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     premiere_echeance_totale: formatDate(firstPaymentDate),
     premiere_echeance_assurance_coloc: formatDate(firstPaymentDate),
     premiere_echeance_contribution: formatDate(firstPaymentDate),
-    preavis_non_renouvellement_mois: leaseType === 'garage_parking' ? '1' : '3',
+    preavis_non_renouvellement_mois: leaseType === 'GARAGE_PARKING' ? '1' : '3',
     regime_juridique: String(normalizedProperty.legalRegime || ''),
     soumis_decret_relocation: String(formData.soumisDecretRelocation || ''),
     soumis_loyer_reference_majore: String(formData.soumisLoyerReferenceMajore || ''),
@@ -469,13 +469,13 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     coche_societe_civile_non: checkbox(!Boolean(formData.isSocieteCivile)),
     coche_mandataire_oui: checkbox(Boolean(formData.hasMandataire)),
     coche_mandataire_non: checkbox(!Boolean(formData.hasMandataire)),
-    coche_duree_3_ans: checkbox(!normalizedLandlord.isCompany && leaseType === 'vide'),
-    coche_duree_6_ans: checkbox(normalizedLandlord.isCompany && leaseType === 'vide'),
-    coche_duree_reduite: checkbox(leaseType === 'mobilite' || Boolean(formData.dureeReduite)),
-    coche_provision_charges: checkbox(normalizedProperty.charges > 0 && leaseType !== 'mobilite'),
-    coche_charges_provisionnelles: checkbox(normalizedProperty.charges > 0 && leaseType !== 'mobilite'),
+    coche_duree_3_ans: checkbox(!normalizedLandlord.isCompany && leaseType === 'VIDE'),
+    coche_duree_6_ans: checkbox(normalizedLandlord.isCompany && leaseType === 'VIDE'),
+    coche_duree_reduite: checkbox(leaseType === 'MOBILITE' || Boolean(formData.dureeReduite)),
+    coche_provision_charges: checkbox(normalizedProperty.charges > 0 && leaseType !== 'MOBILITE'),
+    coche_charges_provisionnelles: checkbox(normalizedProperty.charges > 0 && leaseType !== 'MOBILITE'),
     coche_charges_sans_provision: checkbox(normalizedProperty.charges === 0),
-    coche_forfait_charges: checkbox(leaseType === 'meuble' || leaseType === 'mobilite'),
+    coche_forfait_charges: checkbox(leaseType === 'MEUBLE' || leaseType === 'MOBILITE'),
     coche_assurance_coloc_oui: checkbox(Boolean(formData.assuranceColocObligatoire)),
     coche_assurance_coloc_non: checkbox(!Boolean(formData.assuranceColocObligatoire)),
     coche_paiement_a_echoir: checkbox(!Boolean(formData.paymentInArrears)),
@@ -501,8 +501,8 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     coche_jardin: checkbox(Boolean(formData.garden)),
     coche_loggia: checkbox(Boolean(formData.loggia)),
     coche_cave: checkbox(Boolean(formData.caveNumero)),
-    coche_garage: checkbox(leaseType === 'garage_parking' || Boolean(formData.garageNumero)),
-    coche_parking: checkbox(leaseType === 'garage_parking' || Boolean(formData.parkingNumber)),
+    coche_garage: checkbox(leaseType === 'GARAGE_PARKING' || Boolean(formData.garageNumero)),
+    coche_parking: checkbox(leaseType === 'GARAGE_PARKING' || Boolean(formData.parkingNumber)),
     coche_garage_velo: checkbox(Boolean(formData.garageVelo)),
     coche_grenier: checkbox(Boolean(formData.grenier)),
     coche_comble: checkbox(Boolean(formData.comble)),
@@ -540,7 +540,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
 
 function buildLeaseArtifacts(property, tenant, landlord, formData = {}, templateVariables = []) {
   const rawData = buildLeaseData(property, tenant, landlord, formData);
-  const leaseType = normalizeLeaseType(deriveLeaseType(property, formData?.leaseType)) || 'vide';
+  const leaseType = normalizeLeaseType(deriveLeaseType(property, formData?.leaseType)) || 'VIDE';
   const mergeData = applySoftFallbacks(rawData, templateVariables);
   const warnings = collectLeaseWarnings(rawData, templateVariables, leaseType);
 

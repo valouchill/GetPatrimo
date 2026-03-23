@@ -5,11 +5,11 @@ const { computeApplicationPatrimometer } = require('../src/utils/applicationScor
 
 function buildDoc({
   id,
-  category = 'income',
-  subjectType = 'tenant',
+  category = 'INCOME',
+  subjectType = 'TENANT',
   subjectSlot,
   type,
-  status = 'certified',
+  status = 'CERTIFIED',
   fileName,
   dateEmission,
   flagged = false,
@@ -44,17 +44,17 @@ test('Visale compatible fills the full guarantee block', () => {
       },
     },
     documents: [
-      buildDoc({ id: 'id', category: 'identity', type: 'CARTE_IDENTITE' }),
+      buildDoc({ id: 'id', category: 'IDENTITY', type: 'CARTE_IDENTITE' }),
       buildDoc({ id: 'salary-1', type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
       buildDoc({ id: 'salary-2', type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
       buildDoc({ id: 'salary-3', type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
       buildDoc({ id: 'tax', type: 'AVIS_IMPOSITION' }),
       buildDoc({ id: 'employment', type: 'ATTESTATION_EMPLOYEUR', fileName: 'attestation_employeur.pdf', dateEmission: '2026-03-01' }),
-      buildDoc({ id: 'home', category: 'address', type: 'JUSTIFICATIF_DOMICILE' }),
+      buildDoc({ id: 'home', category: 'ADDRESS', type: 'JUSTIFICATIF_DOMICILE' }),
       buildDoc({
         id: 'visale',
-        category: 'income',
-        subjectType: 'visale',
+        category: 'INCOME',
+        subjectType: 'VISALE',
         type: 'CERTIFICAT_VISALE',
         aiAnalysis: {
           trust_and_security: {
@@ -92,18 +92,18 @@ test('Two physical guarantors aggregate the best sub-blocks with a 30-point cap'
       ],
     },
     documents: [
-      buildDoc({ id: 'id', category: 'identity', type: 'CARTE_IDENTITE' }),
+      buildDoc({ id: 'id', category: 'IDENTITY', type: 'CARTE_IDENTITE' }),
       buildDoc({ id: 'student', type: 'ATTESTATION_BOURSE', fileName: 'bourse.pdf' }),
       buildDoc({ id: 'school', type: 'CONTRAT_TRAVAIL', fileName: 'certificat_scolarite.pdf' }),
-      buildDoc({ id: 'home', category: 'address', type: 'JUSTIFICATIF_DOMICILE' }),
-      buildDoc({ id: 'g1-id', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 1, type: 'CARTE_IDENTITE' }),
-      buildDoc({ id: 'g1-salary-1', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
-      buildDoc({ id: 'g1-salary-2', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
-      buildDoc({ id: 'g1-salary-3', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
-      buildDoc({ id: 'g1-tax', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 1, type: 'AVIS_IMPOSITION' }),
-      buildDoc({ id: 'g2-home', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 2, type: 'JUSTIFICATIF_DOMICILE' }),
-      buildDoc({ id: 'g2-pension', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 2, type: 'PENSION', fileName: 'attestation_retraite.pdf' }),
-      buildDoc({ id: 'g2-tax', category: 'guarantor', subjectType: 'guarantor', subjectSlot: 2, type: 'AVIS_IMPOSITION' }),
+      buildDoc({ id: 'home', category: 'ADDRESS', type: 'JUSTIFICATIF_DOMICILE' }),
+      buildDoc({ id: 'g1-id', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 1, type: 'CARTE_IDENTITE' }),
+      buildDoc({ id: 'g1-salary-1', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
+      buildDoc({ id: 'g1-salary-2', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
+      buildDoc({ id: 'g1-salary-3', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 1, type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
+      buildDoc({ id: 'g1-tax', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 1, type: 'AVIS_IMPOSITION' }),
+      buildDoc({ id: 'g2-home', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 2, type: 'JUSTIFICATIF_DOMICILE' }),
+      buildDoc({ id: 'g2-pension', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 2, type: 'PENSION', fileName: 'attestation_retraite.pdf' }),
+      buildDoc({ id: 'g2-tax', category: 'GUARANTOR', subjectType: 'GUARANTOR', subjectSlot: 2, type: 'AVIS_IMPOSITION' }),
     ],
   });
 
@@ -120,13 +120,13 @@ test('Legacy guarantor state infers physical mode even before migration', () => 
     diditStatus: 'verified',
     detectedIncome: 3500,
     documents: [
-      buildDoc({ id: 'id', category: 'identity', type: 'CARTE_IDENTITE' }),
+      buildDoc({ id: 'id', category: 'IDENTITY', type: 'CARTE_IDENTITE' }),
       buildDoc({ id: 'salary-1', type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
       buildDoc({ id: 'salary-2', type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
       buildDoc({ id: 'salary-3', type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
       buildDoc({ id: 'tax', type: 'AVIS_IMPOSITION' }),
       buildDoc({ id: 'employment', type: 'ATTESTATION_EMPLOYEUR', fileName: 'attestation_employeur.pdf', dateEmission: '2026-03-01' }),
-      buildDoc({ id: 'home', category: 'address', type: 'JUSTIFICATIF_DOMICILE' }),
+      buildDoc({ id: 'home', category: 'ADDRESS', type: 'JUSTIFICATIF_DOMICILE' }),
     ],
     legacyGuarantor: {
       hasGuarantor: true,
@@ -149,13 +149,13 @@ test('No guarantor remains a first-class mode for a strong tenant dossier', () =
       mode: 'NONE',
     },
     documents: [
-      buildDoc({ id: 'id', category: 'identity', type: 'CARTE_IDENTITE' }),
+      buildDoc({ id: 'id', category: 'IDENTITY', type: 'CARTE_IDENTITE' }),
       buildDoc({ id: 'salary-1', type: 'BULLETIN_SALAIRE', dateEmission: '2026-02-28' }),
       buildDoc({ id: 'salary-2', type: 'BULLETIN_SALAIRE', dateEmission: '2026-01-28' }),
       buildDoc({ id: 'salary-3', type: 'BULLETIN_SALAIRE', dateEmission: '2025-12-28' }),
       buildDoc({ id: 'tax', type: 'AVIS_IMPOSITION' }),
       buildDoc({ id: 'employment', type: 'ATTESTATION_EMPLOYEUR', fileName: 'attestation_employeur.pdf', dateEmission: '2026-03-01' }),
-      buildDoc({ id: 'home', category: 'address', type: 'JUSTIFICATIF_DOMICILE' }),
+      buildDoc({ id: 'home', category: 'ADDRESS', type: 'JUSTIFICATIF_DOMICILE' }),
     ],
   });
 

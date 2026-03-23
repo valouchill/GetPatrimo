@@ -2271,7 +2271,7 @@
           c.status === 'ACCEPTED' || c.status === 'SELECTED_FOR_LEASE'
         );
         const hasLease = !!prop.currentLease;
-        const leaseSigned = prop.currentLease?.opensignStatus === 'completed';
+        const leaseSigned = prop.currentLease?.opensignStatus === 'COMPLETED';
         let journeyActiveIndex = 1; // DIFFUSION
         if(prop.status === 'OCCUPIED' || leaseSigned){
           journeyActiveIndex = 4; // REMISE DES CLÉS
@@ -2444,10 +2444,10 @@
       
       if(currentLease) {
         // Étape 5 : Signature (OpenSign lancé)
-        if(currentLease.opensignStatus === 'completed') {
+        if(currentLease.opensignStatus === 'COMPLETED') {
           currentStep = 5;
           journeyStatus = 'completed';
-        } else if(currentLease.opensignStatus && currentLease.opensignStatus !== 'completed') {
+        } else if(currentLease.opensignStatus && currentLease.opensignStatus !== 'COMPLETED') {
           currentStep = 5;
           journeyStatus = 'signature';
         }

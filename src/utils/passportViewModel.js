@@ -158,32 +158,32 @@ function getBaseUrl(value) {
 }
 
 function getDocStatus(doc) {
-  if (!doc) return 'pending';
-  if (doc.flagged) return 'needs_review';
-  return doc.status || 'pending';
+  if (!doc) return 'PENDING';
+  if (doc.flagged) return 'NEEDS_REVIEW';
+  return doc.status || 'PENDING';
 }
 
 function isCertified(doc) {
-  return getDocStatus(doc) === 'certified' && !doc.flagged;
+  return getDocStatus(doc) === 'CERTIFIED' && !doc.flagged;
 }
 
 function isReview(doc) {
-  return getDocStatus(doc) === 'needs_review';
+  return getDocStatus(doc) === 'NEEDS_REVIEW';
 }
 
 function isRejected(doc) {
   const status = getDocStatus(doc);
-  return status === 'rejected' || status === 'illegible';
+  return status === 'REJECTED' || status === 'ILLEGIBLE';
 }
 
 function getDocumentSubject(doc) {
-  if (doc?.subjectType === 'guarantor' || doc?.category === 'guarantor') {
+  if (doc?.subjectType === 'GUARANTOR' || doc?.category === 'GUARANTOR') {
     return {
       subjectType: 'guarantor',
       subjectSlot: doc?.subjectSlot === 2 ? 2 : 1,
     };
   }
-  if (doc?.subjectType === 'visale' || inferEvidenceKind(doc) === 'visale') {
+  if (doc?.subjectType === 'VISALE' || inferEvidenceKind(doc) === 'visale') {
     return { subjectType: 'visale' };
   }
   return { subjectType: 'tenant' };
