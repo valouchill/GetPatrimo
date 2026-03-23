@@ -13,6 +13,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const mongoSanitize = require('express-mongo-sanitize');
 // Next.js désactivé - utilisation de pages statiques uniquement
 let nextApp = null;
 let handle = null;
@@ -70,6 +71,9 @@ app.use(cors({
   credentials: true,
   maxAge: 3600,
 }));
+
+// --- Securite : protection injection NoSQL ---
+app.use(mongoSanitize());
 
 // --- Performance : compression gzip/brotli ---
 app.use(compression());
