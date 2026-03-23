@@ -349,7 +349,45 @@ const candidatureStorage = multer.diskStorage({
     cb(null, 'candidat-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
   }
 });
-const candidatureUpload = multer({ storage: candidatureStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const candidatureUpload = multer({
+  storage: candidatureStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = ['application/pdf', 'image/png', 'image/jpeg'].includes(file.mimetype);
+    if(!ok) return cb(new Error('Type de fichier non autorisé'));
+    cb(null, true);
+  }
+});
+
+// --- Securite : validation magic bytes des fichiers uploadés ---
+const ALLOWED_MAGIC = {
+  'application/pdf': [0x25, 0x50, 0x44, 0x46], // %PDF
+  'image/png': [0x89, 0x50, 0x4E, 0x47],       // .PNG
+  'image/jpeg': [0xFF, 0xD8, 0xFF],             // JPEG SOI
+};
+
+async function validateFileMagicBytes(filePath, declaredMime) {
+  try {
+    const { fromFile } = require('file-type');
+    const detected = await fromFile(filePath);
+    if (!detected) {
+      // PDF files sometimes not detected by file-type; check magic bytes manually
+      const buf = Buffer.alloc(4);
+      const fd = fs.openSync(filePath, 'r');
+      fs.readSync(fd, buf, 0, 4, 0);
+      fs.closeSync(fd);
+      if (declaredMime === 'application/pdf' && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) {
+        return true;
+      }
+      return false;
+    }
+    // Check that detected MIME matches declared MIME
+    const declaredBase = declaredMime.split(';')[0].trim();
+    return detected.mime === declaredBase;
+  } catch {
+    return false;
+  }
+}
  
 // -------------------- Geo validation (optionnelle)
 async function validateFrenchCommune(zipCode, city){
@@ -865,7 +903,14 @@ app.post('/api/property-documents/upload/:propertyId', auth, docUpload.single('f
     const p = await Property.findOne({ _id: req.params.propertyId, user: req.user.id });
     if(!p) return res.status(404).json({ msg:'Bien introuvable' });
     if(!req.file) return res.status(400).json({ msg:'Fichier manquant' });
- 
+
+    // Valider les magic bytes du fichier
+    const magicOk = await validateFileMagicBytes(req.file.path, req.file.mimetype);
+    if (!magicOk) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ msg: 'Le contenu du fichier ne correspond pas au type déclaré' });
+    }
+
     const type = String((req.body && req.body.type) || 'autre');
     const doc = await Document.create({
       user: req.user.id,
@@ -877,7 +922,7 @@ app.post('/api/property-documents/upload/:propertyId', auth, docUpload.single('f
       size: req.file.size || 0,
       relPath: 'property-documents/' + req.file.filename
     });
- 
+
     const tt = await Tenant.findOne({ user: req.user.id, property: p._id });
     await logEvent(req.user.id, { property: p._id, tenant: tt?tt._id:null, type:'document_uploaded', meta:{ docType: type, name: doc.originalName } });
     return res.json(doc);
@@ -1163,6 +1208,17 @@ app.get('/api/public/property/:propertyId', async (req, res) => {
 // Pour simplifier, on importe directement les fonctions nécessaires
 app.post('/api/public/property/:propertyId/apply', candidatureUpload.array('documents', 10), async (req, res) => {
   try {
+    // Valider les magic bytes de chaque fichier uploadé
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) {
+        const ok = await validateFileMagicBytes(file.path, file.mimetype);
+        if (!ok) {
+          // Nettoyer tous les fichiers uploadés
+          for (const f of req.files) fs.unlink(f.path, () => {});
+          return res.status(400).json({ msg: 'Un fichier ne correspond pas au type déclaré' });
+        }
+      }
+    }
     // Import dynamique pour éviter les erreurs de dépendances circulaires
     const { submitCandidatureByPropertyId } = require('./src/controllers/publicController');
     return await submitCandidatureByPropertyId(req, res);
