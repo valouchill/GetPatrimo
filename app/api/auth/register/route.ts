@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { checkRateLimit } from '@/lib/rate-limit';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });
+    }
+
     const body = await req.json();
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');

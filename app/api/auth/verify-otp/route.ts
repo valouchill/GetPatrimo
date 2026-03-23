@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { checkRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 
 const User = require('@/models/User');
@@ -29,6 +30,12 @@ const OtpStore = (() => {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });
+    }
+
     const { email, otp, propertyData, passportSlug } = await request.json();
     const normalizedEmail = (email || '').trim().toLowerCase();
     const code = (otp || '').trim();

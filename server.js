@@ -1,5 +1,5 @@
 try { require('dotenv').config(); } catch (e) {}
- 
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -9,6 +9,10 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 // Next.js désactivé - utilisation de pages statiques uniquement
 let nextApp = null;
 let handle = null;
@@ -29,8 +33,59 @@ const Lead = require('./models/Lead');
 const Event = require('./models/Event');
  
 const app = express();
+
+// --- Securite : headers HTTP ---
+app.use(helmet({
+  contentSecurityPolicy: false, // desactive pour Next.js (gere ses propres CSP)
+  crossOriginEmbedderPolicy: false,
+}));
+
+// --- Securite : CORS ---
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://doc2loc.com,https://www.doc2loc.com').split(',').map(s => s.trim());
+app.use(cors({
+  origin: function (origin, callback) {
+    // Autoriser les requetes sans origin (mobile, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    callback(new Error('CORS non autorise'));
+  },
+  credentials: true,
+  maxAge: 3600,
+}));
+
+// --- Performance : compression gzip/brotli ---
+app.use(compression());
+
+// --- Securite : rate limiting global (20 req/min par IP) ---
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // 20 requetes par IP par minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requetes, reessayez plus tard.' },
+});
+app.use('/api/', globalLimiter);
+
+// --- Securite : rate limiting strict sur login (5 req/min) ---
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 tentatives par IP par minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives de connexion, reessayez dans 1 minute.' },
+});
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/register', loginLimiter);
+app.use('/api/auth/send-otp', loginLimiter);
+app.use('/api/auth/verify-otp', loginLimiter);
+
+// --- Logging minimal ---
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+  }
   next();
 });
 
@@ -88,7 +143,7 @@ app.use((req, res, next) => {
     return next(); // Skip express.json() pour les routes Next.js
   }
   
-  express.json()(req, res, next);
+  express.json({ limit: '10mb' })(req, res, next);
 });
 // Route explicite pour la contractualisation plein écran (fallback statique)
 app.get('/properties/:id/contract', (req, res) => {
