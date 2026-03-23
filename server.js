@@ -512,10 +512,15 @@ app.post('/api/auth/register', async (req,res)=>{
   try{
     const { email, password } = req.body || {};
     if(!email || !password) return res.status(400).json({ msg:'Champs manquants' });
- 
+
+    // Politique de mot de passe : min 8 caractères, 1 majuscule, 1 chiffre
+    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+      return res.status(400).json({ msg: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.' });
+    }
+
     const exists = await User.findOne({ email: String(email).toLowerCase().trim() });
     if(exists) return res.status(400).json({ msg:'Email déjà utilisé' });
- 
+
     const salt = await bcrypt.genSalt(10);
     const u = await User.create({ email: String(email).toLowerCase().trim(), password: await bcrypt.hash(password, salt) });
  

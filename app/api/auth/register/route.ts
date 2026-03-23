@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Email invalide' }, { status: 400 });
     }
-    if (password.length < 6) {
+    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
       return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 6 caractères' },
+        { error: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.' },
         { status: 400 }
       );
     }

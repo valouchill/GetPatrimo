@@ -49,5 +49,19 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Politique de mot de passe : min 8 caractères, 1 majuscule, 1 chiffre
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+UserSchema.pre('save', function(next) {
+  // Valider uniquement si le mot de passe est modifié et non vide (les comptes OTP/OAuth ont un mot de passe vide)
+  if (this.isModified('password') && this.password && this.password.length > 0) {
+    // Ne pas valider les mots de passe déjà hashés (bcrypt hashes commencent par $2)
+    if (!this.password.startsWith('$2') && !PASSWORD_REGEX.test(this.password)) {
+      return next(new Error('Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.'));
+    }
+  }
+  next();
+});
+
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.User || mongoose.model('User', UserSchema);
