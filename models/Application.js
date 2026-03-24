@@ -42,6 +42,55 @@ const NextActionSchema = new mongoose.Schema({
   target: { type: String, default: '' },
 }, { _id: false, strict: false });
 
+// --- Sous-documents logiques ---
+
+const ApplicantProfileSchema = new mongoose.Schema({
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  birthDate: { type: String, default: '' },
+  status: { type: String, default: 'Etudiant' },
+}, { _id: false });
+
+const ApplicantVerificationSchema = new mongoose.Schema({
+  sessionId: { type: String },
+  status: { type: String, enum: ['PENDING', 'VERIFIED', 'FAILED'], default: 'PENDING' },
+  verifiedAt: { type: Date },
+  identityData: {
+    firstName: { type: String },
+    lastName: { type: String },
+    birthDate: { type: String },
+  },
+}, { _id: false });
+
+const ApplicantDocumentSchema = new mongoose.Schema({
+  id: { type: String },
+  category: { type: String, enum: ['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR'] },
+  subjectType: { type: String, enum: ['TENANT', 'GUARANTOR', 'VISALE'], default: 'TENANT' },
+  subjectSlot: { type: Number, enum: [1, 2] },
+  type: { type: String },
+  fileName: { type: String },
+  fileUrl: { type: String },
+  status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' },
+  uploadedAt: { type: Date, default: Date.now },
+  aiAnalysis: { type: AiAnalysisSchema, default: null },
+}, { _id: false });
+
+const ApplicantScoringSchema = new mongoose.Schema({
+  score: { type: Number, default: 0, min: 0, max: 100 },
+  grade: { type: String, enum: ['F', 'E', 'D', 'C', 'B', 'A', 'SOUVERAIN'], default: 'F' },
+  badges: [{
+    id: { type: String },
+    label: { type: String },
+    earnedAt: { type: Date },
+  }],
+  breakdown: { type: BreakdownSchema, default: {} },
+  warnings: [{ type: String }],
+  nextAction: { type: NextActionSchema, default: null },
+  chapterStates: { type: Map, of: ChapterStateSchema, default: {} },
+  lastCalculatedAt: { type: Date },
+}, { _id: false });
+
 /**
  * Modèle Application - Dossier de candidature locataire
  * Stocke l'état complet du tunnel, les documents, l'analyse IA et le score
@@ -50,66 +99,38 @@ const ApplicationSchema = new mongoose.Schema({
   // Lien vers l'utilisateur authentifié (NextAuth)
   userId: { type: String, index: true },
   userEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
-  
+
   // Lien vers la propriété
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
   applyToken: { type: String, index: true },
-  
+
   // Informations personnelles
-  profile: {
-    firstName: { type: String, default: '' },
-    lastName: { type: String, default: '' },
-    phone: { type: String, default: '' },
-    birthDate: { type: String, default: '' },
-    status: { type: String, default: 'Etudiant' },
-  },
-  
+  profile: { type: ApplicantProfileSchema, default: () => ({}) },
+
   // État du tunnel
   tunnel: {
-    currentStep: { type: Number, default: 0 }, // 0-4 pour les 5 étapes
+    currentStep: { type: Number, default: 0 },
     completedSteps: [{ type: Number }],
     startedAt: { type: Date, default: Date.now },
     lastActiveAt: { type: Date, default: Date.now },
     completedAt: { type: Date },
-    progress: { type: Number, default: 0, min: 0, max: 100 }, // Pourcentage global
+    progress: { type: Number, default: 0, min: 0, max: 100 },
     chapterStates: { type: Map, of: ChapterStateSchema, default: {} },
   },
-  
+
   // Certification Didit
-  didit: {
-    sessionId: { type: String },
-    status: { type: String, enum: ['PENDING', 'VERIFIED', 'FAILED'], default: 'PENDING' },
-    verifiedAt: { type: Date },
-    identityData: {
-      firstName: { type: String },
-      lastName: { type: String },
-      birthDate: { type: String },
-    },
-  },
-  
+  didit: { type: ApplicantVerificationSchema, default: () => ({}) },
+
   // Documents uploadés et analysés
-  documents: [{
-    id: { type: String },
-    category: { type: String, enum: ['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR'] },
-    subjectType: { type: String, enum: ['TENANT', 'GUARANTOR', 'VISALE'], default: 'TENANT' },
-    subjectSlot: { type: Number, enum: [1, 2] },
-    type: { type: String }, // BULLETIN_SALAIRE, AVIS_IMPOSITION, etc.
-    fileName: { type: String },
-    fileUrl: { type: String },
-    status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' },
-    uploadedAt: { type: Date, default: Date.now },
-    
-    // Analyse IA
-    aiAnalysis: { type: AiAnalysisSchema, default: null },
-  }],
-  
+  documents: [ApplicantDocumentSchema],
+
   // Données financières agrégées
   financialSummary: {
     totalMonthlyIncome: { type: Number, default: 0, min: [0, 'Le revenu ne peut pas être négatif'] },
-    incomeSource: { type: String }, // SALARY, PENSION, STUDENT, etc.
+    incomeSource: { type: String },
     certifiedIncome: { type: Boolean, default: false },
   },
-  
+
   // Garant
   guarantor: {
     hasGuarantor: { type: Boolean, default: false },
@@ -119,30 +140,17 @@ const ApplicationSchema = new mongoose.Schema({
   },
 
   guarantee: { type: GuaranteeSchema, default: null },
-  
+
   // PatrimoMeter™ Score
-  patrimometer: {
-    score: { type: Number, default: 0, min: 0, max: 100 },
-    grade: { type: String, enum: ['F', 'E', 'D', 'C', 'B', 'A', 'SOUVERAIN'], default: 'F' },
-    badges: [{
-      id: { type: String },
-      label: { type: String },
-      earnedAt: { type: Date },
-    }],
-    breakdown: { type: BreakdownSchema, default: {} },
-    warnings: [{ type: String }],
-    nextAction: { type: NextActionSchema, default: null },
-    chapterStates: { type: Map, of: ChapterStateSchema, default: {} },
-    lastCalculatedAt: { type: Date },
-  },
-  
+  patrimometer: { type: ApplicantScoringSchema, default: () => ({}) },
+
   // Statut global
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['DRAFT', 'IN_PROGRESS', 'PENDING_REVIEW', 'COMPLETE', 'SUBMITTED', 'ACCEPTED', 'REJECTED'],
     default: 'DRAFT'
   },
-  
+
   // Coordonnées vérifiées
   contactVerified: {
     email: { type: Boolean, default: false },
