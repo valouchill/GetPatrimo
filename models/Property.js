@@ -59,8 +59,7 @@ const PropertySchema = new mongoose.Schema({
   stripeSubscriptionId: { type: String, default: '' },
   acceptedTenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', default: null },
 
-  createdAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
 function generatePrivilegeCode(address) {
   const zipMatch = (address || '').match(/\b(\d{5})\b/);

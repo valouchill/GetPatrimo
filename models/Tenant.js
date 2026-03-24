@@ -6,8 +6,7 @@ const TenantSchema = new mongoose.Schema({
   lastName: { type: String, required: true, trim: true },
   email: { type: String, required: true, trim: true, lowercase: true },
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
-  createdAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
 TenantSchema.index(
   { user: 1, property: 1 },

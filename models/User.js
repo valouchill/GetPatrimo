@@ -46,8 +46,7 @@ const UserSchema = new mongoose.Schema({
   magicSignInToken: { type: String, default: '' },
   magicSignInExpiresAt: { type: Date },
 
-  createdAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
 // Politique de mot de passe : min 8 caractères, 1 majuscule, 1 chiffre
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;

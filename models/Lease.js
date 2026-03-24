@@ -112,9 +112,7 @@ const LeaseSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
   }],
   
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
 // Validation: endDate > startDate
 LeaseSchema.pre('save', function(next) {
