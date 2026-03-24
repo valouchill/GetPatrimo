@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env
 *.bak
+*.BROKEN
 docker-compose.override.yml
 uploads/
 server.log
