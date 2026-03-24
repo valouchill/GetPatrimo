@@ -14,10 +14,10 @@ const PropertySchema = new mongoose.Schema({
   zipCode: { type: String, default: '' },
   city: { type: String, default: '' },
 
-  rentAmount: { type: Number, required: true },
-  chargesAmount: { type: Number, default: 0 },
+  rentAmount: { type: Number, required: [true, 'Le loyer est obligatoire'], min: [0, 'Le loyer ne peut pas être négatif'] },
+  chargesAmount: { type: Number, default: 0, min: [0, 'Les charges ne peuvent pas être négatives'] },
 
-  surfaceM2: { type: Number, default: null },
+  surfaceM2: { type: Number, default: null, min: [0, 'La surface ne peut pas être négative'] },
 
   applyToken: { type: String, default: '', unique: true, sparse: true },
 

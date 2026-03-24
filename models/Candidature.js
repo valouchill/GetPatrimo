@@ -32,7 +32,7 @@ const CandidatureSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   message: { type: String, default: '' },
 
-  monthlyNetIncome: { type: Number, default: 0 },
+  monthlyNetIncome: { type: Number, default: 0, min: [0, 'Le revenu ne peut pas être négatif'] },
   contractType: { type: String, default: '' },
   hasGuarantor: { type: Boolean, default: false },
   guarantorType: { type: String, default: '' },

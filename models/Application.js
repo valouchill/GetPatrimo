@@ -105,7 +105,7 @@ const ApplicationSchema = new mongoose.Schema({
   
   // Données financières agrégées
   financialSummary: {
-    totalMonthlyIncome: { type: Number, default: 0 },
+    totalMonthlyIncome: { type: Number, default: 0, min: [0, 'Le revenu ne peut pas être négatif'] },
     incomeSource: { type: String }, // SALARY, PENSION, STUDENT, etc.
     certifiedIncome: { type: Boolean, default: false },
   },

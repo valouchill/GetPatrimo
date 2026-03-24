@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, match: [/^\S+@\S+\.\S+$/, 'Email invalide'] },
   password: { type: String, default: '' }, // Optionnel pour OAuth
   
   // OAuth (optionnel, seulement pour les utilisateurs OAuth)
@@ -27,7 +27,7 @@ const UserSchema = new mongoose.Schema({
   address: { type: String, default: '' },
   zipCode: { type: String, default: '' },
   city: { type: String, default: '' },
-  phone: { type: String, default: '' },
+  phone: { type: String, default: '', validate: { validator: function(v) { return !v || /^\+?[0-9]{10,15}$/.test(v); }, message: 'Numéro de téléphone invalide' } },
 
   plan: { type: String, enum: ['FREE', 'PRO'], default: 'FREE' },
   credits: { type: Number, default: 0 },

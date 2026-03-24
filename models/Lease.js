@@ -13,15 +13,15 @@ const LeaseSchema = new mongoose.Schema({
   tenantPhone: { type: String, default: '' },
   
   // Informations bail
-  startDate: { type: Date, required: true },
+  startDate: { type: Date, required: [true, 'La date de début est obligatoire'] },
   endDate: { type: Date },
-  rentAmount: { type: Number, required: true },
-  chargesAmount: { type: Number, default: 0 },
-  depositAmount: { type: Number, default: 0 },
+  rentAmount: { type: Number, required: [true, 'Le loyer est obligatoire'], min: [0, 'Le loyer ne peut pas être négatif'] },
+  chargesAmount: { type: Number, default: 0, min: [0, 'Les charges ne peuvent pas être négatives'] },
+  depositAmount: { type: Number, default: 0, min: [0, 'Le dépôt ne peut pas être négatif'] },
   propertyType: { type: String, enum: ['MEUBLE', 'NU', 'MOBILITE', 'GARAGE_PARKING'], default: 'NU' },
   leaseType: { type: String, enum: ['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'], default: 'VIDE' },
-  paymentDay: { type: Number, default: 5 },
-  durationMonths: { type: Number, default: 12 },
+  paymentDay: { type: Number, default: 5, min: [1, 'Jour de paiement minimum 1'], max: [31, 'Jour de paiement maximum 31'] },
+  durationMonths: { type: Number, default: 12, min: [1, 'Durée minimum 1 mois'] },
   additionalClauses: { type: String, default: '' },
   
   // Informations garant (pour acte de cautionnement)
@@ -114,6 +114,14 @@ const LeaseSchema = new mongoose.Schema({
   
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+});
+
+// Validation: endDate > startDate
+LeaseSchema.pre('save', function(next) {
+  if (this.endDate && this.startDate && this.endDate <= this.startDate) {
+    return next(new Error('La date de fin doit être postérieure à la date de début.'));
+  }
+  next();
 });
 
 LeaseSchema.index({ user: 1, property: 1 });
