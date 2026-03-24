@@ -1,5 +1,47 @@
 const mongoose = require('mongoose');
 
+// --- Sous-schémas typés (remplacent Schema.Types.Mixed) ---
+
+const AiAnalysisSchema = new mongoose.Schema({
+  documentType: { type: String, default: '' },
+  confidence: { type: Number, default: 0, min: 0, max: 1 },
+  extractedFields: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+  flags: [{ type: String }],
+  summary: { type: String, default: '' },
+  fraudScore: { type: Number, default: 0 },
+}, { _id: false, strict: false });
+
+const GuaranteeSchema = new mongoose.Schema({
+  type: { type: String, default: '' },
+  guarantorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Guarantor' },
+  amount: { type: Number, default: 0 },
+  provider: { type: String, default: '' },
+  visaleNumber: { type: String, default: '' },
+}, { _id: false, strict: false });
+
+const BreakdownSchema = new mongoose.Schema({
+  loyer: { type: Number, default: 0 },
+  charges: { type: Number, default: 0 },
+  totalTTC: { type: Number, default: 0 },
+  identity: { type: Number, default: 0 },
+  income: { type: Number, default: 0 },
+  activity: { type: Number, default: 0 },
+  housing: { type: Number, default: 0 },
+  guarantor: { type: Number, default: 0 },
+}, { _id: false, strict: false });
+
+const ChapterStateSchema = new mongoose.Schema({
+  state: { type: String, default: '' },
+  ready: { type: Boolean, default: false },
+  completedAt: { type: Date },
+}, { _id: false, strict: false });
+
+const NextActionSchema = new mongoose.Schema({
+  type: { type: String, default: '' },
+  label: { type: String, default: '' },
+  target: { type: String, default: '' },
+}, { _id: false, strict: false });
+
 /**
  * Modèle Application - Dossier de candidature locataire
  * Stocke l'état complet du tunnel, les documents, l'analyse IA et le score
@@ -30,7 +72,7 @@ const ApplicationSchema = new mongoose.Schema({
     lastActiveAt: { type: Date, default: Date.now },
     completedAt: { type: Date },
     progress: { type: Number, default: 0, min: 0, max: 100 }, // Pourcentage global
-    chapterStates: { type: mongoose.Schema.Types.Mixed, default: {} },
+    chapterStates: { type: Map, of: ChapterStateSchema, default: {} },
   },
   
   // Certification Didit
@@ -57,8 +99,8 @@ const ApplicationSchema = new mongoose.Schema({
     status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' },
     uploadedAt: { type: Date, default: Date.now },
     
-    // Analyse IA (Mixed pour accepter snake_case et camelCase)
-    aiAnalysis: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Analyse IA
+    aiAnalysis: { type: AiAnalysisSchema, default: null },
   }],
   
   // Données financières agrégées
@@ -76,10 +118,7 @@ const ApplicationSchema = new mongoose.Schema({
     certificationMethod: { type: String, enum: ['DIDIT', 'AUDIT', 'VISALE'] },
   },
 
-  guarantee: {
-    type: mongoose.Schema.Types.Mixed,
-    default: null,
-  },
+  guarantee: { type: GuaranteeSchema, default: null },
   
   // PatrimoMeter™ Score
   patrimometer: {
@@ -90,10 +129,10 @@ const ApplicationSchema = new mongoose.Schema({
       label: { type: String },
       earnedAt: { type: Date },
     }],
-    breakdown: { type: mongoose.Schema.Types.Mixed, default: {} },
+    breakdown: { type: BreakdownSchema, default: {} },
     warnings: [{ type: String }],
-    nextAction: { type: mongoose.Schema.Types.Mixed, default: null },
-    chapterStates: { type: mongoose.Schema.Types.Mixed, default: {} },
+    nextAction: { type: NextActionSchema, default: null },
+    chapterStates: { type: Map, of: ChapterStateSchema, default: {} },
     lastCalculatedAt: { type: Date },
   },
   

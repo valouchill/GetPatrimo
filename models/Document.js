@@ -44,11 +44,10 @@ const DocumentSchema = new mongoose.Schema(
     documentDate: { type: Date }, // Date du document (ex: date du bulletin de salaire)
     expirationDate: { type: Date }, // Date d'expiration (pour pièce d'identité)
     metadata: {
-      type: {
-        documentType: String, // 'identity', 'income', 'employment', 'rent_receipt'
-        extractedData: mongoose.Schema.Types.Mixed // Données extraites par l'IA
-      },
-      default: {}
+      documentType: { type: String, default: '' },
+      extractedData: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+      expirationDate: { type: Date },
+      issuer: { type: String, default: '' },
     }
   },
   { timestamps: true }

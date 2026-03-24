@@ -4,7 +4,13 @@ const LeadSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, index: true },
     source: { type: String, default: 'landing', index: true },
-    utm: { type: Object, default: {} },
+    utm: {
+      source: { type: String, default: '' },
+      medium: { type: String, default: '' },
+      campaign: { type: String, default: '' },
+      term: { type: String, default: '' },
+      content: { type: String, default: '' },
+    },
     ip: { type: String, default: '' },
     userAgent: { type: String, default: '' }
   },
