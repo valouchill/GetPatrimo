@@ -54,5 +54,8 @@ const DocumentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index composé pour requêtes fréquentes
+DocumentSchema.index({ property: 1, type: 1 });
+
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Document || mongoose.model('Document', DocumentSchema);

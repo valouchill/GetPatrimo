@@ -84,5 +84,10 @@ const CandidatureSchema = new mongoose.Schema({
   rgpdPurgedAt: { type: Date }
 }, { timestamps: true });
 
+// Index sur clés étrangères et champs de filtre
+CandidatureSchema.index({ property: 1 });
+CandidatureSchema.index({ user: 1 });
+CandidatureSchema.index({ property: 1, status: 1 });
+
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Candidature || mongoose.model('Candidature', CandidatureSchema);

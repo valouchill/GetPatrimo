@@ -90,5 +90,11 @@ PropertySchema.pre('save', async function(next) {
   next();
 });
 
+// Index sur clés étrangères et champs de filtre
+PropertySchema.index({ user: 1 });
+PropertySchema.index({ status: 1 });
+PropertySchema.index({ user: 1, status: 1 });
+PropertySchema.index({ applyToken: 1 });
+
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Property || mongoose.model('Property', PropertySchema);

@@ -117,7 +117,9 @@ const LeaseSchema = new mongoose.Schema({
 });
 
 LeaseSchema.index({ user: 1, property: 1 });
+LeaseSchema.index({ property: 1 });
 LeaseSchema.index({ candidature: 1 });
+LeaseSchema.index({ applicationId: 1 });
 
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Lease || mongoose.model('Lease', LeaseSchema);

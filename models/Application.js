@@ -133,6 +133,8 @@ const ApplicationSchema = new mongoose.Schema({
 // Index pour recherche rapide
 ApplicationSchema.index({ userEmail: 1, applyToken: 1 });
 ApplicationSchema.index({ userId: 1, status: 1 });
+ApplicationSchema.index({ property: 1 });
+ApplicationSchema.index({ property: 1, status: 1 });
 ApplicationSchema.index({ 'tunnel.lastActiveAt': -1 });
 
 // Méthode pour calculer le grade basé sur le score

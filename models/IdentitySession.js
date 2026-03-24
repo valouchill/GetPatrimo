@@ -12,5 +12,7 @@ const IdentitySessionSchema = new mongoose.Schema({
   verifiedAt: { type: Date }
 }, { timestamps: true });
 
+IdentitySessionSchema.index({ applyToken: 1 });
+
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.IdentitySession || mongoose.model('IdentitySession', IdentitySessionSchema);
