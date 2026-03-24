@@ -7,23 +7,23 @@ const DocumentSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      default: 'autre',
+      default: 'AUTRE',
       index: true,
+      set: v => v ? v.toUpperCase() : v,
       validate: {
         validator: function(v) {
-          // Accepte tous les types de documents (plus flexible)
           const validTypes = [
             // Types généraux
-            'bail', 'etat_des_lieux', 'diagnostic', 'quittance', 'quittance_loyer', 'dossier_locataire', 'autre',
+            'BAIL', 'ETAT_DES_LIEUX', 'DIAGNOSTIC', 'QUITTANCE', 'QUITTANCE_LOYER', 'DOSSIER_LOCATAIRE', 'AUTRE',
             // Types de diagnostics spécifiques
-            'dpe', 'plomb', 'amiante', 'electricite', 'gaz', 'erp', 'boutin', 'annexes_techniques',
+            'DPE', 'PLOMB', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'BOUTIN', 'ANNEXES_TECHNIQUES',
             // Types documents locataire
-            'dossier_locataire_id', 'dossier_locataire_income', 'dossier_locataire_tax', 'dossier_locataire_address',
+            'DOSSIER_LOCATAIRE_ID', 'DOSSIER_LOCATAIRE_INCOME', 'DOSSIER_LOCATAIRE_TAX', 'DOSSIER_LOCATAIRE_ADDRESS',
             // Types pour le scoring PatrimoScore™
-            'piece_identite', 'cni', 'passeport', 'bulletin_salaire', 'avis_imposition', 'attestation_employeur', 'contrat_travail'
+            'PIECE_IDENTITE', 'CNI', 'PASSEPORT', 'BULLETIN_SALAIRE', 'AVIS_IMPOSITION', 'ATTESTATION_EMPLOYEUR', 'CONTRAT_TRAVAIL'
           ];
-          // Si le type commence par 'dossier_locataire_', on l'accepte aussi
-          return validTypes.includes(v) || v.startsWith('dossier_locataire_');
+          const upper = (v || '').toUpperCase();
+          return validTypes.includes(upper) || upper.startsWith('DOSSIER_LOCATAIRE_');
         },
         message: 'Type de document non valide'
       }

@@ -189,12 +189,12 @@ export default function ContractStudioClient({
     }));
 
     const typeMap: Record<string, string> = {
-      dpe: "dpe",
-      erp: "erp",
-      plomb: "plomb",
-      elec: "electricite",
-      gaz: "gaz",
-      boutin: "boutin",
+      dpe: "DPE",
+      erp: "ERP",
+      plomb: "PLOMB",
+      elec: "ELECTRICITE",
+      gaz: "GAZ",
+      boutin: "BOUTIN",
     };
 
     try {

@@ -44,12 +44,11 @@ function isCurrentOrPreviousMonth(date) {
  * Règle: Si date expiration < aujourd'hui, score = 0 (dossier bloqué)
  */
 function calculateIdentityBlock(documents) {
-  const identityDocs = documents.filter(doc => 
-    doc.type === 'piece_identite' || 
-    doc.type === 'cni' || 
-    doc.type === 'passeport' ||
-    (doc.metadata && doc.metadata.documentType === 'identity')
-  );
+  const identityDocs = documents.filter(doc => {
+    const t = (doc.type || '').toUpperCase();
+    return t === 'PIECE_IDENTITE' || t === 'CNI' || t === 'PASSEPORT' ||
+      (doc.metadata && doc.metadata.documentType === 'identity');
+  });
   
   if (identityDocs.length === 0) {
     return {
@@ -118,11 +117,11 @@ function calculateIdentityBlock(documents) {
  * Règle: Requiert 3 bulletins. Si le plus récent a > 2 mois, malus de -10 pts
  */
 function calculateIncomeBlock(documents) {
-  const paySlips = documents.filter(doc => 
-    doc.type === 'bulletin_salaire' || 
-    doc.type === 'avis_imposition' ||
-    (doc.metadata && doc.metadata.documentType === 'income')
-  );
+  const paySlips = documents.filter(doc => {
+    const t = (doc.type || '').toUpperCase();
+    return t === 'BULLETIN_SALAIRE' || t === 'AVIS_IMPOSITION' ||
+      (doc.metadata && doc.metadata.documentType === 'income');
+  });
   
   if (paySlips.length === 0) {
     return {
@@ -183,11 +182,11 @@ function calculateIncomeBlock(documents) {
  * Règle: Si attestation employeur > 1 mois: warning, si > 3 mois: score = 0
  */
 function calculateActivityBlock(documents) {
-  const employmentDocs = documents.filter(doc => 
-    doc.type === 'attestation_employeur' || 
-    doc.type === 'contrat_travail' ||
-    (doc.metadata && doc.metadata.documentType === 'employment')
-  );
+  const employmentDocs = documents.filter(doc => {
+    const t = (doc.type || '').toUpperCase();
+    return t === 'ATTESTATION_EMPLOYEUR' || t === 'CONTRAT_TRAVAIL' ||
+      (doc.metadata && doc.metadata.documentType === 'employment');
+  });
   
   if (employmentDocs.length === 0) {
     return {
@@ -240,11 +239,11 @@ function calculateActivityBlock(documents) {
  * Règle: Si la dernière quittance a plus de 2 mois, -5 pts
  */
 function calculateRentReceiptsMalus(documents) {
-  const receipts = documents.filter(doc => 
-    doc.type === 'quittance' || 
-    doc.type === 'quittance_loyer' ||
-    (doc.metadata && doc.metadata.documentType === 'rent_receipt')
-  );
+  const receipts = documents.filter(doc => {
+    const t = (doc.type || '').toUpperCase();
+    return t === 'QUITTANCE' || t === 'QUITTANCE_LOYER' ||
+      (doc.metadata && doc.metadata.documentType === 'rent_receipt');
+  });
   
   if (receipts.length === 0) {
     return {

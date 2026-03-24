@@ -32,12 +32,11 @@ const PropertySchema = new mongoose.Schema({
 
   // Diagnostics techniques obligatoires (DDT)
   diagnostics: [{
-    type: { 
-      type: String, 
-      enum: ['DPE', 'CREP', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'NOTICE_INFO', 'REGLEMENT_COPRO', 
-             'dpe', 'crep', 'amiante', 'electricite', 'gaz', 'erp', 'notice_info', 'reglement_copro',
-             'elec_gaz', 'ELEC_GAZ', 'plomb', 'PLOMB', 'boutin', 'BOUTIN'], 
-      required: true 
+    type: {
+      type: String,
+      enum: ['DPE', 'CREP', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'NOTICE_INFO', 'REGLEMENT_COPRO', 'ELEC_GAZ', 'PLOMB', 'BOUTIN'],
+      set: v => v ? v.toUpperCase() : v,
+      required: true
     },
     documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },
     uploadedAt: { type: Date, default: Date.now },
