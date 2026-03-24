@@ -40,7 +40,7 @@ function needsMigration(map, value) {
 
 // Mappings identiques à ceux du script de migration
 const LEASE_TYPE_MAP = { vide: 'VIDE', meuble: 'MEUBLE', mobilite: 'MOBILITE', garage_parking: 'GARAGE_PARKING' };
-const OPENSIGN_STATUS_MAP = { pending: 'PENDING', signed: 'SIGNED', completed: 'COMPLETED', expired: 'EXPIRED', declined: 'DECLINED' };
+const OPENSIGN_STATUS_MAP = { draft: 'DRAFT', pending: 'PENDING', signed: 'SIGNED', completed: 'SIGNED', expired: 'EXPIRED', declined: 'CANCELLED' };
 const DOC_KIND_MAP = { lease: 'LEASE', guarantee: 'GUARANTEE' };
 const APP_DOC_STATUS_MAP = {
   pending: 'PENDING', analyzing: 'ANALYZING', certified: 'CERTIFIED',
@@ -236,7 +236,7 @@ describe('Lease schema enums — UPPER_SNAKE_CASE', () => {
   it('opensignStatus — enum valide UPPER_SNAKE_CASE', () => {
     const Lease = require('../models/Lease');
     const enumValues = Lease.schema.path('opensignStatus').enumValues;
-    assert.deepEqual(enumValues, ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED']);
+    assert.deepEqual(enumValues, ['DRAFT', 'PENDING', 'SIGNED', 'EXPIRED', 'CANCELLED']);
   });
 
   it('signatureStatus — enum valide UPPER_SNAKE_CASE', () => {
@@ -304,7 +304,7 @@ describe('Migration helper — up()', () => {
     assert.equal(up(LEASE_TYPE_MAP, 'vide'), 'VIDE');
     assert.equal(up(LEASE_TYPE_MAP, 'meuble'), 'MEUBLE');
     assert.equal(up(OPENSIGN_STATUS_MAP, 'pending'), 'PENDING');
-    assert.equal(up(OPENSIGN_STATUS_MAP, 'declined'), 'DECLINED');
+    assert.equal(up(OPENSIGN_STATUS_MAP, 'declined'), 'CANCELLED');
     assert.equal(up(DOC_KIND_MAP, 'lease'), 'LEASE');
     assert.equal(up(DOC_KIND_MAP, 'guarantee'), 'GUARANTEE');
   });
@@ -681,15 +681,15 @@ describe('financialExtraction — filtre strictement sur CERTIFIED (UPPER_SNAKE_
 // computeAggregateStatus — logique pure UPPER_SNAKE_CASE (copie de la fonction)
 // ---------------------------------------------------------------------------
 
-describe('computeAggregateStatus — logique UPPER_SNAKE_CASE (PENDING/SIGNED/COMPLETED/EXPIRED/DECLINED)', () => {
+describe('computeAggregateStatus — logique UPPER_SNAKE_CASE (DRAFT/PENDING/SIGNED/EXPIRED/CANCELLED)', () => {
   // computeAggregateStatus n'est pas exporté, on réplique sa logique pure
   function computeAggregateStatus(lease) {
     const statuses = (lease.opensignDocuments || []).map((item) => item.status).filter(Boolean);
     if (!statuses.length) return lease.opensignStatus || 'PENDING';
-    if (statuses.includes('DECLINED')) return 'DECLINED';
+    if (statuses.includes('CANCELLED')) return 'CANCELLED';
     if (statuses.includes('EXPIRED')) return 'EXPIRED';
-    if (statuses.every((status) => status === 'COMPLETED')) return 'COMPLETED';
-    if (statuses.includes('SIGNED') || statuses.includes('COMPLETED')) return 'SIGNED';
+    if (statuses.every((status) => status === 'SIGNED')) return 'SIGNED';
+    if (statuses.includes('SIGNED')) return 'SIGNED';
     return 'PENDING';
   }
 
@@ -701,51 +701,41 @@ describe('computeAggregateStatus — logique UPPER_SNAKE_CASE (PENDING/SIGNED/CO
     assert.equal(computeAggregateStatus({ opensignStatus: 'PENDING', opensignDocuments: [] }), 'PENDING');
   });
 
-  it('retourne DECLINED si au moins un doc DECLINED (prioritaire)', () => {
+  it('retourne CANCELLED si au moins un doc CANCELLED (prioritaire)', () => {
     const lease = {
       opensignDocuments: [
-        { status: 'COMPLETED' },
-        { status: 'DECLINED' },
+        { status: 'SIGNED' },
+        { status: 'CANCELLED' },
       ],
     };
-    assert.equal(computeAggregateStatus(lease), 'DECLINED');
+    assert.equal(computeAggregateStatus(lease), 'CANCELLED');
   });
 
-  it('retourne EXPIRED si au moins un doc EXPIRED (après DECLINED)', () => {
+  it('retourne EXPIRED si au moins un doc EXPIRED (après CANCELLED)', () => {
     const lease = {
       opensignDocuments: [
-        { status: 'COMPLETED' },
+        { status: 'SIGNED' },
         { status: 'EXPIRED' },
       ],
     };
     assert.equal(computeAggregateStatus(lease), 'EXPIRED');
   });
 
-  it('retourne COMPLETED si tous les docs sont COMPLETED', () => {
-    const lease = {
-      opensignDocuments: [
-        { status: 'COMPLETED' },
-        { status: 'COMPLETED' },
-      ],
-    };
-    assert.equal(computeAggregateStatus(lease), 'COMPLETED');
-  });
-
-  it('retourne SIGNED si au moins un doc SIGNED et pas tous COMPLETED', () => {
+  it('retourne SIGNED si tous les docs sont SIGNED', () => {
     const lease = {
       opensignDocuments: [
         { status: 'SIGNED' },
-        { status: 'PENDING' },
+        { status: 'SIGNED' },
       ],
     };
     assert.equal(computeAggregateStatus(lease), 'SIGNED');
   });
 
-  it('retourne SIGNED si mix SIGNED + COMPLETED mais pas tous COMPLETED', () => {
+  it('retourne SIGNED si au moins un doc SIGNED et d\'autres PENDING', () => {
     const lease = {
       opensignDocuments: [
         { status: 'SIGNED' },
-        { status: 'COMPLETED' },
+        { status: 'PENDING' },
       ],
     };
     assert.equal(computeAggregateStatus(lease), 'SIGNED');
@@ -762,12 +752,11 @@ describe('computeAggregateStatus — logique UPPER_SNAKE_CASE (PENDING/SIGNED/CO
   });
 
   it('les statuts retournés font partie des valeurs UPPER_SNAKE_CASE valides', () => {
-    const validStatuses = new Set(['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED']);
+    const validStatuses = new Set(['DRAFT', 'PENDING', 'SIGNED', 'EXPIRED', 'CANCELLED']);
     const testCases = [
       { opensignDocuments: [] },
-      { opensignDocuments: [{ status: 'DECLINED' }] },
+      { opensignDocuments: [{ status: 'CANCELLED' }] },
       { opensignDocuments: [{ status: 'EXPIRED' }] },
-      { opensignDocuments: [{ status: 'COMPLETED' }] },
       { opensignDocuments: [{ status: 'SIGNED' }] },
       { opensignDocuments: [{ status: 'PENDING' }] },
     ];

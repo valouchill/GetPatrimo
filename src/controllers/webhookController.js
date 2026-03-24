@@ -114,10 +114,10 @@ function updateTrackedDocument(lease, documentId, patch) {
 function computeAggregateStatus(lease) {
   const statuses = (lease.opensignDocuments || []).map((item) => item.status).filter(Boolean);
   if (!statuses.length) return lease.opensignStatus || 'PENDING';
-  if (statuses.includes('DECLINED')) return 'DECLINED';
+  if (statuses.includes('CANCELLED')) return 'CANCELLED';
   if (statuses.includes('EXPIRED')) return 'EXPIRED';
-  if (statuses.every((status) => status === 'COMPLETED')) return 'COMPLETED';
-  if (statuses.includes('SIGNED') || statuses.includes('COMPLETED')) return 'SIGNED';
+  if (statuses.every((status) => status === 'SIGNED')) return 'SIGNED';
+  if (statuses.includes('SIGNED')) return 'SIGNED';
   return 'PENDING';
 }
 
@@ -175,7 +175,7 @@ async function handleDocumentCompleted(lease, documentId, signedPdfUrl, document
     // Met à jour le statut
     updateTrackedDocument(lease, documentId, {
       kind: documentKind,
-      status: 'COMPLETED',
+      status: 'SIGNED',
       completedAt: new Date(),
     });
     lease.opensignStatus = computeAggregateStatus(lease);
@@ -195,7 +195,7 @@ async function handleDocumentCompleted(lease, documentId, signedPdfUrl, document
       }
       updateTrackedDocument(lease, documentId, {
         kind: documentKind,
-        status: 'COMPLETED',
+        status: 'SIGNED',
         signedPdfPath: downloadedPath,
         completedAt: new Date(),
       });
@@ -209,7 +209,7 @@ async function handleDocumentCompleted(lease, documentId, signedPdfUrl, document
 
     // Met à jour le statut du bien en 'Loué'
     const property = await Property.findById(lease.property._id || lease.property);
-    if (property && computeAggregateStatus(lease) === 'COMPLETED') {
+    if (property && computeAggregateStatus(lease) === 'SIGNED') {
       property.status = 'OCCUPIED';
       await property.save();
       console.log(`✅ Bien ${property._id} mis à jour: OCCUPIED`);
@@ -271,7 +271,7 @@ async function handleDocumentExpired(lease, documentId) {
  */
 async function handleDocumentDeclined(lease, documentId) {
   try {
-    updateTrackedDocument(lease, documentId, { status: 'DECLINED' });
+    updateTrackedDocument(lease, documentId, { status: 'CANCELLED' });
     lease.opensignStatus = computeAggregateStatus(lease);
     await lease.save();
 

@@ -219,11 +219,12 @@ async function getDocumentStatus(documentId) {
     const response = await opensignClient.get(`/v1.1/documents/${documentId}`);
 
     const OPENSIGN_STATUS_MAP = {
+      draft: 'DRAFT',
       pending: 'PENDING',
       signed: 'SIGNED',
-      completed: 'COMPLETED',
+      completed: 'SIGNED',
       expired: 'EXPIRED',
-      declined: 'DECLINED',
+      declined: 'CANCELLED',
     };
     const rawStatus = String(response.data.status || '').toLowerCase();
     const normalizedStatus = OPENSIGN_STATUS_MAP[rawStatus] || 'PENDING';

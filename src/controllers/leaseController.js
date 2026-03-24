@@ -65,10 +65,10 @@ function getPrimaryLeaseDocument(documents) {
 function getSignatureSummary(statuses) {
   const values = statuses.map((item) => item.status);
   if (values.length === 0) return null;
-  if (values.includes('DECLINED')) return 'DECLINED';
+  if (values.includes('CANCELLED')) return 'CANCELLED';
   if (values.includes('EXPIRED')) return 'EXPIRED';
-  if (values.every((status) => status === 'COMPLETED')) return 'COMPLETED';
-  if (values.includes('SIGNED') || values.includes('COMPLETED')) return 'SIGNED';
+  if (values.every((status) => status === 'SIGNED')) return 'SIGNED';
+  if (values.includes('SIGNED')) return 'SIGNED';
   return 'PENDING';
 }
 

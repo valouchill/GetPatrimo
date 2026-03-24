@@ -51,7 +51,7 @@ const LeaseSchema = new mongoose.Schema({
   opensignDocumentId: { type: String }, // ID du document dans OpenSign
   opensignStatus: {
     type: String,
-    enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'],
+    enum: ['DRAFT', 'PENDING', 'SIGNED', 'EXPIRED', 'CANCELLED'],
     required: false
   },
   opensignSigningLinks: {
@@ -66,7 +66,7 @@ const LeaseSchema = new mongoose.Schema({
     documentId: { type: String },
     status: {
       type: String,
-      enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'],
+      enum: ['DRAFT', 'PENDING', 'SIGNED', 'EXPIRED', 'CANCELLED'],
       default: 'PENDING',
     },
     signingLinks: {

@@ -37,11 +37,12 @@ const LEASE_TYPE_MAP = {
 };
 
 const OPENSIGN_STATUS_MAP = {
+  draft: 'DRAFT',
   pending: 'PENDING',
   signed: 'SIGNED',
-  completed: 'COMPLETED',
+  completed: 'SIGNED',
   expired: 'EXPIRED',
-  declined: 'DECLINED',
+  declined: 'CANCELLED',
 };
 
 const DOC_KIND_MAP = {
