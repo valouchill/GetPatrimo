@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback, useMemo, type CSSProperties } from 'react';
 import { useNotification } from '@/app/hooks/useNotification';
+import { ApplySchema } from '@/lib/schemas/apply';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { useSession } from 'next-auth/react';
@@ -5453,6 +5454,25 @@ export default function ApplyClient({ token }: { token: string }) {
   const guaranteeSatisfied = scoringSnapshot.chapterStates.guarantee.satisfied;
 
   const handleNext = async () => {
+    // Validation Zod des données personnelles à l'étape 1
+    if (currentStep === 1) {
+      const result = ApplySchema.safeParse({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || '',
+        monthlyNetIncome: 0,
+        employmentType: 'AUTRE' as const,
+        hasGuarantor: false,
+      });
+      if (!result.success) {
+        const firstError = result.error.issues[0];
+        if (firstError) {
+          notify.warning(firstError.message);
+          return;
+        }
+      }
+    }
     if (currentStep === 2) {
       if (!canAccessGuarantee) {
         setAiFeedback({

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useZodForm, fieldError } from "@/app/hooks/useZodForm";
+import { LeaseSchema, type LeaseFormData } from "@/lib/schemas/lease";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -197,6 +199,16 @@ export default function LeaseWizard({ propertyId }: LeaseWizardProps) {
   const [legacyCandidature, setLegacyCandidature] = useState<CandidatureRecord | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [formData, setFormData] = useState(buildInitialFormState());
+  const leaseForm = useZodForm(LeaseSchema, {
+    leaseType: 'NUE' as const,
+    startDate: getTomorrowDateInputValue(),
+    paymentDay: 5,
+    rentHC: 0,
+    charges: 0,
+    deposit: 0,
+    durationMonths: 12,
+    clauses: '',
+  });
   const [compileStatus, setCompileStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [compileError, setCompileError] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -423,6 +435,15 @@ export default function LeaseWizard({ propertyId }: LeaseWizardProps) {
     if (!activeTenant) {
       setCompileStatus("error");
       setCompileError("Impossible de déterminer le locataire à contractualiser.");
+      return;
+    }
+
+    // Validation Zod des données du formulaire
+    const parsed = LeaseSchema.safeParse(formData);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Données de formulaire invalides";
+      setCompileStatus("error");
+      setCompileError(firstError);
       return;
     }
 
