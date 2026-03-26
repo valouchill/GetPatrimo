@@ -109,54 +109,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Stripe webhook — handled by Express with raw body to preserve signature
-app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  if (!sig) return res.status(400).json({ error: 'Signature manquante.' });
-
-  let Stripe;
-  try { Stripe = require('stripe'); } catch { return res.status(500).json({ error: 'Stripe non disponible.' }); }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' });
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('[stripe-webhook] Signature invalide:', err.message);
-    return res.status(400).json({ error: 'Signature invalide.' });
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const { propertyId, userId } = session.metadata || {};
-    if (propertyId) {
-      try {
-        await mongoose.connection.db.collection('properties').updateOne(
-          { _id: new mongoose.Types.ObjectId(propertyId) },
-          { $set: { managed: true, stripeCustomerId: String(session.customer || ''), stripeSubscriptionId: String(session.subscription || '') } }
-        );
-        if (userId && session.customer) {
-          await mongoose.connection.db.collection('users').updateOne(
-            { _id: new mongoose.Types.ObjectId(userId) },
-            { $set: { stripeCustomerId: String(session.customer) } }
-          );
-        }
-        console.log(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId}.`);
-      } catch (e) {
-        console.error('[stripe-webhook] Erreur DB:', e);
-      }
-    }
-  }
-
-  return res.json({ received: true });
-});
+// Stripe webhook — migré vers app/api/webhooks/stripe/route.ts
 
 // Ne pas parser le body JSON pour les routes Next.js API (elles le font elles-mêmes)
 app.use((req, res, next) => {
   // Routes Next.js API qui gèrent leur propre body
-  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/'];
+  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/'];
   const isNextApiRoute = nextApiRoutes.some(route => req.url.startsWith(route));
-  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp'];
+  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register'];
   if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
   
   if (isNextApiRoute) {
@@ -508,29 +468,7 @@ function createPdfBuffer(property, tenant, owner){
 }
  
 // -------------------- AUTH routes
-app.post('/api/auth/register', async (req,res)=>{
-  try{
-    const { email, password } = req.body || {};
-    if(!email || !password) return res.status(400).json({ msg:'Champs manquants' });
-
-    // Politique de mot de passe : min 8 caractères, 1 majuscule, 1 chiffre
-    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      return res.status(400).json({ msg: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.' });
-    }
-
-    const exists = await User.findOne({ email: String(email).toLowerCase().trim() });
-    if(exists) return res.status(400).json({ msg:'Email déjà utilisé' });
-
-    const salt = await bcrypt.genSalt(10);
-    const u = await User.create({ email: String(email).toLowerCase().trim(), password: await bcrypt.hash(password, salt) });
- 
-    await logEvent(u._id, { type:'user_registered' });
-    return res.json({ msg:'OK' });
-  }catch(e){
-    console.error(e);
-    return res.status(500).json({ msg:'Erreur serveur' });
-  }
-});
+// POST /api/auth/register — migré vers app/api/auth/register/route.ts
  
 app.post('/api/auth/login', async (req,res)=>{
   try{
@@ -1133,19 +1071,7 @@ app.get('/apply/:token', (req, res, next) => {
   return next();
 });
 
-// -------------------- PUBLIC: API Route pour récupérer un bien par son token (legacy)
-app.get('/api/public/apply/:token', async (req, res) => {
-  try {
-    const prop = await Property.findOne({ applyToken: req.params.token });
-    if (!prop) {
-      return res.status(404).json({ msg: "Lien invalide" });
-    }
-    return res.json({ property: prop });
-  } catch (error) {
-    console.error('Erreur getApplyProperty:', error);
-    return res.status(500).json({ msg: 'Erreur serveur' });
-  }
-});
+// GET /api/public/apply/:token — migré vers app/api/public/apply/[token]/route.ts
 
 // -------------------- DIAGNOSTIC: Vérifie si un token existe en base
 app.get('/api/public/check-token/:token', async (req, res) => {
