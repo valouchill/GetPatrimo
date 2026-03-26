@@ -1326,15 +1326,32 @@ try {
 // Note: Les routes Next.js seront gérées par le handler app.all('*', ...) après la préparation de Next.js
 // Le middleware statique ci-dessus laisse passer les routes /properties/*/contract pour Next.js
 
-// -------------------- Multer errors
-app.use((err, req, res, next) => {
+// -------------------- Error handler centralisé (Express)
+app.use((err, req, res, _next) => {
+  // Multer errors
   if (err && err.message === 'Type de fichier non autorisé') {
-    return res.status(400).json({ msg: 'Type de fichier non autorisé (PDF/PNG/JPEG)' });
+    return res.status(400).json({ error: 'Type de fichier non autorisé (PDF/PNG/JPEG)' });
   }
   if (err && err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ msg: 'Fichier trop lourd : limite 10 Mo' });
+    return res.status(400).json({ error: 'Fichier trop lourd : limite 10 Mo' });
   }
-  return next(err);
+
+  const statusCode = err.statusCode || err.status || 500;
+  const message = statusCode < 500 ? (err.message || 'Erreur de requête') : 'Erreur serveur';
+
+  // Log structuré JSON
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.originalUrl || req.url,
+    statusCode,
+    message: err.message || 'Unknown error',
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+  };
+  console.error(JSON.stringify(logEntry));
+
+  if (res.headersSent) return;
+  return res.status(statusCode).json({ error: message });
 });
  
 // Démarrage du serveur avec ou sans Next.js
