@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useFetch } from '@/app/hooks/useFetch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheckIcon, CheckCircleIcon, DocumentMagnifyingGlassIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import UnifiedTunnelHeader from '@/app/components/UnifiedTunnelHeader';
@@ -32,8 +33,10 @@ type VerificationMode = 'choice' | 'didit' | 'audit';
 type AuditStatus = 'uploading' | 'processing' | 'success' | 'failed';
 
 export default function GuarantorVerificationClient({ token }: { token: string }) {
+  const { data: guarantorData, loading, error: fetchError } = useFetch<{ guarantor: { email: string; firstName: string; lastName: string; status: string; identityVerification?: { source?: string } }; tenantName?: string }>(
+    `/api/guarantor/status?token=${encodeURIComponent(token)}`
+  );
   const [guarantorInfo, setGuarantorInfo] = useState<GuarantorInfo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [diditSessionId, setDiditSessionId] = useState<string | null>(null);
   const [diditVerificationUrl, setDiditVerificationUrl] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -56,38 +59,25 @@ export default function GuarantorVerificationClient({ token }: { token: string }
     patrimometerPoints: number;
   } | null>(null);
 
-  // Charger les informations du garant
+  // Traiter les données du garant chargées par useFetch
   useEffect(() => {
-    async function loadGuarantorInfo() {
-      try {
-        const response = await fetch(`/api/guarantor/status?token=${encodeURIComponent(token)}`);
-        if (!response.ok) {
-          throw new Error('Garant introuvable ou token invalide');
-        }
-
-        const data = await response.json();
-        const guarantor = data.guarantor;
-
-        if (guarantor.status === 'CERTIFIED') {
-          setIsCertified(true);
-          setCertificationMethod(guarantor.identityVerification?.source?.includes('Audit') ? 'AUDIT' : 'DIDIT');
-        }
-
-        setGuarantorInfo({
-          email: guarantor.email,
-          firstName: guarantor.firstName,
-          lastName: guarantor.lastName,
-          tenantName: data.tenantName || 'Le locataire',
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur lors du chargement');
-      } finally {
-        setLoading(false);
-      }
+    if (fetchError) {
+      setError(fetchError);
     }
-
-    loadGuarantorInfo();
-  }, [token]);
+    if (guarantorData) {
+      const guarantor = guarantorData.guarantor;
+      if (guarantor.status === 'CERTIFIED') {
+        setIsCertified(true);
+        setCertificationMethod(guarantor.identityVerification?.source?.includes('Audit') ? 'AUDIT' : 'DIDIT');
+      }
+      setGuarantorInfo({
+        email: guarantor.email,
+        firstName: guarantor.firstName,
+        lastName: guarantor.lastName,
+        tenantName: guarantorData.tenantName || 'Le locataire',
+      });
+    }
+  }, [guarantorData, fetchError]);
 
   // Vérifier périodiquement le statut si une session Didit est active
   useEffect(() => {

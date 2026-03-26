@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFetch } from '@/app/hooks/useFetch';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -209,34 +210,20 @@ export default function CandidateAuditClient({
   candidateId: string;
 }) {
   const router = useRouter();
-  const [property, setProperty] = useState<PropertyMeta | null>(null);
-  const [candidate, setCandidate] = useState<CandidateRecord | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: property, loading: propLoading } = useFetch<PropertyMeta>(
+    `/api/owner/properties/${propertyId}`
+  );
+  const { data: candData, loading: candLoading } = useFetch<{ candidatures: CandidateRecord[] }>(
+    `/api/owner/properties/${propertyId}/candidatures`
+  );
+  const loading = propLoading || candLoading;
+  const candidate = useMemo(
+    () => (candData?.candidatures || []).find((c) => c.id === candidateId) || null,
+    [candData, candidateId]
+  );
   const [selectionBusy, setSelectionBusy] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [propRes, candRes] = await Promise.all([
-        fetch(`/api/owner/properties/${propertyId}`, { cache: 'no-store' }),
-        fetch(`/api/owner/properties/${propertyId}/candidatures`, { cache: 'no-store' }),
-      ]);
-      const propData = propRes.ok ? await propRes.json() : null;
-      const candData = candRes.ok ? await candRes.json() : { candidatures: [] };
-      const list: CandidateRecord[] = Array.isArray(candData?.candidatures) ? candData.candidatures : [];
-      setProperty(propData);
-      setCandidate(list.find((c) => c.id === candidateId) || null);
-    } catch {
-      setProperty(null);
-      setCandidate(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [propertyId, candidateId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   const handleChoose = async () => {
     if (!candidate) return;

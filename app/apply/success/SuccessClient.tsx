@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useFetch } from '@/app/hooks/useFetch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Copy, Download, Eye, Loader2, Send, Share2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -55,9 +56,10 @@ export default function SuccessClient({
   candidatureId?: string;
   ownerName?: string;
 }) {
-  const [passport, setPassport] = useState<PassportData | null>(null);
-  const [loading, setLoading] = useState(!!candidatureId);
-  const [loadError, setLoadError] = useState(false);
+  const { data: passport, loading, error: passportError } = useFetch<PassportData>(
+    candidatureId ? `/api/passport/application/${candidatureId}` : null
+  );
+  const loadError = !!passportError;
   const [copied, setCopied] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
@@ -106,23 +108,10 @@ export default function SuccessClient({
   }, []);
 
   useEffect(() => {
-    if (!candidatureId) {
-      setLoading(false);
-      return;
+    if (passport) {
+      setTimeout(() => launchConfetti(), 500);
     }
-
-    fetch(`/api/passport/application/${candidatureId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('passport-load-failed');
-        return res.json();
-      })
-      .then((data) => {
-        setPassport(data);
-        setTimeout(() => launchConfetti(), 500);
-      })
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
-  }, [candidatureId, launchConfetti]);
+  }, [passport, launchConfetti]);
 
   const handleOpenPreview = () => {
     const url = passport?.shareUrl || passport?.previewUrl;
