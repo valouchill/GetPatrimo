@@ -204,10 +204,10 @@ async function deleteCandidateData(candidatureId, email) {
 async function autoPurgeRGPD() {
   const Candidature = require('../../models/Candidature');
 
-  const cutoffDate = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
+  const cutoffDate = new Date(Date.now() - (90 * 24 * 60 * 60 * 1000)); // 3 mois RGPD
   const candidates = await Candidature.find({
     rgpdPurged: { $ne: true },
-    status: { $in: ['REJECTED', 'ARCHIVED_REFUSED'] },
+    status: { $in: ['REJECTED', 'ARCHIVED_REFUSED', 'REFUSED'] },
     updatedAt: { $lt: cutoffDate },
   });
 
