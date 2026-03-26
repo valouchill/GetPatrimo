@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { validateRequest } from '@/lib/validate-request';
+import { SelectionSchema } from '@/lib/validations/lease';
 
 import Property from '@/models/Property';
 import Application from '@/models/Application';
@@ -40,11 +42,10 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { applicationId } = await request.json();
-
-    if (!applicationId) {
-      return NextResponse.json({ error: 'applicationId requis' }, { status: 400 });
-    }
+    const body = await request.json();
+    const result = validateRequest(SelectionSchema, body);
+    if (!result.success) return result.response;
+    const { applicationId } = result.data;
 
     const property = await getPropertyForOwner(id, userId);
     if (!property) {

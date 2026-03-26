@@ -19,10 +19,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
     }
 
-    const { propertyId } = await request.json();
-    if (!propertyId) {
-      return NextResponse.json({ error: 'Données manquantes.' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { validateRequest: validate } = await import('@/lib/validate-request');
+    const { CreateCheckoutSchema } = await import('@/lib/validations/billing');
+    const result = validate(CreateCheckoutSchema, body);
+    if (!result.success) return result.response;
+    const { propertyId } = result.data;
 
     await connectDiditDb();
 

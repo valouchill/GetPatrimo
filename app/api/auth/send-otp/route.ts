@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { validateRequest } from '@/lib/validate-request';
+import { SendOtpSchema } from '@/lib/validations/auth';
 import nodemailer from 'nodemailer';
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -45,12 +47,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });
     }
 
-    const { email } = await request.json();
-    const normalizedEmail = (email || '').trim().toLowerCase();
+    const body = await request.json();
+    const result = validateRequest(SendOtpSchema, body);
+    if (!result.success) return result.response;
 
-    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      return NextResponse.json({ error: 'Email invalide.' }, { status: 400 });
-    }
+    const normalizedEmail = result.data.email.trim().toLowerCase();
 
     await connectDiditDb();
     const Token = await OtpStore();

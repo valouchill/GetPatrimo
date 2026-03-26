@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { validateRequest } from '@/lib/validate-request';
+import { RegisterSchema } from '@/lib/validations/auth';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
@@ -14,18 +16,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '');
+    const result = validateRequest(RegisterSchema, body);
+    if (!result.success) return result.response;
 
-    if (!email || !email.includes('@')) {
-      return NextResponse.json({ error: 'Email invalide' }, { status: 400 });
-    }
-    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.' },
-        { status: 400 }
-      );
-    }
+    const email = result.data.email.trim().toLowerCase();
+    const password = result.data.password;
 
     await connectDiditDb();
 

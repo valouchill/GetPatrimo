@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import { auditGuarantorIdentity } from '@/app/actions/audit-identity';
+import { validateRequest } from '@/lib/validate-request';
+import { GuarantorAuditSchema } from '@/lib/validations/guarantor';
 
 /**
  * API Route pour l'audit d'identité du garant
@@ -12,21 +14,9 @@ export async function POST(request: NextRequest) {
     await connectDiditDb();
     
     const body = await request.json();
-    const { invitationToken, documents } = body;
-    
-    if (!invitationToken) {
-      return NextResponse.json(
-        { error: 'Token d\'invitation requis' },
-        { status: 400 }
-      );
-    }
-    
-    if (!documents || !Array.isArray(documents) || documents.length < 2) {
-      return NextResponse.json(
-        { error: 'Au moins 2 documents sont requis pour l\'audit' },
-        { status: 400 }
-      );
-    }
+    const result = validateRequest(GuarantorAuditSchema, body);
+    if (!result.success) return result.response;
+    const { invitationToken, documents } = result.data;
     
     // Récupérer le garant
     const guarantor = await Guarantor.findOne({ invitationToken });

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { validateRequest } from '@/lib/validate-request';
+import { VerifyOtpSchema } from '@/lib/validations/auth';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -37,13 +39,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });
     }
 
-    const { email, otp, propertyData, passportSlug } = await request.json();
-    const normalizedEmail = (email || '').trim().toLowerCase();
-    const code = (otp || '').trim();
+    const body = await request.json();
+    const result = validateRequest(VerifyOtpSchema, body);
+    if (!result.success) return result.response;
 
-    if (!normalizedEmail || !code || code.length !== 6) {
-      return NextResponse.json({ error: 'Code invalide.' }, { status: 400 });
-    }
+    const { propertyData, passportSlug } = result.data;
+    const normalizedEmail = result.data.email.trim().toLowerCase();
+    const code = result.data.otp.trim();
 
     await connectDiditDb();
     const Token = await OtpStore();

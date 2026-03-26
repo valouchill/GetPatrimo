@@ -4,6 +4,8 @@ import path from 'path';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { validateRequest } from '@/lib/validate-request';
+import { CompileLeaseSchema } from '@/lib/validations/lease';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -32,7 +34,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ msg: 'Utilisateur introuvable' }, { status: 401 });
     }
 
-    const { propertyId, applicationId, candidatureId, formData } = await request.json();
+    const body = await request.json();
+    const result = validateRequest(CompileLeaseSchema, body);
+    if (!result.success) return result.response;
+    const { propertyId, applicationId, candidatureId, formData } = result.data;
 
     const compiled = await compileLeaseBundle({
       propertyId,
