@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "./providers/SessionProvider";
+import { NotificationProvider } from "./hooks/useNotification";
 
 export const metadata: Metadata = {
   title: "GetPatrimo - Gestion locative sécurisée par IA",
@@ -25,7 +26,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-slate-50 text-navy">
         <SessionProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </SessionProvider>
       </body>
     </html>

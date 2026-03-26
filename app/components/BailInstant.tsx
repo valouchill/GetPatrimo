@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNotification } from "@/app/hooks/useNotification";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, 
@@ -102,6 +103,7 @@ export default function BailInstant({
   onSuccess,
   onError 
 }: BailInstantProps) {
+  const notify = useNotification();
   const [leaseData, setLeaseData] = useState<LeaseData>({
     startDate: new Date(),
     rentAmount: property.rentAmount,
@@ -220,7 +222,7 @@ export default function BailInstant({
         onError(error.message || 'Une erreur est survenue lors de la création du bail');
       } else {
         // Affiche une alerte par défaut
-        alert(`Erreur: ${error.message || 'Une erreur est survenue lors de la création du bail'}`);
+        notify.error(error.message || 'Une erreur est survenue lors de la création du bail');
       }
     }
   };

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFetch } from '@/app/hooks/useFetch';
+import { useNotification } from '@/app/hooks/useNotification';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Copy, Download, Eye, Loader2, Send, Share2, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -56,6 +57,7 @@ export default function SuccessClient({
   candidatureId?: string;
   ownerName?: string;
 }) {
+  const notify = useNotification();
   const { data: passport, loading, error: passportError } = useFetch<PassportData>(
     candidatureId ? `/api/passport/application/${candidatureId}` : null
   );
@@ -144,7 +146,7 @@ export default function SuccessClient({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(objectUrl);
     } catch {
-      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+      notify.error('Erreur lors de la génération du PDF. Veuillez réessayer.');
     } finally {
       setDownloadingPdf(false);
     }

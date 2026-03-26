@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useNotification } from '@/app/hooks/useNotification';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -354,6 +355,7 @@ function formatTime(date: Date): string {
 }
 
 export default function VerifyLandingClient({ token }: { token: string }) {
+  const notify = useNotification();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ApplicationData | null>(null);
@@ -1112,7 +1114,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                   // Simulation
                   setTimeout(() => {
                     setSubmitting(false);
-                    alert('Fonctionnalité en cours de développement');
+                    notify.info('Fonctionnalité en cours de développement');
                   }, 1000);
                 }}>
                   <input

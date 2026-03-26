@@ -38,7 +38,7 @@ export default function BailInstantExample() {
   const handleGenerate = (leaseData: any) => {
     console.log("Bail généré avec succès :", leaseData);
     // Rediriger vers la page de suivi du bail ou afficher un message de succès
-    alert(`Bail généré avec succès !`);
+    console.log("Bail généré avec succès !");
   };
 
   return (

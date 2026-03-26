@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useNotification } from '@/app/hooks/useNotification';
 import { motion } from 'framer-motion';
 import {
   User, Mail, Save, Check, Shield, Zap,
@@ -12,6 +13,7 @@ const FREE_AUDIT_LIMIT = 3;
 
 export default function ProfilePage() {
   const { userEmail, data } = useOwner();
+  const notify = useNotification();
 
   const [form, setForm] = useState({
     firstName: '',
@@ -39,11 +41,11 @@ export default function ProfilePage() {
       if (json.url) {
         window.location.href = json.url;
       } else {
-        alert(json.error || 'Impossible d\'ouvrir le portail.');
+        notify.error(json.error || 'Impossible d\'ouvrir le portail.');
         setPortalLoading(false);
       }
     } catch {
-      alert('Erreur réseau.');
+      notify.error('Erreur réseau.');
       setPortalLoading(false);
     }
   };

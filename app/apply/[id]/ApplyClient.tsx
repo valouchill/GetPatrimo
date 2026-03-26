@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback, useMemo, type CSSProperties } from 'react';
+import { useNotification } from '@/app/hooks/useNotification';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { useSession } from 'next-auth/react';
@@ -343,12 +344,12 @@ interface DocumentCardProps {
 
 function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDeleting = false }: DocumentCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const isAnalyzing = file.status === 'analyzing' || file.status === 'scanning';
+  const isAnalyzing = file.status === 'ANALYZING' || file.status === 'scanning';
   const hasInconsistency = file.inconsistencyDetected && !file.inconsistencyResolved;
-  const isCertified = file.status === 'certified' && !file.flagged && !hasInconsistency;
-  const isNeedsReview = file.status === 'needs_review';
-  const isRejected = file.status === 'rejected';
-  const isIllegible = file.status === 'illegible';
+  const isCertified = file.status === 'CERTIFIED' && !file.flagged && !hasInconsistency;
+  const isNeedsReview = file.status === 'NEEDS_REVIEW';
+  const isRejected = file.status === 'REJECTED';
+  const isIllegible = file.status === 'ILLEGIBLE';
   const isFlagged = (file.flagged && !isNeedsReview) || hasInconsistency;
   const isRenamed = file.isRenamed && file.suggestedName;
 
@@ -1098,7 +1099,7 @@ function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score, diditV
   const profileDocs = REQUIRED_DOCS_BY_PROFILE[profile] || REQUIRED_DOCS_BY_PROFILE.Etudiant;
   
   const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor];
-  const certifiedCount = allFiles.filter(f => f.status === 'certified' && !f.flagged).length;
+  const certifiedCount = allFiles.filter(f => f.status === 'CERTIFIED' && !f.flagged).length;
 
   const normalizeText = (value: string) =>
     value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1113,7 +1114,7 @@ function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score, diditV
     return name.includes('urssaf');
   });
 
-  const bilanCertifiedCount = allFiles.filter(f => f.status === 'certified' && !f.flagged && isBilanFile(f)).length;
+  const bilanCertifiedCount = allFiles.filter(f => f.status === 'CERTIFIED' && !f.flagged && isBilanFile(f)).length;
 
   const requiredCount = profileDocs.required.length + (diditVerified ? 1 : 0);
   const satisfiedRequiredCount = profileDocs.required.filter(id => {
@@ -3224,6 +3225,7 @@ function WhyDiditTooltip({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
 // --- Main Component ---
 export default function ApplyClient({ token }: { token: string }) {
+  const notify = useNotification();
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
@@ -3622,7 +3624,7 @@ export default function ApplyClient({ token }: { token: string }) {
   }
 
   const computeExpirationFlags = (): ExpirationFlags => {
-    const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor].filter(f => f.status === 'certified' && !f.flagged);
+    const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor].filter(f => f.status === 'CERTIFIED' && !f.flagged);
     const now = new Date();
 
     let identityBlock = 0;
@@ -3712,7 +3714,7 @@ export default function ApplyClient({ token }: { token: string }) {
     }
 
     // Garant : règle des 3 bulletins + fraîcheur (même logique que locataire)
-    const guarantorFiles = (uploadedFiles.guarantor || []).filter(f => f.status === 'certified' && !f.flagged);
+    const guarantorFiles = (uploadedFiles.guarantor || []).filter(f => f.status === 'CERTIFIED' && !f.flagged);
     const guarantorBulletins = guarantorFiles.filter(f => isBulletinSalaire(f));
     if (guarantorBulletins.length >= 3) {
       guarantorRevenusBlock = 10;
@@ -3748,7 +3750,7 @@ export default function ApplyClient({ token }: { token: string }) {
   // Cross-check identité garant : CNI vs avis d'imposition (bloc score si incohérent)
   const guarantorIdentityMismatch = useMemo(() => {
     return ([1, 2] as const).some(slot => {
-      const guarantorDocs = getGuarantorFilesForSlot(slot).filter(f => f.status === 'certified' && !f.flagged);
+      const guarantorDocs = getGuarantorFilesForSlot(slot).filter(f => f.status === 'CERTIFIED' && !f.flagged);
       const idDoc = guarantorDocs.find(f => isIdentityDoc(f));
       const avisDoc = guarantorDocs.find(f => {
         const haystack = normalizeValue(`${f.aiAnalysis?.documentType || ''} ${f.type || ''} ${f.name || ''}`);
@@ -3778,17 +3780,17 @@ export default function ApplyClient({ token }: { token: string }) {
       ? (guarantorCertificationMethod === 'AUDIT' ? 'AUDITED' : 'CERTIFIED')
       : guarantorInvitationSent
         ? 'PENDING'
-        : getGuarantorFilesForSlot(1).some(file => file.status === 'certified')
+        : getGuarantorFilesForSlot(1).some(file => file.status === 'CERTIFIED')
           ? 'AUDITED'
           : 'NONE';
 
     const slotTwoStatus: GuarantorSlotState['status'] =
-      getGuarantorFilesForSlot(2).some(file => file.status === 'certified')
+      getGuarantorFilesForSlot(2).some(file => file.status === 'CERTIFIED')
         ? 'AUDITED'
         : secondGuarantor.status;
 
-    const certifiedVisale = visaleFiles.some(file => file.status === 'certified' && !file.flagged);
-    const visaleFile = visaleFiles.find(file => file.status === 'certified' && !file.flagged) || visaleFiles[0];
+    const certifiedVisale = visaleFiles.some(file => file.status === 'CERTIFIED' && !file.flagged);
+    const visaleFile = visaleFiles.find(file => file.status === 'CERTIFIED' && !file.flagged) || visaleFiles[0];
     const visaleMaxRent =
       Number(
         visaleFile?.aiAnalysis?.financial_data?.extra_details?.visale?.loyer_maximum_garanti ||
@@ -3852,7 +3854,7 @@ export default function ApplyClient({ token }: { token: string }) {
         documents: buildPortalDocuments(),
         guarantee: guaranteeState,
         legacyGuarantor: {
-          hasGuarantor: guarantorCertified || uploadedFiles.guarantor.some(file => file.status === 'certified'),
+          hasGuarantor: guarantorCertified || uploadedFiles.guarantor.some(file => file.status === 'CERTIFIED'),
           status: guarantorCertified ? 'CERTIFIED' : guarantorInvitationSent ? 'PENDING' : 'NONE',
           certificationMethod: guarantorCertificationMethod || undefined,
         },
@@ -3873,8 +3875,8 @@ export default function ApplyClient({ token }: { token: string }) {
 
   const buildGuarantorChapterBlocks = useCallback((slot: 1 | 2, profile: CandidateStatus): GuarantorChapterBlock[] => {
     const slotFiles = getGuarantorFilesForSlot(slot);
-    const certifiedFiles = slotFiles.filter(file => file.status === 'certified' && !file.flagged);
-    const uploadedFilesForSlot = slotFiles.filter(file => file.status !== 'analyzing');
+    const certifiedFiles = slotFiles.filter(file => file.status === 'CERTIFIED' && !file.flagged);
+    const uploadedFilesForSlot = slotFiles.filter(file => file.status !== 'ANALYZING');
     const countKinds = (files: DocumentFile[]) => files.reduce<Record<string, number>>((acc, file) => {
       const kind = inferEvidenceKind({
         ...file,
@@ -4818,7 +4820,7 @@ export default function ApplyClient({ token }: { token: string }) {
         type: detected?.label || file.name,
         name: file.name,
         originalName: file.name, // Conserver le nom original
-        status: 'analyzing',
+        status: 'ANALYZING',
         category: detected?.category || 'Autre',
         subjectType: resolvedSubjectType,
         subjectSlot: resolvedSubjectSlot,
@@ -4916,7 +4918,7 @@ export default function ApplyClient({ token }: { token: string }) {
           hasCompatibleChecklistHint: Boolean(finalDetectedItem),
         });
         const isFlagged = certificationDecision.flagged || analysis.fraudIndicators?.suspicious === true;
-        const isRejected = certificationDecision.status === 'rejected';
+        const isRejected = certificationDecision.status === 'REJECTED';
         const finalStatus = certificationDecision.status as DocumentFile['status'];
         const finalConfidenceScore = analysis.confidenceScore ?? certificationDecision.confidenceScore;
         
@@ -4955,7 +4957,7 @@ export default function ApplyClient({ token }: { token: string }) {
                   // Message d'erreur pour docs illisibles
                   errorMessage: isIllegible ? analysis.errorMessage : undefined,
                   // Nouveaux champs "Bienveillance Sécuritaire"
-                  needsHumanReview: finalStatus === 'needs_review' || analysis.needsHumanReview || false,
+                  needsHumanReview: finalStatus === 'NEEDS_REVIEW' || analysis.needsHumanReview || false,
                   humanReviewReason: analysis.humanReviewReason || certificationDecision.reason,
                   partialExtraction: analysis.partialExtraction || false,
                   extractedFields: analysis.extractedFields,
@@ -5133,7 +5135,7 @@ export default function ApplyClient({ token }: { token: string }) {
         }
 
         // Afficher les recommandations de l'IA
-        if (analysis.recommendations?.length > 0 && finalStatus === 'certified') {
+        if (analysis.recommendations?.length > 0 && finalStatus === 'CERTIFIED') {
           setAiFeedback({
             visible: true,
             message: analysis.recommendations[0],
@@ -5178,7 +5180,7 @@ export default function ApplyClient({ token }: { token: string }) {
         }
 
         // Si le document est certifié avec succès
-        if (finalStatus === 'certified' && !isFlagged && finalDetectedItem && !certifiedItems.has(finalDetectedItem.id)) {
+        if (finalStatus === 'CERTIFIED' && !isFlagged && finalDetectedItem && !certifiedItems.has(finalDetectedItem.id)) {
           setCertifiedItems(prev => new Set([...prev, finalDetectedItem.id]));
           triggerGoldenSeal(finalDetectedItem.label);
           setExpertBubbleMessage('Parfait ! Votre solvabilité est renforcée de 15 points.');
@@ -5195,7 +5197,7 @@ export default function ApplyClient({ token }: { token: string }) {
           setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 5000);
         }
 
-        if (finalStatus === 'needs_review' && certificationDecision.reason && !isFlagged) {
+        if (finalStatus === 'NEEDS_REVIEW' && certificationDecision.reason && !isFlagged) {
           setAiFeedback({
             visible: true,
             message: `🧠 ${certificationDecision.reason}`,
@@ -5204,7 +5206,7 @@ export default function ApplyClient({ token }: { token: string }) {
           setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 7000);
         }
 
-        if (finalStatus === 'rejected' && !isFlagged && certificationDecision.reason) {
+        if (finalStatus === 'REJECTED' && !isFlagged && certificationDecision.reason) {
           setAiFeedback({
             visible: true,
             message: `📄 ${certificationDecision.reason}`,
@@ -5504,7 +5506,7 @@ export default function ApplyClient({ token }: { token: string }) {
       }
       setSubmittingPassport(false);
     } else {
-      alert("Préparation du PDF certifié...");
+      notify.info("Préparation du PDF certifié...");
     }
   };
 
@@ -5668,14 +5670,14 @@ export default function ApplyClient({ token }: { token: string }) {
   const slotOneGuarantorFiles = getGuarantorFilesForSlot(1);
   const slotTwoGuarantorFiles = getGuarantorFilesForSlot(2);
   const reviewedResources = uploadedFiles.resources.filter(file =>
-    file.status === 'certified' ||
-    file.status === 'rejected' ||
-    file.status === 'illegible' ||
-    file.status === 'needs_review' ||
+    file.status === 'CERTIFIED' ||
+    file.status === 'REJECTED' ||
+    file.status === 'ILLEGIBLE' ||
+    file.status === 'NEEDS_REVIEW' ||
     !!file.flagged
   );
-  const certifiedResources = reviewedResources.filter(file => file.status === 'certified' && !file.flagged);
-  const invalidatedResources = reviewedResources.filter(file => file.status !== 'certified' || !!file.flagged);
+  const certifiedResources = reviewedResources.filter(file => file.status === 'CERTIFIED' && !file.flagged);
+  const invalidatedResources = reviewedResources.filter(file => file.status !== 'CERTIFIED' || !!file.flagged);
   const missingResourceDocs = profileDocs.required
     .map(id => ALL_CERTIFICATION_ITEMS.find(item => item.id === id))
     .filter((item): item is CertificationItem => !!item)
@@ -7147,7 +7149,7 @@ export default function ApplyClient({ token }: { token: string }) {
                   )}
 
                   {/* Votre Bouclier de Garantie – visible quand garant certifié ou documents garant certifiés */}
-                  {guaranteeMode === 'PHYSICAL' && (guarantorCertified || uploadedFiles.guarantor.some(f => f.status === 'certified')) && (
+                  {guaranteeMode === 'PHYSICAL' && (guarantorCertified || uploadedFiles.guarantor.some(f => f.status === 'CERTIFIED')) && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -7178,7 +7180,7 @@ export default function ApplyClient({ token }: { token: string }) {
                         )}
                         {uploadedFiles.guarantor.some(f => {
                           const haystack = normalizeValue(`${f.aiAnalysis?.documentType || ''} ${f.type || ''} ${f.name || ''}`);
-                          return haystack.includes('avis') && haystack.includes('imposition') && f.status === 'certified';
+                          return haystack.includes('avis') && haystack.includes('imposition') && f.status === 'CERTIFIED';
                         }) && (
                           <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase tracking-wider">
                             Fiscalité Validée
