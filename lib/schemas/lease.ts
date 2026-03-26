@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 /**
  * Schéma Zod pour le formulaire de création de bail.
+ * Règles dépôt de garantie :
+ * - Mobilité : dépôt = 0 €
+ * - Nu/Vide : dépôt ≤ 1 mois loyer HC
+ * - Meublé : dépôt ≤ 2 mois loyer HC
  */
 export const LeaseSchema = z.object({
   leaseType: z.enum(['NUE', 'MEUBLEE', 'MOBILITE'], {
@@ -16,15 +20,22 @@ export const LeaseSchema = z.object({
   clauses: z.string().max(2000, 'Clauses trop longues (2000 caractères max)').optional(),
 }).refine(
   (data) => {
-    if (data.leaseType === 'NUE' && data.deposit > data.rentHC) {
-      return false;
-    }
+    if (data.leaseType === 'MOBILITE' && data.deposit !== 0) return false;
     return true;
   },
-  {
-    message: 'Pour un bail nu, le dépôt de garantie ne peut excéder 1 mois de loyer HC',
-    path: ['deposit'],
-  }
+  { message: 'Le dépôt de garantie doit être de 0 € pour un bail mobilité', path: ['deposit'] }
+).refine(
+  (data) => {
+    if (data.leaseType === 'NUE' && data.deposit > data.rentHC) return false;
+    return true;
+  },
+  { message: 'Pour un bail nu, le dépôt de garantie ne peut excéder 1 mois de loyer HC', path: ['deposit'] }
+).refine(
+  (data) => {
+    if (data.leaseType === 'MEUBLEE' && data.deposit > 2 * data.rentHC) return false;
+    return true;
+  },
+  { message: 'Pour un bail meublé, le dépôt de garantie ne peut excéder 2 mois de loyer HC', path: ['deposit'] }
 );
 
 export type LeaseFormData = z.infer<typeof LeaseSchema>;

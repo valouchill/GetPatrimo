@@ -122,6 +122,24 @@ LeaseSchema.pre('save', function(next) {
   next();
 });
 
+// Validation: dépôt de garantie selon le type de bail (loi ALUR / loi ELAN)
+LeaseSchema.pre('save', function(next) {
+  const deposit = this.depositAmount || 0;
+  const rent = this.rentAmount || 0;
+  const type = (this.leaseType || '').toUpperCase();
+
+  if (type === 'MOBILITE' && deposit !== 0) {
+    return next(new Error('Le dépôt de garantie doit être de 0 € pour un bail mobilité.'));
+  }
+  if ((type === 'VIDE' || type === 'NU') && deposit > rent) {
+    return next(new Error('Le dépôt de garantie ne peut excéder 1 mois de loyer HC pour un bail nu.'));
+  }
+  if (type === 'MEUBLE' && deposit > 2 * rent) {
+    return next(new Error('Le dépôt de garantie ne peut excéder 2 mois de loyer HC pour un bail meublé.'));
+  }
+  next();
+});
+
 LeaseSchema.index({ user: 1, property: 1 });
 LeaseSchema.index({ property: 1 });
 LeaseSchema.index({ candidature: 1 });
