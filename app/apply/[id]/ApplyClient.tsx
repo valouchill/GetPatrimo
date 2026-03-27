@@ -1708,6 +1708,7 @@ export default function ApplyClient({ token }: { token: string }) {
     return `${ownerSegment}_${typeSegment}_${dateSegment}.${extension}`;
   };
 
+  // Décret n°2015-1437 du 5 novembre 2015 — documents interdits
   const FORBIDDEN_DOC_KEYWORDS = [
     'rib',
     'iban',
@@ -1716,7 +1717,16 @@ export default function ApplyClient({ token }: { token: string }) {
     'vitale',
     'releve de compte',
     'releve bancaire',
-    'releve compte'
+    'releve compte',
+    'attestation bancaire',
+    'casier judiciaire',
+    'extrait de casier',
+    'dossier medical',
+    'dossier médical',
+    'contrat de mariage',
+    'jugement de divorce',
+    'photo identite',
+    'photo d\'identite',
   ];
 
   const isForbiddenDocumentName = (fileName: string) => {
