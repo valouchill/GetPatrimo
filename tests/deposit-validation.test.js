@@ -5,6 +5,8 @@
  * - Bail nu/vide : dépôt ≤ 1 mois de loyer HC
  * - Bail meublé : dépôt ≤ 2 mois de loyer HC
  */
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 const { z } = require('zod');
 
 // Reproduit les refinements du LeaseSchema Zod et du pre-save Mongoose
@@ -23,61 +25,57 @@ function validateDeposit(leaseType, rentAmount, depositAmount) {
 }
 
 describe('Validation dépôt de garantie (logique métier)', () => {
-  // ─── Bail mobilité ───
   describe('Bail mobilité', () => {
-    test('accepte dépôt = 0', () => {
-      expect(validateDeposit('MOBILITE', 800, 0)).toBeNull();
+    it('accepte dépôt = 0', () => {
+      assert.equal(validateDeposit('MOBILITE', 800, 0), null);
     });
-    test('refuse dépôt > 0', () => {
-      expect(validateDeposit('MOBILITE', 800, 100)).toContain('bail mobilité');
+    it('refuse dépôt > 0', () => {
+      assert.ok(validateDeposit('MOBILITE', 800, 100)?.includes('bail mobilité'));
     });
-    test('refuse dépôt = 1', () => {
-      expect(validateDeposit('MOBILITE', 800, 1)).toContain('bail mobilité');
+    it('refuse dépôt = 1', () => {
+      assert.ok(validateDeposit('MOBILITE', 800, 1)?.includes('bail mobilité'));
     });
   });
 
-  // ─── Bail nu/vide ───
   describe('Bail nu/vide', () => {
-    test('accepte dépôt = loyer', () => {
-      expect(validateDeposit('VIDE', 800, 800)).toBeNull();
+    it('accepte dépôt = loyer', () => {
+      assert.equal(validateDeposit('VIDE', 800, 800), null);
     });
-    test('accepte dépôt < loyer', () => {
-      expect(validateDeposit('VIDE', 800, 500)).toBeNull();
+    it('accepte dépôt < loyer', () => {
+      assert.equal(validateDeposit('VIDE', 800, 500), null);
     });
-    test('accepte dépôt = 0', () => {
-      expect(validateDeposit('VIDE', 800, 0)).toBeNull();
+    it('accepte dépôt = 0', () => {
+      assert.equal(validateDeposit('VIDE', 800, 0), null);
     });
-    test('refuse dépôt > loyer', () => {
-      expect(validateDeposit('VIDE', 800, 801)).toContain('bail nu');
+    it('refuse dépôt > loyer', () => {
+      assert.ok(validateDeposit('VIDE', 800, 801)?.includes('bail nu'));
     });
-    test('refuse dépôt = 2x loyer', () => {
-      expect(validateDeposit('NU', 800, 1600)).toContain('bail nu');
+    it('refuse dépôt = 2x loyer', () => {
+      assert.ok(validateDeposit('NU', 800, 1600)?.includes('bail nu'));
     });
   });
 
-  // ─── Bail meublé ───
   describe('Bail meublé', () => {
-    test('accepte dépôt = 2x loyer', () => {
-      expect(validateDeposit('MEUBLE', 800, 1600)).toBeNull();
+    it('accepte dépôt = 2x loyer', () => {
+      assert.equal(validateDeposit('MEUBLE', 800, 1600), null);
     });
-    test('accepte dépôt = loyer', () => {
-      expect(validateDeposit('MEUBLE', 800, 800)).toBeNull();
+    it('accepte dépôt = loyer', () => {
+      assert.equal(validateDeposit('MEUBLE', 800, 800), null);
     });
-    test('accepte dépôt = 0', () => {
-      expect(validateDeposit('MEUBLE', 800, 0)).toBeNull();
+    it('accepte dépôt = 0', () => {
+      assert.equal(validateDeposit('MEUBLE', 800, 0), null);
     });
-    test('refuse dépôt > 2x loyer', () => {
-      expect(validateDeposit('MEUBLE', 800, 1601)).toContain('bail meublé');
+    it('refuse dépôt > 2x loyer', () => {
+      assert.ok(validateDeposit('MEUBLE', 800, 1601)?.includes('bail meublé'));
     });
   });
 
-  // ─── Variantes de nommage ───
   describe('Variantes enum', () => {
-    test('NUE = bail nu', () => {
-      expect(validateDeposit('NUE', 800, 801)).toContain('bail nu');
+    it('NUE = bail nu', () => {
+      assert.ok(validateDeposit('NUE', 800, 801)?.includes('bail nu'));
     });
-    test('MEUBLEE = bail meublé', () => {
-      expect(validateDeposit('MEUBLEE', 800, 1601)).toContain('bail meublé');
+    it('MEUBLEE = bail meublé', () => {
+      assert.ok(validateDeposit('MEUBLEE', 800, 1601)?.includes('bail meublé'));
     });
   });
 });
@@ -112,22 +110,22 @@ describe('Zod LeaseSchema refinements', () => {
     durationMonths: 12,
   };
 
-  test('bail nu : dépôt = loyer OK', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'NUE', deposit: 800 }).success).toBe(true);
+  it('bail nu : dépôt = loyer OK', () => {
+    assert.ok(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'NUE', deposit: 800 }).success);
   });
-  test('bail nu : dépôt > loyer KO', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'NUE', deposit: 801 }).success).toBe(false);
+  it('bail nu : dépôt > loyer KO', () => {
+    assert.ok(!LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'NUE', deposit: 801 }).success);
   });
-  test('mobilité : dépôt = 0 OK', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MOBILITE', deposit: 0, durationMonths: 6 }).success).toBe(true);
+  it('mobilité : dépôt = 0 OK', () => {
+    assert.ok(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MOBILITE', deposit: 0, durationMonths: 6 }).success);
   });
-  test('mobilité : dépôt > 0 KO', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MOBILITE', deposit: 1 }).success).toBe(false);
+  it('mobilité : dépôt > 0 KO', () => {
+    assert.ok(!LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MOBILITE', deposit: 1 }).success);
   });
-  test('meublé : dépôt = 2x loyer OK', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MEUBLEE', deposit: 1600 }).success).toBe(true);
+  it('meublé : dépôt = 2x loyer OK', () => {
+    assert.ok(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MEUBLEE', deposit: 1600 }).success);
   });
-  test('meublé : dépôt > 2x loyer KO', () => {
-    expect(LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MEUBLEE', deposit: 1601 }).success).toBe(false);
+  it('meublé : dépôt > 2x loyer KO', () => {
+    assert.ok(!LeaseZodSchema.safeParse({ ...baseForm, leaseType: 'MEUBLEE', deposit: 1601 }).success);
   });
 });
