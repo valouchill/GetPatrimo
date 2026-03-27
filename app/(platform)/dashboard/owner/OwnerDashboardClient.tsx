@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Copy, Download, ExternalLink, FileSignature, Lock, Plus, RefreshCw, ScrollText, ShieldCheck } from 'lucide-react';
+import { LoadingSpinner } from '@/app/components/shared';
 import { useOwner } from './OwnerContext';
 import {
   Avatar, ScorePill, Tag, GuaranteeBadge, Btn, StatCard, Bar, StagePill,
@@ -63,10 +64,7 @@ export default function OwnerDashboardClient() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
-          <p className="text-sm text-slate-500">Chargement de votre espace…</p>
-        </div>
+        <LoadingSpinner label="Chargement de votre espace…" />
       </div>
     );
   }
