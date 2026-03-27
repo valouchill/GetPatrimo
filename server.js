@@ -212,8 +212,24 @@ mongoose.connect(MONGO_URI)
   .then(()=>console.log("✅ MongoDB Connecté"))
   .catch((e)=>{ console.error("❌ MongoDB error:", e && e.message); process.exit(1); });
  
+// -------------------- Logging
+const { logger, requestLoggerMiddleware } = require('./lib/logger');
+app.use(requestLoggerMiddleware);
+
 // -------------------- Health
 app.get('/healthz', (req,res)=>res.json({ ok:true, ts: new Date().toISOString() }));
+app.get('/health', async (req, res) => {
+  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  const status = mongoStatus === 'connected' ? 'healthy' : 'degraded';
+  const code = status === 'healthy' ? 200 : 503;
+  res.status(code).json({
+    status,
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    mongo: mongoStatus,
+    version: process.env.npm_package_version || '1.0.0',
+  });
+});
  
 // -------------------- Auth middleware
 function auth(req, res, next){
