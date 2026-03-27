@@ -128,6 +128,12 @@ const WARNING_RULES = [
   { label: 'Nombre de pieces principales', keys: ['nb_pieces_principales'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
   { label: 'Identifiant fiscal du logement', keys: ['logement_id_fiscal'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
   { label: 'Periode de construction', keys: ['periode_construction', 'annee_construction'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  // Diagnostics obligatoires (loi ALUR / décret 2020-1609)
+  { label: 'CREP (Constat de Risque d\'Exposition au Plomb)', keys: ['crep_date', 'crep_resultat'], leaseTypes: ['VIDE', 'MEUBLE'] },
+  { label: 'État des Risques et Pollutions (ERP)', keys: ['erp_date', 'erp_resultat'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Diagnostic Électricité', keys: ['diagnostic_electricite_date'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Diagnostic Gaz', keys: ['diagnostic_gaz_date'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
+  { label: 'Diagnostic Bruit (plan d\'exposition)', keys: ['diagnostic_bruit_date', 'zone_bruit'], leaseTypes: ['VIDE', 'MEUBLE', 'MOBILITE'] },
 ];
 
 function collectLeaseWarnings(rawData, templateVariables = [], leaseType = 'VIDE') {

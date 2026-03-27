@@ -34,7 +34,7 @@ const PropertySchema = new mongoose.Schema({
   diagnostics: [{
     type: {
       type: String,
-      enum: ['DPE', 'CREP', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'NOTICE_INFO', 'REGLEMENT_COPRO', 'ELEC_GAZ', 'PLOMB', 'BOUTIN'],
+      enum: ['DPE', 'CREP', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'BRUIT', 'NOTICE_INFO', 'REGLEMENT_COPRO', 'ELEC_GAZ', 'PLOMB', 'BOUTIN'],
       set: v => v ? v.toUpperCase() : v,
       required: true
     },
