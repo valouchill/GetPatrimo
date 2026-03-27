@@ -1,8 +1,9 @@
-FROM node:20-alpine
+# ── Stage 1: Build ──────────────────────────────────────────────
+FROM node:20-alpine AS builder
 
 WORKDIR /opt/doc2loc
 
-# Installation des dépendances système (canvas + polices pour le rendu PDF)
+# Dépendances système pour canvas (PDF rendering)
 RUN apk add --no-cache \
     python3 \
     make \
@@ -20,16 +21,14 @@ RUN apk add --no-cache \
     font-noto-emoji \
     && fc-cache -fv
 
-# Copie des fichiers package
+# Layer caching: package.json first
 COPY package*.json ./
-
-# Installation de TOUTES les dépendances (dev inclus pour le build)
 RUN npm ci
 
-# Copie du code source
+# Source code
 COPY . .
 
-# Build Next.js pour la production
+# Build Next.js
 ENV NODE_ENV=production
 ARG JWT_SECRET=build-time-placeholder
 ARG NEXTAUTH_SECRET=build-time-placeholder
@@ -39,14 +38,53 @@ ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 ENV MONGO_URI=$MONGO_URI
 RUN npm run build
 
-# Suppression des devDependencies après le build
+# Remove devDependencies
 RUN npm prune --production
 
-# Création des dossiers nécessaires
-RUN mkdir -p uploads/candidats uploads/property-documents
+# ── Stage 2: Production ────────────────────────────────────────
+FROM node:20-alpine AS production
 
-# Exposition du port
+WORKDIR /opt/doc2loc
+
+# Runtime-only system deps (no compiler toolchain)
+RUN apk add --no-cache \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    librsvg \
+    fontconfig \
+    ttf-dejavu \
+    ttf-liberation \
+    font-noto \
+    font-noto-emoji \
+    curl \
+    && fc-cache -fv
+
+# Copy built artifacts from builder
+COPY --from=builder /opt/doc2loc/package*.json ./
+COPY --from=builder /opt/doc2loc/node_modules ./node_modules
+COPY --from=builder /opt/doc2loc/.next ./.next
+COPY --from=builder /opt/doc2loc/public ./public
+COPY --from=builder /opt/doc2loc/server.js ./server.js
+COPY --from=builder /opt/doc2loc/src ./src
+COPY --from=builder /opt/doc2loc/lib ./lib
+COPY --from=builder /opt/doc2loc/models ./models
+COPY --from=builder /opt/doc2loc/app ./app
+COPY --from=builder /opt/doc2loc/next.config.js ./next.config.js
+
+# Create upload directories
+RUN mkdir -p uploads/candidats uploads/property-documents && chmod -R 750 uploads/
+
+# Non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /opt/doc2loc
+USER nodejs
+
 EXPOSE 3000
 
-# Démarrage du serveur
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
 CMD ["node", "server.js"]
