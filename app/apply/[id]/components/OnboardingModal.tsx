@@ -50,6 +50,9 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
               border: '1px solid rgba(16, 185, 129, 0.2)',
             }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-modal-title"
           >
             {/* Effet de brillance émeraude/or sur les bords */}
             <div className="absolute inset-0 rounded-3xl pointer-events-none">
@@ -60,9 +63,10 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
             {/* Bouton fermer - discret */}
             <button
               onClick={handleClose}
+              aria-label="Fermer la fenêtre d'accueil"
               className="absolute top-5 right-5 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all shadow-sm border border-slate-100"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -88,7 +92,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
               <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-[0.4em] mb-3">PatrimoTrust™ • Certification 2026</p>
 
               {/* Titre Serif - Style Banque Privée */}
-              <h2 className="text-2xl md:text-3xl text-slate-900 mb-3 leading-tight" style={{ fontFamily: 'Georgia, "Playfair Display", serif' }}>
+              <h2 id="onboarding-modal-title" className="text-2xl md:text-3xl text-slate-900 mb-3 leading-tight" style={{ fontFamily: 'Georgia, "Playfair Display", serif' }}>
                 Votre Passeport pour ce logement<br />
                 <span className="text-emerald-600">commence ici.</span>
               </h2>

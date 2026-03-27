@@ -53,21 +53,25 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="fixed right-0 top-0 z-[201] flex h-screen flex-col bg-white shadow-2xl"
-        style={{ width: 'min(520px, 90vw)' }}>
+        style={{ width: 'min(520px, 90vw)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="candidate-drawer-title"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div className="flex items-center gap-3">
             <Avatar name={`${c.prenom} ${c.nom}`} id={c.id} />
             <div>
-              <div className="font-bold text-slate-950">{c.prenom} {c.nom}</div>
+              <div id="candidate-drawer-title" className="font-bold text-slate-950">{c.prenom} {c.nom}</div>
               <div className="mt-0.5 text-xs text-slate-500">{c.contrat} · {bien.label}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ScorePill score={c.score} />
-            <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-              <X className="h-5 w-5" />
+            <button type="button" onClick={onClose} aria-label="Fermer le panneau candidat" className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>

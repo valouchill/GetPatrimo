@@ -71,6 +71,8 @@ export function StepLocataire({
                     ? "border-emerald-300 bg-emerald-50"
                     : "border-slate-200 bg-slate-50"
                 }`}
+                role="region"
+                aria-label={`Candidature de ${application.profile?.firstName || "Candidat"} ${application.profile?.lastName || ""}`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">

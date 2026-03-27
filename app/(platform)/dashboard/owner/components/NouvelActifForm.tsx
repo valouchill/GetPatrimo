@@ -35,10 +35,11 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
             <h3 className="mb-1 font-semibold text-slate-900">Adresse du bien</h3>
             <p className="mb-5 text-sm text-slate-500">Entrez l&apos;adresse complète du logement à mettre en gestion.</p>
             <div className="mb-6">
-              <label className="mb-1.5 block text-xs font-semibold text-slate-700">Adresse complète</label>
-              <input type="text" placeholder="Ex : 42 rue de la Roquette, 75011 Paris"
+              <label htmlFor="actif-address" className="mb-1.5 block text-xs font-semibold text-slate-700">Adresse complète</label>
+              <input id="actif-address" type="text" placeholder="Ex : 42 rue de la Roquette, 75011 Paris"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                value={form.address} onChange={(e) => f('address', e.target.value)} />
+                value={form.address} onChange={(e) => f('address', e.target.value)}
+                aria-required="true" />
             </div>
             <div className="flex justify-end">
               <Btn variant="amber" disabled={!form.address.trim()} onClick={() => setStep(1)}>
@@ -53,14 +54,15 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
             <p className="mb-5 text-sm text-slate-500">Ces données alimentent le scoring automatique des candidatures.</p>
             <div className="mb-6 grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Loyer charges exclues (€)</label>
-                <input type="number" min={0} placeholder="1 200"
+                <label htmlFor="actif-rent" className="mb-1.5 block text-xs font-semibold text-slate-700">Loyer charges exclues (€)</label>
+                <input id="actif-rent" type="number" min={0} placeholder="1 200"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                  value={form.rentAmount} onChange={(e) => f('rentAmount', e.target.value)} />
+                  value={form.rentAmount} onChange={(e) => f('rentAmount', e.target.value)}
+                  aria-required="true" />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Surface (m²) <span className="font-normal text-slate-400">optionnel</span></label>
-                <input type="number" min={0} placeholder="45"
+                <label htmlFor="actif-surface" className="mb-1.5 block text-xs font-semibold text-slate-700">Surface (m²) <span className="font-normal text-slate-400">optionnel</span></label>
+                <input id="actif-surface" type="number" min={0} placeholder="45"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
                   value={form.surfaceM2} onChange={(e) => f('surfaceM2', e.target.value)} />
               </div>
@@ -86,7 +88,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
               <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
               <span className="text-sm font-medium text-emerald-800">Un lien Sésame unique sera généré pour partager aux candidats.</span>
             </div>
-            {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+            {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
             <div className="flex justify-between">
               <Btn variant="secondary" onClick={() => setStep(1)}>← Retour</Btn>
               <Btn variant="amber" disabled={loading} onClick={handleSubmit}>

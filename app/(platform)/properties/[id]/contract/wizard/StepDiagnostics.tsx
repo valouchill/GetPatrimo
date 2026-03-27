@@ -153,7 +153,7 @@ export function StepDiagnostics({
       </button>
 
       {compileStatus === "error" ? (
-        <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+        <div role="alert" className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {compileError}
         </div>
       ) : null}

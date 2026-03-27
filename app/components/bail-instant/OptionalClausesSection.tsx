@@ -27,6 +27,7 @@ export function ClauseToggle({ clause, isSelected, onToggle }: ClauseToggleProps
   return (
     <motion.button
       onClick={onToggle}
+      aria-pressed={isSelected}
       className={`w-full text-left p-3 border rounded-lg transition-all ${
         isSelected
           ? "border-emerald bg-emerald/5 shadow-sm"
@@ -171,6 +172,7 @@ export function OptionalClausesSection({
             placeholder="Ajoutez votre propre clause personnalisée..."
             className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald resize-none"
             rows={4}
+            aria-label="Clause personnalisée libre"
           />
           {customClause.trim().length > 0 && (
             <motion.div

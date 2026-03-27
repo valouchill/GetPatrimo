@@ -249,13 +249,13 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           <button
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting}
+            aria-label="Supprimer ce document"
             className="ml-2 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-            title="Supprimer ce document"
           >
             {isDeleting ? (
-              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             )}
@@ -271,6 +271,9 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-4 rounded-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirm-title"
           >
             <motion.div
               initial={{ scale: 0.9, y: 10 }}
@@ -283,7 +286,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <p className="text-sm font-bold text-navy mb-1">Supprimer ce document ?</p>
+              <p id="delete-confirm-title" className="text-sm font-bold text-navy mb-1">Supprimer ce document ?</p>
               <p className="text-xs text-slate-500 mb-4">Votre PatrimoScore™ diminuera de <span className="font-bold text-red-500">-10 pts</span></p>
               <div className="flex items-center gap-2 justify-center">
                 <button

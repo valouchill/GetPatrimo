@@ -60,6 +60,9 @@ export function ConsistencyGuardianModal({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-amber-200"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="consistency-modal-title"
           >
             {/* Header ambre */}
             <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 px-6 py-5 border-b border-amber-200">
@@ -74,13 +77,14 @@ export function ConsistencyGuardianModal({
                     <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Diagnostic de Cohérence</span>
                     <span className="px-2 py-0.5 bg-amber-200 text-amber-800 text-[10px] font-bold rounded-full">À RÉVISER</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">Une petite ombre au tableau</h3>
+                  <h3 id="consistency-modal-title" className="text-lg font-bold text-slate-800">Une petite ombre au tableau</h3>
                 </div>
                 <button
                   onClick={onClose}
+                  aria-label="Fermer la fenêtre"
                   className="text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -138,6 +142,8 @@ export function ConsistencyGuardianModal({
                     placeholder="Ex: Il s'agit de mon nom d'épouse. Mon nom de naissance est bien celui figurant sur ma pièce d'identité."
                     className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
                     rows={3}
+                    aria-required="true"
+                    aria-label="Justification de la différence de nom"
                   />
                   <div className="flex gap-2 mt-3">
                     <button

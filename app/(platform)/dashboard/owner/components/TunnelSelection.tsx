@@ -55,7 +55,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/55 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Tunnel de sélection du locataire">
       <div className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-4 px-6 py-4">
           <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
@@ -178,7 +178,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty
                   </div>
                 )}
               </div>
-              {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+              {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               {selected.guaranteeMode === 'NONE' || !selected.guaranteeMode ? (
                 <div className="mb-4 rounded-xl border-2 border-orange-300 bg-orange-50 px-4 py-3">
                   <div className="mb-1 text-sm font-bold text-orange-800">⚠ Candidat sans garant</div>

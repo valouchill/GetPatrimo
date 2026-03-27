@@ -35,19 +35,23 @@ export function PropertyDetailModal({ bien, candidats, allData, onClose, onSelec
         className="fixed inset-0 z-[201] flex items-center justify-center p-4"
         onClick={onClose}>
         <div className="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
-          onClick={(e) => e.stopPropagation()}>
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="property-detail-modal-title"
+        >
 
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">🏠</div>
               <div>
-                <div className="text-lg font-bold text-slate-950">{bien.label}</div>
+                <div id="property-detail-modal-title" className="text-lg font-bold text-slate-950">{bien.label}</div>
                 <div className="mt-0.5 text-sm text-slate-500">{bien.adresse}</div>
               </div>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-              <X className="h-5 w-5" />
+            <button type="button" onClick={onClose} aria-label="Fermer la fenêtre du bien" className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 

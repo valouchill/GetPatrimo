@@ -34,6 +34,7 @@ export function StepBien({ formData, onFieldChange, onDepositChange }: StepBienP
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
             value={formData.leaseType}
             onChange={(event) => onFieldChange("leaseType", event.target.value)}
+            aria-required="true"
           >
             <option value="VIDE">Vide</option>
             <option value="MEUBLE">Meublé</option>
@@ -49,6 +50,7 @@ export function StepBien({ formData, onFieldChange, onDepositChange }: StepBienP
             value={formData.startDate}
             min={getTomorrowDateInputValue(new Date(Date.now() - 24 * 60 * 60 * 1000))}
             onChange={(event) => onFieldChange("startDate", event.target.value)}
+            aria-required="true"
           />
         </label>
         <label className="text-sm font-medium text-slate-700">
@@ -60,6 +62,7 @@ export function StepBien({ formData, onFieldChange, onDepositChange }: StepBienP
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
             value={formData.paymentDay}
             onChange={(event) => onFieldChange("paymentDay", Number(event.target.value) || 5)}
+            aria-required="true"
           />
         </label>
         <label className="text-sm font-medium text-slate-700">
@@ -70,6 +73,7 @@ export function StepBien({ formData, onFieldChange, onDepositChange }: StepBienP
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
             value={formData.durationMonths}
             onChange={(event) => onFieldChange("durationMonths", Number(event.target.value) || 0)}
+            aria-required="true"
           />
         </label>
         <label className="text-sm font-medium text-slate-700">
@@ -80,6 +84,7 @@ export function StepBien({ formData, onFieldChange, onDepositChange }: StepBienP
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
             value={formData.rentHC}
             onChange={(event) => onFieldChange("rentHC", Number(event.target.value) || 0)}
+            aria-required="true"
           />
         </label>
         <label className="text-sm font-medium text-slate-700">

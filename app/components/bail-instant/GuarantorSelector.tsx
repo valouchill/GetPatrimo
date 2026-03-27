@@ -32,6 +32,7 @@ export function GuarantorSelector({
         <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => onChangeType("VISALE")}
+            aria-pressed={guarantorType === "VISALE"}
             className={`p-4 border-2 rounded-lg text-center transition-all ${
               guarantorType === "VISALE"
                 ? "border-emerald bg-emerald/5"
@@ -43,6 +44,7 @@ export function GuarantorSelector({
           </button>
           <button
             onClick={() => onChangeType("PHYSIQUE")}
+            aria-pressed={guarantorType === "PHYSIQUE"}
             className={`p-4 border-2 rounded-lg text-center transition-all ${
               guarantorType === "PHYSIQUE"
                 ? "border-emerald bg-emerald/5"
@@ -54,6 +56,7 @@ export function GuarantorSelector({
           </button>
           <button
             onClick={() => onChangeType("NONE")}
+            aria-pressed={guarantorType === "NONE"}
             className={`p-4 border-2 rounded-lg text-center transition-all ${
               guarantorType === "NONE"
                 ? "border-slate-300 bg-slate-50"
@@ -73,15 +76,17 @@ export function GuarantorSelector({
             className="space-y-3 pt-4 border-t border-slate-200"
           >
             <div>
-              <label className="block text-sm text-slate-600 mb-2">
+              <label htmlFor="guarantor-visale-number" className="block text-sm text-slate-600 mb-2">
                 Numéro de Visa
               </label>
               <input
+                id="guarantor-visale-number"
                 type="text"
                 value={guarantor.visaleNumber || ""}
                 onChange={(e) => onFieldChange("visaleNumber", e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald"
                 placeholder="Ex: VISALE123456789"
+                aria-required="true"
               />
             </div>
           </motion.div>
@@ -96,36 +101,43 @@ export function GuarantorSelector({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-slate-600 mb-2">Prénom</label>
+                <label htmlFor="guarantor-first-name" className="block text-sm text-slate-600 mb-2">Prénom</label>
                 <input
+                  id="guarantor-first-name"
                   type="text"
                   value={guarantor.firstName}
                   onChange={(e) => onFieldChange("firstName", e.target.value)}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald"
+                  aria-required="true"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-600 mb-2">Nom</label>
+                <label htmlFor="guarantor-last-name" className="block text-sm text-slate-600 mb-2">Nom</label>
                 <input
+                  id="guarantor-last-name"
                   type="text"
                   value={guarantor.lastName}
                   onChange={(e) => onFieldChange("lastName", e.target.value)}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald"
+                  aria-required="true"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-2">Email</label>
+              <label htmlFor="guarantor-email" className="block text-sm text-slate-600 mb-2">Email</label>
               <input
+                id="guarantor-email"
                 type="email"
                 value={guarantor.email}
                 onChange={(e) => onFieldChange("email", e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald"
+                aria-required="true"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-2">Revenus mensuels nets</label>
+              <label htmlFor="guarantor-income" className="block text-sm text-slate-600 mb-2">Revenus mensuels nets</label>
               <input
+                id="guarantor-income"
                 type="number"
                 value={guarantor.income || ""}
                 onChange={(e) => onFieldChange("income", parseFloat(e.target.value) || 0)}
