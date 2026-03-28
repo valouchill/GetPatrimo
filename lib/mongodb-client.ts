@@ -9,38 +9,41 @@ declare global {
   var _mongoClientUri: string | undefined;
 }
 
-function getClientPromise(): Promise<MongoClient> {
-  const uri = process.env.MONGO_URI;
+/**
+ * Returns a MongoClient promise, creating a new one if needed.
+ * Invalidates the cache if MONGO_URI changed (build → runtime).
+ */
+export function getClientPromise(): Promise<MongoClient> {
+  const uri = process.env.MONGO_URI || '';
 
   if (!uri) {
-    // Pendant le build, retourner une promesse qui ne se résout jamais
-    return new Promise(() => {});
+    return new Promise(() => {}); // build time — never resolves
   }
 
-  // Si l'URI a changé depuis le cache (ex: build → runtime), recréer le client
   if (global._mongoClientPromise && global._mongoClientUri === uri) {
     return global._mongoClientPromise;
   }
 
+  // URI changed or first call — create fresh connection
   const client = new MongoClient(uri, options);
   global._mongoClientPromise = client.connect();
   global._mongoClientUri = uri;
   return global._mongoClientPromise;
 }
 
-// Export lazy — évalué à chaque accès via getter
-// Cela garantit que l'URI runtime est utilisée, pas celle du build
-let _cached: Promise<MongoClient> | null = null;
-
-const clientPromise = new Proxy({} as Promise<MongoClient>, {
-  get(_target, prop) {
-    if (!_cached) {
-      _cached = getClientPromise();
-    }
-    const val = (_cached as any)[prop];
-    return typeof val === 'function' ? val.bind(_cached) : val;
+// Default export: a promise that defers to runtime URI.
+// We use a "lazy thenable" so MongoDBAdapter can `await` it.
+const clientPromise: Promise<MongoClient> = {
+  then(onFulfilled, onRejected) {
+    return getClientPromise().then(onFulfilled, onRejected);
   },
-});
+  catch(onRejected) {
+    return getClientPromise().catch(onRejected);
+  },
+  finally(onFinally) {
+    return getClientPromise().finally(onFinally);
+  },
+  [Symbol.toStringTag]: 'LazyMongoClientPromise',
+} as Promise<MongoClient>;
 
-export { getClientPromise };
 export default clientPromise;
