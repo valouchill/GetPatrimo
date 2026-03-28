@@ -36,6 +36,9 @@ const Event = require('./models/Event');
  
 const app = express();
 
+// --- Trust proxy (derrière nginx-proxy-manager) ---
+app.set('trust proxy', 1);
+
 // --- Securite : headers HTTP ---
 app.use(helmet({
   contentSecurityPolicy: {

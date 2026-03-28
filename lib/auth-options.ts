@@ -128,5 +128,14 @@ export const authOptions = {
       },
     },
   },
+  // En cas d'erreur de déchiffrement JWT (changement de secret), NextAuth
+  // crée automatiquement un nouveau token vide plutôt que de bloquer.
+  logger: {
+    error(code: string, metadata: unknown) {
+      // Ignore les erreurs JWT_SESSION_ERROR (cookie ancien → nouveau secret)
+      if (code === 'JWT_SESSION_ERROR') return;
+      console.error(`[next-auth][${code}]`, metadata);
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 };

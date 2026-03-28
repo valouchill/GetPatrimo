@@ -65,6 +65,16 @@ export default function LoginPage() {
 
         setStep('unlocking');
 
+        // Nettoyer les éventuels anciens cookies de session corrompus
+        // (cas : changement de NEXTAUTH_SECRET)
+        document.cookie.split(';').forEach((c) => {
+          const name = c.trim().split('=')[0];
+          if (name.includes('next-auth') || name.includes('__Secure-next-auth')) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure`;
+          }
+        });
+
         const result = await signIn('magic-fast', {
           email: data.email,
           token: data.token,
