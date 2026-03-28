@@ -262,9 +262,9 @@ export default function TenantDashboardClient({
             <DocumentCard
               icon="💰"
               title="Revenus"
-              status={app?.documents?.some(d => d.category === 'income' && d.status === 'certified') ? 'certified' : 'pending'}
-              description={app?.documents?.some(d => d.category === 'income' && d.status === 'certified') ? 'Revenus certifiés' : 'À compléter'}
-              points={app?.documents?.some(d => d.category === 'income' && d.status === 'certified') ? 25 : 0}
+              status={app?.documents?.some(d => d.category === 'INCOME' && d.status === 'CERTIFIED') ? 'certified' : 'pending'}
+              description={app?.documents?.some(d => d.category === 'INCOME' && d.status === 'CERTIFIED') ? 'Revenus certifiés' : 'À compléter'}
+              points={app?.documents?.some(d => d.category === 'INCOME' && d.status === 'CERTIFIED') ? 25 : 0}
               href={app?.applyToken ? `/apply/${app.applyToken}` : undefined}
             />
 
@@ -272,9 +272,9 @@ export default function TenantDashboardClient({
             <DocumentCard
               icon="🏠"
               title="Domicile"
-              status={app?.documents?.some(d => d.category === 'address' && d.status === 'certified') ? 'certified' : 'pending'}
-              description={app?.documents?.some(d => d.category === 'address' && d.status === 'certified') ? 'Justificatif validé' : 'À compléter'}
-              points={app?.documents?.some(d => d.category === 'address' && d.status === 'certified') ? 10 : 0}
+              status={app?.documents?.some(d => d.category === 'ADDRESS' && d.status === 'CERTIFIED') ? 'certified' : 'pending'}
+              description={app?.documents?.some(d => d.category === 'ADDRESS' && d.status === 'CERTIFIED') ? 'Justificatif validé' : 'À compléter'}
+              points={app?.documents?.some(d => d.category === 'ADDRESS' && d.status === 'CERTIFIED') ? 10 : 0}
               href={app?.applyToken ? `/apply/${app.applyToken}` : undefined}
             />
 
@@ -315,19 +315,19 @@ export default function TenantDashboardClient({
                 {app.documents.map((doc, index) => (
                   <div key={doc.id || index} className="flex flex-col gap-4 p-4 transition-colors hover:bg-slate-50 sm:flex-row sm:items-center">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      doc.status === 'certified' ? 'bg-emerald-100' :
-                      doc.status === 'needs_review' ? 'bg-amber-100' :
-                      doc.status === 'illegible' ? 'bg-orange-100' :
-                      doc.status === 'flagged' ? 'bg-amber-100' :
-                      doc.status === 'rejected' ? 'bg-red-100' : 'bg-slate-100'
+                      doc.status === 'CERTIFIED' ? 'bg-emerald-100' :
+                      doc.status === 'NEEDS_REVIEW' ? 'bg-amber-100' :
+                      doc.status === 'ILLEGIBLE' ? 'bg-orange-100' :
+                      doc.status === 'FLAGGED' ? 'bg-amber-100' :
+                      doc.status === 'REJECTED' ? 'bg-red-100' : 'bg-slate-100'
                     }`}>
-                      {doc.status === 'certified' ? (
+                      {doc.status === 'CERTIFIED' ? (
                         <CheckCircleIcon className="w-6 h-6 text-emerald-600" />
-                      ) : doc.status === 'needs_review' ? (
+                      ) : doc.status === 'NEEDS_REVIEW' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-amber-600" />
-                      ) : doc.status === 'illegible' ? (
+                      ) : doc.status === 'ILLEGIBLE' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-orange-600" />
-                      ) : doc.status === 'rejected' ? (
+                      ) : doc.status === 'REJECTED' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-red-600" />
                       ) : (
                         <DocumentTextIcon className="w-6 h-6 text-slate-400" />
@@ -339,22 +339,22 @@ export default function TenantDashboardClient({
                     </div>
                     <StatusBadge
                       tone={
-                        doc.status === 'certified'
+                        doc.status === 'CERTIFIED'
                           ? 'success'
-                          : doc.status === 'needs_review' || doc.status === 'flagged'
+                          : doc.status === 'NEEDS_REVIEW' || doc.status === 'FLAGGED'
                             ? 'warning'
-                            : doc.status === 'illegible'
+                            : doc.status === 'ILLEGIBLE'
                               ? 'warning'
-                              : doc.status === 'rejected'
+                              : doc.status === 'REJECTED'
                                 ? 'danger'
                                 : 'neutral'
                       }
                       label={
-                        doc.status === 'certified' ? 'Certifié' :
-                        doc.status === 'needs_review' ? 'Revue manuelle' :
-                        doc.status === 'illegible' ? 'Illisible' :
-                        doc.status === 'flagged' ? 'À vérifier' :
-                        doc.status === 'rejected' ? 'Rejeté' : 'En attente'
+                        doc.status === 'CERTIFIED' ? 'Certifié' :
+                        doc.status === 'NEEDS_REVIEW' ? 'Revue manuelle' :
+                        doc.status === 'ILLEGIBLE' ? 'Illisible' :
+                        doc.status === 'FLAGGED' ? 'À vérifier' :
+                        doc.status === 'REJECTED' ? 'Rejeté' : 'En attente'
                       }
                     />
                   </div>

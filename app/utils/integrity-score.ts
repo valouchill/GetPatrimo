@@ -41,7 +41,7 @@ export function calculateIntegrityScore(
   documents: DocumentAnalysisForIntegrity[],
   diditStatus?: 'VERIFIED' | 'PENDING' | 'FAILED'
 ): IntegrityScoreResult {
-  const certifiedDocs = documents.filter((doc) => doc.status === 'certified');
+  const certifiedDocs = documents.filter((doc) => doc.status === 'CERTIFIED');
 
   if (certifiedDocs.length === 0) {
     return {

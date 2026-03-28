@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { connectDiditDb } from '../../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Candidature from '@/models/Candidature';
@@ -8,14 +9,62 @@ const {
 } = require('@/src/utils/guarantorDidit');
 
 /**
+ * Verification de la signature HMAC-SHA256 du webhook Didit.
+ * Empeche un attaquant de forger des requetes de certification.
+ */
+function verifyWebhookSignature(
+  rawBody: string,
+  signature: string,
+  secret: string
+): boolean {
+  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+  const sigBuffer = Buffer.from(signature, 'hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  if (sigBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(sigBuffer, expectedBuffer);
+}
+
+/**
  * Webhook Didit pour les garanties
- * Reçoit les notifications de certification Didit pour les garanties
+ * Recoit les notifications de certification Didit pour les garanties
+ * La signature HMAC est verifiee avant tout traitement.
  */
 export async function POST(request: NextRequest) {
   try {
+    // Lire le body brut AVANT de le parser en JSON (necessaire pour la verification HMAC)
+    const rawBody = await request.text();
+
+    // Recuperer la signature depuis les headers (deux noms possibles en fallback)
+    const signature =
+      request.headers.get('x-signature') ||
+      request.headers.get('x-webhook-signature');
+
+    const webhookSecret = process.env.DIDIT_CLIENT_SECRET;
+
+    if (!webhookSecret) {
+      console.error('[didit-webhook] DIDIT_CLIENT_SECRET non configure');
+      return NextResponse.json(
+        { error: 'Configuration webhook invalide.' },
+        { status: 500 }
+      );
+    }
+
+    // Verifier la signature HMAC-SHA256 — rejeter si absente ou invalide
+    if (!signature || !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+      console.error('[didit-webhook] Signature invalide ou absente');
+      return NextResponse.json(
+        { error: 'Signature invalide.' },
+        { status: 401 }
+      );
+    }
+
+    // Parser le body apres verification de la signature
+    const body = JSON.parse(rawBody);
+
     await connectDiditDb();
-    
-    const body = await request.json();
+
     const sessionId = body.session_id || body.sessionId;
 
     if (!sessionId) {
@@ -24,23 +73,22 @@ export async function POST(request: NextRequest) {
 
     // Trouver le garant par sa session Didit
     const guarantor = await Guarantor.findOne({ diditSessionId: sessionId });
-    
+
     if (!guarantor) {
-      console.warn(`Garant non trouvé pour session Didit: ${sessionId}`);
       return NextResponse.json({ received: true });
     }
 
-    // Vérifier le statut de la session Didit
+    // Verifier le statut de la session Didit
     const apiKey = process.env.DIDIT_API_KEY || process.env.DIDIT_CLIENT_SECRET;
     if (!apiKey) {
-      console.warn('DIDIT_API_KEY non configuré');
+      console.error('[didit-webhook] DIDIT_API_KEY non configure');
       return NextResponse.json({ received: true });
     }
 
     const diditStatus = await fetchDiditSessionVerification(sessionId, apiKey);
 
     if (diditStatus?.verified) {
-      // Mettre à jour le garant
+      // Mettre a jour le garant
       guarantor.status = 'CERTIFIED';
       guarantor.firstName = diditStatus.firstName || guarantor.firstName;
       guarantor.lastName = diditStatus.lastName || guarantor.lastName;
@@ -55,7 +103,7 @@ export async function POST(request: NextRequest) {
       guarantor.certifiedAt = new Date();
       await guarantor.save();
 
-      // Mettre à jour la candidature pour indiquer qu'un garant est certifié
+      // Mettre a jour la candidature pour indiquer qu'un garant est certifie
       if (guarantor.candidature) {
         const candidature = await Candidature.findById(guarantor.candidature);
         if (candidature) {
@@ -64,13 +112,11 @@ export async function POST(request: NextRequest) {
           await candidature.save();
         }
       }
-
-      console.log(`✅ Garant certifié: ${guarantor.email} pour candidature ${guarantor.candidature}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Erreur webhook Didit garant:', error);
+    console.error('[didit-webhook] Erreur:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur serveur' },
       { status: 500 }

@@ -121,7 +121,7 @@ export async function GET() {
               passport: maskedPassport,
               documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
               certifiedDocumentsCount: Array.isArray(app.documents)
-                ? app.documents.filter((d: any) => d?.status === 'certified' && !d?.flagged).length
+                ? app.documents.filter((d: any) => d?.status === 'CERTIFIED' && !d?.flagged).length
                 : 0,
               status: app.status,
               submittedAt: app.submittedAt,
@@ -142,7 +142,7 @@ export async function GET() {
             passport: ownerInsights.passport,
             documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
             certifiedDocumentsCount: Array.isArray(app.documents)
-              ? app.documents.filter((d: any) => d?.status === 'certified' && !d?.flagged).length
+              ? app.documents.filter((d: any) => d?.status === 'CERTIFIED' && !d?.flagged).length
               : 0,
             status: app.status,
             submittedAt: app.submittedAt,

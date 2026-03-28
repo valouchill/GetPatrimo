@@ -40,7 +40,7 @@ function buildVaultDocuments(lease: any) {
     const pdfPath = String(document?.pdfPath || '').trim();
     register(`generated-${index}-${fileName}`, {
       id: `generated-${index}-${fileName}`,
-      label: document?.kind === 'guarantee' ? 'Acte de caution' : 'Bail ALUR',
+      label: document?.kind === 'GUARANTEE' ? 'Acte de caution' : 'Bail ALUR',
       status: 'generated',
       kind: document?.kind || 'lease',
       fileName: fileName || `document-${index + 1}.pdf`,
@@ -55,7 +55,7 @@ function buildVaultDocuments(lease: any) {
   openSignDocuments.forEach((document: any, index: number) => {
     register(`opensign-${index}-${document?.kind || 'lease'}`, {
       id: `opensign-${index}-${document?.kind || 'lease'}`,
-      label: document?.kind === 'guarantee' ? 'Caution signee' : 'Bail signe',
+      label: document?.kind === 'GUARANTEE' ? 'Caution signee' : 'Bail signe',
       status: document?.status || 'pending',
       kind: document?.kind || 'lease',
       fileName: String(document?.signedPdfPath || '').split('/').pop() || null,
@@ -185,7 +185,7 @@ export async function GET(
           passport: maskedPassport,
           documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
           certifiedDocumentsCount: Array.isArray(app.documents)
-            ? app.documents.filter((doc: any) => doc?.status === 'certified' && !doc?.flagged).length
+            ? app.documents.filter((doc: any) => doc?.status === 'CERTIFIED' && !doc?.flagged).length
             : 0,
           status: app.status,
           submittedAt: app.submittedAt,
@@ -207,7 +207,7 @@ export async function GET(
         ownerInsights,
         documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
         certifiedDocumentsCount: Array.isArray(app.documents)
-          ? app.documents.filter((doc: any) => doc?.status === 'certified' && !doc?.flagged).length
+          ? app.documents.filter((doc: any) => doc?.status === 'CERTIFIED' && !doc?.flagged).length
           : 0,
         status: app.status,
         submittedAt: app.submittedAt,

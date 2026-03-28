@@ -62,6 +62,14 @@ export async function GET(
     }
 
     const absolutePath = path.join(COMPILED_DIR, fileName);
+
+    // Protection path traversal
+    const resolvedPath = path.resolve(absolutePath);
+    const resolvedDir = path.resolve(COMPILED_DIR);
+    if (!resolvedPath.startsWith(resolvedDir + path.sep) && resolvedPath !== resolvedDir) {
+      return NextResponse.json({ msg: 'Chemin non autorise' }, { status: 403 });
+    }
+
     const fileBuffer = await fs.readFile(absolutePath);
 
     return new NextResponse(fileBuffer, {

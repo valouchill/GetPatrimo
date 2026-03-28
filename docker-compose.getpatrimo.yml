@@ -10,7 +10,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       # MongoDB depuis Docker : utilise le nom du service ou l'IP de l'hôte
-      - MONGO_URI=mongodb://admin:password123@mongodb:27017/doc2loc?authSource=admin
+      - MONGO_URI=${MONGO_URI}
     volumes:
       - ./uploads:/opt/doc2loc/uploads
       - ./public:/opt/doc2loc/public

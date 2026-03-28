@@ -130,7 +130,7 @@ export async function GET(
           },
           documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
           certifiedDocumentsCount: Array.isArray(app.documents)
-            ? app.documents.filter((doc: any) => doc?.status === 'certified' && !doc?.flagged).length
+            ? app.documents.filter((doc: any) => doc?.status === 'CERTIFIED' && !doc?.flagged).length
             : 0,
           status: app.status,
           submittedAt: app.submittedAt,
@@ -152,7 +152,7 @@ export async function GET(
         ownerInsights,
         documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
         certifiedDocumentsCount: Array.isArray(app.documents)
-          ? app.documents.filter((doc: any) => doc?.status === 'certified' && !doc?.flagged).length
+          ? app.documents.filter((doc: any) => doc?.status === 'CERTIFIED' && !doc?.flagged).length
           : 0,
         status: app.status,
         submittedAt: app.submittedAt,
