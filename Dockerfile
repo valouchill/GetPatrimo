@@ -29,17 +29,14 @@ RUN npm ci
 COPY . .
 
 # Build Next.js
-ENV NODE_ENV=production
 ARG JWT_SECRET=build-time-placeholder
 ARG NEXTAUTH_SECRET=build-time-placeholder
 ARG MONGO_URI=mongodb://127.0.0.1:27017/doc2loc-build
-ENV JWT_SECRET=$JWT_SECRET
-ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
-ENV MONGO_URI=$MONGO_URI
+ENV NODE_ENV=production \
+    JWT_SECRET=$JWT_SECRET \
+    NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
+    MONGO_URI=$MONGO_URI
 RUN npm run build
-
-# Remove devDependencies
-RUN npm prune --production
 
 # ── Stage 2: Production ────────────────────────────────────────
 FROM node:20-alpine AS production
@@ -61,17 +58,24 @@ RUN apk add --no-cache \
     curl \
     && fc-cache -fv
 
-# Copy built artifacts from builder
+# Copy everything from builder EXCEPT node_modules
 COPY --from=builder /opt/doc2loc/package*.json ./
-COPY --from=builder /opt/doc2loc/node_modules ./node_modules
 COPY --from=builder /opt/doc2loc/.next ./.next
 COPY --from=builder /opt/doc2loc/public ./public
 COPY --from=builder /opt/doc2loc/server.js ./server.js
+COPY --from=builder /opt/doc2loc/next.config.js ./next.config.js
 COPY --from=builder /opt/doc2loc/src ./src
 COPY --from=builder /opt/doc2loc/lib ./lib
 COPY --from=builder /opt/doc2loc/models ./models
 COPY --from=builder /opt/doc2loc/app ./app
-COPY --from=builder /opt/doc2loc/next.config.js ./next.config.js
+COPY --from=builder /opt/doc2loc/.cursor ./.cursor
+
+# Fresh production-only install (avoids npm prune --production bugs in npm 10+)
+RUN apk add --no-cache python3 make g++ pkgconfig \
+    cairo-dev jpeg-dev pango-dev giflib-dev librsvg-dev \
+    && npm ci --omit=dev \
+    && apk del python3 make g++ pkgconfig \
+       cairo-dev jpeg-dev pango-dev giflib-dev librsvg-dev
 
 # Create upload directories
 RUN mkdir -p uploads/candidats uploads/property-documents && chmod -R 750 uploads/

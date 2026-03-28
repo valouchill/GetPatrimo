@@ -12,14 +12,6 @@ services:
     working_dir: /opt/doc2loc
     volumes:
       - ./uploads:/opt/doc2loc/uploads
-      - ./app:/opt/doc2loc/app
-      - ./src:/opt/doc2loc/src
-      - ./lib:/opt/doc2loc/lib
-      - ./models:/opt/doc2loc/models
-      - ./.next:/opt/doc2loc/.next
-      - ./public:/opt/doc2loc/public
-      - ./server.js:/opt/doc2loc/server.js
-      - node_modules:/opt/doc2loc/node_modules
     networks:
       - doc2loc-net
     restart: unless-stopped
@@ -27,6 +19,3 @@ services:
 networks:
   doc2loc-net:
     external: true
-
-volumes:
-  node_modules:
