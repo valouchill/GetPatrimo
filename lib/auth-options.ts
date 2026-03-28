@@ -87,7 +87,11 @@ if (isE2ETestMode) {
 }
 
 export const authOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  // MongoDBAdapter désactivé : avec strategy='jwt' + CredentialsProvider,
+  // l'adapter cause un hang en production (le MongoClient initialisé au build
+  // ne se reconnecte pas avec l'URI runtime). Les sessions JWT ne nécessitent
+  // pas d'adapter — les users sont gérés via mongoose dans authorize().
+  // adapter: MongoDBAdapter(clientPromise),
   providers,
   pages: {
     signIn: '/auth/login',
