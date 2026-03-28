@@ -115,5 +115,18 @@ export const authOptions = {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 jours (réduit de 30j pour limiter l'impact d'un token volé)
   },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 };

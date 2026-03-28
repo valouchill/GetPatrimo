@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
+import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Document from '@/models/Document';
 import Property from '@/models/Property';
 import Candidature from '@/models/Candidature';
 import { calculatePatrimoScore } from '@/scoringEngine';
+
+const CalculateScoreSchema = z.object({
+  documents: z.array(z.record(z.string(), z.unknown()), { error: 'Liste de documents requise' }),
+  tenantName: z.string({ error: 'Le nom du locataire doit être une chaîne' }).optional(),
+});
 
 /**
  * API Route pour calculer le PatrimoScore™ avec règles de péremption
@@ -108,14 +115,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { documents, tenantName } = body;
-
-    if (!documents || !Array.isArray(documents)) {
-      return NextResponse.json(
-        { error: 'Liste de documents requise' },
-        { status: 400 }
-      );
-    }
+    const result = validateRequest(CalculateScoreSchema, body);
+    if (!result.success) return result.response;
+    const { documents, tenantName } = result.data;
 
     const scoreResult = calculatePatrimoScore(documents, { tenantName: tenantName || 'Candidat' });
     return NextResponse.json(scoreResult);

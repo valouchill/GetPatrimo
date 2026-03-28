@@ -14,6 +14,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
+const { logger } = require('./lib/logger');
 // Next.js désactivé - utilisation de pages statiques uniquement
 let nextApp = null;
 let handle = null;
@@ -23,7 +24,7 @@ try {
   nextApp = next({ dev });
   handle = nextApp.getRequestHandler();
 } catch (e) {
-  console.warn('⚠️ Next.js non disponible, utilisation des pages statiques uniquement');
+  logger.warn('Next.js non disponible, utilisation des pages statiques uniquement');
 }
  
 const User = require('./models/User');
@@ -104,7 +105,7 @@ app.use('/api/auth/verify-otp', loginLimiter);
 // --- Logging minimal ---
 app.use((req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    logger.info('Incoming request', { method: req.method, url: req.url });
   }
   next();
 });
@@ -147,14 +148,14 @@ app.get('/apply.html', (req, res) => {
     return res.redirect(302, `/apply/${encodeURIComponent(token)}`);
   }
   // Si pas de token, servir le fichier (désactiver le cache)
-  console.log('[APPLY.HTML] Route appelée, servage du fichier:', path.join(__dirname, 'public', 'apply.html'));
+  logger.info('[APPLY.HTML] Route appelée, servage du fichier', { path: path.join(__dirname, 'public', 'apply.html') });
   const filePath = path.join(__dirname, 'public', 'apply.html');
   const fs = require('fs');
   if (fs.existsSync(filePath)) {
     const stats = fs.statSync(filePath);
-    console.log('[APPLY.HTML] Fichier trouvé, taille:', stats.size, 'modifié:', stats.mtime);
+    logger.info('[APPLY.HTML] Fichier trouvé', { size: stats.size, modified: stats.mtime });
   } else {
-    console.error('[APPLY.HTML] Fichier non trouvé:', filePath);
+    logger.error('[APPLY.HTML] Fichier non trouvé', { path: filePath });
   }
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -199,21 +200,21 @@ const MONGO_URI = process.env.MONGO_URI || '';
 const GEO_VALIDATION = process.env.GEO_VALIDATION !== '0';
  
 if (!JWT_SECRET) {
-  console.error("❌ JWT_SECRET manquant (dans .env)");
+  logger.error('JWT_SECRET manquant (dans .env)');
   process.exit(1);
 }
 if (!MONGO_URI) {
-  console.error("❌ MONGO_URI manquant (dans .env)");
+  logger.error('MONGO_URI manquant (dans .env)');
   process.exit(1);
 }
  
 // -------------------- Mongo
 mongoose.connect(MONGO_URI)
   .then(()=>console.log("✅ MongoDB Connecté"))
-  .catch((e)=>{ console.error("❌ MongoDB error:", e && e.message); process.exit(1); });
+  .catch((e)=>{ logger.error('MongoDB error', { error: e?.message || e }); process.exit(1); });
  
 // -------------------- Logging
-const { logger, requestLoggerMiddleware } = require('./lib/logger');
+const { requestLoggerMiddleware } = require('./lib/logger');
 app.use(requestLoggerMiddleware);
 
 // -------------------- Health
@@ -257,7 +258,7 @@ async function adminOnly(req,res,next){
     if(!admins.includes(String(u.email||'').toLowerCase())) return res.status(403).json({ msg:'Accès refusé' });
     return next();
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 }
@@ -267,7 +268,7 @@ async function logEvent(userId, { property=null, tenant=null, type, meta={} }){
   try{
     await Event.create({ user: userId, property, tenant, type, meta });
   }catch(e){
-    console.error("logEvent error:", e && e.message);
+    logger.error('logEvent error', { error: e?.message || e });
   }
 }
  
@@ -284,11 +285,11 @@ if (BREVO_USER && BREVO_PASS) {
     auth: { user: BREVO_USER, pass: BREVO_PASS }
   });
   transporter.verify().then(
-    ()=>console.log("✅ SMTP Brevo OK"),
-    (e)=>console.error("⚠️ SMTP verify fail:", e && e.message)
+    ()=>logger.info('SMTP Brevo OK'),
+    (e)=>logger.error('SMTP verify fail', { error: e?.message || e })
   );
 } else {
-  console.warn("⚠️ BREVO_USER/BREVO_PASS manquant: emails désactivés");
+  logger.warn('BREVO_USER/BREVO_PASS manquant: emails desactives');
 }
  
 // -------------------- Upload dirs
@@ -498,7 +499,7 @@ app.post('/api/auth/login', async (req,res)=>{
     const token = jwt.sign({ user: { id: u.id } }, JWT_SECRET, { expiresIn:'24h' });
     return res.json({ token });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -509,7 +510,7 @@ app.get('/api/auth/profile', auth, async (req,res)=>{
     if(!u) return res.status(404).json({ msg:'Utilisateur introuvable' });
     return res.json(u);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -528,7 +529,7 @@ app.put('/api/auth/profile', auth, async (req,res)=>{
     const safe = await User.findById(req.user.id).select('-password');
     return res.json(safe);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -545,7 +546,7 @@ app.get('/api/billing/status', auth, async (req,res)=>{
       limits: { receiptEmailPerMonth: { FREE: LIMITS.FREE, PRO: LIMITS.PRO } }
     });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -594,7 +595,7 @@ app.post('/api/properties', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: prop._id, type:'property_created', meta:{ name: prop.name } });
     return res.json(prop);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -604,7 +605,7 @@ app.get('/api/properties', auth, async (req,res)=>{
     const props = await Property.find({ user: req.user.id }).sort({ createdAt:-1 });
     return res.json(props);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -615,7 +616,7 @@ app.get('/api/properties/:id', auth, async (req,res)=>{
     if(!p) return res.status(404).json({ msg:'Bien introuvable' });
     return res.json(p);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -658,7 +659,7 @@ app.put('/api/properties/:id', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: p._id, type:'property_updated' });
     return res.json(p);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -676,7 +677,7 @@ app.delete('/api/properties/:id', auth, async (req,res)=>{
     await logEvent(req.user.id, { type:'property_deleted', meta:{ propertyId: String(req.params.id) } });
     return res.json({ msg:'OK' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -705,7 +706,7 @@ app.post('/api/tenants', auth, async (req,res)=>{
     return res.json(t);
   }catch(e){
     if(String(e?.message||'').includes('duplicate key')) return res.status(400).json({ msg:'Un locataire est déjà lié à ce bien' });
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -715,7 +716,7 @@ app.get('/api/tenants', auth, async (req,res)=>{
     const items = await Tenant.find({ user: req.user.id }).sort({ createdAt:-1 });
     return res.json(items);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -727,7 +728,7 @@ app.get('/api/tenants/by-property/:propertyId', auth, async (req,res)=>{
     const t = await Tenant.findOne({ user: req.user.id, property: p._id });
     return res.json(t || null);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -738,7 +739,7 @@ app.get('/api/tenants/:id', auth, async (req,res)=>{
     if(!t) return res.status(404).json({ msg:'Locataire introuvable' });
     return res.json(t);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -768,7 +769,7 @@ app.put('/api/tenants/:id', auth, async (req,res)=>{
     return res.json(t);
   }catch(e){
     if(String(e?.message||'').includes('duplicate key')) return res.status(400).json({ msg:'Un locataire est déjà lié à ce bien' });
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -782,7 +783,7 @@ app.delete('/api/tenants/:id', auth, async (req,res)=>{
     await logEvent(req.user.id, { type:'tenant_deleted', meta:{ tenantId: String(req.params.id) } });
     return res.json({ msg:'OK' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -801,7 +802,7 @@ app.get('/api/documents/quittance/:id', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: p._id, tenant: t? t._id : null, type:'pdf_quittance_generated' });
     return res.send(buffer);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur PDF', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur PDF' });
   }
 });
@@ -836,7 +837,7 @@ app.post('/api/documents/email/:id', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: p._id, tenant: t._id, type:'email_quittance_sent', meta:{ to: t.email, plan: check.plan, sent: check.sent } });
     return res.json({ msg:'Email envoyé avec succès !' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur envoi email', { error: e?.message || e });
     return res.status(500).json({ msg:"Erreur envoi email" });
   }
 });
@@ -852,7 +853,7 @@ app.get('/api/property-documents/file/:docId', auth, async (req,res)=>{
  
     return res.download(absPath, d.originalName || d.filename || 'document');
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -886,7 +887,7 @@ app.post('/api/property-documents/upload/:propertyId', auth, docUpload.single('f
     await logEvent(req.user.id, { property: p._id, tenant: tt?tt._id:null, type:'document_uploaded', meta:{ docType: type, name: doc.originalName } });
     return res.json(doc);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur upload', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur upload' });
   }
 });
@@ -899,7 +900,7 @@ app.get('/api/property-documents/:propertyId', auth, async (req,res)=>{
     const docs = await Document.find({ user: req.user.id, property: p._id }).sort({ createdAt:-1 });
     return res.json(docs);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -916,7 +917,7 @@ app.delete('/api/property-documents/:docId', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: d.property, type:'document_deleted', meta:{ name: d.originalName || d.filename } });
     return res.json({ msg:'OK' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -931,7 +932,7 @@ app.get('/api/events/property/:propertyId', auth, async (req,res)=>{
     const items = await Event.find({ user: req.user.id, property: p._id }).sort({ createdAt:-1 }).limit(limit);
     return res.json(items);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -945,7 +946,7 @@ app.get('/api/events/tenant/:tenantId', auth, async (req,res)=>{
     const items = await Event.find({ user: req.user.id, tenant: t._id }).sort({ createdAt:-1 }).limit(limit);
     return res.json(items);
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -957,7 +958,7 @@ app.get('/api/events/summary', auth, async (req,res)=>{
     const count30 = await Event.countDocuments({ user: req.user.id, createdAt: { $gte: since } });
     return res.json({ last, count30 });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -987,7 +988,7 @@ app.post('/api/reminders/tenant/:tenantId', auth, async (req,res)=>{
     await logEvent(req.user.id, { property: p? p._id : null, tenant: t._id, type:'reminder_sent', meta:{ to } });
     return res.json({ msg:'Relance envoyée ✅' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur relance', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur relance' });
   }
 });
@@ -1018,7 +1019,7 @@ app.get('/api/alerts/overview', auth, async (req,res)=>{
       top: alerts.slice(0, 5)
     });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -1116,7 +1117,7 @@ app.get('/api/public/check-token/:token', async (req, res) => {
       tokenMatch: true 
     });
   } catch (error) {
-    console.error('Erreur check-token:', error);
+    logger.error('Erreur check-token', { error: error?.message || error });
     return res.status(500).json({ msg: 'Erreur serveur', error: error.message });
   }
 });
@@ -1145,7 +1146,7 @@ app.get('/api/public/property/:propertyId', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur getPropertyById:', error);
+    logger.error('Erreur getPropertyById', { error: error?.message || error });
     return res.status(500).json({ msg: 'Erreur serveur' });
   }
 });
@@ -1170,7 +1171,7 @@ app.post('/api/public/property/:propertyId/apply', candidatureUpload.array('docu
     const { submitCandidatureByPropertyId } = require('./src/controllers/publicController');
     return await submitCandidatureByPropertyId(req, res);
   } catch (error) {
-    console.error('Erreur route POST /api/public/property/:propertyId/apply:', error);
+    logger.error('Erreur route POST /api/public/property/:propertyId/apply', { error: error?.message || error });
     return res.status(500).json({ msg: 'Erreur serveur' });
   }
 });
@@ -1201,7 +1202,7 @@ app.post('/api/public/lead', async (req,res)=>{
  
     return res.json({ msg:'OK' });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });
@@ -1264,7 +1265,7 @@ app.get('/api/admin/leads', auth, adminOnly, async (req,res)=>{
     const items = await Lead.find({}).sort({ createdAt:-1 }).limit(limit);
     return res.json({ total, items });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur serveur', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur serveur' });
   }
 });

@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
+import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 import Lease from '@/models/Lease';
+
+const PatchPropertySchema = z.object({
+  address: z.string().min(1, { error: 'Adresse requise' }).optional(),
+  surfaceM2: z.number({ error: 'La surface doit être un nombre' }).optional(),
+  rentAmount: z.number({ error: 'Le loyer doit être un nombre' }).optional(),
+  archived: z.boolean({ error: 'Le champ archivé doit être un booléen' }).optional(),
+});
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -280,6 +289,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
     }
     const body = await request.json();
+    const validationResult = validateRequest(PatchPropertySchema, body);
+    if (!validationResult.success) return validationResult.response;
 
     const updates: Record<string, unknown> = {};
     if (body.address !== undefined) {

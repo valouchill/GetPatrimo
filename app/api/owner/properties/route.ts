@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
+import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
+
+const CreatePropertySchema = z.object({
+  address: z.string().min(1, { error: 'Adresse requise' }),
+  rentAmount: z.number({ error: 'Le loyer doit être un nombre' }).optional(),
+  surfaceM2: z.number({ error: 'La surface doit être un nombre' }).optional(),
+});
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -214,11 +222,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { address, surfaceM2, rentAmount } = body;
-
-    if (!address || !String(address).trim()) {
-      return NextResponse.json({ error: 'Adresse requise' }, { status: 400 });
-    }
+    const result = validateRequest(CreatePropertySchema, body);
+    if (!result.success) return result.response;
+    const { address, surfaceM2, rentAmount } = result.data;
 
     const property = await Property.create({
       user: userId,
