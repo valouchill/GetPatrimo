@@ -69,6 +69,9 @@ COPY --from=builder /opt/doc2loc/lib ./lib
 COPY --from=builder /opt/doc2loc/models ./models
 COPY --from=builder /opt/doc2loc/app ./app
 COPY --from=builder /opt/doc2loc/.cursor ./.cursor
+COPY --from=builder /opt/doc2loc/scoring.js ./scoring.js
+COPY --from=builder /opt/doc2loc/scoringEngine.js ./scoringEngine.js
+COPY --from=builder /opt/doc2loc/scripts ./scripts
 
 # Fresh production-only install (avoids npm prune --production bugs in npm 10+)
 RUN apk add --no-cache python3 make g++ pkgconfig \
