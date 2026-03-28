@@ -1181,7 +1181,7 @@ app.post('/api/public/candidature', candidatureUpload.array('documents', 5), asy
   try{
     return res.json({ msg:"Dossier bien reçu ! (Pipeline candidature à ajouter proprement ensuite)" });
   }catch(e){
-    console.error(e);
+    logger.error('Erreur lors du depot', { error: e?.message || e });
     return res.status(500).json({ msg:'Erreur lors du dépôt' });
   }
 });
@@ -1213,7 +1213,7 @@ app.post('/api/webhooks/opensign', async (req, res) => {
     const { handleOpenSignWebhook } = require('./src/controllers/webhookController');
     return await handleOpenSignWebhook(req, res);
   } catch (error) {
-    console.error('Erreur webhook OpenSign:', error);
+    logger.error('Erreur webhook OpenSign', { error: error?.message || error });
     return res.status(200).json({ success: false, error: error.message }); // Répond 200 pour éviter les retries
   }
 });
@@ -1238,20 +1238,20 @@ if (process.env.NODE_ENV !== 'test') {
     // Exécute immédiatement au démarrage (pour tests)
     checkAllDiagnosticsAndAlert()
       .then(result => {
-        console.log('✅ Vérification diagnostics:', result);
+        logger.info('Verification diagnostics', { result });
       })
       .catch(error => {
-        console.error('❌ Erreur vérification diagnostics:', error);
+        logger.error('Erreur verification diagnostics', { error: error?.message || error });
       });
 
     // Puis exécute tous les jours à 9h00
     setInterval(() => {
       checkAllDiagnosticsAndAlert()
         .then(result => {
-          console.log('✅ Vérification diagnostics quotidienne:', result);
+          logger.info('Verification diagnostics quotidienne', { result });
         })
         .catch(error => {
-          console.error('❌ Erreur vérification diagnostics:', error);
+          logger.error('Erreur verification diagnostics quotidienne', { error: error?.message || error });
         });
     }, 24 * 60 * 60 * 1000); // 24 heures
   }, getMsUntil9AM());
@@ -1302,7 +1302,7 @@ app.get('/api/admin/leads.csv', auth, adminOnly, async (req,res)=>{
     res.setHeader('Content-Disposition','attachment; filename="doc2loc-leads.csv"');
     return res.send(lines.join('\n'));
   }catch(e){
-    console.error(e);
+    logger.error('Erreur CSV', { error: e?.message || e });
     return res.status(500).send('Erreur CSV');
   }
 });
@@ -1311,33 +1311,33 @@ app.get('/api/admin/leads.csv', auth, adminOnly, async (req,res)=>{
 try {
   const candidatureRoutes = require('./src/routes/candidatureRoutes');
   app.use('/api/candidatures', candidatureRoutes);
-  console.log('✅ Routes candidatures montées');
+  logger.info('Routes candidatures montees');
 } catch (e) {
-  console.error('⚠️ Erreur chargement routes candidatures:', e.message);
+  logger.error('Erreur chargement routes candidatures', { error: e?.message || e });
 }
 
 try {
   const documentRoutes = require('./src/routes/documentRoutes');
   app.use('/api/documents', documentRoutes);
-  console.log('✅ Routes documents montées');
+  logger.info('Routes documents montees');
 } catch (e) {
-  console.error('⚠️ Erreur chargement routes documents:', e.message);
+  logger.error('Erreur chargement routes documents', { error: e?.message || e });
 }
 
 try {
   const leaseRoutes = require('./src/routes/leaseRoutes');
   app.use('/api/leases', leaseRoutes);
-  console.log('✅ Routes leases montées');
+  logger.info('Routes leases montees');
 } catch (e) {
-  console.error('⚠️ Erreur chargement routes leases:', e.message);
+  logger.error('Erreur chargement routes leases', { error: e?.message || e });
 }
 
 try {
   const propertyRoutes = require('./src/routes/propertyRoutes');
   app.use('/api/properties', propertyRoutes);
-  console.log('✅ Routes properties montées');
+  logger.info('Routes properties montees');
 } catch (e) {
-  console.error('⚠️ Erreur chargement routes properties:', e.message);
+  logger.error('Erreur chargement routes properties', { error: e?.message || e });
 }
 
 // Note: Les routes Next.js seront gérées par le handler app.all('*', ...) après la préparation de Next.js
@@ -1365,7 +1365,7 @@ app.use((err, req, res, _next) => {
     message: err.message || 'Unknown error',
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   };
-  console.error(JSON.stringify(logEntry));
+  logger.error('Unhandled express error', logEntry);
 
   if (res.headersSent) return;
   return res.status(statusCode).json({ error: message });
@@ -1379,14 +1379,14 @@ if (nextApp && handle) {
       return handle(req, res);
     });
  
-    app.listen(PORT, () => console.log(`🚀 Serveur (Express + Next.js) démarré sur le port ${PORT}`));
+    app.listen(PORT, () => logger.info('Serveur (Express + Next.js) demarre', { port: PORT }));
   }).catch((err) => {
-    console.error("❌ Erreur au démarrage de Next.js:", err);
-    console.log("🔄 Démarrage du serveur Express uniquement...");
+    logger.error('Erreur au demarrage de Next.js', { error: err?.message || err });
+    logger.info('Demarrage du serveur Express uniquement...');
     // Démarre Express même si Next.js échoue
-    app.listen(PORT, () => console.log(`🚀 Serveur Express démarré sur le port ${PORT}`));
+    app.listen(PORT, () => logger.info('Serveur Express demarre', { port: PORT }));
   });
 } else {
   // Serveur Express uniquement (pages statiques)
-  app.listen(PORT, () => console.log(`🚀 Serveur Express démarré sur le port ${PORT}`));
+  app.listen(PORT, () => logger.info('Serveur Express demarre', { port: PORT }));
 }

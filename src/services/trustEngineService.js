@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
+const { logger } = require('../../lib/logger');
 const { buildPhase1Audit, runPhase1Audit: runPhase1AuditPure } = require('./phase1AuditService');
 
 function clamp(value, min, max) {
@@ -152,7 +153,7 @@ async function purgeCandidateFiles(documents = []) {
       await fs.promises.unlink(absolutePath);
     } catch (error) {
       if (error.code !== 'ENOENT') {
-        console.warn('⚠️ Impossible de supprimer un fichier RGPD:', absolutePath, error.message);
+        logger.warn('Impossible de supprimer un fichier RGPD', { path: absolutePath, error: error.message });
       }
     }
   }

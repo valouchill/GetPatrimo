@@ -10,6 +10,7 @@
  */
 
 const { connectDB } = require('../config/db');
+const { logger } = require('../../lib/logger');
 
 const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000;
@@ -62,11 +63,11 @@ async function purgeRejectedCandidatures(report) {
 
       await candidature.save();
       report.candidaturesPurged += 1;
-      console.log(`[RGPD] Candidature ${candidature._id} purgée (refusée depuis ${candidature.updatedAt?.toISOString()})`);
+      logger.info('[RGPD] Candidature purgee', { candidatureId: candidature._id, refusedSince: candidature.updatedAt?.toISOString() });
     } catch (err) {
       const msg = `Erreur purge candidature ${candidature._id}: ${err.message}`;
       report.errors.push(msg);
-      console.error(`[RGPD] ${msg}`);
+      logger.error(`[RGPD] ${msg}`);
     }
   }
 }
@@ -106,7 +107,7 @@ async function purgeNonSelectedIdentityDocs(report) {
             const fullPath = path.resolve(doc.filePath);
             if (fs.existsSync(fullPath)) {
               fs.unlinkSync(fullPath);
-              console.log(`[RGPD] Fichier identité supprimé: ${fullPath}`);
+              logger.info('[RGPD] Fichier identite supprime', { path: fullPath });
             }
           }
         }
@@ -120,11 +121,11 @@ async function purgeNonSelectedIdentityDocs(report) {
         );
 
         report.identityDocsPurged += 1;
-        console.log(`[RGPD] Docs identité supprimés pour application ${app._id} (propriété ${prop._id})`);
+        logger.info('[RGPD] Docs identite supprimes', { applicationId: app._id, propertyId: prop._id });
       } catch (err) {
         const msg = `Erreur purge identité application ${app._id}: ${err.message}`;
         report.errors.push(msg);
-        console.error(`[RGPD] ${msg}`);
+        logger.error(`[RGPD] ${msg}`);
       }
     }
   }
@@ -162,11 +163,11 @@ async function purgeDiditBiometricData(report) {
       );
 
       report.diditDataPurged += 1;
-      console.log(`[RGPD] Données biométriques purgées pour session ${session._id}`);
+      logger.info('[RGPD] Donnees biometriques purgees', { sessionId: session._id });
     } catch (err) {
       const msg = `Erreur purge biométrique session ${session._id}: ${err.message}`;
       report.errors.push(msg);
-      console.error(`[RGPD] ${msg}`);
+      logger.error(`[RGPD] ${msg}`);
     }
   }
 }
@@ -184,7 +185,7 @@ async function purgeInactiveLeads(report) {
 
   report.leadsPurged = result.deletedCount || 0;
   if (report.leadsPurged > 0) {
-    console.log(`[RGPD] ${report.leadsPurged} lead(s) marketing supprimé(s) (inactifs > 3 ans)`);
+    logger.info('[RGPD] Leads marketing supprimes', { count: report.leadsPurged });
   }
 }
 
@@ -202,10 +203,10 @@ async function purgeCandidateFiles(docs) {
       const fullPath = path.resolve(filePath);
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
-        console.log(`[RGPD] Fichier supprimé: ${fullPath}`);
+        logger.info('[RGPD] Fichier supprime', { path: fullPath });
       }
     } catch (err) {
-      console.error(`[RGPD] Erreur suppression fichier ${filePath}: ${err.message}`);
+      logger.error('[RGPD] Erreur suppression fichier', { filePath, error: err?.message || err });
     }
   }
 }
@@ -217,9 +218,7 @@ async function runRGPDPurge() {
   const report = createReport();
 
   try {
-    console.log('========================================');
-    console.log('[RGPD] Démarrage purge automatique');
-    console.log('========================================');
+    logger.info('[RGPD] Demarrage purge automatique');
 
     await connectDB();
 
@@ -230,17 +229,13 @@ async function runRGPDPurge() {
 
     report.completedAt = new Date().toISOString();
 
-    console.log('========================================');
-    console.log('[RGPD] Rapport de purge :');
-    console.log(JSON.stringify(report, null, 2));
-    console.log('========================================');
+    logger.info('[RGPD] Rapport de purge', { report });
 
     process.exit(0);
   } catch (error) {
     report.errors.push(`Erreur fatale: ${error.message}`);
     report.completedAt = new Date().toISOString();
-    console.error('[RGPD] Erreur fatale:', error);
-    console.error('[RGPD] Rapport partiel:', JSON.stringify(report, null, 2));
+    logger.error('[RGPD] Erreur fatale', { error: error?.message || error, report });
     process.exit(1);
   }
 }
