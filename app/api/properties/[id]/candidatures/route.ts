@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
@@ -14,6 +16,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session: any = await getServerSession(authOptions as any);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
     await connectDiditDb();
     
     const { id } = await params;
@@ -80,7 +87,7 @@ export async function GET(
         ownerNotes: app.ownerNotes,
         integrityScore, // Note d'Intégrité ajoutée
         documentsCount: app.documents?.length || 0,
-        certifiedDocumentsCount: app.documents?.filter((d: any) => d.status === 'certified').length || 0,
+        certifiedDocumentsCount: app.documents?.filter((d: any) => d.status === 'CERTIFIED').length || 0,
       };
     });
 
@@ -96,7 +103,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Erreur récupération candidatures:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des candidatures', details: error.message },
+      { error: 'Erreur lors de la récupération des candidatures' },
       { status: 500 }
     );
   }

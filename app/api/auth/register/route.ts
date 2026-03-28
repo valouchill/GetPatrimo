@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Un compte existe déjà avec cet email' }, { status: 409 });
     }
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     const hashed = await bcrypt.hash(password, salt);
 
     await User.create({

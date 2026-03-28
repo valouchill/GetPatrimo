@@ -8,7 +8,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
-const isE2ETestMode = process.env.E2E_TEST_MODE === 'true';
+const isE2ETestMode = process.env.E2E_TEST_MODE === 'true' && process.env.NODE_ENV !== 'production';
 
 const providers: any[] = [
   CredentialsProvider({
@@ -113,7 +113,7 @@ export const authOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 7 * 24 * 60 * 60, // 7 jours (réduit de 30j pour limiter l'impact d'un token volé)
   },
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 };

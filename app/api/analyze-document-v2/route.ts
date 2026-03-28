@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { validateMRZ } from '@/app/actions/validate-mrz';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const {
@@ -1064,6 +1067,17 @@ async function analyzeWithVision(
 
 export async function POST(request: NextRequest) {
   try {
+    const session: any = await getServerSession(authOptions as any);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez dans 1 minute.' }, { status: 429 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const candidateStatus = formData.get('candidateStatus') as string | null;

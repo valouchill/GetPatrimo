@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { scanDPE } from '@/lib/owner-tunnel/dpe-scanner';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * API Route pour l'analyse de documents avec GPT-4o Vision (images) et GPT-4 (PDF texte)
@@ -204,6 +207,17 @@ async function extractPDFText(buffer: ArrayBuffer): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const session: any = await getServerSession(authOptions as any);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez dans 1 minute.' }, { status: 429 });
+    }
+
     const formData = await request.formData();
     // Support both 'file' and 'document' field names for compatibility
     const file = (formData.get('file') || formData.get('document')) as File | null;

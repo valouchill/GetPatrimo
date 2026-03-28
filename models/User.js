@@ -48,6 +48,8 @@ const UserSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+UserSchema.index({ email: 1 });
+
 // Politique de mot de passe : min 8 caractères, 1 majuscule, 1 chiffre
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 

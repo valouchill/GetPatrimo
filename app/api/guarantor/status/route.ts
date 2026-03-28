@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { connectDiditDb } from '../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
+
+const QueryParamsSchema = z.object({
+  token: z.string().optional(),
+  applyToken: z.string().optional(),
+  sessionId: z.string().optional(),
+  email: z.string().optional(),
+  slot: z.string().optional(),
+}).refine(
+  (data) => data.token || data.applyToken || data.sessionId,
+  { message: "Token d'invitation, applyToken ou sessionId requis" }
+);
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const {
   buildGuarantorLookupFilters,
@@ -15,21 +27,26 @@ const {
 export async function GET(request: NextRequest) {
   try {
     await connectDiditDb();
-    
-    const searchParams = request.nextUrl.searchParams;
-    const invitationToken = searchParams.get('token');
-    const applyToken = searchParams.get('applyToken'); // Token de la page apply (Property.applyToken)
-    const sessionId = searchParams.get('sessionId');
-    const email = searchParams.get('email');
-    const slot = searchParams.get('slot');
-    const normalizedSlot = normalizeSlot(slot);
 
-    if (!invitationToken && !applyToken && !sessionId) {
+    const searchParams = request.nextUrl.searchParams;
+    const rawParams = {
+      token: searchParams.get('token') || undefined,
+      applyToken: searchParams.get('applyToken') || undefined,
+      sessionId: searchParams.get('sessionId') || undefined,
+      email: searchParams.get('email') || undefined,
+      slot: searchParams.get('slot') || undefined,
+    };
+
+    const parsed = QueryParamsSchema.safeParse(rawParams);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Token d\'invitation, applyToken ou sessionId requis' },
+        { error: parsed.error.issues[0]?.message || 'Paramètres invalides' },
         { status: 400 }
       );
     }
+
+    const { token: invitationToken, applyToken, sessionId, email, slot } = parsed.data;
+    const normalizedSlot = normalizeSlot(slot);
 
     let guarantor;
     let property = null;
@@ -151,7 +168,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erreur récupération statut garant:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erreur serveur' },
+      { error: 'Erreur serveur' },
       { status: 500 }
     );
   }

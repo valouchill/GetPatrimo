@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -17,21 +26,26 @@ export async function middleware(request: NextRequest) {
   });
 
   if (token && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard/owner', request.url));
+    return applySecurityHeaders(NextResponse.redirect(new URL('/dashboard/owner', request.url)));
   }
 
   if (!token && isProtectedRoute) {
     const signInUrl = new URL('/auth/login', request.url);
     signInUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(signInUrl);
+    return applySecurityHeaders(NextResponse.redirect(signInUrl));
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/auth/:path*',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico (favicon)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
