@@ -15,6 +15,7 @@ import { TunnelSelection } from './components/TunnelSelection';
 import { NouvelActifForm } from './components/NouvelActifForm';
 import { CandidateDetailDrawer } from './components/CandidateDetailDrawer';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
+import { AddManagementModal } from './components/AddManagementModal';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -25,6 +26,7 @@ export default function OwnerDashboardClient() {
   const [guaranteeFilter, setGuaranteeFilter] = useState<'all' | 'with'>('all');
   const [candidateDrawerId, setCandidateDrawerId] = useState<string | null>(null);
   const [propertyModalId, setPropertyModalId] = useState<string | null>(null);
+  const [showAddManagement, setShowAddManagement] = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────
   const biens = data.map(toBien);
@@ -551,9 +553,14 @@ export default function OwnerDashboardClient() {
         {/* ─ GESTION LOCATIVE ─ */}
         {page === 'gestion' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-6">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">Gestion locative</h1>
-              <p className="mt-1 text-sm text-slate-500">Suivi des locataires actifs</p>
+            <div className="mb-6 flex items-start justify-between">
+              <div>
+                <h1 className="font-serif text-3xl font-bold text-slate-950">Gestion locative</h1>
+                <p className="mt-1 text-sm text-slate-500">Suivi des locataires actifs</p>
+              </div>
+              <Btn variant="primary" className="gap-2" onClick={() => setShowAddManagement(true)}>
+                <Plus className="h-4 w-4" /> Ajouter un bien
+              </Btn>
             </div>
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <StatCard icon="🏠" value={biensGeres.length}   label="Biens en gestion"    bg="bg-emerald-50" />
@@ -562,9 +569,16 @@ export default function OwnerDashboardClient() {
               <StatCard icon="⏳" value={pending}             label="En attente"          bg="bg-amber-50" />
             </div>
             {biensGeres.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center">
-                <div className="mb-3 text-4xl">📊</div>
-                <p className="text-slate-500">Aucun bien en gestion active pour le moment.</p>
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
+                <div className="mb-3 text-4xl">🏠</div>
+                <p className="font-medium text-slate-700">Aucun bien en gestion active</p>
+                <p className="mt-1 text-sm text-slate-500">Ajoutez votre premier bien pour commencer le suivi locatif.</p>
+                <button
+                  onClick={() => setShowAddManagement(true)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Ajouter un bien en gestion
+                </button>
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -690,6 +704,13 @@ export default function OwnerDashboardClient() {
           );
         })()}
       </AnimatePresence>
+
+      {/* ── ADD MANAGEMENT MODAL ──────────────────────────────────── */}
+      <AddManagementModal
+        open={showAddManagement}
+        onClose={() => setShowAddManagement(false)}
+        onSuccess={() => { setShowAddManagement(false); refresh(); }}
+      />
 
       {/* ── PROPERTY DETAIL MODAL ──────────────────────────────────── */}
       <AnimatePresence>

@@ -3,8 +3,11 @@ const mongoose = require('mongoose');
 const LeaseSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
-  candidature: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidature', required: true },
+  candidature: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidature', default: null },
   applicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application' },
+
+  // Source du bail : FLOW (process complet) ou MANUAL (ajout direct en gestion)
+  source: { type: String, enum: ['FLOW', 'MANUAL'], default: 'FLOW' },
   
   // Informations locataire
   tenantFirstName: { type: String, required: true },
