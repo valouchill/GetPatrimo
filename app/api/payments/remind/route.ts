@@ -18,7 +18,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
   }
 
-  const body = await request.json();
+  let body: Record<string, unknown> = {};
+  try {
+    body = await request.json();
+  } catch {
+    // Body vide = relancer tous les impayés
+  }
   const result = validateRequest(RemindSchema, body);
   if (!result.success) return result.response;
 
