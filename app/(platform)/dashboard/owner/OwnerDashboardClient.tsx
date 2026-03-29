@@ -16,6 +16,7 @@ import { NouvelActifForm } from './components/NouvelActifForm';
 import { CandidateDetailDrawer } from './components/CandidateDetailDrawer';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
 import { AddManagementModal } from './components/AddManagementModal';
+import { LoyersPanel } from './components/LoyersPanel';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -617,6 +618,9 @@ export default function OwnerDashboardClient() {
             )}
           </motion.div>
         )}
+
+        {/* ─ LOYERS & QUITTANCES ─ */}
+        {page === 'loyers' && <LoyersPanel />}
 
         {/* ─ ÉTATS DES LIEUX ─ */}
         {page === 'edl' && (

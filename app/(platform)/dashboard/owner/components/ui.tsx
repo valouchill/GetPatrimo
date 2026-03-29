@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
-import { CheckCircle2, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList } from 'lucide-react';
+import { CheckCircle2, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList } from 'lucide-react';
 import type { Candidature as RealCandidature, PropertyWithCandidatures } from '../OwnerContext';
 
 // ── Stage labels ──────────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ export function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: 
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
-export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'edl';
+export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'loyers' | 'edl';
 export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean }[] = [
   { id: 'dashboard',    label: "Vue d'ensemble",   Icon: LayoutDashboard, group: 'Principal' },
   { id: 'candidatures', label: 'Candidatures',      Icon: Users,           group: 'Principal', badge: true },
@@ -273,5 +273,6 @@ export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: st
   { id: 'depot',        label: 'Nouvel actif',      Icon: Plus,            group: 'Actions' },
   { id: 'baux',         label: 'Baux & Signatures', Icon: FileSignature,   group: 'Actions' },
   { id: 'gestion',      label: 'Gestion locative',  Icon: ScrollText,      group: 'Actions' },
+  { id: 'loyers',       label: 'Loyers & Quittances', Icon: CreditCard,   group: 'Actions' },
   { id: 'edl',          label: 'États des lieux',   Icon: ClipboardList,   group: 'Actions' },
 ];
