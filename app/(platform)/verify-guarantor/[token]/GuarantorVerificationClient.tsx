@@ -606,7 +606,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                     <button
                       onClick={handleRunAudit}
                       disabled={auditDocuments.filter(d => !d.uploading).length < 2 || auditStatus === 'processing'}
-                      className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {auditStatus === 'processing' ? (
                         <>
