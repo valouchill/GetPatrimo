@@ -1,0 +1,9 @@
+🤖 Lancement de l'agent [testing]...
+📋 Instruction : Du code vient d'être ajouté/modifié pour cette tâche : Corriger l'enum invalide Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE
+
+Écris des tests unitaires et lance-les avec 'npm test'.
+Couvre : cas nominal, cas limites, données invalides.
+Si les tests échouent, signale le problème précisément.
+📝 Log : /opt/doc2loc/.agents/logs/testing_20260322_190631.log
+---
+You've hit your limit · resets 11pm (UTC)

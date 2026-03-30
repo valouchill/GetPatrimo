@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
 
@@ -11,6 +12,13 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Rate limiting : prévenir l'abus du compteur de partage
+    const ip = _request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(`passport-share:${ip}`, { windowMs: 60_000, max: 10 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+    }
+
     await connectDiditDb();
     const { slug } = await params;
     const app = await Application.findOneAndUpdate(

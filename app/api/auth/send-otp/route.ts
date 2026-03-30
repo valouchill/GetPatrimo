@@ -7,21 +7,8 @@ import nodemailer from 'nodemailer';
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-const OtpStore = (() => {
-  let model: any = null;
-  return async () => {
-    if (model) return model;
-    const mongoose = await import('mongoose');
-    const schema = new mongoose.Schema({
-      email: { type: String, required: true, index: true },
-      code: { type: String, required: true },
-      expiresAt: { type: Date, required: true, index: { expires: 0 } },
-      attempts: { type: Number, default: 0 },
-    });
-    model = mongoose.models.OtpToken || mongoose.model('OtpToken', schema);
-    return model;
-  };
-})();
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const OtpToken = require('@/models/OtpToken');
 
 function generateOtp(): string {
   const array = new Uint32Array(1);
@@ -54,7 +41,7 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = result.data.email.trim().toLowerCase();
 
     await connectDiditDb();
-    const Token = await OtpStore();
+    const Token = OtpToken;
 
     await Token.deleteMany({ email: normalizedEmail });
 

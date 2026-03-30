@@ -1,0 +1,17 @@
+Toutes les modifications frontend sont appliquées. Voici le résumé :
+
+## Modifications effectuées
+
+### `app/(platform)/properties/[id]/contract/LeaseWizard.tsx`
+- **Ligne 157** : comparaison `leaseType === "mobilite"` → `"MOBILITE"`
+- **Lignes 736-739** : valeurs des `<option>` du select `leaseType` passées en UPPER_SNAKE_CASE (`"vide"` → `"VIDE"`, `"meuble"` → `"MEUBLE"`, `"mobilite"` → `"MOBILITE"`, `"garage_parking"` → `"GARAGE_PARKING"`) — les labels d'affichage ("Vide", "Meublé", etc.) sont inchangés
+
+### `public/dashboard-luxe.html`
+- **Ligne 2274** : `=== 'completed'` → `=== 'COMPLETED'`
+- **Lignes 2447, 2450** : les deux comparaisons `opensignStatus === 'completed'` / `!== 'completed'` → `'COMPLETED'`
+
+### `public/contractualization-luxe.html`
+- **Lignes 1104, 1120** : les deux comparaisons `opensignStatus === 'completed'` / `!== 'completed'` → `'COMPLETED'` (le `status: 'completed'` dans `updateData` est laissé tel quel — c'est une valeur locale du journey state, pas un enum Mongoose)
+
+### `app/(platform)/dashboard/owner/OwnerContext.tsx`
+- Aucune modification nécessaire — pas de comparaisons d'enum, seulement `leaseType?: string` comme type hint

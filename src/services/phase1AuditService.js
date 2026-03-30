@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const { promisify } = require('util');
 
 const { getPhase1AuditConfig } = require('../config/phase1Audit');
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 const MONTHS = {
   janvier: 1,
@@ -75,9 +75,6 @@ function splitStructuredLines(text) {
   );
 }
 
-function shellEscape(value) {
-  return `'${String(value).replace(/'/g, `'\\''`)}'`;
-}
 
 function parseAmount(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -648,8 +645,7 @@ async function extractTechnicalMetadata(document, config, adapters = {}) {
   const filePath = document.absolutePath;
   if (config.metadataCommand && filePath) {
     try {
-      const command = `${config.metadataCommand} ${shellEscape(filePath)}`;
-      const { stdout, stderr } = await execAsync(command, {
+      const { stdout, stderr } = await execFileAsync(config.metadataCommand, [filePath], {
         timeout: config.metadataTimeoutMs,
         maxBuffer: 1024 * 1024 * 4,
       });

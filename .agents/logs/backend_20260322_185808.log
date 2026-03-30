@@ -1,0 +1,65 @@
+Toutes les modifications backend sont terminées. Voici le résumé de ce qui a été fait :
+
+---
+
+## Résumé des modifications BACKEND
+
+### `src/controllers/webhookController.js`
+- `computeAggregateStatus` : tous les statuts lowercase → `PENDING`, `DECLINED`, `EXPIRED`, `COMPLETED`, `SIGNED`
+- `updateTrackedDocument` : fallback `'lease'` → `'LEASE'`, `'pending'` → `'PENDING'`
+- `handleDocumentSigned` : `'signed'` → `'SIGNED'`
+- `handleDocumentCompleted` : `'completed'` → `'COMPLETED'`, `documentKind === 'lease'` → `'LEASE'`
+- `handleDocumentExpired` / `handleDocumentDeclined` : `'expired'` → `'EXPIRED'`, `'declined'` → `'DECLINED'`
+- Fallback `kind` dans `handleOpenSignWebhook` : `'lease'` → `'LEASE'`
+
+### `src/controllers/leaseController.js`
+- `getPrimaryLeaseDocument` : `=== 'lease'` → `'LEASE'`
+- `getSignatureSummary` : tous les statuts → UPPER_SNAKE_CASE
+- `launchElectronicSignature` : fallback `'pending'` → `'PENDING'`
+- `getSignatureStatus` : `kind: 'lease'` → `'LEASE'`
+
+### `src/services/opensignService.js`
+- `buildSignersForDocument` : `kind === 'guarantee'` → `'GUARANTEE'`
+- Noms de documents : comparaisons `kind === 'guarantee'` → `'GUARANTEE'`
+- `sendDocumentForSignature` : `status: 'pending'` → `'PENDING'`
+- `getDocumentStatus` : **normalisation du statut reçu depuis l'API OpenSign** via `OPENSIGN_STATUS_MAP` (défensif, fallback `'PENDING'` si valeur inconnue)
+- `sendLeaseForSignature` : `kind: 'lease'` → `'LEASE'`
+
+### `src/utils/documentCertificationRules.js`
+- `'illegible'` → `'ILLEGIBLE'`, `'rejected'` → `'REJECTED'`, `'needs_review'` → `'NEEDS_REVIEW'`, `'certified'` → `'CERTIFIED'`
+
+### `src/utils/applicationScoring.js`
+- `isCertifiedDocument` : `'certified'` → `'CERTIFIED'`
+- Fallback `'pending'` → `'PENDING'`
+- `getDocumentSubject` : comparaisons `subjectType`/`category` → `'GUARANTOR'`, `'VISALE'`
+
+### `src/utils/passportViewModel.js`
+- `getDocStatus` : retours `'pending'` → `'PENDING'`, `'needs_review'` → `'NEEDS_REVIEW'`
+- `isCertified`, `isReview`, `isRejected` : comparaisons → UPPER_SNAKE_CASE
+- `getDocumentSubject` : `'guarantor'` → `'GUARANTOR'`, `'visale'` → `'VISALE'`
+
+### `src/utils/financialExtraction.js`
+- `subjectType !== 'tenant'` → `'TENANT'`
+- Fallback `'pending'` → `'PENDING'`
+- Toutes les comparaisons `status === 'certified'` → `'CERTIFIED'`
+
+### `src/utils/leaseWizardShared.js`
+- `LEASE_TYPES` → `['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING']`
+- `normalizeLeaseType` : retourne désormais UPPER_SNAKE_CASE, accepte les deux formes en entrée
+- `deriveLeaseType` : fallback `'vide'` → `'VIDE'`
+- `computeSmartDeposit` : comparaisons → UPPER
+- `shouldGenerateGuaranteeDocument` : `'mobilite'` → `'MOBILITE'`
+
+### `src/utils/leaseDataBuilder.js`
+- `WARNING_RULES.leaseTypes` : tableaux → UPPER_SNAKE_CASE
+- `collectLeaseWarnings` : défaut `'vide'` → `'VIDE'`
+- `buildLeaseData` : toutes les comparaisons `leaseType === 'vide'/'meuble'/'mobilite'/'garage_parking'` → UPPER
+- `buildLeaseArtifacts` : fallback `'vide'` → `'VIDE'`
+
+### `src/services/leaseCompileService.js`
+- `TEMPLATE_MAP` : clés `vide/meuble/mobilite/garage_parking/guarantee` → `VIDE/MEUBLE/MOBILITE/GARAGE_PARKING/GUARANTEE`
+- `documentPlan` : `kind: 'lease'` → `'LEASE'`, `kind: 'guarantee'` → `'GUARANTEE'`
+- `TEMPLATE_MAP.vide` → `TEMPLATE_MAP.VIDE`, `TEMPLATE_MAP.guarantee` → `TEMPLATE_MAP.GUARANTEE`
+
+### `src/services/trustEngineService.js`
+- `metadataStatus === 'flagged'` → `'FLAGGED'`

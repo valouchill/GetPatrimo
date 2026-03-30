@@ -577,7 +577,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             type="button"
             onClick={handleCopyLink}
             disabled={!property.applyToken}
-            className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
           >
             {copied ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
             {copied ? 'Sésame copié !' : 'Copier le Sésame candidat'}
@@ -737,7 +737,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                         <button
                           type="button"
                           onClick={openUnlockModal}
-                          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400"
+                          className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
                         >
                           <Lock className="h-4 w-4" /> Déverrouiller
                         </button>

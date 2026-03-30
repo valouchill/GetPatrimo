@@ -1,0 +1,34 @@
+🤖 Lancement de l'agent [architect]...
+📋 Instruction : Analyse cette tâche et produis un plan détaillé dans .agents/logs/plan.md : Corriger l'enum invalide Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE
+📝 Log : /opt/doc2loc/.agents/logs/architect_20260322_184646.log
+---
+Le plan est produit dans `.agents/logs/plan.md`. Voici le résumé de l'analyse :
+
+---
+
+## Ce qui a été fait
+
+J'ai lu tous les modèles et les fichiers qui utilisent les enums concernés, puis produit un plan d'exécution complet.
+
+### Enums invalides / non conformes identifiés
+
+| Champ | Fichier | Problème |
+|---|---|---|
+| `opensignStatus` | `models/Lease.js:52` | Syntaxe objet `{values,message}` + valeurs lowercase |
+| `opensignDocuments[].status` | `models/Lease.js:70` | Valeurs lowercase |
+| `opensignDocuments[].kind` | `models/Lease.js:68` | `'lease'`, `'guarantee'` lowercase |
+| `generatedDocuments[].kind` | `models/Lease.js:109` | Idem |
+| `leaseType` | `models/Lease.js:22` | `'vide'`, `'meuble'`, `'mobilite'`, `'garage_parking'` |
+| `documents[].status` | `models/Application.js:57` | `'pending'`, `'certified'`, `'flagged'`… |
+| `documents[].category` | `models/Application.js:51` | `'identity'`, `'income'`… |
+| `documents[].subjectType` | `models/Application.js:52` | `'tenant'`, `'guarantor'`… |
+
+### Impact détecté
+
+- **10 fichiers backend** à modifier (webhookController, leaseController, opensignService, documentCertificationRules, applicationScoring, passportViewModel, financialExtraction, leaseWizardShared, leaseDataBuilder, leaseCompileService)
+- **2 fichiers frontend** (LeaseWizard.tsx, 2 HTML legacy)
+- **1 fichier de tests** + 4 nouveaux scénarios à ajouter
+- **1 script de migration MongoDB** à créer (données existantes en base sont en lowercase)
+- **Point de vigilance sécurité** : l'API OpenSign retourne des statuts en lowercase — il faut un mapping de normalisation à la réception
+
+✅ Agent [architect] terminé avec succès

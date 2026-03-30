@@ -112,7 +112,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
             Annuler
           </button>
           <button onClick={submit} disabled={loading || !amount}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Confirmer
           </button>
@@ -246,7 +246,7 @@ const LoyersPanel = memo(function LoyersPanel() {
             Relancer ({lateCount})
           </button>
           <button onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Générer les loyers
           </button>
@@ -382,7 +382,7 @@ const LoyersPanel = memo(function LoyersPanel() {
                         {canConfirm && (
                           <button
                             onClick={() => setConfirmPayment(p)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 transition-colors"
                             aria-label="Confirmer le paiement"
                           >
                             <CheckCircle className="h-3.5 w-3.5" />
@@ -392,7 +392,7 @@ const LoyersPanel = memo(function LoyersPanel() {
                         {canReceipt && (
                           <button
                             onClick={() => downloadReceipt(p)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 transition-colors"
                             aria-label="Télécharger la quittance"
                           >
                             <Download className="h-3.5 w-3.5" />

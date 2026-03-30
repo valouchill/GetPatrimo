@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     const state = request.nextUrl.searchParams.get('state');
     const storedState = request.cookies.get('didit_state')?.value;
     const verifier = request.cookies.get('didit_verifier')?.value;
-    const returnUrl = request.cookies.get('didit_return')?.value || '/';
+    // Valider returnUrl contre l'open redirect : seuls les chemins relatifs sont autorisés
+    const rawReturn = request.cookies.get('didit_return')?.value || '/';
+    const returnUrl = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/';
 
     if (!code || !state || !storedState || state !== storedState || !verifier) {
       return NextResponse.redirect(new URL('/apply/invalid', request.nextUrl.origin));

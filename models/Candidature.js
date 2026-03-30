@@ -110,6 +110,8 @@ const CandidatureSchema = new mongoose.Schema({
 CandidatureSchema.index({ property: 1 });
 CandidatureSchema.index({ user: 1 });
 CandidatureSchema.index({ property: 1, status: 1 });
+CandidatureSchema.index({ email: 1 });
+CandidatureSchema.index({ createdAt: -1 });
 
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Candidature || mongoose.model('Candidature', CandidatureSchema);

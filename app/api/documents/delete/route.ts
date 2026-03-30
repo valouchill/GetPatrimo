@@ -8,6 +8,9 @@ import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
 
+const User = require('@/models/User');
+const Document = require('@/models/Document');
+
 const DeleteDocumentSchema = z.object({
   url: z.string().min(1, { error: 'URL du document requise' }),
 });
@@ -53,6 +56,26 @@ export async function DELETE(request: NextRequest) {
     const resolvedPath = path.resolve(filePath);
     if (!resolvedPath.startsWith(uploadsDir)) {
       return NextResponse.json({ error: 'Chemin non autorise' }, { status: 403 });
+    }
+
+    // Vérification de propriété : le fichier doit appartenir à l'utilisateur connecté
+    const user = await User.findOne({ email: (session as any).user?.email });
+    if (!user) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+
+    const relPath = resolvedPath.replace(path.resolve(process.cwd()) + path.sep, '');
+    const doc = await Document.findOne({
+      user: user._id,
+      $or: [
+        { relPath },
+        { relPath: '/' + relPath },
+        { filename: path.basename(resolvedPath) },
+      ],
+    });
+
+    if (!doc) {
+      return NextResponse.json({ error: 'Document non associé à votre compte' }, { status: 403 });
     }
 
     // Verifier que le fichier existe

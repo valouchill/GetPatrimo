@@ -99,12 +99,12 @@ export function GuaranteeBadge({ mode, short }: { mode?: 'NONE' | 'VISALE' | 'PH
 
 export type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger' | 'amber';
 export const BTN_CLS: Record<BtnVariant, string> = {
-  primary:   'bg-slate-950 text-white hover:bg-slate-800',
-  secondary: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-  ghost:     'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100',
+  primary:   'bg-orange-500 text-white hover:bg-orange-600 shadow-md',
+  secondary: 'border border-orange-500 text-orange-500 hover:bg-orange-50',
+  ghost:     'text-slate-600 hover:text-slate-800 hover:bg-slate-100',
   success:   'bg-emerald-50 text-emerald-700 border border-emerald-200',
   danger:    'bg-red-50 text-red-700 border border-red-200',
-  amber:     'bg-amber-500 text-slate-950 hover:bg-amber-400',
+  amber:     'bg-orange-500 text-white hover:bg-orange-600 shadow-md',
 };
 export function Btn({ children, variant = 'primary', onClick, disabled, className = '' }: {
   children: React.ReactNode; variant?: BtnVariant; onClick?: () => void; disabled?: boolean; className?: string;

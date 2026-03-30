@@ -1,0 +1,1 @@
+Corriger l'enum invalide Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE

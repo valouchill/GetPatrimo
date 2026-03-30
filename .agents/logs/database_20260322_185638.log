@@ -1,0 +1,39 @@
+Tout est correct. Voici le résumé de ce qui a été fait :
+
+---
+
+## Résumé DATABASE
+
+### `models/Lease.js` — 5 champs modifiés
+
+| Champ | Avant | Après |
+|---|---|---|
+| `leaseType` (enum + default) | `['vide', 'meuble', 'mobilite', 'garage_parking']` / `'vide'` | `['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING']` / `'VIDE'` |
+| `opensignStatus` (syntaxe + valeurs) | objet `{ values: [...], message: ... }` lowercase | tableau simple UPPER_SNAKE_CASE |
+| `opensignDocuments[].kind` | `['lease', 'guarantee']` | `['LEASE', 'GUARANTEE']` |
+| `opensignDocuments[].status` (+ default) | `['pending', ...]` / `'pending'` | `['PENDING', ...]` / `'PENDING'` |
+| `generatedDocuments[].kind` | `['lease', 'guarantee']` | `['LEASE', 'GUARANTEE']` |
+
+### `models/Application.js` — 3 champs modifiés
+
+| Champ | Avant | Après |
+|---|---|---|
+| `documents[].category` | `['identity', 'income', 'address', 'guarantor']` | `['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR']` |
+| `documents[].subjectType` (+ default) | `['tenant', 'guarantor', 'visale']` / `'tenant'` | `['TENANT', 'GUARANTOR', 'VISALE']` / `'TENANT'` |
+| `documents[].status` (+ default) | `['pending', 'analyzing', ...]` / `'pending'` | `['PENDING', 'ANALYZING', ...]` / `'PENDING'` |
+
+### `scripts/migrate-enum-uppercase.js` — créé
+
+Script idempotent qui :
+- Filtre uniquement les documents contenant encore des valeurs lowercase
+- Met à jour chaque sous-document individuellement avec `$set` ciblé (pas de suppression)
+- Supporte `--dry-run` pour vérifier les stats sans écrire
+- Supporte `--mongo-uri` pour cibler staging vs prod
+
+```bash
+# Vérification à sec
+node scripts/migrate-enum-uppercase.js --dry-run
+
+# Exécution
+node scripts/migrate-enum-uppercase.js
+```

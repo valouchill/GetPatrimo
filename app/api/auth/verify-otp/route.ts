@@ -12,24 +12,8 @@ const Application = require('@/models/Application');
 
 const MAX_ATTEMPTS = 5;
 
-const OtpStore = (() => {
-  let model: any = null;
-  return async () => {
-    if (model) return model;
-    const mongoose = await import('mongoose');
-    model = mongoose.models.OtpToken;
-    if (!model) {
-      const schema = new mongoose.Schema({
-        email: { type: String, required: true, index: true },
-        code: { type: String, required: true },
-        expiresAt: { type: Date, required: true, index: { expires: 0 } },
-        attempts: { type: Number, default: 0 },
-      });
-      model = mongoose.model('OtpToken', schema);
-    }
-    return model;
-  };
-})();
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const OtpToken = require('@/models/OtpToken');
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +32,7 @@ export async function POST(request: NextRequest) {
     const code = result.data.otp.trim();
 
     await connectDiditDb();
-    const Token = await OtpStore();
+    const Token = OtpToken;
 
     const tokenDoc = await Token.findOne({
       email: normalizedEmail,
@@ -64,7 +48,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Trop de tentatives. Veuillez recommencer.' }, { status: 429 });
     }
 
-    if (tokenDoc.code !== code) {
+    const codeBuffer = Buffer.from(code.padEnd(6, '\0'));
+    const storedBuffer = Buffer.from(tokenDoc.code.padEnd(6, '\0'));
+    const codeMatch = codeBuffer.length === storedBuffer.length && crypto.timingSafeEqual(codeBuffer, storedBuffer);
+    if (!codeMatch) {
       await Token.findByIdAndUpdate(tokenDoc._id, { $inc: { attempts: 1 } });
       const remaining = MAX_ATTEMPTS - tokenDoc.attempts - 1;
       return NextResponse.json(

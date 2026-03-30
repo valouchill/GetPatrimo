@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
 import '@/models/Property';
@@ -15,6 +17,12 @@ export async function GET(
 ) {
   try {
     await connectDiditDb();
+
+    const session = await getServerSession(authOptions as any);
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
     const { id } = await params;
     const app = await Application.findById(id)
       .populate('property', 'name address rentAmount')

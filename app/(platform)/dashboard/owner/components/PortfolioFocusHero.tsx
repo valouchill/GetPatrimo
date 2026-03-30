@@ -106,7 +106,7 @@ export default function PortfolioFocusHero({
 
               <Link
                 href={focusCard.ctaHref}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[1.35rem] bg-amber-500 px-4 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[1.35rem] bg-orange-500 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-orange-600"
               >
                 {focusCard.ctaLabel}
                 <ArrowRight className="h-4 w-4" />

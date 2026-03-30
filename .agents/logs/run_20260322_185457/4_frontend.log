@@ -1,0 +1,286 @@
+🤖 Lancement de l'agent [frontend]...
+📋 Instruction : Voici le plan à suivre :
+# Plan : Corriger Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE
+
+## Résumé
+Corriger l'enum `opensignStatus` (syntaxe objet invalide + valeurs lowercase) et normaliser en UPPER_SNAKE_CASE tous les enums de `models/Lease.js` et `models/Application.js` qui utilisent encore des valeurs lowercase, en mettant à jour tous les fichiers qui comparent ou assignent ces valeurs.
+
+---
+
+## Fichiers impactés
+
+### Modèles
+- [ ] `models/Lease.js` — Modifier (normaliser opensignStatus, opensignDocuments.status, opensignDocuments.kind, generatedDocuments.kind, leaseType)
+- [ ] `models/Application.js` — Modifier (normaliser documents.status, documents.category, documents.subjectType)
+
+### Contrôleurs / Services (backend Express)
+- [ ] `src/controllers/webhookController.js` — Modifier (comparaisons + assignations opensignStatus / opensignDocuments.status)
+- [ ] `src/controllers/leaseController.js` — Modifier (assignations opensignStatus, kind)
+- [ ] `src/services/opensignService.js` — Modifier (status: 'pending' initial + commentaire)
+- [ ] `src/utils/documentCertificationRules.js` — Modifier (status: 'illegible', 'rejected', 'needs_review', 'certified')
+- [ ] `src/utils/applicationScoring.js` — Modifier (comparaisons doc.status === 'certified', etc.)
+- [ ] `src/utils/passportViewModel.js` — Modifier (getDocStatus, isCertified, isRejected, comparaisons)
+- [ ] `src/utils/financialExtraction.js` — Modifier (document.status === 'certified', etc.)
+- [ ] `src/utils/leaseWizardShared.js` — Modifier (normalizeLeaseType, deriveLeaseType, comparaisons leaseType)
+- [ ] `src/utils/leaseDataBuilder.js` — Modifier (comparaisons leaseType: 'vide', 'meuble', 'mobilite', 'garage_parking', TEMPLATE_MAP keys, leaseTypes arrays)
+- [ ] `src/services/leaseCompileService.js` — Modifier (TEMPLATE_MAP keys, comparaisons leaseType)
+- [ ] `src/utils/trustEngineService.js` — Modifier (si comparaison metadataStatus === 'flagged')
+
+### Frontend Next.js
+- [ ] `app/(platform)/properties/[id]/contract/LeaseWizard.tsx` — Modifier (leaseType comparaisons: 'mobilite', 'meuble', etc.)
+- [ ] `app/(platform)/dashboard/owner/OwnerContext.tsx` — Modifier (leaseType? type hint, si comparaison)
+
+### Tests
+- [ ] `tests/lease-smart.test.js` — Modifier (leaseType: 'vide', 'mobilite' → UPPER_SNAKE_CASE)
+
+### HTML Legacy (dashboard statique)
+- [ ] `public/dashboard-luxe.html` — Modifier (opensignStatus === 'completed' → 'COMPLETED')
+- [ ] `public/contractualization-luxe.html` — Modifier (idem)
+
+---
+
+## Instructions par agent
+
+### DATABASE
+
+**1. `models/Lease.js`**
+
+Modifier les enums suivants :
+
+```js
+// AVANT (ligne 22)
+leaseType: { type: String, enum: ['vide', 'meuble', 'mobilite', 'garage_parking'], default: 'vide' }
+// APRÈS
+leaseType: { type: String, enum: ['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'], default: 'VIDE' }
+
+// AVANT (lignes 52-58) — syntaxe objet invalide + lowercase
+opensignStatus: {
+  type: String,
+  enum: { values: ['pending', 'signed', 'completed', 'expired', 'declined'], message: '...' },
+  required: false
+}
+// APRÈS — syntaxe simple + UPPER_SNAKE_CASE
+opensignStatus: {
+  type: String,
+  enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'],
+  required: false
+}
+
+// AVANT (ligne 68) opensignDocuments[].kind
+kind: { type: String, enum: ['lease', 'guarantee'] }
+// APRÈS
+kind: { type: String, enum: ['LEASE', 'GUARANTEE'] }
+
+// AVANT (lignes 70-74) opensignDocuments[].status
+status: { type: String, enum: ['pending', 'signed', 'completed', 'expired', 'declined'], default: 'pending' }
+// APRÈS
+status: { type: String, enum: ['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED'], default: 'PENDING' }
+
+// AVANT (ligne 109) generatedDocuments[].kind
+kind: { type: String, enum: ['lease', 'guarantee'] }
+// APRÈS
+kind: { type: String, enum: ['LEASE', 'GUARANTEE'] }
+```
+
+**2. `models/Application.js`**
+
+Modifier les enums suivants :
+
+```js
+// AVANT (ligne 51)
+category: { type: String, enum: ['identity', 'income', 'address', 'guarantor'] }
+// APRÈS
+category: { type: String, enum: ['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR'] }
+
+// AVANT (ligne 52)
+subjectType: { type: String, enum: ['tenant', 'guarantor', 'visale'], default: 'tenant' }
+// APRÈS
+subjectType: { type: String, enum: ['TENANT', 'GUARANTOR', 'VISALE'], default: 'TENANT' }
+
+// AVANT (ligne 57)
+status: { type: String, enum: ['pending', 'analyzing', 'certified', 'flagged', 'rejected', 'illegible', 'needs_review'], default: 'pending' }
+// APRÈS
+status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' }
+```
+
+> **Migration MongoDB** : les documents existants en base ont des valeurs lowercase. Écrire un script de migration `scripts/migrate-enum-uppercase.js` qui met à jour :
+> - `leases.opensignStatus`, `leases.opensignDocuments.$.status`, `leases.opensignDocuments.$.kind`, `leases.generatedDocuments.$.kind`, `leases.leaseType`
+> - `applications.documents.$.status`, `applications.documents.$.category`, `applications.documents.$.subjectType`
+>
+> Le script doit être idempotent (vérifier si déjà migré avant d'écrire).
+
+---
+
+### BACKEND
+
+**Règle générale** : remplacer toutes les comparaisons et assignations de valeurs d'enum par leurs équivalents UPPER_SNAKE_CASE.
+
+**`src/controllers/webhookController.js`**
+
+Fonction `computeAggregateStatus` (lignes 114-122) :
+```js
+// AVANT
+if (!statuses.length) return lease.opensignStatus || 'pending';
+if (statuses.includes('declined')) return 'declined';
+if (statuses.includes('expired')) return 'expired';
+if (statuses.every((status) => status === 'completed')) return 'completed';
+if (statuses.includes('signed') || statuses.includes('completed')) return 'signed';
+return 'pending';
+// APRÈS
+if (!statuses.length) return lease.opensignStatus || 'PENDING';
+if (statuses.includes('DECLINED')) return 'DECLINED';
+if (statuses.includes('EXPIRED')) return 'EXPIRED';
+if (statuses.every((status) => status === 'COMPLETED')) return 'COMPLETED';
+if (statuses.includes('SIGNED') || statuses.includes('COMPLETED')) return 'SIGNED';
+return 'PENDING';
+```
+
+Partout où `updateTrackedDocument` reçoit `status: 'signed'`, `'completed'`, `'expired'`, `'declined'`, `'pending'` → mettre en UPPER_SNAKE_CASE.
+Idem pour `kind: 'lease'` → `'LEASE'`, `kind: 'guarantee'` → `'GUARANTEE'`.
+
+**`src/controllers/leaseController.js`**
+- Ligne 656 : `lease.opensignStatus = primaryDocument?.status || 'pending'` → `|| 'PENDING'`
+- Ligne 758 : `opensignStatus: null` → OK (null est valide)
+- Ligne 71 : `return 'pending'` (dans getSignatureSummary) → `return 'PENDING'`
+- Partout `kind: 'lease'` ou `kind: 'guarantee'` → `'LEASE'`, `'GUARANTEE'`
+- Fonction `mapLegacyPropertyType` (lignes 21-24) : déjà correcte (retourne UPPER_SNAKE_CASE depuis lowercase en entrée) — CONSERVER cette fonction et l'utiliser comme référence
+
+**`src/services/opensignService.js`**
+- Ligne 146 : `status: 'pending'` → `'PENDING'`
+- Ligne 223 : `status: response.data.status` — OpenSign retourne des valeurs lowercase depuis l'API externe. **Il faut normaliser à la réception** : ajouter `.toUpperCase()` ou un mapping explicite `OPENSIGN_STATUS_MAP` pour convertir `pending → PENDING`, `signed → SIGNED`, `completed → COMPLETED`, `expired → EXPIRED`, `declined → DECLINED`.
+
+**`src/utils/documentCertificationRules.js`**
+Remplacer partout :
+- `status: 'illegible'` → `'ILLEGIBLE'`
+- `status: 'rejected'` → `'REJECTED'`
+- `status: 'needs_review'` → `'NEEDS_REVIEW'`
+- `status: 'certified'` → `'CERTIFIED'`
+
+**`src/utils/applicationScoring.js`**
+- `doc.status === 'certified'` (ligne 67) → `'CERTIFIED'`
+- `doc.status || 'pending'` (ligne 556) → `|| 'PENDING'`
+- `{ subjectType: 'tenant' }` (ligne 154) → `{ subjectType: 'TENANT' }`
+- `doc.category === 'identity'` (ligne 702) → `'IDENTITY'`
+- Tous les littéraux de statut document → UPPER_SNAKE_CASE
+
+**`src/utils/passportViewModel.js`**
+- `if (!doc) return 'pending'` → `'PENDING'`
+- `getDocStatus(doc) === 'certified'` → `'CERTIFIED'`
+- `getDocStatus(doc) === 'needs_review'` → `'NEEDS_REVIEW'`
+- `status === 'rejected' || status === 'illegible'` → `'REJECTED'`, `'ILLEGIBLE'`
+
+**`src/utils/financialExtraction.js`**
+- `document.status === 'certified'` (lignes 197, 202, 206, 210) → `'CERTIFIED'`
+- `document?.status || 'pending'` (ligne 180) → `|| 'PENDING'`
+- `document.subjectType !== 'tenant'` (ligne 149) → `!== 'TENANT'`
+
+**`src/utils/leaseWizardShared.js`**
+- `normalizeLeaseType` : normaliser les comparaisons et retours en UPPER_SNAKE_CASE
+- `deriveLeaseType` : retourner `'VIDE'`, `'MEUBLE'`, `'MOBILITE'`, `'GARAGE_PARKING'`
+- `computeSmartDeposit(leaseType)` : `const normalized = normalizeLeaseType(leaseType) || 'VIDE'`
+- `shouldGenerateGuaranteeDocument` : `normalizeLeaseType(leaseType) || 'VIDE') !== 'MOBILITE'`
+
+**`src/utils/leaseDataBuilder.js`**
+- `LEASE_DISPLAY_WARNINGS` : les `leaseTypes` arrays → `['VIDE', 'MEUBLE', 'MOBILITE']` etc.
+- `collectLeaseWarnings` : `const leaseType = deriveLeaseType(property, formData?.leaseType)` — déjà via deriveLeaseType, OK si cette fonction retourne UPPER
+- Toutes les comparaisons `leaseType === 'vide'`, `=== 'meuble'`, `=== 'mobilite'`, `=== 'garage_parking'` → UPPER_SNAKE_CASE
+- `TEMPLATE_MAP[leaseType] || TEMPLATE_MAP.vide` : si TEMPLATE_MAP garde ses clés originales, ajouter des clés UPPER_SNAKE_CASE ou normaliser l'accès
+
+**`src/services/leaseCompileService.js`**
+- `TEMPLATE_MAP` keys : `{ vide: ..., meuble: ..., mobilite: ..., garage_parking: ... }` → `{ VIDE: ..., MEUBLE: ..., MOBILITE: ..., GARAGE_PARKING: ... }`
+- `TEMPLATE_MAP[leaseType] || TEMPLATE_MAP.vide` → `TEMPLATE_MAP[leaseType] || TEMPLATE_MAP.VIDE`
+- Titre bail : `title: \`Bail ${leaseType}\`` — formatter en minuscules pour affichage si nécessaire
+
+**`src/utils/trustEngineService.js`**
+- Vérifier si `metadataStatus === 'flagged'` → `'FLAGGED'`
+
+---
+
+### FRONTEND
+
+**`app/(platform)/properties/[id]/contract/LeaseWizard.tsx`**
+- Toutes les comparaisons avec `leaseType` : `=== "mobilite"` → `=== "MOBILITE"`, `=== "meuble"` → `=== "MEUBLE"`, etc.
+- Valeurs des `<option>` dans le `<select>` leaseType (ligne 733) : si les values sont `vide`, `meuble`, etc., les passer en UPPER_SNAKE_CASE ET mettre à jour `handleFieldChange("leaseType", event.target.value)` qui recevra la nouvelle valeur
+
+**`app/(platform)/dashboard/owner/OwnerContext.tsx`**
+- `leaseType?: string` — pas de changement de type, mais si des comparaisons existent dans ce fichier, les mettre à jour
+
+**`public/dashboard-luxe.html`** (fichiers HTML legacy)
+- `opensignStatus === 'completed'` → `=== 'COMPLETED'`
+- `opensignStatus !== 'completed'` → `!== 'COMPLETED'`
+
+**`public/contractualization-luxe.html`**
+- Idem : `opensignStatus === 'completed'` → `=== 'COMPLETED'`
+- `status: lease.opensignStatus` — pas de changement (juste la valeur stockée change)
+
+---
+
+### TESTING
+
+**`tests/lease-smart.test.js`**
+- `leaseType: 'vide'` → `'VIDE'`
+- `leaseType: 'mobilite'` → `'MOBILITE'`
+- Vérifier si les valeurs de retour des fonctions testées sont comparées → mettre à jour
+
+**Tests à ajouter / étendre :**
+1. Test unitaire `computeAggregateStatus` (webhookController) : s'assurer que les statuts UPPER_SNAKE_CASE sont correctement agrégés
+2. Test de `normalizeLeaseType` / `deriveLeaseType` : retourne bien UPPER_SNAKE_CASE
+3. Test `documentCertificationRules` : les statuts retournés sont bien UPPER_SNAKE_CASE
+4. Test de migration : le script `migrate-enum-uppercase.js` transforme correctement les données existantes
+
+---
+
+### SECURITY
+
+1. **Validation OpenSign externe** : L'API OpenSign retourne des statuts en lowercase. Le mapping de normalisation dans `opensignService.js` doit être exhaustif et défensif — si une valeur inconnue arrive, fallback sur `'PENDING'` plutôt que de stocker une valeur hors-enum (ce qui causerait une erreur Mongoose silencieuse ou un `save()` raté).
+
+2. **Migration idempotente** : Le script de migration MongoDB ne doit jamais supprimer de données. Utiliser `$set` ciblé sur chaque sous-document. Tester sur une base de staging avant production.
+
+3. **Validation Zod** : Si des endpoints reçoivent `leaseType` ou `opensignStatus` depuis le client, mettre à jour les schémas Zod correspondants pour n'accepter que les valeurs UPPER_SNAKE_CASE :
+   ```ts
+   leaseType: z.enum(['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'])
+   opensignStatus: z.enum(['PENDING', 'SIGNED', 'COMPLETED', 'EXPIRED', 'DECLINED']).optional()
+   ```
+
+4. **Ordre d'exécution** : Déployer dans cet ordre pour éviter les erreurs de validation en production :
+   a. Modifier les modèles Mongoose pour accepter les DEUX formes (temporairement)
+   b. Déployer le code
+   c. Exécuter la migration
+   d. Supprimer la tolérance des valeurs lowercase
+
+---
+
+## Ordre de réalisation recommandé
+
+1. DATABASE : modifier les modèles (Lease.js, Application.js) — bloquer les nouvelles valeurs lowercase
+2. DATABASE : écrire le script `scripts/migrate-enum-uppercase.js`
+3. BACKEND : mettre à jour tous les contrôleurs, services, utils
+4. FRONTEND : mettre à jour LeaseWizard.tsx + HTML legacy
+5. TESTING : mettre à jour + compléter les tests
+6. SECURITY : vérifier le mapping OpenSign et les schémas Zod
+7. DATABASE : exécuter le script de migration sur staging puis production
+
+Exécute UNIQUEMENT la section FRONTEND du plan ci-dessus.
+Les endpoints API sont déjà créés par l'agent Backend.
+Tâche originale : Corriger l'enum invalide Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE
+📝 Log : /opt/doc2loc/.agents/logs/frontend_20260322_190517.log
+---
+Toutes les modifications frontend sont appliquées. Voici le résumé :
+
+## Modifications effectuées
+
+### `app/(platform)/properties/[id]/contract/LeaseWizard.tsx`
+- **Ligne 157** : comparaison `leaseType === "mobilite"` → `"MOBILITE"`
+- **Lignes 736-739** : valeurs des `<option>` du select `leaseType` passées en UPPER_SNAKE_CASE (`"vide"` → `"VIDE"`, `"meuble"` → `"MEUBLE"`, `"mobilite"` → `"MOBILITE"`, `"garage_parking"` → `"GARAGE_PARKING"`) — les labels d'affichage ("Vide", "Meublé", etc.) sont inchangés
+
+### `public/dashboard-luxe.html`
+- **Ligne 2274** : `=== 'completed'` → `=== 'COMPLETED'`
+- **Lignes 2447, 2450** : les deux comparaisons `opensignStatus === 'completed'` / `!== 'completed'` → `'COMPLETED'`
+
+### `public/contractualization-luxe.html`
+- **Lignes 1104, 1120** : les deux comparaisons `opensignStatus === 'completed'` / `!== 'completed'` → `'COMPLETED'` (le `status: 'completed'` dans `updateData` est laissé tel quel — c'est une valeur locale du journey state, pas un enum Mongoose)
+
+### `app/(platform)/dashboard/owner/OwnerContext.tsx`
+- Aucune modification nécessaire — pas de comparaisons d'enum, seulement `leaseType?: string` comme type hint
+
+✅ Agent [frontend] terminé avec succès

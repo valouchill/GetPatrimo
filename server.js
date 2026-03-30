@@ -67,7 +67,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Autoriser les requetes sans origin (mobile, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== 'production') {
+    if (ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
     }
     callback(new Error('CORS non autorise'));

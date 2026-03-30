@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '../../didit/db';
 import IdentitySession from '@/models/IdentitySession';
 import Property from '@/models/Property';
@@ -18,7 +19,12 @@ function verifySignature(rawBody: string, signature: string | null, secret?: str
 
 // Handle GET redirects from Didit (status updates via URL params)
 export async function GET(request: NextRequest) {
-  // Capturer TOUS les paramètres envoyés par Didit
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const { allowed } = checkRateLimit(`webhook-get:${ip}`, { windowMs: 60_000, max: 30 });
+  if (!allowed) {
+    return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+  }
+
   const allParams: Record<string, string> = {};
   request.nextUrl.searchParams.forEach((value, key) => {
     allParams[key] = value;
@@ -26,15 +32,8 @@ export async function GET(request: NextRequest) {
   
   const sessionId = allParams.verificationSessionId || allParams.session_id || allParams.sessionId;
   const status = allParams.status;
-  
-  // Extraire les données d'identité potentielles des paramètres
-  const firstName = allParams.first_name || allParams.firstName || allParams.given_name || '';
-  const lastName = allParams.last_name || allParams.lastName || allParams.family_name || '';
-  const fullName = allParams.full_name || allParams.name || '';
-  const birthDate = allParams.birth_date || allParams.birthDate || allParams.date_of_birth || '';
-  
-  console.log('[DIDIT WEBHOOK GET] Tous les paramètres:', JSON.stringify(allParams, null, 2));
-  console.log('[DIDIT WEBHOOK GET]', { sessionId, status, firstName, lastName, fullName, birthDate });
+
+  console.log('[DIDIT WEBHOOK GET] Paramètres:', { sessionId, status });
   
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID manquant' }, { status: 400 });
@@ -49,26 +48,15 @@ export async function GET(request: NextRequest) {
       
       // Récupérer la session existante pour avoir l'applyToken
       existingSession = await IdentitySession.findOne({ sessionId });
-      
-      // D'abord, utiliser les données des paramètres GET si disponibles
-      let extractedFirstName = firstName;
-      let extractedLastName = lastName;
-      let extractedBirthDate = birthDate;
-      
-      // Si on a un fullName mais pas de prénom/nom séparés, on le découpe
-      if (fullName && (!extractedFirstName || !extractedLastName)) {
-        const nameParts = fullName.trim().split(/\s+/);
-        if (nameParts.length >= 2) {
-          extractedFirstName = extractedFirstName || nameParts[0];
-          extractedLastName = extractedLastName || nameParts.slice(1).join(' ');
-        } else if (nameParts.length === 1) {
-          extractedFirstName = extractedFirstName || nameParts[0];
-        }
-      }
-      
-      // Essayer de récupérer les infos de la session depuis l'API Didit
+
+      // Récupérer les infos d'identité UNIQUEMENT depuis l'API Didit (source de confiance)
+      // Ne JAMAIS utiliser les query params comme source de données d'identité
+      let extractedFirstName = '';
+      let extractedLastName = '';
+      let extractedBirthDate = '';
+
       const apiKey = process.env.DIDIT_API_KEY;
-      
+
       // Tenter plusieurs endpoints Didit (v3 en priorité)
       const endpoints = [
         `https://verification.didit.me/v3/session/${sessionId}/decision/`,
@@ -76,7 +64,7 @@ export async function GET(request: NextRequest) {
         `https://apx.didit.me/verification/v2/session/${sessionId}`,
         `https://apx.didit.me/v2/session/${sessionId}`
       ];
-      
+
       for (const apiUrl of endpoints) {
         try {
           const response = await fetch(apiUrl, {
@@ -85,36 +73,28 @@ export async function GET(request: NextRequest) {
               'Accept': 'application/json'
             }
           });
-          
+
           if (response.ok) {
             const data = await response.json();
-            console.log('[DIDIT WEBHOOK GET] Réponse API:', apiUrl, JSON.stringify(data));
-            
-            // Extraire l'identité de différentes structures possibles (v3 et v2)
-            // V3: data.decision.id_verifications[0].first_name, last_name, date_of_birth
-            // V2: data.kyc.first_name, data.identity.first_name
+            console.log('[DIDIT WEBHOOK GET] Réponse API:', apiUrl);
+
             const idVerification = data?.decision?.id_verifications?.[0] || {};
             const idDocument = data?.id_document || data?.document || {};
             const identity = data?.kyc || data?.identity || data?.person || data?.data?.identity || idDocument || {};
             const apiFullName = idVerification.full_name || identity.full_name || idDocument.full_name || data?.full_name || '';
-            
-            const apiFirstName = idVerification.first_name || identity.first_name || identity.firstName || (apiFullName ? apiFullName.split(' ')[0] : '');
-            const apiLastName = idVerification.last_name || identity.last_name || identity.lastName || (apiFullName ? apiFullName.split(' ').slice(1).join(' ') : '');
-            const apiBirthDate = idVerification.date_of_birth || identity.date_of_birth || identity.birthDate || data?.date_of_birth || '';
-            
-            // Mettre à jour les données extraites si on a trouvé des infos
-            if (apiFirstName) extractedFirstName = extractedFirstName || apiFirstName;
-            if (apiLastName) extractedLastName = extractedLastName || apiLastName;
-            if (apiBirthDate) extractedBirthDate = extractedBirthDate || apiBirthDate;
-            
-            if (apiFirstName || apiLastName) break; // On a trouvé des données
+
+            extractedFirstName = idVerification.first_name || identity.first_name || identity.firstName || (apiFullName ? apiFullName.split(' ')[0] : '');
+            extractedLastName = idVerification.last_name || identity.last_name || identity.lastName || (apiFullName ? apiFullName.split(' ').slice(1).join(' ') : '');
+            extractedBirthDate = idVerification.date_of_birth || identity.date_of_birth || identity.birthDate || data?.date_of_birth || '';
+
+            if (extractedFirstName || extractedLastName) break;
           }
         } catch (e) {
           console.log('[DIDIT WEBHOOK GET] Endpoint échoué:', apiUrl);
         }
       }
-      
-      // Utiliser les données des paramètres GET en priorité, puis les données API, puis les données existantes
+
+      // Utiliser les données API, puis les données existantes en session
       const finalFirstName = extractedFirstName || existingSession?.firstName || '';
       const finalLastName = extractedLastName || existingSession?.lastName || '';
       const finalBirthDate = extractedBirthDate || existingSession?.birthDate || '';
@@ -135,12 +115,7 @@ export async function GET(request: NextRequest) {
         { upsert: true, new: true }
       );
       
-      console.log('[DIDIT WEBHOOK GET] Session mise à jour vers CERTIFIEE:', sessionId, { 
-        firstName: finalFirstName, 
-        lastName: finalLastName,
-        fromParams: { firstName, lastName, fullName },
-        fromAPI: 'tentative échouée'
-      });
+      console.log('[DIDIT WEBHOOK GET] Session mise à jour vers CERTIFIEE:', sessionId);
     } catch (error) {
       console.error('[DIDIT WEBHOOK GET] Erreur:', error);
     }
@@ -187,26 +162,24 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const { allowed } = checkRateLimit(`webhook-post:${ip}`, { windowMs: 60_000, max: 30 });
+  if (!allowed) {
+    return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+  }
+
   const secret = process.env.DIDIT_WEBHOOK_SECRET;
   const signatureHeader = process.env.DIDIT_WEBHOOK_HEADER?.toLowerCase() || 'x-didit-signature';
 
   const rawBody = await request.text();
   const signature = request.headers.get(signatureHeader);
 
-  // Log tous les headers et le body pour debug
-  const headers: Record<string, string> = {};
-  request.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-  console.log('[DIDIT WEBHOOK POST] Headers:', JSON.stringify(headers, null, 2));
-  console.log('[DIDIT WEBHOOK POST] Body brut:', rawBody);
-
   const signatureValid = verifySignature(rawBody, signature, secret);
   console.log('[DIDIT WEBHOOK POST] Signature valide:', signatureValid);
 
-  // Même si signature invalide, on log et on traite (mode dégradé)
   if (!signatureValid) {
-    console.warn('[DIDIT WEBHOOK POST] Signature invalide, traitement en mode dégradé');
+    console.warn('[DIDIT WEBHOOK POST] Signature invalide — requête rejetée');
+    return NextResponse.json({ error: 'Signature invalide.' }, { status: 401 });
   }
 
   let payload;
@@ -217,7 +190,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Body invalide.' }, { status: 400 });
   }
   
-  console.log('[DIDIT WEBHOOK POST] Payload parsé:', JSON.stringify(payload, null, 2));
   const status = payload?.status || payload?.event?.status || payload?.data?.status;
   const sessionId = payload?.session_id || payload?.sessionId || payload?.data?.session_id || payload?.data?.sessionId;
 
@@ -256,14 +228,6 @@ export async function POST(request: NextRequest) {
   }
   
   const humanVerified = Boolean(idVerification.status === 'Approved' || identity.human_verified || payload?.human_verified || true);
-  
-  console.log('[DIDIT WEBHOOK POST] Données identité extraites:', { 
-    firstName, 
-    lastName, 
-    birthDate, 
-    fullNameFromPayload,
-    fromIdVerification: !!idVerification.first_name
-  });
 
   try {
     await connectDiditDb();

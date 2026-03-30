@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import fsSync from 'fs';
 import path from 'path';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -63,14 +64,26 @@ export async function GET(
 
     const absolutePath = path.join(COMPILED_DIR, fileName);
 
-    // Protection path traversal
+    // Protection path traversal (vérification logique)
     const resolvedPath = path.resolve(absolutePath);
     const resolvedDir = path.resolve(COMPILED_DIR);
     if (!resolvedPath.startsWith(resolvedDir + path.sep) && resolvedPath !== resolvedDir) {
       return NextResponse.json({ msg: 'Chemin non autorise' }, { status: 403 });
     }
 
-    const fileBuffer = await fs.readFile(absolutePath);
+    // Protection symlinks : vérification sur le vrai chemin filesystem
+    let realFilePath: string;
+    try {
+      realFilePath = fsSync.realpathSync(absolutePath);
+    } catch {
+      return NextResponse.json({ msg: 'Fichier introuvable' }, { status: 404 });
+    }
+    const realDir = fsSync.realpathSync(resolvedDir);
+    if (!realFilePath.startsWith(realDir + path.sep)) {
+      return NextResponse.json({ msg: 'Chemin non autorise' }, { status: 403 });
+    }
+
+    const fileBuffer = await fs.readFile(realFilePath);
 
     return new NextResponse(fileBuffer, {
       status: 200,

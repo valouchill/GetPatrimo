@@ -576,7 +576,7 @@ export default function OwnerDashboardClient() {
                 <p className="mt-1 text-sm text-slate-500">Ajoutez votre premier bien pour commencer le suivi locatif.</p>
                 <button
                   onClick={() => setShowAddManagement(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-orange-600 transition-colors"
                 >
                   <Plus className="h-4 w-4" /> Ajouter un bien en gestion
                 </button>

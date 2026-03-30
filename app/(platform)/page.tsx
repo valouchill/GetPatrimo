@@ -180,7 +180,7 @@ export default function Home() {
           <button
             type="button"
             onClick={scrollToHero}
-            className="inline-flex items-center gap-2 px-10 py-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all text-lg"
+            className="inline-flex items-center gap-2 px-10 py-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all text-lg"
           >
             Créer mon espace Propriétaire
             <span className="text-xl">→</span>

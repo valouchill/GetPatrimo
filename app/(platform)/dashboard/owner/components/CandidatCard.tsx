@@ -96,7 +96,7 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
             <button type="button" onClick={() => onDetail(c)} className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Voir le dossier
             </button>
-            <button type="button" onClick={() => onSelect(c)} className="flex-1 rounded-xl bg-amber-500 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400">
+            <button type="button" onClick={() => onSelect(c)} className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-bold text-white hover:bg-orange-600">
               Sélectionner →
             </button>
           </>
@@ -157,7 +157,7 @@ export function CompareView({ ids, candidats, bien, onSelect }: {
             <td className="px-4 py-3" />
             {cs.map((c) => (
               <td key={c.id} className="border-l border-slate-100 px-3 py-3">
-                <button type="button" onClick={() => onSelect(c)} className="w-full rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 hover:bg-amber-400">
+                <button type="button" onClick={() => onSelect(c)} className="w-full rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white hover:bg-orange-600">
                   Choisir {c.prenom} →
                 </button>
               </td>

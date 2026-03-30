@@ -1,0 +1,40 @@
+🤖 Lancement de l'agent [architect]...
+📋 Instruction : Analyse cette tâche et produis un plan détaillé dans .agents/logs/plan.md : Corriger l'enum invalide Lease.opensignStatus et normaliser tous les enums en UPPER_SNAKE_CASE
+📝 Log : /opt/doc2loc/.agents/logs/architect_20260322_185513.log
+---
+Le plan `.agents/logs/plan.md` est prêt. Voici un résumé de l'analyse effectuée :
+
+---
+
+## Plan produit — Résumé
+
+### Problèmes identifiés
+
+| Champ | Fichier | Problème |
+|-------|---------|----------|
+| `opensignStatus` | `models/Lease.js:52` | Syntaxe objet `{values, message}` invalide + valeurs lowercase |
+| `opensignDocuments[].status` | `models/Lease.js:70` | Valeurs lowercase |
+| `opensignDocuments[].kind` | `models/Lease.js:68` | `'lease'`, `'guarantee'` |
+| `generatedDocuments[].kind` | `models/Lease.js:109` | `'lease'`, `'guarantee'` |
+| `leaseType` | `models/Lease.js:22` | `'vide'`, `'meuble'`, `'mobilite'`, `'garage_parking'` |
+| `documents[].status` | `models/Application.js:57` | `'pending'`, `'certified'`, etc. |
+| `documents[].category` | `models/Application.js:51` | `'identity'`, `'income'`, etc. |
+| `documents[].subjectType` | `models/Application.js:52` | `'tenant'`, `'guarantor'`, `'visale'` |
+
+### Fichiers impactés (14 fichiers)
+
+- **Modèles** : `models/Lease.js`, `models/Application.js`
+- **Contrôleurs** : `src/controllers/webhookController.js`, `src/controllers/leaseController.js`
+- **Services** : `src/services/opensignService.js`, `src/services/leaseCompileService.js`
+- **Utils** : `leaseWizardShared.js`, `leaseDataBuilder.js`, `documentCertificationRules.js`, `applicationScoring.js`, `passportViewModel.js`, `financialExtraction.js`
+- **Frontend** : `app/(platform)/properties/[id]/contract/LeaseWizard.tsx`
+- **HTML legacy** : `public/dashboard-luxe.html`, `public/contractualization-luxe.html`
+- **Tests** : `tests/lease-smart.test.js`
+
+### Points critiques
+
+1. **OpenSign** retourne des statuts lowercase depuis l'API externe → normaliser à la réception dans `opensignService.js`
+2. **Migration MongoDB** requise pour les données existantes → script `scripts/migrate-enum-uppercase.js` idempotent
+3. **Ordre de déploiement** : tolérer temporairement les deux casses → migrer → supprimer la tolérance
+
+✅ Agent [architect] terminé avec succès

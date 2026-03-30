@@ -117,7 +117,7 @@ export const authOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 7 * 24 * 60 * 60, // 7 jours (réduit de 30j pour limiter l'impact d'un token volé)
+    maxAge: 24 * 60 * 60, // 24 heures — application financière, session courte obligatoire
   },
   cookies: {
     sessionToken: {
@@ -141,5 +141,5 @@ export const authOptions = {
       console.error(`[next-auth][${code}]`, metadata);
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 };

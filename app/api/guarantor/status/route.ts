@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '../../didit/db';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
@@ -26,6 +27,12 @@ const {
  */
 export async function GET(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(`guarantor-status:${ip}`, { windowMs: 60_000, max: 20 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+    }
+
     await connectDiditDb();
 
     const searchParams = request.nextUrl.searchParams;
@@ -140,30 +147,29 @@ export async function GET(request: NextRequest) {
     const certificationMethod = auditDetails ? 'AUDIT' : 
       (guarantor.diditSessionId && guarantor.status === 'CERTIFIED' ? 'DIDIT' : null);
 
+    // Masquer les données sensibles : ne pas exposer l'email complet ni les détails internes
+    const maskedEmail = guarantor.email
+      ? guarantor.email.replace(/^(.{2})(.*)(@.*)$/, '$1***$3')
+      : undefined;
+
     return NextResponse.json({
       guarantor: {
         id: guarantor._id,
-        email: guarantor.email,
+        email: maskedEmail,
         firstName: guarantor.firstName,
         lastName: guarantor.lastName,
         slot: guarantor.slot || 1,
         status: guarantor.status,
-        diditSessionId: guarantor.diditSessionId,
-        identityVerification: guarantor.identityVerification,
+        identityVerification: guarantor.identityVerification
+          ? { status: guarantor.identityVerification.status }
+          : undefined,
         certifiedAt: guarantor.certifiedAt,
-        isDirectCertification: guarantor.isDirectCertification,
         certificationMethod,
-        auditDetails: auditDetails ? {
-          score: (auditDetails as Record<string, unknown>).score,
-          patrimometerPoints: (auditDetails as Record<string, unknown>).patrimometerPoints,
-        } : undefined,
       },
-      diditStatus,
+      diditStatus: diditStatus ? { verified: diditStatus.verified } : null,
       tenantName: guarantor.firstName && guarantor.lastName
         ? `${guarantor.firstName} ${guarantor.lastName}`
-        : guarantor.email,
-      propertyAddress: (guarantor.property as Record<string, unknown>)?.address || 
-        (property as Record<string, unknown> | null)?.address || null,
+        : maskedEmail,
     });
   } catch (error) {
     console.error('Erreur récupération statut garant:', error);

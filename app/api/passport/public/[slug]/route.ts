@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
 import '@/models/Property';
@@ -14,6 +15,13 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Rate limiting : 60 req/min par IP pour prévenir l'énumération de slugs
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed } = checkRateLimit(`passport-public:${ip}`, { windowMs: 60_000, max: 60 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+    }
+
     await connectDiditDb();
     const { slug } = await params;
     const app = await Application.findOne({ passportSlug: slug })

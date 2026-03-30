@@ -47,29 +47,45 @@ export async function GET() {
       .sort({ archived: 1, createdAt: -1 })
       .lean();
 
+    // Batch: lier les applications orphelines à leurs propriétés en une seule opération
+    const applyTokens = properties
+      .filter((p: any) => p.applyToken)
+      .map((p: any) => ({ token: p.applyToken, id: p._id }));
+
+    if (applyTokens.length > 0) {
+      await Promise.all(
+        applyTokens.map(({ token, id }: { token: string; id: any }) =>
+          Application.updateMany(
+            {
+              applyToken: token,
+              $or: [{ property: { $exists: false } }, { property: null }],
+            },
+            { $set: { property: id } }
+          )
+        )
+      );
+    }
+
+    // Batch: charger toutes les applications de toutes les propriétés en une seule requête
+    const propertyIds = properties.map((p: any) => p._id);
+    const allApplications = await Application.find({
+      property: { $in: propertyIds },
+      status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
+    })
+      .select('property applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
+      .lean();
+
+    // Indexer les applications par property ID
+    const appsByProperty = new Map<string, any[]>();
+    for (const app of allApplications) {
+      const key = String((app as any).property);
+      if (!appsByProperty.has(key)) appsByProperty.set(key, []);
+      appsByProperty.get(key)!.push(app);
+    }
+
     const result = await Promise.all(
       properties.map(async (prop: any) => {
-        if (prop.applyToken) {
-          await Application.updateMany(
-            {
-              applyToken: prop.applyToken,
-              $or: [
-                { property: { $exists: false } },
-                { property: null },
-              ],
-            },
-            {
-              $set: { property: prop._id },
-            }
-          );
-        }
-
-        const applications = await Application.find({
-          property: prop._id,
-          status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
-        })
-          .select('applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
-          .lean();
+        const applications = appsByProperty.get(String(prop._id)) || [];
 
         const isManaged = prop.managed === true || !!prop.stripeSubscriptionId;
         const mappedCandidates = applications.map((app: any, idx: number) => {
