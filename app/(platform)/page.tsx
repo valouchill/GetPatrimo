@@ -8,6 +8,8 @@ import {
   Eye,
   FileCheck,
   Sparkles,
+  CheckCircle2,
+  Zap,
 } from 'lucide-react';
 import HeroFastTrack from '@/app/components/HeroFastTrack';
 
@@ -55,20 +57,40 @@ export default function Home() {
           </motion.p>
 
           <HeroFastTrack id={HERO_ID} />
+
+          <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              Gratuit pour commencer
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-emerald-500" />
+              Conforme ALUR & RGPD
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-emerald-500" />
+              Prêt en 2 minutes
+            </span>
+          </div>
         </div>
       </section>
 
-      {/* ——— 2. Bandeau de Réassurance (Social Proof) ——— */}
-      <section className="border-y border-slate-200 bg-white/60 py-4">
+      {/* ——— 2. Bandeau technologies ——— */}
+      <section className="border-y border-slate-200 bg-white py-8">
         <div className="max-w-5xl mx-auto px-6">
-          <p className="text-center text-sm text-slate-500 font-medium">
-            Analyse forensique IA • Biométrie Didit™ • Chiffrement AES-256 • Conformité RGPD
-          </p>
+          <p className="text-center text-xs text-slate-400 uppercase tracking-wide mb-4">Technologies de confiance</p>
+          <div className="flex items-center justify-center gap-10 flex-wrap">
+            <span className="text-sm font-semibold text-slate-300 hover:text-slate-500 transition-colors">Didit™</span>
+            <span className="text-sm font-semibold text-slate-300 hover:text-slate-500 transition-colors">OpenSign</span>
+            <span className="text-sm font-semibold text-slate-300 hover:text-slate-500 transition-colors">Stripe</span>
+            <span className="text-sm font-semibold text-slate-300 hover:text-slate-500 transition-colors">OpenAI</span>
+            <span className="text-sm font-semibold text-slate-300 hover:text-slate-500 transition-colors">Brevo</span>
+          </div>
         </div>
       </section>
 
       {/* ——— 3. Les 3 Piliers (Proposition de valeur) ——— */}
-      <section className="py-24 md:py-32 px-6">
+      <section id="features" className="py-20 md:py-24 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <motion.article
             initial={{ opacity: 0, y: 20 }}
@@ -127,7 +149,7 @@ export default function Home() {
       </section>
 
       {/* ——— 4. Preuve par l'exemple (Passeport Locataire) ——— */}
-      <section className="bg-slate-900 text-white py-24 md:py-32 px-6 overflow-hidden">
+      <section className="bg-slate-900 text-white py-20 md:py-24 px-6 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -172,7 +194,7 @@ export default function Home() {
       </section>
 
       {/* ——— 5. Call-to-Action Final (Footer) ——— */}
-      <section className="bg-slate-50 py-24 md:py-32 px-6 border-t border-slate-100">
+      <section className="bg-slate-50 py-20 md:py-24 px-6 border-t border-slate-100">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-serif text-3xl md:text-4xl text-slate-900 mb-6" style={{ fontFamily: 'Playfair Display, serif' }}>
             Prêt à déléguer la sécurité de votre patrimoine à l&apos;IA ?

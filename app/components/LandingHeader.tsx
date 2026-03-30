@@ -14,9 +14,28 @@ export default function LandingHeader() {
             PatrimoTrust™
           </span>
         </Link>
+
+        <nav className="hidden md:flex items-center gap-8">
+          <a href="#features" className="text-sm font-medium text-slate-600 hover:text-orange-500 transition-colors">
+            Comment ça marche
+          </a>
+          <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-orange-500 transition-colors">
+            Tarifs
+          </a>
+          <Link href="/auth/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+            Connexion
+          </Link>
+          <Link
+            href="/auth/login"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow-md transition-colors"
+          >
+            Essai gratuit →
+          </Link>
+        </nav>
+
         <Link
           href="/auth/login"
-          className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+          className="md:hidden text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
         >
           Connexion
         </Link>
