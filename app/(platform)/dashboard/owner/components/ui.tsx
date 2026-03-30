@@ -119,10 +119,10 @@ export function Btn({ children, variant = 'primary', onClick, disabled, classNam
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
-export function StatCard({ icon, value, label, bg = 'bg-emerald-50' }: { icon: string; value: string | number; label: string; bg?: string }) {
+export function StatCard({ icon, value, label, bg = 'bg-orange-50' }: { icon: React.ReactNode; value: string | number; label: string; bg?: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl text-lg ${bg}`}>{icon}</div>
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>{icon}</div>
       <div className="text-[1.75rem] font-bold tracking-tight text-slate-950">{value}</div>
       <div className="mt-1 text-sm text-slate-500">{label}</div>
     </div>

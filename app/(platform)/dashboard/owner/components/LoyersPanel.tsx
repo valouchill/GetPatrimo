@@ -12,6 +12,7 @@ import {
   Loader2,
   FileText,
   Clock,
+  Wallet,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -319,7 +320,7 @@ const LoyersPanel = memo(function LoyersPanel() {
         </div>
       ) : payments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
-          <div className="mb-3 text-4xl">💰</div>
+          <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Wallet className="h-6 w-6 text-slate-400" /></div>
           <p className="font-medium text-slate-700">Aucun loyer enregistré</p>
           <p className="mt-1 text-sm text-slate-500">
             Cliquez sur "Générer les loyers" pour créer les échéances du mois en cours.

@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Copy, Download, ExternalLink, FileSignature, Lock, Plus, RefreshCw, ScrollText, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Lock, Plus, RefreshCw, ScrollText, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { LoadingSpinner } from '@/app/components/shared';
 import { useOwner } from './OwnerContext';
 import {
@@ -79,7 +79,7 @@ export default function OwnerDashboardClient() {
       <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-600 text-lg">🛡️</div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
             <div>
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
               <div className="mt-0.5 inline-block rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Propriétaire</div>
@@ -135,7 +135,7 @@ export default function OwnerDashboardClient() {
             <div className="mb-8 flex items-start justify-between">
               <div>
                 <h1 className="font-serif text-3xl font-bold text-slate-950">
-                  Bonjour{userEmail ? ` ${userEmail.split('@')[0]}` : ''} 👋
+                  Bonjour{userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase()}${userEmail.split('@')[0].slice(1)}` : ''}
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
                   {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
@@ -145,10 +145,10 @@ export default function OwnerDashboardClient() {
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard icon="🏠" value={biens.length}    label="Actifs en portefeuille" bg="bg-emerald-50" />
-              <StatCard icon="📋" value={allDossiers.length} label="Candidatures reçues"  bg="bg-teal-50" />
-              <StatCard icon="✓"  value={selectionnes}    label="Locataires sélectionnés" bg="bg-blue-50" />
-              <StatCard icon="⏳" value={pending}         label="En attente d'examen"    bg="bg-amber-50" />
+              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biens.length}    label="Biens en portefeuille" bg="bg-orange-50" />
+              <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures reçues"  bg="bg-blue-50" />
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}  value={selectionnes}    label="Locataires sélectionnés" bg="bg-emerald-50" />
+              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={pending}         label="En attente d'examen"    bg="bg-amber-50" />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">
@@ -203,7 +203,7 @@ export default function OwnerDashboardClient() {
                       <div key={b.id} className="py-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="text-base">🏠</span>
+                            <Building2 className="h-4 w-4 text-slate-600" />
                             <div className="min-w-0">
                               <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
                               <div className="text-xs text-slate-500">{b.loyer.toLocaleString()} €/mois</div>
@@ -268,7 +268,7 @@ export default function OwnerDashboardClient() {
                     <div key={b.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50"><Building2 className="h-5 w-5 text-orange-500" /></div>
                           <div>
                             <div className="font-semibold text-slate-900">{b.label}</div>
                             <div className="text-xs text-slate-500">
@@ -283,7 +283,7 @@ export default function OwnerDashboardClient() {
                             <ExternalLink className="h-3.5 w-3.5" /> Fiche complète
                           </button>
                           {hasSel ? (
-                            <Tag type="green">✓ Locataire sélectionné</Tag>
+                            <Tag type="green">Locataire sélectionné</Tag>
                           ) : cands.filter(c => !c.isSealed).length > 0 ? (
                             <Btn variant="amber" onClick={() => setSelBienId(b.id)}>Sélectionner <ArrowRight className="h-4 w-4" /></Btn>
                           ) : null}
@@ -322,9 +322,9 @@ export default function OwnerDashboardClient() {
                                   <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <ScorePill score={d.score} />}</Td>
                                   <Td>
                                     {d.isSealed
-                                      ? <Tag type="slate">🔒 Scellé</Tag>
+                                      ? <Tag type="slate">Scellé</Tag>
                                       : <Tag type={d.statut === 'selectionne' ? 'green' : 'indigo'}>
-                                          {d.statut === 'selectionne' ? '✓ Sélectionné' : 'En attente'}
+                                          {d.statut === 'selectionne' ? 'Sélectionné' : 'En attente'}
                                         </Tag>
                                     }
                                   </Td>
@@ -416,7 +416,7 @@ export default function OwnerDashboardClient() {
             </div>
             {biens.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 text-4xl">🏠</div>
+                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Building2 className="h-6 w-6 text-slate-400" /></div>
                 <p className="mb-4 text-slate-500">Aucun bien enregistré.</p>
                 <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer votre premier actif</Btn>
               </div>
@@ -428,7 +428,7 @@ export default function OwnerDashboardClient() {
                   return (
                     <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md">
                       <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl">🏠</div>
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50"><Building2 className="h-5 w-5 text-orange-500" /></div>
                         <StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} />
                       </div>
                       <div className="font-bold text-slate-950">{b.label}</div>
@@ -505,7 +505,7 @@ export default function OwnerDashboardClient() {
             </div>
             {biensAvecBail.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 text-4xl">📄</div>
+                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><FileText className="h-6 w-6 text-slate-400" /></div>
                 <p className="mb-2 text-slate-500">Aucun bail en cours.</p>
                 <p className="text-xs text-slate-500">Sélectionnez un locataire depuis vos candidatures pour démarrer la rédaction.</p>
               </div>
@@ -564,14 +564,14 @@ export default function OwnerDashboardClient() {
               </Btn>
             </div>
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard icon="🏠" value={biensGeres.length}   label="Biens en gestion"    bg="bg-emerald-50" />
-              <StatCard icon="📋" value={allDossiers.length}  label="Candidatures totales" bg="bg-teal-50" />
-              <StatCard icon="✓"  value={selectionnes}        label="Locataires actifs"   bg="bg-blue-50" />
-              <StatCard icon="⏳" value={pending}             label="En attente"          bg="bg-amber-50" />
+              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biensGeres.length}   label="Biens en gestion"    bg="bg-orange-50" />
+              <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length}  label="Candidatures totales" bg="bg-blue-50" />
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}  value={selectionnes}        label="Locataires actifs"   bg="bg-emerald-50" />
+              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={pending}             label="En attente"          bg="bg-amber-50" />
             </div>
             {biensGeres.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
-                <div className="mb-3 text-4xl">🏠</div>
+                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Building2 className="h-6 w-6 text-slate-400" /></div>
                 <p className="font-medium text-slate-700">Aucun bien en gestion active</p>
                 <p className="mt-1 text-sm text-slate-500">Ajoutez votre premier bien pour commencer le suivi locatif.</p>
                 <button

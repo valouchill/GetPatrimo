@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Lock, X } from 'lucide-react';
+import { Building2, Lock, X } from 'lucide-react';
 import {
   ScorePill,
   GuaranteeBadge,
@@ -44,7 +44,7 @@ export function PropertyDetailModal({ bien, candidats, allData, onClose, onSelec
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">🏠</div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50"><Building2 className="h-6 w-6 text-orange-500" /></div>
               <div>
                 <div id="property-detail-modal-title" className="text-lg font-bold text-slate-950">{bien.label}</div>
                 <div className="mt-0.5 text-sm text-slate-500">{bien.adresse}</div>

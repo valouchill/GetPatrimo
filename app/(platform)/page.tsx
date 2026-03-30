@@ -32,9 +32,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-amber-600 text-sm font-medium tracking-wider uppercase mb-4"
+            className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-4"
           >
-            ✨ La nouvelle norme de gestion locative
+            Zéro dossier falsifié. Zéro impayé.
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -156,8 +156,8 @@ export default function Home() {
           >
             <div className="relative w-full max-w-[280px] aspect-[9/19] rounded-[2.5rem] border-4 border-slate-700 bg-slate-800 shadow-2xl overflow-hidden">
               <div className="absolute inset-4 rounded-[2rem] bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mb-4">
-                  <span className="text-2xl">🛡️</span>
+                <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mb-4">
+                  <Shield className="w-8 h-8 text-orange-400" />
                 </div>
                 <p className="text-white font-semibold text-lg">Grade S</p>
                 <p className="text-slate-400 text-sm mt-1">Dossier Stratégique</p>
