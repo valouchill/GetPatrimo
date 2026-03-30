@@ -82,37 +82,44 @@ export default function OwnerDashboardClient() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
             <div>
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
-              <div className="mt-0.5 inline-block rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Propriétaire</div>
+              <div className="mt-0.5 inline-block rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-600">Propriétaire</div>
             </div>
           </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {[...new Set(NAV.map((n) => n.group))].map((grp) => (
-            <div key={grp} className="mb-4">
-              <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{grp}</div>
-              {NAV.filter((n) => n.group === grp).map(({ id, label, Icon, badge }) => {
+          {[...new Set(NAV.filter((n) => !n.hidden).map((n) => n.group))].map((grp) => (
+            <div key={grp} className="mb-5">
+              <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
+              {NAV.filter((n) => n.group === grp && !n.hidden).map(({ id, label, Icon, badge }) => {
                 const active = page === id;
                 return (
                   <button key={id} type="button" onClick={() => go(id)}
-                    className={`mb-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
-                      active ? 'bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-200' : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    className={`mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all ${
+                      active ? 'bg-orange-50 font-medium text-orange-600' : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                     }`}>
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="h-5 w-5 shrink-0" />
                     <span className="flex-1 text-left">{label}</span>
                     {badge && pending > 0 && (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">{pending}</span>
+                      <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-600">{pending}</span>
                     )}
                   </button>
                 );
               })}
+              {grp === 'Mon patrimoine' && (
+                <button type="button" onClick={() => go('depot')}
+                  className="mt-1 flex w-full items-center gap-3 rounded-lg px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span>Ajouter un bien</span>
+                </button>
+              )}
             </div>
           ))}
         </nav>
 
         <div className="border-t border-slate-200 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-800 to-emerald-600 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white">
               {userEmail ? userEmail[0].toUpperCase() : 'P'}
             </div>
             <div className="min-w-0">
@@ -141,7 +148,7 @@ export default function OwnerDashboardClient() {
                   {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouvel actif</Btn>
+              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> Ajouter un bien</button>
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -409,10 +416,10 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">Mes actifs</h1>
+                <h1 className="font-serif text-3xl font-bold text-slate-950">Mes biens</h1>
                 <p className="mt-1 text-sm text-slate-500">{biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille</p>
               </div>
-              <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Nouvel actif</Btn>
+              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> Ajouter un bien</button>
             </div>
             {biens.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
