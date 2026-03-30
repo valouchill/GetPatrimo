@@ -73,7 +73,7 @@ export default function OwnerDashboardClient() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/20 font-sans">
+    <div className="flex min-h-screen bg-slate-50 font-sans">
 
       {/* ── SIDEBAR ─────────────────────────────────────────────── */}
       <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl">
