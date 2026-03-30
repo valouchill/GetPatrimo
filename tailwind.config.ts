@@ -1,5 +1,5 @@
 import type { Config } from "tailwindcss";
- 
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,13 +8,18 @@ const config: Config = {
     extend: {
       colors: {
         navy: "#0F172A",
-        // Note: On garde les palettes Tailwind natives pour slate/emerald
-        // et on ajoute juste les alias pour les couleurs principales
         cobalt: "#3B82F6",
+        primary: "#F97316",
+        "primary-hover": "#EA580C",
+        secondary: "#1E293B",
+        accent: "#10B981",
+        warning: "#F59E0B",
+        danger: "#EF4444",
+        surface: "#F8FAFC",
       },
       fontFamily: {
-        serif: ["var(--font-playfair)", "serif"],
-        sans: ["var(--font-inter)", "sans-serif"],
+        serif: ["var(--font-playfair)", "'DM Serif Display'", "serif"],
+        sans: ["var(--font-inter)", "'Inter'", "sans-serif"],
       },
     },
   },
