@@ -77,13 +77,13 @@ export default function Home() {
             transition={{ duration: 0.4 }}
             className="bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white hover:shadow-xl transition-all"
           >
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 text-amber-600">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mb-6 text-orange-500">
               <Eye className="w-6 h-6" />
             </div>
-            <h3 className="font-serif text-xl text-slate-900 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h3 className="font-serif text-xl text-slate-800 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
               Audit anti-fraude IA
             </h3>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-slate-600 text-sm leading-relaxed">
               Nous analysons les métadonnées de chaque fiche de paie et vérifions l&apos;identité des candidats par biométrie. Zéro fraude tolérée.
             </p>
           </motion.article>
@@ -95,13 +95,13 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.08 }}
             className="bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white hover:shadow-xl transition-all"
           >
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-600">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mb-6 text-orange-500">
               <Shield className="w-6 h-6" />
             </div>
-            <h3 className="font-serif text-xl text-slate-900 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h3 className="font-serif text-xl text-slate-800 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
               Le bouclier LeBonCoin
             </h3>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-slate-600 text-sm leading-relaxed">
               Ne donnez plus vos coordonnées. Fournissez votre &quot;Sésame PatrimoTrust&quot; aux candidats pour qu&apos;ils déposent leur dossier dans votre coffre-fort.
             </p>
           </motion.article>
@@ -113,13 +113,13 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white hover:shadow-xl transition-all"
           >
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 text-amber-600">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mb-6 text-orange-500">
               <FileCheck className="w-6 h-6" />
             </div>
-            <h3 className="font-serif text-xl text-slate-900 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h3 className="font-serif text-xl text-slate-800 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
               Le bail instantané
             </h3>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-slate-600 text-sm leading-relaxed">
               Dès qu&apos;un dossier Grade S vous séduit, validez-le d&apos;un clic. Le bail conforme aux lois de 2026 est généré et prêt à être signé.
             </p>
           </motion.article>

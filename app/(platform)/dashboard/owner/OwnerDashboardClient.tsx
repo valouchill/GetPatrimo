@@ -57,7 +57,7 @@ export default function OwnerDashboardClient() {
 
   // ── Table helpers (local, stable refs) ────────────────────────
   function Th({ children }: { children?: React.ReactNode }) {
-    return <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">{children}</th>;
+    return <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">{children}</th>;
   }
   function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     return <td className={`border-t border-slate-100 px-5 py-4 text-sm ${className}`}>{children}</td>;
@@ -160,8 +160,8 @@ export default function OwnerDashboardClient() {
                 </div>
                 {allDossiers.length === 0 ? (
                   <div className="py-8 text-center">
-                    <p className="mb-2 text-sm text-slate-400">Aucune candidature reçue.</p>
-                    <p className="text-xs text-slate-400">Partagez le lien Sésame de vos biens pour commencer.</p>
+                    <p className="mb-2 text-sm text-slate-500">Aucune candidature reçue.</p>
+                    <p className="text-xs text-slate-500">Partagez le lien Sésame de vos biens pour commencer.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
@@ -194,7 +194,7 @@ export default function OwnerDashboardClient() {
                 </div>
                 {biens.length === 0 ? (
                   <div className="py-8 text-center">
-                    <p className="mb-3 text-sm text-slate-400">Aucun bien enregistré.</p>
+                    <p className="mb-3 text-sm text-slate-500">Aucun bien enregistré.</p>
                     <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
                   </div>
                 ) : (
@@ -385,7 +385,7 @@ export default function OwnerDashboardClient() {
                         </table>
                       ) : (
                         <div className="flex items-center justify-between px-5 py-4">
-                          <p className="text-sm text-slate-400">Aucune candidature reçue — partagez le lien Sésame.</p>
+                          <p className="text-sm text-slate-500">Aucune candidature reçue — partagez le lien Sésame.</p>
                           {b.applyToken && (
                             <button type="button" onClick={() => copyLink(b.applyToken!, b.id)}
                               aria-label="Copier le lien candidature"
@@ -507,7 +507,7 @@ export default function OwnerDashboardClient() {
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
                 <div className="mb-3 text-4xl">📄</div>
                 <p className="mb-2 text-slate-500">Aucun bail en cours.</p>
-                <p className="text-xs text-slate-400">Sélectionnez un locataire depuis vos candidatures pour démarrer la rédaction.</p>
+                <p className="text-xs text-slate-500">Sélectionnez un locataire depuis vos candidatures pour démarrer la rédaction.</p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">

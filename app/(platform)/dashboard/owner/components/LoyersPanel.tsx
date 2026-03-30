@@ -330,13 +330,13 @@ const LoyersPanel = memo(function LoyersPanel() {
           <table className="w-full border-collapse">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Période</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Bien</th>
-                <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 md:table-cell">Locataire</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Montant</th>
-                <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:table-cell">Reçu</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Statut</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Période</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Bien</th>
+                <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 md:table-cell">Locataire</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Montant</th>
+                <th className="hidden px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:table-cell">Reçu</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Statut</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Actions</th>
               </tr>
             </thead>
             <tbody>
