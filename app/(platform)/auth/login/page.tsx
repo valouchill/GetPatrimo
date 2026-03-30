@@ -118,8 +118,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       {/* Fond subtil */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-emerald-100/40 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-slate-200/60 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-orange-100/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-slate-200/40 rounded-full blur-3xl" />
       </div>
 
       <motion.div
@@ -156,8 +156,8 @@ export default function LoginPage() {
                 transition={{ duration: 0.25 }}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-emerald-400" />
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-orange-500" />
                   </div>
                   <h1
                     className="text-xl font-semibold text-slate-900"
@@ -180,7 +180,7 @@ export default function LoginPage() {
                       placeholder="votre@email.com"
                       required
                       autoFocus
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-base"
+                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-400 focus:bg-white transition-all text-base"
                     />
                   </div>
 
@@ -197,18 +197,25 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading || !email.trim()}
-                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className={`w-full py-4 rounded-2xl font-semibold text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${
+                      !email.trim()
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20 cursor-pointer'
+                    } disabled:opacity-60`}
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <>
-                        <span className="text-amber-400">&#9670;</span>
-                        Recevoir mon code d&apos;accès
-                      </>
+                      <>Recevoir mon code d&apos;accès</>
                     )}
                   </button>
                 </form>
+                <p className="text-center text-sm text-slate-500 mt-5">
+                  Pas encore de compte ?{' '}
+                  <Link href="/auth/login" className="text-orange-500 hover:text-orange-600 font-medium">
+                    Créer un compte gratuit
+                  </Link>
+                </p>
               </motion.div>
             )}
 
@@ -230,8 +237,8 @@ export default function LoginPage() {
                 </button>
 
                 <div className="text-center mb-8">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-                    <Shield className="w-7 h-7 text-emerald-600" />
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-7 h-7 text-orange-500" />
                   </div>
                   <h2
                     className="text-lg font-semibold text-slate-900 mb-2"
@@ -263,7 +270,7 @@ export default function LoginPage() {
                   <button
                     onClick={handleResend}
                     disabled={loading}
-                    className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors disabled:opacity-50"
+                    className="text-orange-500 hover:text-orange-600 font-medium transition-colors disabled:opacity-50"
                   >
                     Renvoyer le code
                   </button>
