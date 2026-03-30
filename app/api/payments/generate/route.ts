@@ -11,6 +11,8 @@ import { generateMonthlyPayments } from '@/lib/services/paymentService';
 const User = require('@/models/User');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Lease = require('@/models/Lease');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { logEvent } = require('@/src/services/eventService');
 
 /**
  * POST /api/payments/generate
@@ -59,6 +61,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     totalCreated += r.created;
     totalSkipped += r.skipped;
     errors.push(...r.errors);
+  }
+
+  if (totalCreated > 0) {
+    logEvent(String(user._id), {
+      type: 'payments_generated',
+      meta: { created: totalCreated, skipped: totalSkipped },
+    });
   }
 
   return NextResponse.json({

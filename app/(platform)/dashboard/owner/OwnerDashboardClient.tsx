@@ -1,8 +1,8 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Lock, Plus, RefreshCw, ScrollText, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, Plus, RefreshCw, ScrollText, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { LoadingSpinner } from '@/app/components/shared';
 import { useOwner } from './OwnerContext';
 import {
@@ -17,6 +17,9 @@ import { CandidateDetailDrawer } from './components/CandidateDetailDrawer';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
 import { AddManagementModal } from './components/AddManagementModal';
 import { LoyersPanel } from './components/LoyersPanel';
+import { FinancialBanner } from './components/FinancialBanner';
+import { ActivityTimeline } from './components/ActivityTimeline';
+import { AlertsPanel } from './components/AlertsPanel';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -28,6 +31,26 @@ export default function OwnerDashboardClient() {
   const [candidateDrawerId, setCandidateDrawerId] = useState<string | null>(null);
   const [propertyModalId, setPropertyModalId] = useState<string | null>(null);
   const [showAddManagement, setShowAddManagement] = useState(false);
+
+  // ── Dashboard summary data ────────────────────────────────────
+  const [dashData, setDashData] = useState<{
+    financial: { totalExpected: number; totalReceived: number; lateCount: number; pendingReceipts: number; collectionRate: number; remaining: number; revenueTrend: { month: number; year: number; expected: number; received: number }[] } | null;
+    kpis: { totalProperties: number; occupiedProperties: number; activeLeasesCount: number } | null;
+    alerts: { id: string; severity: 'critical' | 'warning' | 'info'; message: string; actionLabel: string; actionTarget: string }[];
+    recentEvents: { id: string; type: string; date: string; propertyLabel: string | null; meta: Record<string, unknown> }[];
+  }>({ financial: null, kpis: null, alerts: [], recentEvents: [] });
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) setDashData(json.data);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
   // ── Derived ────────────────────────────────────────────────────
   const biens = data.map(toBien);
@@ -151,14 +174,22 @@ export default function OwnerDashboardClient() {
               <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> Ajouter un bien</button>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biens.length}    label="Biens en portefeuille" bg="bg-orange-50" />
-              <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures reçues"  bg="bg-blue-50" />
-              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}  value={selectionnes}    label="Locataires sélectionnés" bg="bg-emerald-50" />
-              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={pending}         label="En attente d'examen"    bg="bg-amber-50" />
+            {/* Bandeau financier */}
+            <FinancialBanner data={dashData.financial} onNavigate={(t) => go(t as NavId)} />
+
+            {/* Alertes prioritaires */}
+            <AlertsPanel alerts={dashData.alerts} onNavigate={(t) => go(t as NavId)} />
+
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biens.length} label="Mes biens" bg="bg-orange-50" />
+              <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures" bg="bg-blue-50" />
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={dashData.kpis?.activeLeasesCount ?? selectionnes} label="Baux actifs" bg="bg-emerald-50" />
+              <StatCard icon={<Home className="h-5 w-5 text-teal-500" />} value={`${dashData.kpis?.occupiedProperties ?? selectionnes}/${biens.length}`} label="Occupés" bg="bg-teal-50" />
+              <StatCard icon={<Wallet className="h-5 w-5 text-violet-500" />} value={dashData.financial ? `${dashData.financial.totalExpected.toLocaleString('fr-FR')} €` : '—'} label="Loyers du mois" bg="bg-violet-50" />
+              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={dashData.alerts.length || pending} label="Actions urgentes" bg="bg-amber-50" />
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
               {/* Dernières candidatures */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between">
@@ -232,6 +263,9 @@ export default function OwnerDashboardClient() {
                   </div>
                 )}
               </div>
+
+              {/* Timeline d'activité */}
+              <ActivityTimeline events={dashData.recentEvents} />
             </div>
           </motion.div>
         )}

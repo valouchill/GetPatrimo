@@ -9,6 +9,8 @@ import { confirmPayment } from '@/lib/services/paymentService';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { logEvent } = require('@/src/services/eventService');
 
 /**
  * PUT /api/payments/[id]/confirm
@@ -32,6 +34,12 @@ export const PUT = withErrorHandler(async (
 
   const { id } = await params;
   const confirmResult = await confirmPayment(id, String(user._id), result.data.paidAmount, result.data.notes);
+
+  logEvent(String(user._id), {
+    property: (confirmResult?.payment as Record<string, unknown>)?.property || null,
+    type: 'payment_confirmed',
+    meta: { paymentId: id, amount: result.data.paidAmount },
+  });
 
   return NextResponse.json({ success: true, data: confirmResult });
 });
