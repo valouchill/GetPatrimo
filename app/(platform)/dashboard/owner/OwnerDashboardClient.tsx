@@ -23,6 +23,7 @@ import { AlertsPanel } from './components/AlertsPanel';
 import { PropertyFilters, type PropertyStatusFilter, type PropertySort, type PropertyView } from './components/PropertyFilters';
 import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
+import { BauxPanel } from './components/BauxPanel';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -504,53 +505,17 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
-              <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Signature électronique</p>
+              <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Renouvellement · Résiliation</p>
             </div>
-            {biensAvecBail.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><FileText className="h-6 w-6 text-slate-400" /></div>
-                <p className="mb-2 text-slate-500">Aucun bail en cours.</p>
-                <p className="text-xs text-slate-500">Sélectionnez un locataire depuis vos candidatures pour démarrer la rédaction.</p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <table className="w-full border-collapse">
-                  <thead className="bg-slate-50">
-                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Étape</Th><Th>Statut bail</Th><Th>Actions</Th></tr>
-                  </thead>
-                  <tbody>
-                    {biensAvecBail.map((entry) => {
-                      const b = bienById.get(entry.property.id)!;
-                      const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
-                      const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
-                      return (
-                        <tr key={b.id} className="transition-colors hover:bg-slate-50">
-                          <Td>
-                            <div className="flex items-center gap-3">
-                              <Avatar name={tenantName} id={b.id} size="sm" />
-                              <b className="text-slate-900">{tenantName}</b>
-                            </div>
-                          </Td>
-                          <Td><span className="text-slate-600">{b.label}</span></Td>
-                          <Td><b className="text-emerald-700">{b.loyer.toLocaleString()} €</b></Td>
-                          <Td><StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} /></Td>
-                          <Td>
-                            <Tag type={b.leaseStatusLabel?.toLowerCase().includes('signé') ? 'green' : 'amber'}>
-                              {b.leaseStatusLabel || (entry.flow.stage === 'contract' ? 'En cours de rédaction' : 'En gestion')}
-                            </Tag>
-                          </Td>
-                          <Td>
-                            <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => setPropertyModalId(b.id)}>
-                              <FileSignature className="h-3.5 w-3.5" /> Gérer →
-                            </Btn>
-                          </Td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <BauxPanel
+              onNavigate={(target, id) => {
+                if (target === 'contract' && id) {
+                  window.location.href = `/properties/${id}/contract`;
+                } else {
+                  go(target as NavId);
+                }
+              }}
+            />
           </motion.div>
         )}
 

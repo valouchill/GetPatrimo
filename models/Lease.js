@@ -26,7 +26,47 @@ const LeaseSchema = new mongoose.Schema({
   paymentDay: { type: Number, default: 5, min: [1, 'Jour de paiement minimum 1'], max: [31, 'Jour de paiement maximum 31'] },
   durationMonths: { type: Number, default: 12, min: [1, 'Durée minimum 1 mois'] },
   additionalClauses: { type: String, default: '' },
-  
+
+  // Lifecycle status
+  leaseStatus: {
+    type: String,
+    enum: ['DRAFT', 'PENDING_SIGNATURE', 'ACTIVE', 'EXPIRING', 'EXPIRED', 'TERMINATED'],
+    default: 'DRAFT'
+  },
+
+  // IRL revision
+  irlRevision: {
+    enabled: { type: Boolean, default: false },
+    anniversaryDate: { type: Date },
+    referenceIndex: { type: Number },
+    lastRevisionDate: { type: Date },
+    lastIndex: { type: Number },
+  },
+
+  // Specific clauses
+  specificClauses: {
+    petsAllowed: { type: Boolean, default: false },
+    terminationClause: { type: Boolean, default: true },
+    recoverableChargesType: { type: String, enum: ['PROVISION', 'FORFAIT'], default: 'PROVISION' },
+    includedEquipment: [{ type: String }],
+  },
+
+  // Termination
+  termination: {
+    initiatedBy: { type: String, enum: ['OWNER', 'TENANT'] },
+    notificationDate: { type: Date },
+    noticePeriodMonths: { type: Number },
+    estimatedExitDate: { type: Date },
+    actualExitDate: { type: Date },
+    depositReturned: { type: Boolean, default: false },
+    depositReturnDate: { type: Date },
+    reason: { type: String, default: '' },
+  },
+
+  // Renewal / versioning
+  previousLeaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lease', default: null },
+  renewalCount: { type: Number, default: 0 },
+
   // Informations garant (pour acte de cautionnement)
   guarantor: {
     firstName: { type: String, default: '' },
