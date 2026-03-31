@@ -19,6 +19,23 @@ const PropertySchema = new mongoose.Schema({
 
   surfaceM2: { type: Number, default: null, min: [0, 'La surface ne peut pas être négative'] },
 
+  // Caractéristiques enrichies
+  propertyType: { type: String, enum: ['APPARTEMENT', 'MAISON', 'STUDIO', 'LOFT', 'LOCAL_COMMERCIAL', 'GARAGE', 'AUTRE'], default: 'APPARTEMENT' },
+  floor: { type: Number, default: null },
+  totalFloors: { type: Number, default: null },
+  rooms: { type: Number, default: null },
+  bedrooms: { type: Number, default: null },
+  equipment: [{ type: String }],
+  description: { type: String, default: '' },
+  photos: [{ url: String, caption: String, uploadedAt: { type: Date, default: Date.now } }],
+
+  // Financier
+  purchasePrice: { type: Number, default: null, min: 0 },
+  purchaseDate: { type: Date, default: null },
+
+  // Date de vacance
+  vacantSince: { type: Date, default: null },
+
   applyToken: { type: String, default: '', unique: true, sparse: true },
 
   // Documents obligatoires à transmettre au locataire

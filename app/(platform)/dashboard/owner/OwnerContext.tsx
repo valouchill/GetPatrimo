@@ -239,6 +239,11 @@ export interface Property {
   managed?: boolean;
   isRented?: boolean;
   status?: string;
+  propertyType?: string;
+  floor?: number | null;
+  rooms?: number | null;
+  purchasePrice?: number | null;
+  vacantSince?: string | null;
 }
 
 export interface PropertyWithCandidatures {

@@ -179,6 +179,11 @@ export type LocalBien = {
   flowProgress?: number; flowSummary?: string; totalCandidates?: number;
   tenantLabel?: string; leaseStatusLabel?: string; nextMilestone?: string;
   nextActionLabel?: string; nextActionHref?: string;
+  // Enriched fields
+  propertyType?: string; floor?: number | null; rooms?: number | null;
+  purchasePrice?: number | null; charges?: number;
+  status?: string; vacantSince?: string | null;
+  grossYield?: number | null;
 };
 
 export type LocalDossier = {
@@ -217,6 +222,15 @@ export function toBien(e: PropertyWithCandidatures): LocalBien {
     nextMilestone: ms?.nextMilestone,
     nextActionLabel: flow?.nextAction?.label,
     nextActionHref: flow?.nextAction?.href,
+    // Enriched
+    propertyType: p.propertyType || 'APPARTEMENT',
+    floor: p.floor ?? null,
+    rooms: p.rooms ?? null,
+    purchasePrice: p.purchasePrice ?? null,
+    charges: p.chargesAmount || 0,
+    status: p.status || 'AVAILABLE',
+    vacantSince: p.vacantSince || null,
+    grossYield: (p.purchasePrice && p.rent) ? Math.round(((p.rent * 12) / p.purchasePrice) * 1000) / 10 : null,
   };
 }
 

@@ -11,6 +11,15 @@ const CreatePropertySchema = z.object({
   address: z.string().min(1, { error: 'Adresse requise' }),
   rentAmount: z.number({ error: 'Le loyer doit être un nombre' }).optional(),
   surfaceM2: z.number({ error: 'La surface doit être un nombre' }).optional(),
+  chargesAmount: z.number().optional(),
+  propertyType: z.string().optional(),
+  rooms: z.number().optional(),
+  bedrooms: z.number().optional(),
+  floor: z.number().optional(),
+  totalFloors: z.number().optional(),
+  equipment: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  purchasePrice: z.number().optional(),
 });
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
@@ -195,13 +204,18 @@ export async function GET() {
             title: prop.name,
             address: prop.address,
             rent: prop.rentAmount,
-            chargesAmount: prop.chargesAmount,
+            chargesAmount: prop.chargesAmount || 0,
             surfaceM2: prop.surfaceM2,
             applyToken: prop.applyToken,
             status: prop.status,
             archived: prop.archived || false,
             managed: isManaged,
             isRented: prop.status === 'OCCUPIED',
+            propertyType: prop.propertyType || 'APPARTEMENT',
+            floor: prop.floor ?? null,
+            rooms: prop.rooms ?? null,
+            purchasePrice: prop.purchasePrice ?? null,
+            vacantSince: prop.vacantSince || null,
           },
           flow,
           primaryCandidate: flow.primaryCandidate,
@@ -240,15 +254,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const result = validateRequest(CreatePropertySchema, body);
     if (!result.success) return result.response;
-    const { address, surfaceM2, rentAmount } = result.data;
+    const { address, surfaceM2, rentAmount, chargesAmount, propertyType, rooms, bedrooms, floor, totalFloors, equipment, description, purchasePrice } = result.data;
 
     const property = await Property.create({
       user: userId,
       name: String(address).slice(0, 80),
       address: String(address).trim(),
       rentAmount: Number(rentAmount) || 0,
-      chargesAmount: 0,
+      chargesAmount: Number(chargesAmount) || 0,
       surfaceM2: surfaceM2 ? Number(surfaceM2) : null,
+      propertyType: propertyType || 'APPARTEMENT',
+      rooms: rooms ?? null,
+      bedrooms: bedrooms ?? null,
+      floor: floor ?? null,
+      totalFloors: totalFloors ?? null,
+      equipment: equipment || [],
+      description: description || '',
+      purchasePrice: purchasePrice ?? null,
       status: 'AVAILABLE',
     });
 
