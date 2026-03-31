@@ -24,6 +24,7 @@ import { PropertyFilters, type PropertyStatusFilter, type PropertySort, type Pro
 import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { BauxPanel } from './components/BauxPanel';
+import { EdlPanel } from './components/EdlPanel';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -595,51 +596,9 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-3xl font-bold text-slate-950">États des lieux</h1>
-              <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Rapport numérique · Signature</p>
+              <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Pièce par pièce · Compteurs · Comparaison</p>
             </div>
-            {biensGeres.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 text-4xl">🔑</div>
-                <p className="text-slate-500">Aucun bien en gestion avec un état des lieux.</p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <table className="w-full border-collapse">
-                  <thead className="bg-slate-50">
-                    <tr><Th>Locataire</Th><Th>Bien</Th><Th>Type</Th><Th>Étape</Th><Th>Actions</Th></tr>
-                  </thead>
-                  <tbody>
-                    {biensGeres.map((entry) => {
-                      const b = bienById.get(entry.property.id)!;
-                      const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
-                      const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
-                      return (
-                        <tr key={b.id} className="transition-colors hover:bg-slate-50">
-                          <Td>
-                            <div className="flex items-center gap-3">
-                              <Avatar name={tenantName} id={b.id} size="sm" />
-                              <b>{tenantName}</b>
-                            </div>
-                          </Td>
-                          <Td><span className="text-slate-600">{b.label}</span></Td>
-                          <Td><Tag type="indigo">Entrée</Tag></Td>
-                          <Td>
-                            <Tag type={entry.flow.stage === 'management' ? 'green' : 'amber'}>
-                              {entry.flow.stage === 'management' ? 'EDL réalisé' : 'À planifier'}
-                            </Tag>
-                          </Td>
-                          <Td>
-                            <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => setPropertyModalId(b.id)}>
-                              <Download className="h-3.5 w-3.5" /> Voir l&apos;EDL →
-                            </Btn>
-                          </Td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <EdlPanel />
           </motion.div>
         )}
       </main>
