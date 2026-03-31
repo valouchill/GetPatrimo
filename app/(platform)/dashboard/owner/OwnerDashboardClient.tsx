@@ -22,6 +22,7 @@ import { ActivityTimeline } from './components/ActivityTimeline';
 import { AlertsPanel } from './components/AlertsPanel';
 import { PropertyFilters, type PropertyStatusFilter, type PropertySort, type PropertyView } from './components/PropertyFilters';
 import { PropertyTable } from './components/PropertyTable';
+import { ApplicationPipeline } from './components/ApplicationPipeline';
 
 export default function OwnerDashboardClient() {
   const { data, loading, userEmail, refresh } = useOwner();
@@ -309,171 +310,24 @@ export default function OwnerDashboardClient() {
             <div className="mb-6 flex items-start justify-between">
               <div>
                 <h1 className="font-serif text-3xl font-bold text-slate-950">Candidatures</h1>
-                <p className="mt-1 text-sm text-slate-500">{allDossiers.length} dossier{allDossiers.length !== 1 ? 's' : ''} · Analyse IA activée</p>
-              </div>
-              <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-                <button type="button" onClick={() => setGuaranteeFilter('all')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${guaranteeFilter === 'all' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}>
-                  Tous
-                </button>
-                <button type="button" onClick={() => setGuaranteeFilter('with')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${guaranteeFilter === 'with' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}>
-                  Avec garant
-                </button>
+                <p className="mt-1 text-sm text-slate-500">{allDossiers.length} dossier{allDossiers.length !== 1 ? 's' : ''} · Analyse IA activée · Pipeline</p>
               </div>
             </div>
 
             {data.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 text-4xl">📭</div>
+                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Users className="h-6 w-6 text-slate-400" /></div>
                 <p className="mb-4 text-slate-500">Aucun bien en portefeuille.</p>
-                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
+                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un bien</Btn>
               </div>
             ) : (
-              <div className="space-y-5">
-                {data.map((entry) => {
-                  const b = bienById.get(entry.property.id)!;
-                  const candsAll = allDossiers.filter((d) => d.bien_id === b.id);
-                  const cands = guaranteeFilter === 'with'
-                    ? candsAll.filter((d) => d.guaranteeMode === 'VISALE' || d.guaranteeMode === 'PHYSICAL')
-                    : candsAll;
-                  const hasSel = candsAll.some((d) => d.statut === 'selectionne');
-                  return (
-                    <div key={b.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50"><Building2 className="h-5 w-5 text-orange-500" /></div>
-                          <div>
-                            <div className="font-semibold text-slate-900">{b.label}</div>
-                            <div className="text-xs text-slate-500">
-                              {b.loyer.toLocaleString()} €/mois · {cands.length} candidature{cands.length !== 1 ? 's' : ''}
-                              {cands.filter(c => !c.isSealed).length > 0 && ` · ${cands.filter(c => !c.isSealed).length} déverrouillé${cands.filter(c => !c.isSealed).length !== 1 ? 's' : ''}`}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setPropertyModalId(b.id)}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                            <ExternalLink className="h-3.5 w-3.5" /> Fiche complète
-                          </button>
-                          {hasSel ? (
-                            <Tag type="green">Locataire sélectionné</Tag>
-                          ) : cands.filter(c => !c.isSealed).length > 0 ? (
-                            <Btn variant="amber" onClick={() => setSelBienId(b.id)}>Sélectionner <ArrowRight className="h-4 w-4" /></Btn>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {cands.length > 0 ? (
-                        <table className="w-full border-collapse">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <Th>Candidat</Th><Th>Revenus</Th><Th>Score IA</Th><Th>Statut</Th><Th>Garantie</Th><Th></Th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[...cands].sort((a, b) => (a.isSealed ? 1 : 0) - (b.isSealed ? 1 : 0) || b.score - a.score).map((d) => (
-                              <Fragment key={d.id}>
-                                <tr onClick={() => !d.isSealed && setExpandedId(expandedId === d.id ? null : d.id)}
-                                  className={`transition-colors ${d.isSealed ? 'opacity-50' : 'cursor-pointer hover:bg-slate-50'}`}>
-                                  <Td>
-                                    <div className="flex items-center gap-3">
-                                      {d.isSealed
-                                        ? <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100"><Lock className="h-4 w-4 text-slate-400" /></div>
-                                        : <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
-                                      }
-                                      <div>
-                                        <div className="font-semibold text-slate-900">
-                                          {d.isSealed ? (d.sealedLabel || 'Candidat scellé') : `${d.prenom} ${d.nom}`}
-                                        </div>
-                                        <div className="text-xs text-slate-400">
-                                          {d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('fr-FR') : '—'}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </Td>
-                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <b className="text-slate-900">{d.revenus.toLocaleString()} €</b>}</Td>
-                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <ScorePill score={d.score} />}</Td>
-                                  <Td>
-                                    {d.isSealed
-                                      ? <Tag type="slate">Scellé</Tag>
-                                      : <Tag type={d.statut === 'selectionne' ? 'green' : 'indigo'}>
-                                          {d.statut === 'selectionne' ? 'Sélectionné' : 'En attente'}
-                                        </Tag>
-                                    }
-                                  </Td>
-                                  <Td>{d.isSealed ? <span className="text-slate-300">—</span> : <GuaranteeBadge mode={d.guaranteeMode} short />}</Td>
-                                  <Td>
-                                    {!d.isSealed && (
-                                      <button type="button"
-                                        onClick={(e) => { e.stopPropagation(); setCandidateDrawerId(d.id); }}
-                                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
-                                        Voir →
-                                      </button>
-                                    )}
-                                  </Td>
-                                </tr>
-                                {expandedId === d.id && !d.isSealed && (
-                                  <tr>
-                                    <td colSpan={6} className="border-t border-slate-100 bg-slate-50/80 px-5 py-5">
-                                      <div className="grid gap-5 xl:grid-cols-2">
-                                        <div>
-                                          <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Analyse IA</div>
-                                          {([
-                                            ['Solvabilité', b.loyer > 0 ? Math.min((d.revenus / b.loyer / 3) * 100, 100) : 0, d.revenus / (b.loyer || 1) >= 3 ? 'bg-emerald-500' : 'bg-amber-500'],
-                                            ['Qualité dossier', d.qualityScore ?? 50, (d.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
-                                            ['Audit IA', d.auditStatus === 'CLEAR' ? 100 : d.auditStatus === 'ALERT' ? 15 : 60, d.auditStatus === 'CLEAR' ? 'bg-emerald-500' : d.auditStatus === 'ALERT' ? 'bg-red-500' : 'bg-amber-500'],
-                                          ] as [string, number, string][]).map(([l, v, c]) => (
-                                            <div key={l} className="mb-3">
-                                              <div className="mb-1 flex justify-between text-xs font-semibold">
-                                                <span className="text-slate-500">{l}</span><span className="text-slate-700">{Math.round(v)}%</span>
-                                              </div>
-                                              <Bar value={v} color={c} />
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <div className="divide-y divide-slate-100">
-                                          {([
-                                            ['Contrat', d.contrat],
-                                            ['Revenus', `${d.revenus.toLocaleString()} €`],
-                                            ['Ratio', `${(d.revenus / (b.loyer || 1)).toFixed(1)}×`],
-                                            ['Reste à vivre', d.remainingIncomeLabel || '—'],
-                                            ['Effort locatif', d.effortRateLabel || '—'],
-                                          ] as [string, string][]).map(([k, v]) => (
-                                            <div key={k} className="flex justify-between py-2 text-sm">
-                                              <span className="text-slate-500">{k}</span>
-                                              <span className="font-semibold text-slate-900">{v}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      {d.auditSummary && (
-                                        <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs italic text-slate-600">{d.auditSummary}</div>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )}
-                              </Fragment>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className="flex items-center justify-between px-5 py-4">
-                          <p className="text-sm text-slate-500">Aucune candidature reçue — partagez le lien Sésame.</p>
-                          {b.applyToken && (
-                            <button type="button" onClick={() => copyLink(b.applyToken!, b.id)}
-                              aria-label="Copier le lien candidature"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
-                              <Copy className="h-3.5 w-3.5" />
-                              {copiedId === b.id ? 'Copié !' : 'Copier le lien Sésame'}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <ApplicationPipeline
+                biens={biens}
+                allDossiers={allDossiers}
+                onSelectCandidate={(d) => setSelBienId(d.bien_id)}
+                onDetailCandidate={(id) => setCandidateDrawerId(id)}
+                onViewProperty={(id) => setPropertyModalId(id)}
+              />
             )}
           </motion.div>
         )}
