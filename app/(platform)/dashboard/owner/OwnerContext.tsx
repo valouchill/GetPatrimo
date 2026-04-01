@@ -128,6 +128,7 @@ export interface Candidature {
   } | null;
   status: string;
   submittedAt: string;
+  pipelineStage?: string;
   integrityScore?: { score: number; category: string; label: string };
   documentsCount?: number;
   certifiedDocumentsCount?: number;

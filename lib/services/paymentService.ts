@@ -400,10 +400,15 @@ export async function generateReceipt(payment: Record<string, unknown>): Promise
 export interface LatePaymentInfo {
   paymentId: string;
   tenantEmail: string;
+  tenantFirstName: string;
+  tenantLastName: string;
   tenantName: string;
+  ownerEmail: string;
+  propertyAddress: string;
   period: string;
   amount: number;
   daysLate: number;
+  remindersSent: { date: Date; type: string }[];
 }
 
 /**
@@ -418,20 +423,32 @@ export async function checkLatePayments(): Promise<LatePaymentInfo[]> {
   const latePayments = await Payment.find({
     status: 'PENDING',
     createdAt: { $lt: fiveDaysAgo },
-  }).populate('tenant', 'email firstName lastName').lean();
+  })
+    .populate('tenant', 'email firstName lastName')
+    .populate('property', 'address name')
+    .populate('owner', 'email firstName lastName')
+    .lean();
 
   return latePayments.map((p: Record<string, unknown>) => {
     const tenant = p.tenant as { email: string; firstName?: string; lastName?: string } | undefined;
+    const property = p.property as { address?: string; name?: string } | undefined;
+    const owner = p.owner as { email?: string; firstName?: string; lastName?: string } | undefined;
     const period = p.period as { month: number; year: number };
     const amounts = p.amounts as { totalTTC: number };
+    const remindersSent = (p.remindersSent || []) as { date: Date; type: string }[];
     const daysLate = Math.floor((now.getTime() - new Date(p.createdAt as string).getTime()) / (1000 * 60 * 60 * 24));
     return {
       paymentId: String(p._id),
       tenantEmail: tenant?.email || '',
+      tenantFirstName: tenant?.firstName || '',
+      tenantLastName: tenant?.lastName || '',
       tenantName: `${tenant?.firstName || ''} ${tenant?.lastName || ''}`.trim(),
+      ownerEmail: owner?.email || '',
+      propertyAddress: property?.address || property?.name || '',
       period: formatPeriod(period.month, period.year),
       amount: amounts.totalTTC,
       daysLate,
+      remindersSent,
     };
   });
 }

@@ -194,7 +194,7 @@ export type LocalDossier = {
   auditStatus?: string; auditSummary?: string;
   effortRateLabel?: string; remainingIncomeLabel?: string; qualityScore?: number;
   contractReady?: boolean; submittedAt?: string;
-  isTop3?: boolean;
+  isTop3?: boolean; pipelineStage?: string;
   highlights?: string[]; blockers?: string[];
   pillars?: Array<{ id: string; label: string; score: number; max: number; status: string; summary: string }>;
   decisionHeadline?: string; strengths?: string[]; watchouts?: string[];
@@ -259,6 +259,7 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     contractReady: ins?.contractReadiness?.ready,
     submittedAt: c.submittedAt,
     isTop3: c.isTop3,
+    pipelineStage: c.pipelineStage || undefined,
     highlights: ins?.aiAudit?.highlights,
     blockers: ins?.aiAudit?.blockers,
     pillars: ins?.pillars,

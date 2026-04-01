@@ -368,6 +368,43 @@ function RoomEditor({
                 );
               })}
 
+              {/* Photos */}
+              <div className="mb-4">
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                  <Camera className="inline h-3.5 w-3.5 mr-1" />Photos
+                </label>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {(currentRoom.photos || []).map((photo, pi) => (
+                    <div key={pi} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200">
+                      <img src={photo.url} alt={photo.caption || `Photo ${pi + 1}`} className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 hover:border-orange-400 transition-colors">
+                    <Camera className="h-5 w-5 text-slate-400" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        fd.append('roomIndex', String(activeRoom));
+                        try {
+                          const res = await fetch(`/api/inspections/${inspection._id}/photos`, { method: 'POST', body: fd });
+                          if (res.ok) {
+                            const json = await res.json();
+                            setRooms((prev) => prev.map((r, i) => i === activeRoom ? { ...r, photos: [...(r.photos || []), { url: json.data.url, caption: '' }] } : r));
+                          }
+                        } catch { /* silent */ }
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
               {/* Comment */}
               <div className="mb-4">
                 <label className="mb-1.5 block text-xs font-semibold text-slate-700">Commentaire</label>
@@ -421,6 +458,7 @@ export function EdlPanel() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [compareId, setCompareId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -550,10 +588,23 @@ export function EdlPanel() {
                             </button>
                           )}
                           {(ins.status === 'COMPLETED' || ins.status === 'SIGNED') && (
-                            <button type="button" onClick={() => setEditingId(ins._id)}
-                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-                              <Eye className="inline h-3 w-3 mr-1" />Voir
-                            </button>
+                            <>
+                              <button type="button" onClick={() => setEditingId(ins._id)}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                <Eye className="inline h-3 w-3 mr-1" />Voir
+                              </button>
+                              {ins.type === 'EXIT' && (
+                                <button type="button" onClick={() => setCompareId(ins._id)}
+                                  className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-100 transition-colors">
+                                  <GitCompare className="inline h-3 w-3 mr-1" />Comparer
+                                </button>
+                              )}
+                              {ins.pdfUrl && (
+                                <a href={ins.pdfUrl} download className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                  <Download className="inline h-3 w-3 mr-1" />PDF
+                                </a>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -584,6 +635,224 @@ export function EdlPanel() {
           onSaved={() => { setEditingId(null); fetchData(); }}
         />
       )}
+
+      {compareId && (
+        <ComparisonDrawer
+          inspectionId={compareId}
+          onClose={() => setCompareId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Comparison Drawer ──────────────────────────────────────────
+
+interface RoomComparison {
+  name: string;
+  entry: { wallCondition: string; floorCondition: string; ceilingCondition: string } | null;
+  exit: { wallCondition: string; floorCondition: string; ceilingCondition: string };
+  degradations: { item: string; entry: string; exit: string }[];
+  hasDegradation: boolean;
+}
+
+function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onClose: () => void }) {
+  const [data, setData] = useState<{
+    roomComparisons: RoomComparison[];
+    depositAmount: number;
+    entryInspection: { date: string } | null;
+    exitInspection: { date: string };
+    totalDegradations: number;
+    existingRetentions: { room: string; item: string; description: string; amount: number }[];
+  } | null>(null);
+  const [retentions, setRetentions] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/inspections/${inspectionId}/compare`);
+        if (res.ok) {
+          const json = await res.json();
+          setData(json.data);
+          // Pre-fill retentions from existing
+          const ret: Record<string, number> = {};
+          for (const r of json.data.existingRetentions || []) {
+            ret[`${r.room}-${r.item}`] = r.amount;
+          }
+          setRetentions(ret);
+        }
+      } catch { /* silent */ }
+      finally { setLoading(false); }
+    })();
+  }, [inspectionId]);
+
+  const totalRetention = Object.values(retentions).reduce((s, v) => s + (v || 0), 0);
+  const refundAmount = (data?.depositAmount || 0) - totalRetention;
+
+  const handleSave = async () => {
+    if (!data) return;
+    setSaving(true);
+    const retentionList = Object.entries(retentions)
+      .filter(([, amount]) => amount > 0)
+      .map(([key, amount]) => {
+        const [room, item] = key.split('-');
+        return { room, item, description: `${item} dégradé(e)`, amount };
+      });
+    try {
+      await fetch(`/api/inspections/${inspectionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comparison: {
+            retentions: retentionList,
+            totalRetention,
+            depositAmount: data.depositAmount,
+            refundAmount: Math.max(0, refundAmount),
+          },
+        }),
+      });
+      onClose();
+    } catch { /* silent */ }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="ml-auto flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-slate-900">Comparaison Entrée ↔ Sortie</h3>
+            {data?.entryInspection && (
+              <p className="text-xs text-slate-500">
+                Entrée : {new Date(data.entryInspection.date).toLocaleDateString('fr-FR')} · Sortie : {new Date(data.exitInspection.date).toLocaleDateString('fr-FR')}
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {loading ? (
+            <div className="py-16 text-center text-sm text-slate-500">Chargement…</div>
+          ) : !data ? (
+            <div className="py-16 text-center text-sm text-slate-500">Impossible de charger la comparaison.</div>
+          ) : !data.entryInspection ? (
+            <div className="py-16 text-center">
+              <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
+              <p className="text-sm text-slate-600">Aucun EDL d&apos;entrée trouvé pour ce bail.</p>
+              <p className="mt-1 text-xs text-slate-400">La comparaison nécessite un EDL d&apos;entrée complété.</p>
+            </div>
+          ) : (
+            <>
+              {/* Room comparison table */}
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Pièce / Élément</th>
+                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-blue-500">Entrée</th>
+                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-violet-500">Sortie</th>
+                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">Diff</th>
+                      <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">Retenue €</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.roomComparisons.map((room) => {
+                      const fields = [
+                        { item: 'Murs', entry: room.entry?.wallCondition, exit: room.exit.wallCondition },
+                        { item: 'Sol', entry: room.entry?.floorCondition, exit: room.exit.floorCondition },
+                        { item: 'Plafond', entry: room.entry?.ceilingCondition, exit: room.exit.ceilingCondition },
+                      ];
+                      return fields.map((f, fi) => {
+                        const isDegraded = f.exit !== f.entry && (f.exit === 'DEGRADED' || f.exit === 'NEEDS_RENOVATION');
+                        const key = `${room.name}-${f.item}`;
+                        return (
+                          <tr key={`${room.name}-${fi}`} className={`border-t border-slate-100 ${isDegraded ? 'bg-amber-50/50' : ''}`}>
+                            {fi === 0 && (
+                              <td rowSpan={3} className="border-r border-slate-100 px-4 py-2 font-semibold text-slate-900 align-top">
+                                {room.name}
+                              </td>
+                            )}
+                            <td className="px-4 py-1.5 text-center">
+                              <span className={CONDITION_COLOR[f.entry as ConditionType] || 'text-slate-500'}>
+                                {CONDITION_LABEL[f.entry as ConditionType] || '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-1.5 text-center">
+                              <span className={CONDITION_COLOR[f.exit as ConditionType] || 'text-slate-500'}>
+                                {CONDITION_LABEL[f.exit as ConditionType] || '—'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-1.5 text-center">
+                              {f.entry === f.exit ? (
+                                <span className="text-emerald-500 text-xs">✓</span>
+                              ) : isDegraded ? (
+                                <span className="text-amber-600 text-xs font-semibold">⚠️</span>
+                              ) : (
+                                <span className="text-blue-500 text-xs">~</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-1.5 text-right">
+                              {isDegraded && (
+                                <input
+                                  type="number"
+                                  min={0}
+                                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs focus:border-orange-300 outline-none"
+                                  value={retentions[key] ?? ''}
+                                  onChange={(e) => setRetentions((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
+                                  placeholder="0"
+                                />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Deposit summary */}
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-600">Dépôt de garantie</span>
+                  <span className="font-semibold text-slate-900">{data.depositAmount.toLocaleString('fr-FR')} €</span>
+                </div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-600">Total retenues</span>
+                  <span className="font-semibold text-red-600">- {totalRetention.toLocaleString('fr-FR')} €</span>
+                </div>
+                <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between text-sm">
+                  <span className="font-bold text-slate-900">Restitution estimée</span>
+                  <span className={`font-bold text-lg ${refundAmount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {Math.max(0, refundAmount).toLocaleString('fr-FR')} €
+                  </span>
+                </div>
+                {refundAmount < 0 && (
+                  <p className="mt-2 text-xs text-red-600">
+                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1" />
+                    Les retenues dépassent le dépôt de garantie de {Math.abs(refundAmount).toLocaleString('fr-FR')} €.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="border-t border-slate-200 px-6 py-4 flex justify-end gap-2">
+          <Btn variant="secondary" onClick={onClose}>Fermer</Btn>
+          {data?.entryInspection && (
+            <Btn variant="amber" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Valider les retenues
+            </Btn>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

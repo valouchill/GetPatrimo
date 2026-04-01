@@ -168,6 +168,7 @@ const ApplicationSchema = new mongoose.Schema({
   viewedByOwnerAt: { type: Date },
   ownerDecision: { type: String, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'WAITLIST'], default: 'PENDING' },
   ownerNotes: { type: String },
+  pipelineStage: { type: String, enum: ['received', 'reviewing', 'shortlisted', 'selected'], default: 'received' },
 
   // Passeport PatrimoTrust™ — partage viral (lien unique, QR, stats visibilité)
   passportSlug: { type: String, sparse: true, unique: true, trim: true },

@@ -16,9 +16,13 @@ const STAGES: { id: PipelineStage; label: string; color: string; bgColor: string
 ];
 
 function getStageForCandidate(d: LocalDossier): PipelineStage {
+  // Use persisted stage if available
+  if (d.pipelineStage && ['received', 'reviewing', 'shortlisted', 'selected'].includes(d.pipelineStage)) {
+    return d.pipelineStage as PipelineStage;
+  }
+  // Fallback heuristic for candidates without a persisted stage
   if (d.statut === 'selectionne') return 'selected';
   if (d.isTop3) return 'shortlisted';
-  // Default to received — reviewing stage is manual
   return 'received';
 }
 
@@ -66,7 +70,7 @@ export function ApplicationPipeline({
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [contactCandidate, setContactCandidate] = useState<LocalDossier | null>(null);
-  const [stageOverrides, setStageOverrides] = useState<Record<string, PipelineStage>>({});
+  const [localStages, setLocalStages] = useState<Record<string, PipelineStage>>({});
 
   const bienById = useMemo(() => new Map(biens.map((b) => [b.id, b])), [biens]);
 
@@ -85,18 +89,26 @@ export function ApplicationPipeline({
       received: [], reviewing: [], shortlisted: [], selected: [],
     };
     for (const d of filteredDossiers) {
-      const stage = stageOverrides[d.id] || getStageForCandidate(d);
+      const stage = localStages[d.id] || getStageForCandidate(d);
       groups[stage].push(d);
     }
-    // Sort each group by score descending
     for (const key of Object.keys(groups) as PipelineStage[]) {
       groups[key].sort((a, b) => b.score - a.score);
     }
     return groups;
-  }, [filteredDossiers, stageOverrides]);
+  }, [filteredDossiers, localStages]);
 
-  const moveCandidate = (id: string, newStage: PipelineStage) => {
-    setStageOverrides((prev) => ({ ...prev, [id]: newStage }));
+  const moveCandidate = async (id: string, newStage: PipelineStage) => {
+    // Optimistic local update
+    setLocalStages((prev) => ({ ...prev, [id]: newStage }));
+    // Persist to API
+    try {
+      await fetch(`/api/applications/${id}/stage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: newStage }),
+      });
+    } catch { /* revert on error could be added */ }
     // If moving to selected, trigger the actual selection
     if (newStage === 'selected') {
       const d = allDossiers.find((x) => x.id === id);
@@ -185,7 +197,7 @@ export function ApplicationPipeline({
                   {cards.map((d) => {
                     const bien = bienById.get(d.bien_id);
                     const ratio = bien && bien.loyer > 0 ? d.revenus / bien.loyer : 0;
-                    const currentStage = stageOverrides[d.id] || getStageForCandidate(d);
+                    const currentStage = localStages[d.id] || getStageForCandidate(d);
                     const stageIdx = STAGES.findIndex((s) => s.id === currentStage);
                     const inCompare = compareIds.includes(d.id);
 
