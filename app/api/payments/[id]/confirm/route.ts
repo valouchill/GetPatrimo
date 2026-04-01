@@ -33,7 +33,7 @@ export const PUT = withErrorHandler(async (
   if (!user) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
   const { id } = await params;
-  const confirmResult = await confirmPayment(id, String(user._id), result.data.paidAmount, result.data.notes);
+  const confirmResult = await confirmPayment(id, String(user._id), result.data.paidAmount, result.data.notes, result.data.paymentMethod);
 
   logEvent(String(user._id), {
     property: (confirmResult?.payment as Record<string, unknown>)?.property || null,

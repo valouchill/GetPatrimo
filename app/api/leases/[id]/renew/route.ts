@@ -44,7 +44,7 @@ export const POST = withErrorHandler(async (
   // Calculate new rent with IRL revision if enabled
   let newRent = lease.rentAmount;
   const irlRevision = lease.irlRevision;
-  if (irlRevision?.enabled && irlRevision?.referenceIndex && irlRevision?.lastIndex) {
+  if (irlRevision?.enabled && irlRevision?.referenceIndex != null && irlRevision?.lastIndex != null && irlRevision.lastIndex !== 0) {
     // IRL formula: new_rent = old_rent × (new_index / old_index)
     newRent = Math.round(lease.rentAmount * (irlRevision.referenceIndex / irlRevision.lastIndex) * 100) / 100;
   }

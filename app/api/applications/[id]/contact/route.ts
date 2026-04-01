@@ -41,7 +41,7 @@ export const POST = withErrorHandler(async (
   const application = await Application.findById(id).lean();
   if (!application) return NextResponse.json({ error: 'Candidature introuvable' }, { status: 404 });
 
-  const candidateEmail = application.userEmail || application.profile?.email;
+  const candidateEmail = application.userEmail;
   if (!candidateEmail) {
     return NextResponse.json({ error: 'Email du candidat non disponible' }, { status: 400 });
   }

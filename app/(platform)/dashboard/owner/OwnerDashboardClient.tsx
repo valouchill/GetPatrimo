@@ -219,13 +219,13 @@ export default function OwnerDashboardClient() {
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biens.length} label="Mes biens" bg="bg-orange-50" />
               <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures" bg="bg-blue-50" />
-              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={dashData.kpis?.activeLeasesCount ?? selectionnes} label="Baux actifs" bg="bg-emerald-50" />
-              <StatCard icon={<Home className="h-5 w-5 text-teal-500" />} value={`${dashData.kpis?.occupiedProperties ?? selectionnes}/${biens.length}`} label="Occupés" bg="bg-teal-50" />
-              <StatCard icon={<Wallet className="h-5 w-5 text-violet-500" />} value={dashData.financial ? `${dashData.financial.totalExpected.toLocaleString('fr-FR')} €` : '—'} label="Loyers du mois" bg="bg-violet-50" />
-              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={dashData.alerts.length || pending} label="Actions urgentes" bg="bg-amber-50" />
+              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={dashData.kpis ? dashData.kpis.activeLeasesCount : '…'} label="Baux actifs" bg="bg-emerald-50" />
+              <StatCard icon={<Home className="h-5 w-5 text-teal-500" />} value={dashData.kpis ? `${dashData.kpis.occupiedProperties}/${biens.length}` : '…'} label="Occupés" bg="bg-teal-50" />
+              <StatCard icon={<Wallet className="h-5 w-5 text-violet-500" />} value={dashData.financial ? `${dashData.financial.totalExpected.toLocaleString('fr-FR')} €` : '…'} label="Loyers du mois" bg="bg-violet-50" />
+              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={dashData.alerts.length > 0 ? dashData.alerts.length : pending} label="Actions urgentes" bg="bg-amber-50" />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 lg:grid-cols-2">
               {/* Dernières candidatures */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between">
@@ -301,7 +301,9 @@ export default function OwnerDashboardClient() {
               </div>
 
               {/* Timeline d'activité */}
-              <ActivityTimeline events={dashData.recentEvents} />
+              <div className="lg:col-span-2">
+                <ActivityTimeline events={dashData.recentEvents} />
+              </div>
             </div>
           </motion.div>
         )}

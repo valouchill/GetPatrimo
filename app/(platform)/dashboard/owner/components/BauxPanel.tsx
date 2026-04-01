@@ -130,6 +130,13 @@ export function BauxPanel({
         <StatCard icon={<CalendarDays className="h-5 w-5 text-violet-500" />} value={`${totalRent.toLocaleString('fr-FR')} €`} label="Loyers actifs" bg="bg-violet-50" />
       </div>
 
+      {/* Action button */}
+      <div className="mb-5 flex justify-end">
+        <Btn variant="amber" onClick={() => onNavigate('contract')}>
+          <Plus className="h-4 w-4" /> Nouveau bail
+        </Btn>
+      </div>
+
       {leases.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">

@@ -70,5 +70,17 @@ export const PATCH = withErrorHandler(async (
 
   await inspection.save();
 
+  // Generate PDF when inspection is completed and no PDF exists yet
+  if (status === 'COMPLETED' && !inspection.pdfUrl) {
+    try {
+      const { generateInspectionPdf } = await import('@/lib/services/inspectionPdfService');
+      const pdfUrl = await generateInspectionPdf(inspection.toObject());
+      inspection.pdfUrl = pdfUrl;
+      await inspection.save();
+    } catch (e) {
+      console.error('EDL PDF generation failed:', e);
+    }
+  }
+
   return NextResponse.json({ success: true, data: inspection.toObject() });
 });

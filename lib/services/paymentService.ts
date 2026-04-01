@@ -252,7 +252,8 @@ export async function confirmPayment(
   paymentId: string,
   ownerId: string,
   paidAmount: number,
-  notes?: string
+  notes?: string,
+  paymentMethod?: string
 ): Promise<ConfirmResult> {
   await connectDiditDb();
 
@@ -264,6 +265,7 @@ export async function confirmPayment(
   payment.confirmedAt = new Date();
   payment.confirmedBy = ownerId;
   if (notes) payment.notes = notes;
+  if (paymentMethod) payment.paymentMethod = paymentMethod;
 
   if (paidAmount >= payment.amounts.totalTTC) {
     payment.status = 'CONFIRMED';

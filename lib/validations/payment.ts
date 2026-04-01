@@ -12,6 +12,7 @@ export const GeneratePaymentsSchema = z.object({
 
 export const ConfirmPaymentSchema = z.object({
   paidAmount: z.number().min(0, { message: 'Le montant doit être positif' }),
+  paymentMethod: z.enum(['VIREMENT', 'CHEQUE', 'ESPECES', 'PRELEVEMENT', 'AUTRE']).optional(),
   notes: z.string().max(2000).optional(),
 });
 
