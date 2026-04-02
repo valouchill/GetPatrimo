@@ -8,6 +8,10 @@ import { withErrorHandler } from '@/lib/with-error-handler';
 const User = require('@/models/User');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Inspection = require('@/models/Inspection');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Lease = require('@/models/Lease');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Property = require('@/models/Property');
 
 /**
  * GET /api/inspections/[id]
@@ -61,16 +65,28 @@ export const PATCH = withErrorHandler(async (
   }
 
   // Update allowed fields
-  const { rooms, meterReadings, signatures, status, comparison } = body;
+  const { rooms, meterReadings, signatures, status, comparison, keysDelivered } = body;
   if (rooms !== undefined) inspection.rooms = rooms;
   if (meterReadings !== undefined) inspection.meterReadings = meterReadings;
   if (signatures !== undefined) inspection.signatures = signatures;
+  if (keysDelivered !== undefined) inspection.keysDelivered = keysDelivered;
   if (status !== undefined) inspection.status = status;
   if (comparison !== undefined) inspection.comparison = comparison;
+
+  // Validate signatures before completion (loi ALUR art. 3-2 — état des lieux contradictoire)
+  if (status === 'COMPLETED') {
+    if (!inspection.signatures?.owner?.data || !inspection.signatures?.tenant?.data) {
+      return NextResponse.json(
+        { error: 'L\'état des lieux doit être signé par les deux parties avant d\'être finalisé (loi ALUR art. 3-2).' },
+        { status: 400 }
+      );
+    }
+  }
 
   await inspection.save();
 
   // Generate PDF when inspection is completed and no PDF exists yet
+  let pdfError: string | null = null;
   if (status === 'COMPLETED' && !inspection.pdfUrl) {
     try {
       const { generateInspectionPdf } = await import('@/lib/services/inspectionPdfService');
@@ -79,8 +95,13 @@ export const PATCH = withErrorHandler(async (
       await inspection.save();
     } catch (e) {
       console.error('EDL PDF generation failed:', e);
+      pdfError = e instanceof Error ? e.message : 'Erreur de génération PDF';
     }
   }
 
-  return NextResponse.json({ success: true, data: inspection.toObject() });
+  return NextResponse.json({
+    success: true,
+    data: inspection.toObject(),
+    ...(pdfError && { pdfError }),
+  });
 });

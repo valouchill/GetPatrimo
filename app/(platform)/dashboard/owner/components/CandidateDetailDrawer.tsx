@@ -77,7 +77,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 pb-safe">
 
           {/* Guarantee section */}
           <div className={`mb-5 rounded-2xl border px-4 py-3 ${

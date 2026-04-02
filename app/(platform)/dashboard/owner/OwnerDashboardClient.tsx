@@ -1,8 +1,10 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Plus, RefreshCw, ScrollText, Search, ShieldCheck, TrendingUp, Users, Wallet } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Menu, Plus, RefreshCw, ScrollText, Search, ShieldCheck, TrendingUp, Users, Wallet, X } from 'lucide-react';
 import { LoadingSpinner } from '@/app/components/shared';
 import { useOwner } from './OwnerContext';
 import {
@@ -15,6 +17,9 @@ import { TunnelSelection } from './components/TunnelSelection';
 import { NouvelActifForm } from './components/NouvelActifForm';
 import { CandidateDetailDrawer } from './components/CandidateDetailDrawer';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
+import { PropertyCardMenu } from './components/PropertyCardMenu';
+import { PropertyEditModal } from './components/PropertyEditModal';
+import { PropertyDeleteDialog } from './components/PropertyDeleteDialog';
 import { AddManagementModal } from './components/AddManagementModal';
 import { LoyersPanel } from './components/LoyersPanel';
 import { FinancialBanner } from './components/FinancialBanner';
@@ -25,8 +30,10 @@ import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 export default function OwnerDashboardClient() {
+  const router = useRouter();
   const { data, loading, userEmail, refresh } = useOwner();
   const [page, setPage] = useState<NavId>('dashboard');
   const [selBienId, setSelBienId] = useState<string | null>(null);
@@ -35,7 +42,10 @@ export default function OwnerDashboardClient() {
   const [guaranteeFilter, setGuaranteeFilter] = useState<'all' | 'with'>('all');
   const [candidateDrawerId, setCandidateDrawerId] = useState<string | null>(null);
   const [propertyModalId, setPropertyModalId] = useState<string | null>(null);
+  const [editBienId, setEditBienId] = useState<string | null>(null);
+  const [deleteBienId, setDeleteBienId] = useState<string | null>(null);
   const [showAddManagement, setShowAddManagement] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Biens page filters
   const [biensSearch, setBiensSearch] = useState('');
@@ -101,7 +111,14 @@ export default function OwnerDashboardClient() {
     return result;
   })();
 
-  const go = (p: NavId) => { setPage(p); setExpandedId(null); };
+  const go = (p: NavId) => { setPage(p); setExpandedId(null); setSidebarOpen(false); };
+  const goToContract = (propertyId: string, applicationId?: string) => {
+    const returnUrl = encodeURIComponent("/dashboard/owner");
+    const url = applicationId
+      ? `/properties/${propertyId}/contract?applicationId=${encodeURIComponent(applicationId)}&returnUrl=${returnUrl}`
+      : `/properties/${propertyId}/contract?returnUrl=${returnUrl}`;
+    router.push(url);
+  };
 
   const copyLink = async (token: string, id: string) => {
     const url = `${window.location.origin}/apply/${token}`;
@@ -125,8 +142,39 @@ export default function OwnerDashboardClient() {
   // ── Loading / error ────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner label="Chargement de votre espace…" />
+      <div className="min-h-screen bg-slate-50 px-4 pt-16 pb-20 md:ml-60 md:px-8 md:pt-8 md:pb-8">
+        {/* Skeleton header */}
+        <div className="mb-8">
+          <div className="h-8 w-48 animate-pulse rounded-xl bg-slate-200" />
+          <div className="mt-2 h-4 w-32 animate-pulse rounded-lg bg-slate-200" />
+        </div>
+        {/* Skeleton stat cards */}
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="mb-3 h-10 w-10 animate-pulse rounded-xl bg-slate-100" />
+              <div className="h-7 w-16 animate-pulse rounded-lg bg-slate-200" />
+              <div className="mt-2 h-4 w-20 animate-pulse rounded-lg bg-slate-100" />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton content blocks */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="mb-4 h-5 w-40 animate-pulse rounded-lg bg-slate-200" />
+              {Array.from({ length: 3 }).map((_, j) => (
+                <div key={j} className="mb-3 flex items-center gap-3">
+                  <div className="h-9 w-9 animate-pulse rounded-full bg-slate-100" />
+                  <div className="flex-1">
+                    <div className="h-4 w-28 animate-pulse rounded-lg bg-slate-200" />
+                    <div className="mt-1 h-3 w-40 animate-pulse rounded-lg bg-slate-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -134,15 +182,23 @@ export default function OwnerDashboardClient() {
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
 
+      {/* ── SIDEBAR BACKDROP (mobile) ──────────────────────────── */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* ── SIDEBAR ─────────────────────────────────────────────── */}
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl">
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
-            <div>
+            <div className="flex-1">
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
               <div className="mt-0.5 inline-block rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-600">Propriétaire</div>
             </div>
+            <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:hidden" aria-label="Fermer le menu">
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -152,6 +208,15 @@ export default function OwnerDashboardClient() {
               <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
               {NAV.filter((n) => n.group === grp && !n.hidden).map(({ id, label, Icon, badge }) => {
                 const active = page === id;
+                if (id === 'profil') {
+                  return (
+                    <Link key={id} href="/dashboard/owner/profile" onClick={() => setSidebarOpen(false)}
+                      className="mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all">
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="flex-1 text-left">{label}</span>
+                    </Link>
+                  );
+                }
                 return (
                   <button key={id} type="button" onClick={() => go(id)}
                     className={`mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all ${
@@ -178,11 +243,11 @@ export default function OwnerDashboardClient() {
 
         <div className="border-t border-slate-200 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white">
+            <Link href="/dashboard/owner/profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white hover:opacity-90 transition-opacity">
               {userEmail ? userEmail[0].toUpperCase() : 'P'}
-            </div>
+            </Link>
             <div className="min-w-0">
-              <div className="truncate text-xs font-semibold text-slate-900">{userEmail || 'Propriétaire'}</div>
+              <Link href="/dashboard/owner/profile" className="block truncate text-xs font-semibold text-slate-900 hover:text-orange-600 transition-colors">{userEmail || 'Propriétaire'}</Link>
               <div className="text-[11px] text-slate-400">Espace sécurisé</div>
             </div>
             <button type="button" onClick={refresh} aria-label="Actualiser" className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
@@ -193,21 +258,31 @@ export default function OwnerDashboardClient() {
       </aside>
 
       {/* ── MAIN ────────────────────────────────────────────────── */}
-      <main className="ml-60 flex-1 px-8 py-8">
+      <main className="flex-1 px-4 pt-16 pb-20 md:ml-60 md:px-8 md:pt-8 md:pb-8">
+
+        {/* Hamburger mobile */}
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 shadow-md backdrop-blur-xl md:hidden"
+          aria-label="Ouvrir le menu"
+        >
+          <Menu className="h-5 w-5 text-slate-700" />
+        </button>
 
         {/* ─ DASHBOARD ─ */}
         {page === 'dashboard' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
                   Bonjour{userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase()}${userEmail.split('@')[0].slice(1)}` : ''}
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
                   {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> Ajouter un bien</button>
+              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-2 md:px-5 md:py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ajouter un bien</span></button>
             </div>
 
             {/* Bandeau financier */}
@@ -313,7 +388,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">Candidatures</h1>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Candidatures</h1>
                 <p className="mt-1 text-sm text-slate-500">{allDossiers.length} dossier{allDossiers.length !== 1 ? 's' : ''} · Analyse IA activée · Pipeline</p>
               </div>
             </div>
@@ -341,11 +416,20 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">Mes biens</h1>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Mes biens</h1>
                 <p className="mt-1 text-sm text-slate-500">{biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille</p>
               </div>
-              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> Ajouter un bien</button>
+              <button onClick={() => go('depot')} className="hidden items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors md:flex"><Plus className="h-4 w-4" /> Ajouter un bien</button>
             </div>
+
+            {/* FAB mobile — Ajouter un bien */}
+            <button
+              onClick={() => go('depot')}
+              className="fixed bottom-28 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg hover:bg-orange-600 active:scale-95 transition-all md:hidden"
+              aria-label="Ajouter un bien"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
 
             <PropertyFilters
               search={biensSearch}
@@ -371,7 +455,12 @@ export default function OwnerDashboardClient() {
                 <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer votre premier bien</Btn>
               </div>
             ) : biensView === 'list' ? (
-              <PropertyTable biens={filteredBiens} onViewProperty={(id) => setPropertyModalId(id)} />
+              <PropertyTable
+                biens={filteredBiens}
+                onViewProperty={(id) => setPropertyModalId(id)}
+                onEditProperty={(id) => setEditBienId(id)}
+                onDeleteProperty={(id) => setDeleteBienId(id)}
+              />
             ) : (
               <div className="grid gap-5 xl:grid-cols-2">
                 {filteredBiens.map((b) => {
@@ -386,14 +475,22 @@ export default function OwnerDashboardClient() {
                     CANDIDATE_SELECTION: 'text-amber-600', LEASE_IN_PROGRESS: 'text-orange-500',
                   };
                   return (
-                    <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md">
+                    <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:shadow-md active:scale-[0.98] cursor-pointer" onClick={() => setPropertyModalId(b.id)} role="button" tabIndex={0}>
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50"><Building2 className="h-5 w-5 text-orange-500" /></div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`h-2 w-2 rounded-full ${b.status === 'OCCUPIED' ? 'bg-emerald-500' : b.status === 'VACANT' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                          <span className={`text-xs font-semibold ${statusColor[b.status || ''] || 'text-slate-500'}`}>
-                            {statusLabel[b.status || ''] || b.flowStageLabel || '—'}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${b.status === 'OCCUPIED' ? 'bg-emerald-500' : b.status === 'VACANT' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                            <span className={`text-xs font-semibold ${statusColor[b.status || ''] || 'text-slate-500'}`}>
+                              {statusLabel[b.status || ''] || b.flowStageLabel || '—'}
+                            </span>
+                          </div>
+                          <PropertyCardMenu
+                            bienId={b.id}
+                            bienLabel={b.label}
+                            onEdit={() => setEditBienId(b.id)}
+                            onDelete={() => setDeleteBienId(b.id)}
+                          />
                         </div>
                       </div>
                       <div className="font-bold text-slate-950">{b.label}</div>
@@ -464,15 +561,29 @@ export default function OwnerDashboardClient() {
                           <Bar value={b.flowProgress} />
                         </div>
                       )}
-                      <div className="mt-auto flex flex-wrap gap-2">
+                      <div className="mt-auto flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                         <Btn variant="secondary" className="flex-1 py-2 text-xs" onClick={() => setPropertyModalId(b.id)}>
                           <ExternalLink className="h-3.5 w-3.5" /> Voir la fiche
                         </Btn>
-                        {!b.isRented && allDossiers.filter(d => d.bien_id === b.id && !d.isSealed).length > 0 && (
-                          <Btn variant="amber" className="flex-1 py-2 text-xs" onClick={() => setSelBienId(b.id)}>
-                            Sélectionner →
-                          </Btn>
-                        )}
+                        {!b.isRented && (() => {
+                          const selTenantForBtn = allDossiers.find(d => d.bien_id === b.id && d.statut === 'selectionne');
+                          if (selTenantForBtn) {
+                            return (
+                              <Btn variant="primary" className="flex-1 py-2 text-xs" onClick={() => goToContract(b.id, selTenantForBtn.id)}>
+                                <FileSignature className="h-3.5 w-3.5" /> Rédiger le bail
+                              </Btn>
+                            );
+                          }
+                          const hasUnlocked = allDossiers.filter(d => d.bien_id === b.id && !d.isSealed).length > 0;
+                          if (hasUnlocked) {
+                            return (
+                              <Btn variant="amber" className="flex-1 py-2 text-xs" onClick={() => setSelBienId(b.id)}>
+                                Sélectionner →
+                              </Btn>
+                            );
+                          }
+                          return null;
+                        })()}
                         {b.applyToken && !b.isRented && (
                           <button type="button" onClick={() => copyLink(b.applyToken!, b.id)} title="Copier le lien Sésame" aria-label="Copier le lien Sésame"
                             className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
@@ -496,7 +607,7 @@ export default function OwnerDashboardClient() {
         {page === 'depot' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">Nouvel actif</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Nouvel actif</h1>
               <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille PatrimoTrust</p>
             </div>
             <NouvelActifForm onDone={() => { refresh(); go('biens'); }} />
@@ -507,13 +618,17 @@ export default function OwnerDashboardClient() {
         {page === 'baux' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
               <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Renouvellement · Résiliation</p>
             </div>
             <BauxPanel
-              onNavigate={(target, id) => {
+              properties={biens.map((b) => {
+                const selApp = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                return { _id: b.id, name: b.label, address: b.adresse, selectedApplicationId: selApp?.id };
+              })}
+              onNavigate={(target, id, applicationId) => {
                 if (target === 'contract' && id) {
-                  window.location.href = `/properties/${id}/contract`;
+                  goToContract(id, applicationId);
                 } else {
                   go(target as NavId);
                 }
@@ -527,7 +642,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-3xl font-bold text-slate-950">Gestion locative</h1>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Gestion locative</h1>
                 <p className="mt-1 text-sm text-slate-500">Suivi des locataires actifs</p>
               </div>
               <Btn variant="primary" className="gap-2" onClick={() => setShowAddManagement(true)}>
@@ -553,7 +668,9 @@ export default function OwnerDashboardClient() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <>
+              {/* Desktop table */}
+              <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white md:block">
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50">
                     <tr><Th>Locataire</Th><Th>Bien</Th><Th>Loyer</Th><Th>Statut</Th><Th>Résumé</Th><Th>Actions</Th></tr>
@@ -586,6 +703,37 @@ export default function OwnerDashboardClient() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile cards */}
+              <div className="space-y-3 md:hidden">
+                {biensGeres.map((entry) => {
+                  const b = bienById.get(entry.property.id)!;
+                  const selCand = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                  const tenantName = b.tenantLabel || (selCand ? `${selCand.prenom} ${selCand.nom}` : '—');
+                  return (
+                    <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 active:scale-[0.98] transition-transform cursor-pointer" onClick={() => setPropertyModalId(b.id)} role="button" tabIndex={0}>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={tenantName} id={b.id} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-slate-900">{tenantName}</div>
+                          <div className="truncate text-xs text-slate-500">{b.label}</div>
+                        </div>
+                        <Tag type="green">{b.isRented ? 'Occupé' : 'En gestion'}</Tag>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-emerald-700">{b.loyer.toLocaleString()} €<span className="text-xs font-normal text-slate-500">/mois</span></span>
+                        <Btn variant="ghost" className="py-1.5 text-xs" onClick={() => setPropertyModalId(b.id)}>
+                          <ScrollText className="h-3.5 w-3.5" /> Détail →
+                        </Btn>
+                      </div>
+                      {(b.leaseStatusLabel || entry.flow.managementSummary?.summary) && (
+                        <p className="mt-2 text-xs text-slate-500 line-clamp-2">{b.leaseStatusLabel || entry.flow.managementSummary?.summary}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              </>
             )}
           </motion.div>
         )}
@@ -597,7 +745,7 @@ export default function OwnerDashboardClient() {
         {page === 'edl' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
-              <h1 className="font-serif text-3xl font-bold text-slate-950">États des lieux</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">États des lieux</h1>
               <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Pièce par pièce · Compteurs · Comparaison</p>
             </div>
             <EdlPanel />
@@ -614,7 +762,7 @@ export default function OwnerDashboardClient() {
               candidats={selCands}
               onClose={() => setSelBienId(null)}
               onConfirmed={() => refresh()}
-              onGoToProperty={() => setPropertyModalId(selBienId)}
+              onGoToContract={goToContract}
             />
           </motion.div>
         )}
@@ -645,7 +793,7 @@ export default function OwnerDashboardClient() {
         onSuccess={() => { setShowAddManagement(false); refresh(); }}
       />
 
-      {/* ── PROPERTY DETAIL MODAL ──────────────────────────────────── */}
+      {/* ── PROPERTY HUB MODAL ──────────────────────────────────── */}
       <AnimatePresence>
         {propertyModalId && (() => {
           const b = bienById.get(propertyModalId);
@@ -653,13 +801,47 @@ export default function OwnerDashboardClient() {
           const modalCands = allDossiers.filter((d) => d.bien_id === propertyModalId);
           return (
             <PropertyDetailModal
-              key="property-modal"
+              key="property-hub"
               bien={b}
               candidats={modalCands}
               allData={data}
               onClose={() => setPropertyModalId(null)}
               onSelectCandidate={(c) => { setPropertyModalId(null); setCandidateDrawerId(c.id); }}
               onOpenTunnel={() => { setPropertyModalId(null); setSelBienId(propertyModalId); }}
+              onGoToContract={goToContract}
+              onEditProperty={() => { setPropertyModalId(null); setEditBienId(propertyModalId); }}
+              onDeleteProperty={() => { setPropertyModalId(null); setDeleteBienId(propertyModalId); }}
+            />
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* ── MOBILE BOTTOM NAV ────────────────────────────────────── */}
+      <MobileBottomNav page={page} onNavigate={go} />
+
+      {/* ── EDIT / DELETE MODALS ───────────────────────────────────── */}
+      <AnimatePresence>
+        {editBienId && (() => {
+          const b = bienById.get(editBienId);
+          if (!b) return null;
+          return (
+            <PropertyEditModal
+              key="edit-modal"
+              bien={b}
+              onClose={() => setEditBienId(null)}
+              onSaved={() => { setEditBienId(null); refresh(); }}
+            />
+          );
+        })()}
+        {deleteBienId && (() => {
+          const b = bienById.get(deleteBienId);
+          if (!b) return null;
+          return (
+            <PropertyDeleteDialog
+              key="delete-dialog"
+              bien={b}
+              onClose={() => setDeleteBienId(null)}
+              onDeleted={() => { setDeleteBienId(null); refresh(); }}
             />
           );
         })()}

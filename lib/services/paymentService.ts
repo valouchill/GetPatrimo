@@ -36,41 +36,100 @@ export interface GenerateResult {
 }
 
 /**
- * Génère les paiements du mois en cours pour un bail actif.
+ * Génère le paiement du mois en cours pour un bail actif.
+ * Ultra-robuste : chaque étape est validée avec des messages d'erreur clairs.
  */
 export async function generateMonthlyPayments(leaseId: string): Promise<GenerateResult> {
   await connectDiditDb();
   const result: GenerateResult = { created: 0, skipped: 0, errors: [] };
 
-  const lease = await Lease.findById(leaseId)
-    .populate('property')
-    .lean();
-
-  if (!lease) {
-    result.errors.push('Bail introuvable');
+  // ── 1. Charger le bail ──
+  let lease;
+  try {
+    lease = await Lease.findById(leaseId).lean();
+  } catch (err) {
+    result.errors.push(`Erreur lecture bail ${leaseId}: ${err instanceof Error ? err.message : String(err)}`);
     return result;
   }
 
+  if (!lease) {
+    result.errors.push(`Bail introuvable (id: ${leaseId})`);
+    return result;
+  }
+
+  // ── 2. Vérifier le statut du bail ──
+  // Accepter : ACTIVE, EXPIRING, PENDING_SIGNATURE, ou undefined/null (baux legacy)
+  const terminalStatuses = ['EXPIRED', 'TERMINATED', 'DRAFT'];
+  if (lease.leaseStatus && terminalStatuses.includes(lease.leaseStatus)) {
+    result.errors.push(`Bail ${leaseId} au statut "${lease.leaseStatus}" — génération ignorée`);
+    return result;
+  }
+
+  // ── 3. Période courante ──
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  // Vérifier si le paiement existe déjà
-  const existing = await Payment.findOne({
-    lease: leaseId,
-    'period.month': month,
-    'period.year': year,
-  });
-
-  if (existing) {
-    result.skipped = 1;
+  // ── 4. Vérifier si le paiement existe déjà ──
+  try {
+    const existing = await Payment.findOne({
+      lease: leaseId,
+      'period.month': month,
+      'period.year': year,
+    });
+    if (existing) {
+      result.skipped = 1;
+      return result;
+    }
+  } catch (err) {
+    result.errors.push(`Erreur vérification doublon: ${err instanceof Error ? err.message : String(err)}`);
     return result;
   }
 
-  const startDate = new Date(lease.startDate);
-  const endDate = lease.endDate ? new Date(lease.endDate) : null;
+  // ── 5. Charger la propriété ──
+  let property;
+  try {
+    property = await Property.findById(lease.property).lean();
+  } catch {
+    // On continue sans property enrichie
+  }
 
-  // Calcul prorata si entrée/sortie en cours de mois
+  // ── 6. Résoudre le locataire ──
+  // Le Lease stocke tenantEmail (string) mais le Payment exige un ObjectId → lookup User
+  const tenantEmail = lease.tenantEmail;
+  if (!tenantEmail) {
+    result.errors.push(`Bail ${leaseId} : email locataire manquant`);
+    return result;
+  }
+
+  let tenantUser;
+  try {
+    tenantUser = await User.findOne({ email: tenantEmail }).lean();
+  } catch (err) {
+    result.errors.push(`Erreur recherche locataire: ${err instanceof Error ? err.message : String(err)}`);
+    return result;
+  }
+
+  if (!tenantUser) {
+    result.errors.push(`Locataire introuvable pour "${tenantEmail}" (bail ${leaseId}). Le locataire doit avoir un compte.`);
+    return result;
+  }
+
+  // ── 7. Résoudre le propriétaire ──
+  const ownerId = (property as Record<string, unknown>)?.user || lease.user;
+  if (!ownerId) {
+    result.errors.push(`Bail ${leaseId} : propriétaire introuvable`);
+    return result;
+  }
+
+  // ── 8. Résoudre la property ID ──
+  const propertyId = (property as Record<string, unknown>)?._id || lease.property;
+  if (!propertyId) {
+    result.errors.push(`Bail ${leaseId} : bien immobilier introuvable`);
+    return result;
+  }
+
+  // ── 9. Calcul prorata ──
   const prorata = calculateProrata(lease, month, year);
 
   const rentHC = prorata.isProrata
@@ -81,22 +140,30 @@ export async function generateMonthlyPayments(leaseId: string): Promise<Generate
     : (lease.chargesAmount || 0);
   const totalTTC = Math.round((rentHC + charges) * 100) / 100;
 
-  // Déterminer le propriétaire
-  const property = lease.property;
-  const ownerId = property?.user || lease.user;
+  // ── 10. Créer le paiement ──
+  try {
+    await Payment.create({
+      lease: leaseId,
+      tenant: tenantUser._id,
+      owner: ownerId,
+      property: propertyId,
+      period: { month, year },
+      amounts: { rentHC, charges, totalTTC, paidAmount: 0 },
+      prorata: prorata.isProrata ? prorata : { isProrata: false },
+      status: 'PENDING',
+    });
+    result.created = 1;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Index unique déjà existant = pas une erreur, c'est un skip
+    if (msg.includes('E11000') || msg.includes('duplicate key')) {
+      result.skipped = 1;
+    } else {
+      result.errors.push(`Erreur création paiement pour bail ${leaseId}: ${msg}`);
+      console.error(`[paymentService] Payment.create failed for lease ${leaseId}:`, msg);
+    }
+  }
 
-  await Payment.create({
-    lease: leaseId,
-    tenant: lease.tenantId || lease.tenant,
-    owner: ownerId,
-    property: property?._id || lease.property,
-    period: { month, year },
-    amounts: { rentHC, charges, totalTTC, paidAmount: 0 },
-    prorata,
-    status: 'PENDING',
-  });
-
-  result.created = 1;
   return result;
 }
 
@@ -313,7 +380,9 @@ export async function generateReceipt(payment: Record<string, unknown>): Promise
   const periodEnd = `${totalDays}/${String(period.month).padStart(2, '0')}/${period.year}`;
 
   const ownerName = owner ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || owner.email : 'Propriétaire';
-  const tenantName = tenant ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || tenant.email : 'Locataire';
+  const tenantName = tenant
+    ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || tenant.email
+    : lease ? `${lease.tenantFirstName || ''} ${lease.tenantLastName || ''}`.trim() : 'Locataire';
   const propertyAddress = (property as { address?: string })?.address || 'Adresse non renseignée';
   const ownerAddress = (owner as { address?: string })?.address || '';
 
@@ -324,71 +393,148 @@ export async function generateReceipt(payment: Record<string, unknown>): Promise
   const fileName = `quittance_${period.year}_${String(period.month).padStart(2, '0')}_${String(p._id)}.pdf`;
   const filePath = path.join(receiptsDir, fileName);
 
+  // Numéro de quittance déterministe
+  const receiptNumber = `QT-${period.year}-${String(period.month).padStart(2, '0')}-${String(p._id).slice(-4).toUpperCase()}`;
+
+  // Méthode de paiement en français
+  const methodLabels: Record<string, string> = {
+    VIREMENT: 'Virement bancaire', CHEQUE: 'Chèque', ESPECES: 'Espèces',
+    PRELEVEMENT: 'Prélèvement automatique', AUTRE: 'Autre',
+  };
+  const methodLabel = methodLabels[(p.paymentMethod as string) || ''] || 'Non précisé';
+
   return new Promise<string>((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const doc = new PDFDocument({ size: 'A4', margin: 0 });
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
-    // ─── Titre ───
-    doc.fontSize(20).font('Helvetica-Bold').text('QUITTANCE DE LOYER', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(12).font('Helvetica').text(
-      `Période : du ${periodStart} au ${periodEnd}`,
-      { align: 'center' }
-    );
-    doc.moveDown(1.5);
+    const W = 595, M = 50;
+    const contentW = W - M * 2;
 
-    // ─── Bailleur ───
-    doc.fontSize(11).font('Helvetica-Bold').text('BAILLEUR');
-    doc.font('Helvetica').text(ownerName);
-    if (ownerAddress) doc.text(ownerAddress);
-    doc.moveDown(1);
+    // ─── En-tête orange ───
+    doc.rect(0, 0, W, 75).fill('#F97316');
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('white')
+      .text('QUITTANCE DE LOYER', M, 18, { width: contentW });
+    doc.fontSize(10).font('Helvetica').fillColor('rgba(255,255,255,0.85)')
+      .text(`N° ${receiptNumber}`, M, 42, { width: contentW / 2 });
+    doc.fontSize(10).font('Helvetica').fillColor('rgba(255,255,255,0.85)')
+      .text(`Période : ${periodStart} — ${periodEnd}`, M + contentW / 2, 42, { width: contentW / 2, align: 'right' });
 
-    // ─── Locataire ───
-    doc.font('Helvetica-Bold').text('LOCATAIRE');
-    doc.font('Helvetica').text(tenantName);
-    doc.moveDown(1);
+    doc.fillColor('#1E293B'); // reset to dark
 
-    // ─── Bien loué ───
-    doc.font('Helvetica-Bold').text('BIEN LOUÉ');
-    doc.font('Helvetica').text(propertyAddress);
-    doc.moveDown(1.5);
+    let y = 95;
 
-    // ─── Détail ───
-    doc.font('Helvetica-Bold').text('DÉTAIL DU PAIEMENT');
-    doc.moveDown(0.3);
-    doc.font('Helvetica');
-    doc.text(`Loyer hors charges : ${amounts.rentHC.toFixed(2)} €`);
-    doc.text(`Provision pour charges : ${amounts.charges.toFixed(2)} €`);
-    doc.moveDown(0.3);
-    doc.font('Helvetica-Bold').text(`Total TTC : ${amounts.totalTTC.toFixed(2)} €`);
-    doc.font('Helvetica').text(`Montant reçu : ${amounts.paidAmount.toFixed(2)} €`);
+    // ─── Bloc parties (deux colonnes) ───
+    const colW = (contentW - 10) / 2;
+    const partyBoxH = 90;
+    doc.rect(M, y, contentW, partyBoxH).strokeColor('#E2E8F0').lineWidth(1).stroke();
+    doc.moveTo(M + colW + 5, y).lineTo(M + colW + 5, y + partyBoxH).strokeColor('#E2E8F0').stroke();
 
-    if (prorata?.isProrata) {
-      doc.moveDown(0.5);
-      doc.font('Helvetica-Oblique').text(
-        `Prorata : ${prorata.daysOccupied} jours sur ${prorata.daysInMonth} (ratio ${(prorata.ratio * 100).toFixed(1)}%)`
-      );
+    // Colonne gauche: BAILLEUR
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748B')
+      .text('BAILLEUR', M + 12, y + 10, { width: colW - 12 });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0F172A')
+      .text(ownerName, M + 12, y + 23, { width: colW - 12 });
+    if (ownerAddress) {
+      doc.fontSize(9).font('Helvetica').fillColor('#475569')
+        .text(ownerAddress, M + 12, y + 38, { width: colW - 12 });
     }
 
-    doc.moveDown(1);
+    // Colonne droite: LOCATAIRE
+    const col2X = M + colW + 17;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748B')
+      .text('LOCATAIRE', col2X, y + 10, { width: colW - 12 });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0F172A')
+      .text(tenantName, col2X, y + 23, { width: colW - 12 });
 
-    // ─── Date de paiement ───
-    const confirmedDate = p.confirmedAt ? new Date(p.confirmedAt as string).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
-    doc.font('Helvetica').text(`Date de paiement : ${confirmedDate}`);
-    doc.moveDown(1.5);
+    y += partyBoxH + 12;
 
-    // ─── Mention légale ───
-    doc.fontSize(9).font('Helvetica-Oblique').text(
-      'Cette quittance annule tous les reçus qui auraient pu être établis précédemment pour la même période.',
-      { align: 'center' }
-    );
-    doc.moveDown(2);
+    // ─── Bien loué ───
+    doc.rect(M, y, contentW, 36).fillAndStroke('#F8FAFC', '#E2E8F0');
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748B')
+      .text('BIEN LOUÉ', M + 12, y + 7, { width: contentW - 24 });
+    doc.fontSize(9).font('Helvetica').fillColor('#0F172A')
+      .text(propertyAddress, M + 12, y + 19, { width: contentW - 24 });
 
-    // ─── Signature ───
-    doc.fontSize(11).font('Helvetica').text(`Fait à __________, le ${new Date().toLocaleDateString('fr-FR')}`);
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').text(`Le bailleur : ${ownerName}`);
+    y += 36 + 16;
+
+    // ─── Tableau des montants ───
+    const tableRows = [
+      { label: 'Loyer hors charges', amount: amounts.rentHC, bold: false },
+      { label: 'Provision pour charges', amount: amounts.charges, bold: false },
+      ...(prorata?.isProrata
+        ? [{ label: `Prorata (${prorata.daysOccupied}j / ${prorata.daysInMonth}j — ${(prorata.ratio * 100).toFixed(1)}%)`, amount: amounts.totalTTC, bold: false }]
+        : []
+      ),
+    ];
+    const rowH = 24;
+    const labelColW = contentW * 0.65;
+    const amtColW = contentW - labelColW;
+
+    // Header
+    doc.rect(M, y, contentW, rowH).fillAndStroke('#F1F5F9', '#E2E8F0');
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748B')
+      .text('DÉSIGNATION', M + 12, y + 7, { width: labelColW - 12 });
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#64748B')
+      .text('MONTANT', M + labelColW + 8, y + 7, { width: amtColW - 20, align: 'right' });
+
+    let rowY = y + rowH;
+    for (const row of tableRows) {
+      doc.rect(M, rowY, contentW, rowH).strokeColor('#E2E8F0').lineWidth(0.5).stroke();
+      doc.moveTo(M + labelColW, rowY).lineTo(M + labelColW, rowY + rowH).strokeColor('#E2E8F0').stroke();
+      doc.fontSize(9).font(row.bold ? 'Helvetica-Bold' : 'Helvetica').fillColor('#334155')
+        .text(row.label, M + 12, rowY + 7, { width: labelColW - 20 });
+      doc.fontSize(9).font(row.bold ? 'Helvetica-Bold' : 'Helvetica').fillColor('#334155')
+        .text(`${row.amount.toFixed(2)} €`, M + labelColW + 8, rowY + 7, { width: amtColW - 16, align: 'right' });
+      rowY += rowH;
+    }
+
+    // Ligne Total TTC
+    doc.rect(M, rowY, contentW, rowH).fillAndStroke('#FFF7ED', '#F97316');
+    doc.moveTo(M + labelColW, rowY).lineTo(M + labelColW, rowY + rowH).strokeColor('#F97316').lineWidth(1).stroke();
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#EA580C')
+      .text('TOTAL TTC', M + 12, rowY + 6, { width: labelColW - 20 });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#EA580C')
+      .text(`${amounts.totalTTC.toFixed(2)} €`, M + labelColW + 8, rowY + 6, { width: amtColW - 16, align: 'right' });
+    rowY += rowH;
+
+    // Montant reçu
+    doc.rect(M, rowY, contentW, rowH).fillAndStroke('#F0FDF4', '#BBF7D0');
+    doc.moveTo(M + labelColW, rowY).lineTo(M + labelColW, rowY + rowH).strokeColor('#BBF7D0').lineWidth(1).stroke();
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#166534')
+      .text('Montant reçu', M + 12, rowY + 7, { width: labelColW - 20 });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#166534')
+      .text(`${amounts.paidAmount.toFixed(2)} €`, M + labelColW + 8, rowY + 7, { width: amtColW - 16, align: 'right' });
+
+    y = rowY + rowH + 16;
+
+    // ─── Date et mode de paiement ───
+    const confirmedDate = p.confirmedAt
+      ? new Date(p.confirmedAt as string).toLocaleDateString('fr-FR')
+      : new Date().toLocaleDateString('fr-FR');
+    doc.fontSize(9).font('Helvetica').fillColor('#475569')
+      .text(`Date de paiement : ${confirmedDate}   |   Mode de règlement : ${methodLabel}`, M, y, { width: contentW });
+
+    y += 24;
+
+    // ─── Mention légale (boîte bordée) ───
+    const legalText = `Le bailleur soussigné reconnaît avoir reçu de ${tenantName}, locataire du logement désigné ci-dessus, la somme de ${amounts.paidAmount.toFixed(2)} € au titre du loyer et des charges du mois de ${periodStart} au ${periodEnd}.\n\nCette quittance annule tous les reçus qui auraient pu être établis précédemment pour la même période.`;
+    const legalH = 62;
+    doc.rect(M, y, contentW, legalH).fillAndStroke('#FAFAFA', '#CBD5E1');
+    doc.fontSize(8).font('Helvetica-Oblique').fillColor('#475569')
+      .text(legalText, M + 12, y + 10, { width: contentW - 24 });
+
+    y += legalH + 20;
+
+    // ─── Zone signature ───
+    doc.fontSize(9).font('Helvetica').fillColor('#64748B')
+      .text(`Fait à __________, le ${new Date().toLocaleDateString('fr-FR')}`, M, y, { width: contentW / 2 });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#0F172A')
+      .text(`Le bailleur : ${ownerName}`, M, y + 16, { width: contentW / 2 });
+    // Zone de signature vide
+    doc.rect(M + contentW / 2, y, contentW / 2, 50).strokeColor('#CBD5E1').lineWidth(0.5).stroke();
+    doc.fontSize(8).font('Helvetica').fillColor('#94A3B8')
+      .text('Signature', M + contentW / 2 + 10, y + 18, { width: contentW / 2 - 20 });
 
     doc.end();
 

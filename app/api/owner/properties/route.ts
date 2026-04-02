@@ -52,8 +52,8 @@ export async function GET() {
     if (!userId) return NextResponse.json([]);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || '';
-    const properties = await Property.find({ user: userId })
-      .sort({ archived: 1, createdAt: -1 })
+    const properties = await Property.find({ user: userId, archived: { $ne: true } })
+      .sort({ createdAt: -1 })
       .lean();
 
     // Batch: lier les applications orphelines à leurs propriétés en une seule opération

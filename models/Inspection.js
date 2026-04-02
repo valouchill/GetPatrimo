@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
-const ConditionEnum = ['GOOD', 'NORMAL_WEAR', 'DEGRADED', 'NEEDS_RENOVATION'];
+// Labels conformes au décret n°2016-382 du 30 mars 2016
+const ConditionEnum = ['TRES_BON', 'BON', 'USAGE_NORMAL', 'MAUVAIS_ETAT', 'HORS_SERVICE',
+  // Legacy values (backward compatibility)
+  'GOOD', 'NORMAL_WEAR', 'DEGRADED', 'NEEDS_RENOVATION'];
 
 const InspectionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -39,6 +42,13 @@ const InspectionSchema = new mongoose.Schema({
       uploadedAt: { type: Date, default: Date.now },
     }],
     comment: { type: String, default: '' },
+  }],
+
+  // Clés et moyens d'accès remis (décret n°2016-382)
+  keysDelivered: [{
+    type: { type: String, default: 'Clé' },  // Clé, Badge, Télécommande, Bip, Digicode...
+    quantity: { type: Number, default: 1 },
+    description: { type: String, default: '' },
   }],
 
   // Signatures

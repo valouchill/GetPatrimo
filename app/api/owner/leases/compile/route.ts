@@ -52,9 +52,12 @@ export async function POST(request: NextRequest) {
         kind: document.kind,
         fileName: document.fileName,
         mimeType: document.mimeType,
+        template: document.template || '',
+        docxPath: document.docxPath || '',
+        pdfPath: document.pdfPath || '',
         secureUrl: `/api/owner/leases/compiled/${encodeURIComponent(document.fileName)}`,
         pdfUrl: document.pdfUrl
-          ? `/api/owner/leases/compiled/${encodeURIComponent(path.basename(decodeURIComponent(document.pdfUrl)))}` 
+          ? `/api/owner/leases/compiled/${encodeURIComponent(path.basename(decodeURIComponent(document.pdfUrl)))}`
           : undefined,
       })),
       warnings: compiled.warnings || [],

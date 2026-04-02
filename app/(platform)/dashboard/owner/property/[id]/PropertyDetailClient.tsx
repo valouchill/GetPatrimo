@@ -9,13 +9,19 @@ import {
   Building2,
   CheckCircle2,
   Copy,
+  Download,
   ExternalLink,
   FileText,
+  FolderOpen,
   Link2,
   Lock,
+  Pencil,
   ScrollText,
   Shield,
+  User,
 } from 'lucide-react';
+import { PropertyEditModal } from '../../components/PropertyEditModal';
+import type { LocalBien } from '../../components/ui';
 
 import CheckoutModal from '@/app/components/CheckoutModal';
 import {
@@ -39,6 +45,9 @@ type PropertyRecord = {
   rentAmount?: number;
   chargesAmount?: number;
   surfaceM2?: number;
+  propertyType?: string;
+  rooms?: number | null;
+  floor?: number | null;
   managed?: boolean;
   archived?: boolean;
   status?: string;
@@ -146,7 +155,7 @@ type CandidateRecord = {
 };
 
 type CheckoutTarget = { propertyLabel: string; candidateCount: number } | null;
-type Tab = 'overview' | 'passports' | 'compare' | 'selection';
+type Tab = 'overview' | 'passports' | 'compare' | 'selection' | 'docs';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -180,6 +189,17 @@ const GRADE_BG: Record<string, string> = {
   E: 'bg-gradient-to-br from-orange-400 to-orange-600',
   F: 'bg-gradient-to-br from-red-400 to-red-600',
 };
+
+// ─── StatBox ─────────────────────────────────────────────────────────────────
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center">
+      <div className="text-base font-bold text-slate-900">{value}</div>
+      <div className="mt-0.5 text-xs text-slate-500">{label}</div>
+    </div>
+  );
+}
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -311,6 +331,7 @@ const TABS = [
   { id: 'passports' as Tab, label: 'Passeports', Icon: FileText },
   { id: 'compare' as Tab, label: 'Comparer', Icon: Shield },
   { id: 'selection' as Tab, label: 'Sélection', Icon: CheckCircle2 },
+  { id: 'docs' as Tab, label: 'Documents & Gestion', Icon: FolderOpen },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -325,6 +346,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectionBusyId, setSelectionBusyId] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -410,6 +432,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
     if (requestedTab === 'passports') return 'passports';
     if (requestedTab === 'compare') return 'compare';
     if (requestedTab === 'selected') return 'selection';
+    if (requestedTab === 'docs') return 'docs';
     if (selectionState?.defaultTab === 'compare') return 'compare';
     if (selectionState?.defaultTab === 'selected' && ownerSelected) return 'selection';
     return 'overview';
@@ -471,7 +494,8 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const launchContractDesk = () => {
     if (!ownerSelected) return;
     if (ownerSelected.isSealed) { openUnlockModal(); return; }
-    router.push(`/properties/${propertyId}/contract?applicationId=${encodeURIComponent(ownerSelected.id)}`);
+    const returnUrl = encodeURIComponent("/dashboard/owner");
+    router.push(`/properties/${propertyId}/contract?applicationId=${encodeURIComponent(ownerSelected.id)}&returnUrl=${returnUrl}`);
   };
 
   if (loading) return <Skeleton />;
@@ -492,8 +516,30 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
 
   const primaryAction = selectionState?.primaryAction;
 
+  // Build a LocalBien-compatible object for PropertyEditModal
+  const bienForEdit: LocalBien | null = property ? {
+    id: propertyId,
+    label: property.name || property.address || '',
+    adresse: property.address || '',
+    loyer: property.rentAmount || 0,
+    surface: property.surfaceM2 || 0,
+    charges: property.chargesAmount,
+    propertyType: property.propertyType,
+    rooms: property.rooms,
+    floor: property.floor,
+    applyToken: property.applyToken,
+    isRented: property.isRented,
+  } : null;
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pb-12">
+      {editOpen && bienForEdit && (
+        <PropertyEditModal
+          bien={bienForEdit}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => { setEditOpen(false); loadData(); }}
+        />
+      )}
       <CheckoutModal
         open={Boolean(checkoutTarget)}
         onClose={() => setCheckoutTarget(null)}
@@ -573,6 +619,14 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4" />
+            Modifier
+          </button>
           <button
             type="button"
             onClick={handleCopyLink}
@@ -878,6 +932,167 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
               }
             />
           )}
+        </motion.div>
+      )}
+
+      {/* ── TAB : DOCUMENTS & GESTION ───────────────────────────────── */}
+      {currentTab === 'docs' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+
+          {/* Section A — État du logement */}
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500 mb-4">
+              État du logement
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatBox label="Loyer HC" value={formatCurrency(property.rentAmount)} />
+              {Number(property.chargesAmount || 0) > 0 && (
+                <StatBox label="Charges" value={formatCurrency(property.chargesAmount)} />
+              )}
+              {property.surfaceM2 ? (
+                <StatBox label="Surface" value={`${property.surfaceM2} m²`} />
+              ) : null}
+            </div>
+          </PremiumSurface>
+
+          {/* Section B — Locataire (if rented/management) */}
+          {showManagement && (
+            <PremiumSurface padding="md" className="rounded-3xl border-emerald-100 bg-emerald-50/60">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100">
+                  <User className="h-4 w-4 text-emerald-700" />
+                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+                  Locataire en place
+                </div>
+              </div>
+              <div className="space-y-2">
+                <InfoRow
+                  label="Locataire"
+                  value={property.flow?.managementSummary?.tenantLabel || candidateName(ownerSelected) || '—'}
+                />
+                <InfoRow
+                  label="Statut du bail"
+                  value={property.flow?.managementSummary?.leaseStatusLabel || property.managementTools?.signatureStatus || '—'}
+                />
+                {property.flow?.managementSummary?.nextMilestone && (
+                  <InfoRow label="Prochaine échéance" value={property.flow.managementSummary.nextMilestone} />
+                )}
+              </div>
+              {property.managementTools?.leaseId && (
+                <div className="mt-4">
+                  <a
+                    href={`/dashboard/owner?tab=baux`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
+                  >
+                    <ScrollText className="h-4 w-4" />
+                    Voir le bail
+                  </a>
+                </div>
+              )}
+            </PremiumSurface>
+          )}
+
+          {/* Section C — Documents (vault) */}
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/70">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500 mb-5">
+              Coffre-fort documentaire
+            </div>
+            {(property.managementTools?.vaultDocuments || []).length > 0 ? (
+              <div className="space-y-3">
+                {property.managementTools?.vaultDocuments?.map((doc) => (
+                  <div key={doc.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-slate-950">{doc.label}</div>
+                      <div className="mt-0.5 text-xs capitalize text-slate-400">{doc.status}</div>
+                    </div>
+                    {doc.downloadUrl ? (
+                      <a
+                        href={doc.downloadUrl}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <Download className="h-4 w-4" /> Télécharger
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400">
+                        <Lock className="h-4 w-4" /> En attente
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-6 text-center text-sm text-slate-500">
+                Aucun document disponible. Les documents générés (bail, acte de caution, EDL) apparaîtront ici.
+              </div>
+            )}
+          </PremiumSurface>
+
+          {/* Section D — Lien Sésame (if not rented) */}
+          {property.applyToken && !property.isRented && (
+            <PremiumSurface padding="md" className="rounded-3xl border-orange-100 bg-orange-50/40">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-700 mb-3">
+                Lien Sésame candidat
+              </div>
+              <p className="mb-4 text-sm leading-6 text-slate-600">
+                Partagez ce lien unique pour permettre aux candidats de déposer leur dossier directement sur ce bien. Chaque candidature est analysée automatiquement par l&apos;IA PatrimoTrust.
+              </p>
+              <code className="block break-all rounded-2xl border border-orange-200 bg-white px-4 py-3 font-mono text-sm text-slate-700 mb-4">
+                {typeof window !== 'undefined'
+                  ? `${window.location.origin}/apply/${property.applyToken}`
+                  : `/apply/${property.applyToken}`}
+              </code>
+              <ActionBar className="gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copied ? 'Copié !' : 'Copier le lien'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(`/apply/${property.applyToken}`, '_blank', 'noopener,noreferrer')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Voir la page candidat
+                </button>
+              </ActionBar>
+            </PremiumSurface>
+          )}
+
+          {/* Section E — Raccourcis EDL / Baux */}
+          <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500 mb-4">
+              Raccourcis
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {property.managementTools?.leaseId ? (
+                <a
+                  href={`/dashboard/owner/edl/${property.managementTools.leaseId}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <FileText className="h-4 w-4 text-slate-400" />
+                  État des lieux
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 cursor-not-allowed">
+                  <FileText className="h-4 w-4" />
+                  État des lieux (sans bail actif)
+                </span>
+              )}
+              <a
+                href="/dashboard/owner"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <ScrollText className="h-4 w-4 text-slate-400" />
+                Baux &amp; Signatures
+              </a>
+            </div>
+          </PremiumSurface>
+
         </motion.div>
       )}
 

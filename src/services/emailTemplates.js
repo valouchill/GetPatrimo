@@ -40,7 +40,10 @@ function layout(title, bodyContent) {
             <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_COLOR};text-decoration:none;">Support</a>
           </p>
           <p style="margin:8px 0;color:#9ca3af;font-size:11px;">
-            Vous recevez cet email car vous avez un compte sur ${APP_NAME}.
+            Vous recevez cet email car vous avez un compte sur ${APP_NAME}.<br>
+            <a href="${APP_URL}/api/user/unsubscribe" style="color:#9ca3af;text-decoration:underline;">Se désinscrire des notifications</a>
+            &nbsp;|&nbsp;
+            <a href="${APP_URL}/privacy" style="color:#9ca3af;text-decoration:underline;">Politique de confidentialité</a>
           </p>
         </td></tr>
       </table>

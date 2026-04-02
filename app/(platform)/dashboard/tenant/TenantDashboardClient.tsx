@@ -127,9 +127,9 @@ export default function TenantDashboardClient({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-3 md:px-6 md:py-4">
+          <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
               <div className="w-10 h-10 bg-gradient-to-br from-navy to-slate-700 rounded-xl flex items-center justify-center">
                 <ShieldCheckIcon className="w-5 h-5 text-white" />
               </div>
@@ -153,7 +153,7 @@ export default function TenantDashboardClient({
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 py-6 md:px-6 md:py-8">
         {/* Hero Section - PatrimoMeter */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -397,56 +397,94 @@ export default function TenantDashboardClient({
               />
             
             {applications && applications.length > 0 ? (
-              <div className="mt-6 overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Bien</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Loyer</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Grade</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {applications.map((candidature) => (
-                      <tr key={candidature._id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-slate-800">{candidature.property?.name || 'Bien immobilier'}</p>
-                            <p className="max-w-xs break-anywhere text-sm text-slate-500">{candidature.property?.address || '-'}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-medium text-slate-800">
-                            {candidature.property?.rentAmount ? `${candidature.property.rentAmount}€` : '-'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl font-black text-white ${GRADE_COLORS[candidature.patrimometer.grade]?.bg || 'bg-slate-400'}`}>
-                            {candidature.patrimometer.grade}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <CandidatureStatus 
-                            status={candidature.status} 
-                            viewedAt={candidature.viewedByOwnerAt}
-                            decision={candidature.ownerDecision}
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <Link
-                            href={`/apply/${candidature.applyToken}`}
-                            className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium text-sm"
-                          >
-                            Voir <ArrowRightIcon className="w-4 h-4" />
-                          </Link>
-                        </td>
+              <>
+                {/* Desktop table */}
+                <div className="mt-6 hidden overflow-x-auto md:block">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Bien</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Loyer</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Grade</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Statut</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {applications.map((candidature) => (
+                        <tr key={candidature._id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="font-medium text-slate-800">{candidature.property?.name || 'Bien immobilier'}</p>
+                              <p className="max-w-xs break-anywhere text-sm text-slate-500">{candidature.property?.address || '-'}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-medium text-slate-800">
+                              {candidature.property?.rentAmount ? `${candidature.property.rentAmount}€` : '-'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl font-black text-white ${GRADE_COLORS[candidature.patrimometer?.grade]?.bg || 'bg-slate-400'}`}>
+                              {candidature.patrimometer?.grade || '—'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <CandidatureStatus
+                              status={candidature.status}
+                              viewedAt={candidature.viewedByOwnerAt}
+                              decision={candidature.ownerDecision}
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/apply/${candidature.applyToken}`}
+                              className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+                            >
+                              Voir <ArrowRightIcon className="w-4 h-4" />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="mt-6 space-y-3 md:hidden">
+                  {applications.map((candidature) => (
+                    <div key={candidature._id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex items-start gap-3">
+                        <span className={`inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-xl font-black text-white ${GRADE_COLORS[candidature.patrimometer?.grade]?.bg || 'bg-slate-400'}`}>
+                          {candidature.patrimometer?.grade || '—'}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900">{candidature.property?.name || 'Bien immobilier'}</p>
+                          <p className="truncate text-xs text-slate-500">{candidature.property?.address || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-900">
+                          {candidature.property?.rentAmount ? `${candidature.property.rentAmount} €/mois` : '-'}
+                        </span>
+                        <CandidatureStatus
+                          status={candidature.status}
+                          viewedAt={candidature.viewedByOwnerAt}
+                          decision={candidature.ownerDecision}
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <Link
+                          href={`/apply/${candidature.applyToken}`}
+                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                        >
+                          Voir le dossier <ArrowRightIcon className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="mt-6">
                 <EmptyState

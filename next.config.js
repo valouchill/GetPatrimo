@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
+  serverExternalPackages: ['pdfkit', 'fontkit'],
   experimental: {
     serverActions: { bodySizeLimit: '15mb' },
   },

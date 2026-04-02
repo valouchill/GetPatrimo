@@ -9,9 +9,14 @@ import Application from '@/models/Application';
 import Lease from '@/models/Lease';
 
 const PatchPropertySchema = z.object({
+  name: z.string().min(1).optional(),
   address: z.string().min(1, { error: 'Adresse requise' }).optional(),
   surfaceM2: z.number({ error: 'La surface doit être un nombre' }).optional(),
   rentAmount: z.number({ error: 'Le loyer doit être un nombre' }).optional(),
+  chargesAmount: z.number().optional(),
+  propertyType: z.enum(['APPARTEMENT', 'MAISON', 'STUDIO', 'LOFT', 'LOCAL_COMMERCIAL', 'GARAGE', 'AUTRE']).optional(),
+  rooms: z.number().int().optional(),
+  floor: z.number().int().optional(),
   archived: z.boolean({ error: 'Le champ archivé doit être un booléen' }).optional(),
 });
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -247,6 +252,9 @@ export async function GET(
       rentAmount: property.rentAmount,
       chargesAmount: property.chargesAmount,
       surfaceM2: property.surfaceM2,
+      propertyType: property.propertyType || '',
+      rooms: property.rooms ?? null,
+      floor: property.floor ?? null,
       type: property.type || '',
       furnished: property.furnished || '',
       archived: Boolean(property.archived),
@@ -293,12 +301,17 @@ export async function PATCH(
     if (!validationResult.success) return validationResult.response;
 
     const updates: Record<string, unknown> = {};
+    if (body.name !== undefined) updates.name = body.name;
     if (body.address !== undefined) {
       updates.address = body.address;
-      updates.name = body.address.slice(0, 80);
+      if (body.name === undefined) updates.name = body.address.slice(0, 80);
     }
     if (body.surfaceM2 !== undefined) updates.surfaceM2 = Number(body.surfaceM2) || null;
     if (body.rentAmount !== undefined) updates.rentAmount = Number(body.rentAmount) || 0;
+    if (body.chargesAmount !== undefined) updates.chargesAmount = Number(body.chargesAmount) || 0;
+    if (body.propertyType !== undefined) updates.propertyType = body.propertyType;
+    if (body.rooms !== undefined) updates.rooms = Number(body.rooms) || null;
+    if (body.floor !== undefined) updates.floor = Number(body.floor);
     if (body.archived !== undefined) updates.archived = Boolean(body.archived);
 
     if (Object.keys(updates).length === 0) {
@@ -314,6 +327,44 @@ export async function PATCH(
     return NextResponse.json({ ok: true, property });
   } catch (e) {
     console.error('PATCH /api/owner/properties/[id]', e);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/owner/properties/[id]
+ * Archive (soft delete) un bien — les candidatures et baux associés sont conservés.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session: any = await getServerSession(authOptions as any);
+    if (!session?.user?.id && !session?.user?.email) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    await connectDiditDb();
+    const { id } = await params;
+    const userId = await resolveUserId(session);
+    if (!userId) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+
+    const propertyDoc = await Property.findOneAndUpdate(
+      { _id: id, user: userId },
+      { archived: true },
+      { new: true }
+    ).lean();
+
+    if (!propertyDoc) {
+      return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error('DELETE /api/owner/properties/[id]', e);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

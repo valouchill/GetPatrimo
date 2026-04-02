@@ -12,6 +12,8 @@ const User = require('@/models/User');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Lease = require('@/models/Lease');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+const Property = require('@/models/Property');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { logEvent } = require('@/src/services/eventService');
 
 /**
@@ -37,30 +39,54 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const user = await User.findOne({ email: (session.user as { email: string }).email }).lean();
   if (!user) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
+  // Si un leaseId spécifique est fourni
   if (result.data.leaseId) {
     const genResult = await generateMonthlyPayments(result.data.leaseId);
     return NextResponse.json({ success: true, data: genResult });
   }
 
-  // Générer pour tous les baux actifs du propriétaire
-  const properties = await (await import('@/models/Property')).default.find({ user: user._id }).select('_id').lean();
+  // Sinon, générer pour TOUS les baux actifs du propriétaire
+  const properties = await Property.find({ user: user._id }).select('_id').lean();
+  if (!properties || properties.length === 0) {
+    return NextResponse.json({
+      success: true,
+      data: { created: 0, skipped: 0, errors: ['Aucun bien trouvé pour ce propriétaire'] },
+    });
+  }
+
   const propertyIds = properties.map((p: { _id: unknown }) => p._id);
 
+  // Chercher les baux éligibles : actifs ou sans statut (legacy) + dates valides
+  // Exclure explicitement les statuts terminaux
   const leases = await Lease.find({
     property: { $in: propertyIds },
+    leaseStatus: { $nin: ['EXPIRED', 'TERMINATED', 'DRAFT'] },
     startDate: { $lte: new Date() },
-    $or: [{ endDate: null }, { endDate: { $gte: new Date() } }],
+    $or: [{ endDate: null }, { endDate: { $exists: false } }, { endDate: { $gte: new Date() } }],
   }).lean();
+
+  if (!leases || leases.length === 0) {
+    return NextResponse.json({
+      success: true,
+      data: { created: 0, skipped: 0, errors: ['Aucun bail actif trouvé'] },
+    });
+  }
 
   let totalCreated = 0;
   let totalSkipped = 0;
   const errors: string[] = [];
 
   for (const lease of leases) {
-    const r = await generateMonthlyPayments(String(lease._id));
-    totalCreated += r.created;
-    totalSkipped += r.skipped;
-    errors.push(...r.errors);
+    try {
+      const r = await generateMonthlyPayments(String(lease._id));
+      totalCreated += r.created;
+      totalSkipped += r.skipped;
+      if (r.errors.length > 0) errors.push(...r.errors);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`Bail ${lease._id}: ${msg}`);
+      console.error(`[payments/generate] Erreur bail ${lease._id}:`, msg);
+    }
   }
 
   if (totalCreated > 0) {

@@ -60,15 +60,25 @@ function daysUntilEnd(endDate?: string): number | null {
   return Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
 }
 
+interface PropertyOption {
+  _id: string;
+  name?: string;
+  address?: string;
+  selectedApplicationId?: string;
+}
+
 export function BauxPanel({
   onNavigate,
+  properties = [],
 }: {
-  onNavigate: (target: string, id?: string) => void;
+  onNavigate: (target: string, id?: string, applicationId?: string) => void;
+  properties?: PropertyOption[];
 }) {
   const [leases, setLeases] = useState<LeaseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState<string | null>(null);
   const [terminateId, setTerminateId] = useState<string | null>(null);
+  const [showPropertyPicker, setShowPropertyPicker] = useState(false);
 
   const fetchLeases = useCallback(async () => {
     try {
@@ -132,7 +142,13 @@ export function BauxPanel({
 
       {/* Action button */}
       <div className="mb-5 flex justify-end">
-        <Btn variant="amber" onClick={() => onNavigate('contract')}>
+        <Btn variant="amber" onClick={() => {
+          if (properties.length === 1) {
+            onNavigate('contract', properties[0]._id, properties[0].selectedApplicationId);
+          } else {
+            setShowPropertyPicker(true);
+          }
+        }}>
           <Plus className="h-4 w-4" /> Nouveau bail
         </Btn>
       </div>
@@ -262,6 +278,42 @@ export function BauxPanel({
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Property picker modal */}
+      {showPropertyPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPropertyPicker(false)}>
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Sélectionner un bien</h3>
+              <button type="button" onClick={() => setShowPropertyPicker(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {properties.length === 0 ? (
+              <p className="py-4 text-center text-sm text-slate-500">Aucun bien disponible. Ajoutez un bien d&apos;abord.</p>
+            ) : (
+              <div className="max-h-80 space-y-2 overflow-y-auto">
+                {properties.map((p) => (
+                  <button
+                    key={p._id}
+                    type="button"
+                    onClick={() => { setShowPropertyPicker(false); onNavigate('contract', p._id, p.selectedApplicationId); }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-orange-300 hover:bg-orange-50"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{p.name || 'Bien sans nom'}</p>
+                      <p className="truncate text-xs text-slate-500">{p.address || ''}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

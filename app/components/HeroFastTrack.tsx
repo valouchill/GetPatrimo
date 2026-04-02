@@ -8,6 +8,9 @@ import OtpInput from './OtpInput';
 
 type Step = 'address' | 'numbers' | 'email' | 'otp' | 'unlocking';
 
+const STEP_ORDER: Step[] = ['address', 'numbers', 'email', 'otp', 'unlocking'];
+const STEP_LABELS = ['Adresse', 'Détails', 'Email', 'Code', 'Ouverture'];
+
 const fadeSlide = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -151,8 +154,37 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
     ? email.replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2')
     : '';
 
+  const currentStepIndex = STEP_ORDER.indexOf(step);
+
   return (
     <div id={id} className="w-full max-w-2xl mx-auto mt-10">
+      {/* ── Indicateur de progression ── */}
+      <div className="flex items-center justify-center mb-4 gap-0">
+        {STEP_ORDER.map((s, i) => (
+          <div key={s} className="flex items-center">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
+                  i <= currentStepIndex ? 'bg-orange-500' : 'bg-slate-200'
+                }`}
+              />
+              <span className={`hidden md:block text-[10px] font-medium transition-colors duration-300 ${
+                i <= currentStepIndex ? 'text-orange-500' : 'text-slate-300'
+              }`}>
+                {STEP_LABELS[i]}
+              </span>
+            </div>
+            {i < STEP_ORDER.length - 1 && (
+              <div
+                className={`w-10 h-0.5 mb-3.5 transition-colors duration-300 ${
+                  i < currentStepIndex ? 'bg-orange-500' : 'bg-slate-200'
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
       <div className="p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
         <AnimatePresence mode="wait">
           {/* ── Étape 1 : Adresse ── */}

@@ -11,6 +11,8 @@ const Inspection = require('@/models/Inspection');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Property = require('@/models/Property');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+const Lease = require('@/models/Lease');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { logEvent } = require('@/src/services/eventService');
 
 /**
@@ -80,5 +82,5 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     meta: { inspectionId: String(inspection._id), inspectionType: type },
   });
 
-  return NextResponse.json({ success: true, data: inspection });
+  return NextResponse.json({ success: true, data: inspection.toObject() });
 });

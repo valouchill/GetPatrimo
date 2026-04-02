@@ -166,7 +166,7 @@ export default function OwnerHeader() {
       </div>
 
       {/* ─── Zone Centre : Navigation ─── */}
-      <nav className="flex flex-wrap items-center gap-1 rounded-[1rem] border border-slate-200/80 bg-white/70 p-1 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)]">
+      <nav className="hidden md:flex flex-wrap items-center gap-1 rounded-[1rem] border border-slate-200/80 bg-white/70 p-1 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)]">
         {navLinks.map((link) => {
           const isManagementLink = link.href.includes('?stage=management');
           const active = isManagementLink
@@ -224,7 +224,7 @@ function AddPropertyPortal({ open, onClose, onSuccess }: { open: boolean; onClos
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4 bg-slate-900/70 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
@@ -232,7 +232,7 @@ function AddPropertyPortal({ open, onClose, onSuccess }: { open: boolean; onClos
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full md:max-w-md bg-white rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">

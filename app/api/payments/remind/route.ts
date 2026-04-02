@@ -47,7 +47,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const user = await User.findOne({ email: (session.user as { email: string }).email }).lean();
   if (!user) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
-  const latePayments = await checkLatePayments();
+  const targetPaymentId = result.data.paymentId;
+  const allLatePayments = await checkLatePayments();
+  const latePayments = targetPaymentId
+    ? allLatePayments.filter((lp) => lp.paymentId === targetPaymentId)
+    : allLatePayments;
   let sentCount = 0;
   const results: { paymentId: string; level: string; sent: boolean }[] = [];
 
@@ -78,18 +82,34 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
     const recipient = level === 'critical_alert' ? lp.ownerEmail : lp.tenantEmail;
 
+    // Check email preferences (RGPD art. 21)
+    if (level !== 'critical_alert') {
+      const recipientUser = await User.findOne({ email: recipient }).lean();
+      if (recipientUser?.emailPreferences?.reminders === false) {
+        results.push({ paymentId: lp.paymentId, level, sent: false });
+        continue;
+      }
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doc2loc.com';
+
     if (isEmailConfigured() && recipient) {
       try {
         await sendEmail({
           to: recipient,
           subject,
-          text: emailBody,
+          text: emailBody + `\n\n---\nSe désinscrire : ${baseUrl}/api/user/unsubscribe`,
           html: `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;">
             <div style="background:linear-gradient(135deg,#F97316,#EA580C);padding:20px 24px;border-radius:12px 12px 0 0;">
               <h2 style="color:white;margin:0;font-size:18px;">PatrimoTrust</h2>
             </div>
             <div style="padding:24px;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 12px 12px;">
               ${emailBody.replace(/\n/g, '<br/>')}
+              <p style="margin-top:24px;padding-top:16px;border-top:1px solid #E2E8F0;color:#9ca3af;font-size:11px;text-align:center;">
+                <a href="${baseUrl}/api/user/unsubscribe?category=reminders" style="color:#9ca3af;text-decoration:underline;">Se désinscrire</a>
+                &nbsp;|&nbsp;
+                <a href="${baseUrl}/privacy" style="color:#9ca3af;text-decoration:underline;">Politique de confidentialité</a>
+              </p>
             </div>
           </div>`,
         });
@@ -123,7 +143,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   return NextResponse.json({
     success: true,
     data: {
-      total: latePayments.length,
+      total: allLatePayments.length,
+      filtered: latePayments.length,
       sent: sentCount,
       details: results,
     },

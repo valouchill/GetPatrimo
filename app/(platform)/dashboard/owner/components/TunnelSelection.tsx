@@ -16,9 +16,9 @@ import type { LocalBien, LocalDossier } from './ui';
 import { CandidatCard, CompareView } from './CandidatCard';
 import { CandidateDetailDrawer } from './CandidateDetailDrawer';
 
-function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty }: {
+function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract }: {
   bien: LocalBien; candidats: LocalDossier[];
-  onClose: () => void; onConfirmed: () => void; onGoToProperty: () => void;
+  onClose: () => void; onConfirmed: () => void; onGoToContract: (propertyId: string, applicationId: string) => void;
 }) {
   const [step, setStep] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
@@ -49,7 +49,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty
         const j = await res.json().catch(() => ({}));
         setError(j.error || 'Erreur lors de la sélection.'); return;
       }
-      setStep(3); onConfirmed();
+      onConfirmed(); onClose(); onGoToContract(bien.id, selected.id);
     } catch { setError('Erreur réseau.'); }
     finally { setLoading(false); }
   };
@@ -199,25 +199,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToProperty
             </motion.div>
           )}
 
-          {/* Step 3 — succès */}
-          {step === 3 && selected && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-lg py-12 text-center">
-              <div className="mb-4 text-6xl">🎉</div>
-              <h2 className="font-serif text-2xl font-bold text-slate-950">Locataire sélectionné !</h2>
-              <p className="mt-2 mb-2 text-sm text-slate-600">
-                <span className="font-semibold">{selected.prenom} {selected.nom}</span> a été retenu(e) pour <span className="font-semibold">{bien.label}</span>.
-              </p>
-              <p className="mb-8 text-sm text-slate-500">
-                Rendez-vous sur la fiche du bien pour rédiger et envoyer le bail pour signature.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <Btn variant="secondary" onClick={onClose}>Retour au tableau de bord</Btn>
-                <Btn variant="amber" onClick={() => { onClose(); onGoToProperty(); }}>
-                  <FileSignature className="h-4 w-4" /> Rédiger le bail →
-                </Btn>
-              </div>
-            </motion.div>
-          )}
+          {/* Step 3 supprimé — redirection directe vers le bail après confirmation */}
         </div>
       </div>
 

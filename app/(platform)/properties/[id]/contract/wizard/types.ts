@@ -99,6 +99,9 @@ export type CompiledDocument = {
   mimeType: string;
   secureUrl?: string;
   pdfUrl?: string;
+  docxPath?: string;
+  pdfPath?: string;
+  template?: string;
 };
 
 export type LeaseFormData = {
@@ -118,3 +121,26 @@ export type CompileMeta = {
   signerRoles?: string[];
   warnings?: string[];
 };
+
+// --- Preview types ---
+
+export interface TemplateVariable {
+  name: string;
+  start: number;
+  end: number;
+}
+
+export interface TemplateParagraph {
+  text: string;
+  variables: TemplateVariable[];
+}
+
+export interface PreviewData {
+  paragraphs: TemplateParagraph[];
+  mergeData: Record<string, string>;
+  rawData: Record<string, string>;
+  totalVariables: number;
+  filledVariables: number;
+  warnings: string[];
+  compileMeta: CompileMeta | null;
+}

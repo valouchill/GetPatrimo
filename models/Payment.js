@@ -61,10 +61,12 @@ const PaymentSchema = new mongoose.Schema({
 
   confirmedAt: { type: Date },
   confirmedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  paymentMethod: { type: String, enum: ['VIREMENT', 'CHEQUE', 'ESPECES', 'PRELEVEMENT', 'AUTRE'], default: null },
+  paymentMethod: { type: String, enum: ['VIREMENT', 'CHEQUE', 'ESPECES', 'PRELEVEMENT', 'AUTRE'] },
 
   receiptUrl: { type: String, default: '' },
   receiptGeneratedAt: { type: Date },
+  receiptSentAt: { type: Date, default: null },
+  receiptSentTo: { type: String, default: '' },
 
   remindersSent: [ReminderSchema],
 

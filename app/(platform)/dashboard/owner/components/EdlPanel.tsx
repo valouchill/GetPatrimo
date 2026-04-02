@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
-  Camera,
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
   Download,
   Eye,
-  FileText,
   GitCompare,
   Key,
   Loader2,
@@ -18,7 +16,6 @@ import {
   X,
 } from 'lucide-react';
 import { Btn, StatCard, Tag, Avatar } from './ui';
-import type { TagType } from './ui';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -100,12 +97,13 @@ function CreateEdlModal({
   leases: { _id: string; property: { _id: string; name?: string; address?: string }; tenantFirstName: string; tenantLastName: string }[];
   existingInspections: InspectionRecord[];
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (id?: string) => void;
 }) {
   const [leaseId, setLeaseId] = useState('');
   const [type, setType] = useState<'ENTRY' | 'EXIT'>('ENTRY');
   const [template, setTemplate] = useState('T2');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const selectedLease = leases.find((l) => l._id === leaseId);
   const hasEntry = leaseId
@@ -115,6 +113,7 @@ function CreateEdlModal({
   const handleCreate = async () => {
     if (!leaseId || !selectedLease) return;
     setLoading(true);
+    setError('');
     try {
       const rooms = (ROOM_TEMPLATES[template] || ROOM_TEMPLATES.T2).map((name, i) => ({
         name,
@@ -131,16 +130,24 @@ function CreateEdlModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          propertyId: selectedLease.property._id,
+          propertyId: selectedLease.property?._id || selectedLease.property,
           leaseId,
           type,
           rooms,
         }),
       });
 
-      if (res.ok) onCreated();
-    } catch { /* silent */ }
-    finally { setLoading(false); }
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onCreated(json.data?._id);
+      } else {
+        setError(json.error || `Erreur ${res.status} lors de la création`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur réseau');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -211,6 +218,17 @@ function CreateEdlModal({
           </div>
         </div>
 
+        {error && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</div>
+        )}
+
+        {leases.length === 0 && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
+            <AlertTriangle className="inline h-4 w-4 mr-1" />
+            Aucun bail trouvé. Créez d&apos;abord un bail pour pouvoir faire un état des lieux.
+          </div>
+        )}
+
         <div className="mt-5 flex justify-end gap-2">
           <Btn variant="secondary" onClick={onClose}>Annuler</Btn>
           <Btn variant="amber" disabled={!leaseId || loading} onClick={handleCreate}>
@@ -223,242 +241,17 @@ function CreateEdlModal({
   );
 }
 
-// ─── Room Editor Drawer ─────────────────────────────────────────
-
-function RoomEditor({
-  inspection,
-  onClose,
-  onSaved,
-}: {
-  inspection: InspectionRecord;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [rooms, setRooms] = useState(inspection.rooms);
-  const [activeRoom, setActiveRoom] = useState(0);
-  const [meters, setMeters] = useState<Record<string, number | null | undefined>>(inspection.meterReadings || {});
-  const [saving, setSaving] = useState(false);
-
-  const updateRoom = (idx: number, field: string, value: ConditionType | string) => {
-    setRooms((prev) => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await fetch(`/api/inspections/${inspection._id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rooms, meterReadings: meters, status: 'IN_PROGRESS' }),
-      });
-      onSaved();
-    } catch { /* silent */ }
-    finally { setSaving(false); }
-  };
-
-  const handleComplete = async () => {
-    setSaving(true);
-    try {
-      await fetch(`/api/inspections/${inspection._id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rooms, meterReadings: meters, status: 'COMPLETED' }),
-      });
-      onSaved();
-    } catch { /* silent */ }
-    finally { setSaving(false); }
-  };
-
-  const currentRoom = rooms[activeRoom];
-  const conditions: ConditionType[] = ['GOOD', 'NORMAL_WEAR', 'DEGRADED', 'NEEDS_RENOVATION'];
-
-  return (
-    <div className="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="ml-auto flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900">
-              EDL {inspection.type === 'ENTRY' ? "d'entrée" : 'de sortie'}
-            </h3>
-            <p className="text-sm text-slate-500">
-              {inspection.property?.name || inspection.property?.address?.split(',')[0]}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Room tabs */}
-        <div className="border-b border-slate-200 px-6 py-3 overflow-x-auto">
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setActiveRoom(-1)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeRoom === -1 ? 'bg-orange-50 text-orange-700 border border-orange-300' : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Compteurs
-            </button>
-            {rooms.map((r, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveRoom(i)}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  activeRoom === i ? 'bg-orange-50 text-orange-700 border border-orange-300' : 'text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {r.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {activeRoom === -1 ? (
-            <div>
-              <h4 className="mb-4 font-semibold text-slate-900">Relevés de compteurs</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {(['water', 'gas', 'electricity', 'heating'] as const).map((meter) => (
-                  <div key={meter}>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700 capitalize">
-                      {meter === 'water' ? 'Eau' : meter === 'gas' ? 'Gaz' : meter === 'electricity' ? 'Électricité' : 'Chauffage'}
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
-                      value={meters[meter] ?? ''}
-                      onChange={(e) => setMeters((prev) => ({ ...prev, [meter]: e.target.value ? Number(e.target.value) : null }))}
-                      placeholder="—"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : currentRoom ? (
-            <div>
-              <h4 className="mb-4 font-semibold text-slate-900">{currentRoom.name}</h4>
-
-              {/* Conditions */}
-              {(['wallCondition', 'floorCondition', 'ceilingCondition'] as const).map((field) => {
-                const label = field === 'wallCondition' ? 'Murs' : field === 'floorCondition' ? 'Sol' : 'Plafond';
-                return (
-                  <div key={field} className="mb-4">
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-700">{label}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {conditions.map((c) => (
-                        <button key={c} type="button" onClick={() => updateRoom(activeRoom, field, c)}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                            currentRoom[field] === c
-                              ? c === 'GOOD' ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                                : c === 'NORMAL_WEAR' ? 'border-blue-300 bg-blue-50 text-blue-700'
-                                : c === 'DEGRADED' ? 'border-amber-300 bg-amber-50 text-amber-700'
-                                : 'border-red-300 bg-red-50 text-red-700'
-                              : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                          }`}>
-                          {CONDITION_LABEL[c]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Photos */}
-              <div className="mb-4">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
-                  <Camera className="inline h-3.5 w-3.5 mr-1" />Photos
-                </label>
-                <div className="flex flex-wrap gap-2 mt-1.5">
-                  {(currentRoom.photos || []).map((photo, pi) => (
-                    <div key={pi} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200">
-                      <img src={photo.url} alt={photo.caption || `Photo ${pi + 1}`} className="h-full w-full object-cover" />
-                    </div>
-                  ))}
-                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 hover:border-orange-400 transition-colors">
-                    <Camera className="h-5 w-5 text-slate-400" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const fd = new FormData();
-                        fd.append('file', file);
-                        fd.append('roomIndex', String(activeRoom));
-                        try {
-                          const res = await fetch(`/api/inspections/${inspection._id}/photos`, { method: 'POST', body: fd });
-                          if (res.ok) {
-                            const json = await res.json();
-                            setRooms((prev) => prev.map((r, i) => i === activeRoom ? { ...r, photos: [...(r.photos || []), { url: json.data.url, caption: '' }] } : r));
-                          }
-                        } catch { /* silent */ }
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Comment */}
-              <div className="mb-4">
-                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Commentaire</label>
-                <textarea
-                  rows={3}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm resize-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
-                  value={currentRoom.comment}
-                  onChange={(e) => updateRoom(activeRoom, 'comment', e.target.value)}
-                  placeholder="Observations…"
-                />
-              </div>
-
-              {/* Navigation */}
-              <div className="flex justify-between">
-                {activeRoom > 0 && (
-                  <button type="button" onClick={() => setActiveRoom(activeRoom - 1)}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-700">← {rooms[activeRoom - 1]?.name}</button>
-                )}
-                <div />
-                {activeRoom < rooms.length - 1 && (
-                  <button type="button" onClick={() => setActiveRoom(activeRoom + 1)}
-                    className="flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700">
-                    {rooms[activeRoom + 1]?.name} <ChevronRight className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-slate-200 px-6 py-4 flex justify-between">
-          <Btn variant="secondary" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Sauvegarder brouillon
-          </Btn>
-          <Btn variant="amber" onClick={handleComplete} disabled={saving}>
-            <CheckCircle2 className="h-4 w-4" /> Terminer l&apos;EDL
-          </Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Panel ─────────────────────────────────────────────────
 
 export function EdlPanel() {
+  const router = useRouter();
   const [inspections, setInspections] = useState<InspectionRecord[]>([]);
   const [leases, setLeases] = useState<{ _id: string; property: { _id: string; name?: string; address?: string }; tenantFirstName: string; tenantLastName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [compareId, setCompareId] = useState<string | null>(null);
+
+  const openWizard = (id: string) => router.push(`/dashboard/owner/edl/${id}`);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -480,8 +273,6 @@ export function EdlPanel() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  const editingInspection = editingId ? inspections.find((i) => i._id === editingId) : null;
 
   // KPIs
   const total = inspections.length;
@@ -582,14 +373,14 @@ export function EdlPanel() {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {(ins.status === 'DRAFT' || ins.status === 'IN_PROGRESS') && (
-                            <button type="button" onClick={() => setEditingId(ins._id)}
+                            <button type="button" onClick={() => openWizard(ins._id)}
                               className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors">
                               <PenLine className="h-3 w-3" /> Éditer
                             </button>
                           )}
                           {(ins.status === 'COMPLETED' || ins.status === 'SIGNED') && (
                             <>
-                              <button type="button" onClick={() => setEditingId(ins._id)}
+                              <button type="button" onClick={() => openWizard(ins._id)}
                                 className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
                                 <Eye className="inline h-3 w-3 mr-1" />Voir
                               </button>
@@ -623,16 +414,7 @@ export function EdlPanel() {
           leases={leases as typeof leases}
           existingInspections={inspections}
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); fetchData(); }}
-        />
-      )}
-
-      {/* Room editor */}
-      {editingInspection && (
-        <RoomEditor
-          inspection={editingInspection}
-          onClose={() => setEditingId(null)}
-          onSaved={() => { setEditingId(null); fetchData(); }}
+          onCreated={(id) => { setShowCreate(false); if (id) openWizard(id); else fetchData(); }}
         />
       )}
 

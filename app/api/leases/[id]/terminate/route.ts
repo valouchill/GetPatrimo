@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import { validateNoticePeriod } from '@/lib/validations/lease';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -28,7 +29,7 @@ export const POST = withErrorHandler(async (
 
   const { id } = await params;
   const body = await request.json();
-  const { initiatedBy, reason } = body;
+  const { initiatedBy, reason, requestedExitDate } = body;
 
   if (!initiatedBy || !['OWNER', 'TENANT'].includes(initiatedBy)) {
     return NextResponse.json({ error: 'initiatedBy invalide' }, { status: 400 });
@@ -46,21 +47,18 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
-  // Calculate notice period
-  const leaseType = (lease.leaseType || '').toUpperCase();
-  let noticePeriodMonths: number;
+  // Calculate and validate notice period (loi 89-462 art. 15)
+  const noticePeriod = validateNoticePeriod({
+    leaseType: lease.leaseType || '',
+    initiatedBy,
+    requestedExitDate,
+  });
 
-  if (initiatedBy === 'TENANT') {
-    // Tenant notice: 1 month for furnished/mobility, 3 months for bare (1 month in zone tendue)
-    noticePeriodMonths = leaseType === 'MEUBLE' || leaseType === 'MOBILITE' ? 1 : 3;
-  } else {
-    // Owner notice: 6 months before end for bare, 3 months for furnished
-    noticePeriodMonths = leaseType === 'MEUBLE' ? 3 : 6;
-  }
-
+  const { noticePeriodMonths, minimumExitDate } = noticePeriod;
   const now = new Date();
-  const estimatedExitDate = new Date(now);
-  estimatedExitDate.setMonth(estimatedExitDate.getMonth() + noticePeriodMonths);
+  const estimatedExitDate = requestedExitDate
+    ? new Date(requestedExitDate)
+    : minimumExitDate;
 
   await Lease.updateOne(
     { _id: id },
@@ -102,5 +100,6 @@ export const POST = withErrorHandler(async (
       estimatedExitDate,
       initiatedBy,
     },
+    ...(noticePeriod.warning && { warnings: [noticePeriod.warning] }),
   });
 });

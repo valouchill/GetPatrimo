@@ -1,5 +1,6 @@
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalMain from "../components/ConditionalMain";
+import CookieBanner from "../components/CookieBanner";
 
 export default function PlatformLayout({
   children,
@@ -10,6 +11,7 @@ export default function PlatformLayout({
     <div className="min-h-screen w-full">
       <ConditionalHeader />
       <ConditionalMain>{children}</ConditionalMain>
+      <CookieBanner />
     </div>
   );
 }

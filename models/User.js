@@ -46,6 +46,12 @@ const UserSchema = new mongoose.Schema({
   magicSignInToken: { type: String, default: '' },
   magicSignInExpiresAt: { type: Date },
 
+  // Email preferences (RGPD art. 21 — droit d'opposition)
+  emailPreferences: {
+    reminders: { type: Boolean, default: true },
+    marketing: { type: Boolean, default: true },
+  },
+
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 });

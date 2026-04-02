@@ -34,4 +34,5 @@ export const ExportSchema = z.object({
 
 export const RemindSchema = z.object({
   type: z.enum(['EMAIL', 'SMS']).optional().default('EMAIL'),
+  paymentId: z.string().optional(),
 });

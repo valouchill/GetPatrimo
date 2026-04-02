@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
-import { CheckCircle2, ClipboardCheck, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList, Wallet } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList, Wallet, UserCog } from 'lucide-react';
 import type { Candidature as RealCandidature, PropertyWithCandidatures } from '../OwnerContext';
 
 // ── Stage labels ──────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ export function Btn({ children, variant = 'primary', onClick, disabled, classNam
 }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${BTN_CLS[variant]} ${className}`}>
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${BTN_CLS[variant]} ${className}`}>
       {children}
     </button>
   );
@@ -284,14 +284,15 @@ export function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: 
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
-export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'loyers' | 'edl';
-export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean }[] = [
+export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil';
+export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean; href?: string }[] = [
   { id: 'dashboard',    label: "Vue d'ensemble",     Icon: LayoutDashboard,  group: 'Mon patrimoine' },
   { id: 'biens',        label: 'Mes biens',          Icon: Building2,        group: 'Mon patrimoine' },
   { id: 'candidatures', label: 'Candidatures',       Icon: Users,            group: 'Location', badge: true },
   { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,    group: 'Location' },
   { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location' },
   { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances' },
+  { id: 'profil',       label: 'Mon profil',         Icon: UserCog,          group: 'Compte' },
   { id: 'depot',        label: 'Nouvel actif',       Icon: Plus,             group: '_hidden', hidden: true },
   { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,       group: '_hidden', hidden: true },
 ];
