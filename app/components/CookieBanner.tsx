@@ -23,7 +23,7 @@ export default function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 p-4 sm:p-6">
+    <div className="fixed bottom-0 inset-x-0 z-50 p-4 pb-safe sm:p-6">
       <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-xl shadow-lg p-5 sm:p-6">
         <p className="text-sm text-slate-700 leading-relaxed mb-4">
           Ce site utilise uniquement des cookies strictement nécessaires à son fonctionnement

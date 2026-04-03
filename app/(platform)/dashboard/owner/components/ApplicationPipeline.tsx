@@ -135,7 +135,7 @@ export function ApplicationPipeline({
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         {/* Property filter */}
         <div className="relative">
           <select
@@ -179,11 +179,11 @@ export function ApplicationPipeline({
           <p className="text-xs text-slate-400">Les candidatures déverrouillées apparaîtront ici.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
           {STAGES.map((stage) => {
             const cards = pipeline[stage.id];
             return (
-              <div key={stage.id} className="flex flex-col">
+              <div key={stage.id} className="min-w-[280px] flex-shrink-0 flex flex-col snap-start md:min-w-0 md:flex-shrink">
                 {/* Column header */}
                 <div className={`mb-3 flex items-center justify-between rounded-xl border px-3 py-2 ${stage.bgColor} ${stage.borderColor}`}>
                   <span className={`text-sm font-bold ${stage.color}`}>{stage.label}</span>

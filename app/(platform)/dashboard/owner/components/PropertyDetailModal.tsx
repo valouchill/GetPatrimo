@@ -562,20 +562,20 @@ export function PropertyDetailModal({
           </div>
 
           {/* ── FOOTER ─────────────────────────────────────────────── */}
-          <div className="border-t border-slate-100 px-6 py-3 flex items-center justify-between">
-            <div className="text-xs text-slate-400">
+          <div className="border-t border-slate-100 px-4 py-3 pb-safe md:px-6 flex items-center justify-between gap-2">
+            <div className="hidden text-xs text-slate-400 sm:block">
               {bien.surface > 0 && <span>{bien.surface} m²</span>}
               {bien.surface > 0 && bien.loyer > 0 && <span> · </span>}
               {bien.loyer > 0 && <span>{bien.loyer.toLocaleString('fr-FR')} €/mois</span>}
             </div>
-            <div className="flex gap-2">
-              <Btn variant="secondary" onClick={onClose} className="text-xs py-2 px-4">Fermer</Btn>
+            <div className="flex flex-1 gap-2 sm:flex-none">
+              <Btn variant="secondary" onClick={onClose} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">Fermer</Btn>
               {hasSel && selectedCand ? (
-                <Btn variant="primary" onClick={() => { onClose(); onGoToContract(bien.id, selectedCand.id); }} className="text-xs py-2 px-4">
+                <Btn variant="primary" onClick={() => { onClose(); onGoToContract(bien.id, selectedCand.id); }} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">
                   <FileSignature className="h-3.5 w-3.5" /> Rédiger le bail
                 </Btn>
               ) : !hasSel && candidats.filter((d) => !d.isSealed).length > 0 ? (
-                <Btn variant="amber" onClick={() => { onClose(); onOpenTunnel(); }} className="text-xs py-2 px-4">
+                <Btn variant="amber" onClick={() => { onClose(); onOpenTunnel(); }} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">
                   Sélectionner un locataire
                 </Btn>
               ) : null}

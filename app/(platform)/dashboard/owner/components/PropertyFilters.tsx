@@ -87,7 +87,7 @@ export function PropertyFilters({
         <button
           type="button"
           onClick={() => onViewChange('grid')}
-          className={`rounded-lg p-2 transition-colors ${view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`rounded-lg p-2.5 transition-colors ${view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
           aria-label="Vue grille"
         >
           <LayoutGrid className="h-4 w-4" />
@@ -95,7 +95,7 @@ export function PropertyFilters({
         <button
           type="button"
           onClick={() => onViewChange('list')}
-          className={`rounded-lg p-2 transition-colors ${view === 'list' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`rounded-lg p-2.5 transition-colors ${view === 'list' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
           aria-label="Vue liste"
         >
           <List className="h-4 w-4" />

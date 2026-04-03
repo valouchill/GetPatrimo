@@ -143,7 +143,7 @@ export default function TenantDashboardClient({
               <span className="min-w-0 break-anywhere text-sm text-slate-600">{userEmail}</span>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
               >
                 <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 <span className="text-sm">Déconnexion</span>
@@ -164,7 +164,7 @@ export default function TenantDashboardClient({
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               {/* Salutation et message */}
               <div className="min-w-0 flex-1">
-                <h2 className="mb-2 text-balance text-3xl font-serif text-navy md:text-4xl">
+                <h2 className="mb-2 text-balance text-xl font-serif text-navy md:text-3xl">
                   Bonjour {firstName} 👋
                 </h2>
                 <p className="text-pretty text-lg text-slate-600">{getWelcomeMessage()}</p>
@@ -182,7 +182,7 @@ export default function TenantDashboardClient({
               </div>
 
               {/* PatrimoMeter Badge */}
-              <div className="flex flex-col items-center self-start md:self-center">
+              <div className="flex flex-col items-center self-center md:self-start">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}

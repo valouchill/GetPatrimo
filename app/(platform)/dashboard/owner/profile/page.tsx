@@ -394,7 +394,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
                       onClick={() => setDeleteConfirm(false)}
@@ -435,7 +435,7 @@ export default function ProfilePage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="sticky top-28"
+            className="lg:sticky lg:top-28"
           >
             <div className="bg-slate-950 text-white rounded-2xl p-7 shadow-2xl shadow-slate-950/30">
               {hasActiveSubscription ? (

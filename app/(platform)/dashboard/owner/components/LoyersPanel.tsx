@@ -227,7 +227,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
       <div className="flex flex-wrap gap-2">
         {canConfirm && (
           <button onClick={() => onConfirm(p)}
-            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors">
+            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
             <CheckCircle className="h-3.5 w-3.5" />Confirmer
           </button>
         )}
@@ -236,7 +236,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
         )}
         {isLate && (
           <button onClick={() => onRemind(p._id)} disabled={remindingId === p._id}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors">
             {remindingId === p._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
             Relancer
           </button>

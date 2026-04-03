@@ -6,7 +6,7 @@ import { LayoutDashboard, Building2, Users, Wallet, MoreHorizontal, FileSignatur
 import type { NavId } from './ui';
 
 const PRIMARY_TABS: { id: NavId; label: string; Icon: React.ElementType }[] = [
-  { id: 'dashboard',    label: "Vue d'ensemble", Icon: LayoutDashboard },
+  { id: 'dashboard',    label: 'Accueil',        Icon: LayoutDashboard },
   { id: 'biens',        label: 'Biens',          Icon: Building2 },
   { id: 'candidatures', label: 'Candidatures',   Icon: Users },
   { id: 'loyers',       label: 'Loyers',         Icon: Wallet },
@@ -61,7 +61,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
                     key={id}
                     type="button"
                     onClick={() => { onNavigate(id); setMoreOpen(false); }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${
                       page === id ? 'bg-orange-50 text-orange-600' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -84,7 +84,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
               key={id}
               type="button"
               onClick={() => onNavigate(id)}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
                 active ? 'text-orange-500' : 'text-slate-400'
               }`}
             >
@@ -96,7 +96,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
-          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
             isMoreActive ? 'text-orange-500' : 'text-slate-400'
           }`}
         >

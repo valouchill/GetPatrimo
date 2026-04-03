@@ -162,7 +162,9 @@ export function BauxPanel({
           <p className="text-xs text-slate-400">Sélectionnez un locataire depuis vos candidatures pour créer un bail.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <>
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -246,7 +248,7 @@ export function BauxPanel({
                               type="button"
                               onClick={() => handleRenew(lease._id)}
                               disabled={renewingId === lease._id}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
                             >
                               <RefreshCw className={`h-3 w-3 ${renewingId === lease._id ? 'animate-spin' : ''}`} />
                               Renouveler
@@ -256,7 +258,7 @@ export function BauxPanel({
                             <button
                               type="button"
                               onClick={() => setTerminateId(lease._id)}
-                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
                             >
                               Résilier
                             </button>
@@ -265,7 +267,7 @@ export function BauxPanel({
                             <button
                               type="button"
                               onClick={() => onNavigate('contract', lease.property?._id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
                             >
                               <PenLine className="h-3 w-3" />
                               Rédiger
@@ -280,6 +282,109 @@ export function BauxPanel({
             </table>
           </div>
         </div>
+
+        {/* Mobile cards */}
+        <div className="block md:hidden space-y-3">
+          {leases.map((lease) => {
+            const status = deriveStatus(lease);
+            const config = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
+            const days = daysUntilEnd(lease.endDate);
+            const Icon = config.icon;
+
+            return (
+              <div key={lease._id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                {/* Header: tenant + status */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={`${lease.tenantFirstName} ${lease.tenantLastName}`} id={lease._id} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">{lease.tenantFirstName} {lease.tenantLastName}</div>
+                      <div className="text-xs text-slate-500 truncate">{lease.tenantEmail}</div>
+                    </div>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                    status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                    status === 'EXPIRING' ? 'border-red-200 bg-red-50 text-red-700' :
+                    status === 'PENDING_SIGNATURE' ? 'border-amber-200 bg-amber-50 text-amber-700' :
+                    status === 'EXPIRED' ? 'border-red-200 bg-red-50 text-red-600' :
+                    status === 'TERMINATED' ? 'border-slate-200 bg-slate-50 text-slate-500' :
+                    'border-slate-200 bg-slate-50 text-slate-600'
+                  }`}>
+                    <Icon className="h-3 w-3" />
+                    {config.label}
+                  </span>
+                </div>
+
+                {/* Property + type */}
+                <div className="mb-3 text-sm text-slate-600">
+                  {lease.property?.name || lease.property?.address?.split(',')[0] || '—'}
+                  <span className="ml-2 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                    {LEASE_TYPE_LABEL[lease.leaseType] || lease.leaseType}
+                  </span>
+                </div>
+
+                {/* Rent */}
+                <div className="mb-3 flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-slate-900">{lease.rentAmount.toLocaleString('fr-FR')} €</span>
+                  {lease.chargesAmount > 0 && (
+                    <span className="text-xs text-slate-400">+ {lease.chargesAmount} €</span>
+                  )}
+                  <span className="text-xs text-slate-400">/ mois</span>
+                </div>
+
+                {/* Dates */}
+                <div className="mb-3 flex items-center gap-4 text-xs text-slate-500">
+                  <span>Début : {lease.startDate ? new Date(lease.startDate).toLocaleDateString('fr-FR') : '—'}</span>
+                  <span>Fin : {lease.endDate ? new Date(lease.endDate).toLocaleDateString('fr-FR') : '—'}</span>
+                </div>
+                {days !== null && days > 0 && days < 90 && (
+                  <div className="mb-3 flex items-center gap-1 text-xs font-semibold text-red-600">
+                    <AlertTriangle className="h-3 w-3" />
+                    {days}j restants
+                  </div>
+                )}
+                {days !== null && days <= 0 && (
+                  <div className="mb-3 text-xs font-semibold text-red-600">Expiré</div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                  {(status === 'EXPIRING' || status === 'EXPIRED') && (
+                    <button
+                      type="button"
+                      onClick={() => handleRenew(lease._id)}
+                      disabled={renewingId === lease._id}
+                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${renewingId === lease._id ? 'animate-spin' : ''}`} />
+                      Renouveler
+                    </button>
+                  )}
+                  {(status === 'ACTIVE' || status === 'EXPIRING') && (
+                    <button
+                      type="button"
+                      onClick={() => setTerminateId(lease._id)}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      Résilier
+                    </button>
+                  )}
+                  {status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('contract', lease.property?._id)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+                    >
+                      <PenLine className="h-3 w-3" />
+                      Rédiger
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        </>
       )}
 
       {/* Property picker modal */}
@@ -401,7 +506,7 @@ function TerminateModal({
 
 function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return (
-    <th className={`px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 ${className}`}>
+    <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 ${className}`}>
       {children}
     </th>
   );

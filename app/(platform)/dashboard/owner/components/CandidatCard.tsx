@@ -86,17 +86,17 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
       <div className="flex gap-2">
         {compareMode ? (
           <button type="button" onClick={() => onToggleCompare(c.id)}
-            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-all ${
+            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
               inCompare ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
             }`}>
             {inCompare ? '✓ Sélectionné' : 'Ajouter'}
           </button>
         ) : (
           <>
-            <button type="button" onClick={() => onDetail(c)} className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <button type="button" onClick={() => onDetail(c)} className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Voir le dossier
             </button>
-            <button type="button" onClick={() => onSelect(c)} className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-bold text-white hover:bg-orange-600">
+            <button type="button" onClick={() => onSelect(c)} className="flex-1 rounded-xl bg-orange-500 py-2.5 text-sm font-bold text-white hover:bg-orange-600">
               Sélectionner →
             </button>
           </>

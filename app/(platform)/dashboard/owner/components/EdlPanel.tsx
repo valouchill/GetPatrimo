@@ -310,7 +310,9 @@ export function EdlPanel() {
           <p className="text-xs text-slate-400">Créez un EDL pour documenter l&apos;état de vos biens.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <>
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -374,24 +376,24 @@ export function EdlPanel() {
                         <div className="flex items-center gap-1.5">
                           {(ins.status === 'DRAFT' || ins.status === 'IN_PROGRESS') && (
                             <button type="button" onClick={() => openWizard(ins._id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors">
+                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
                               <PenLine className="h-3 w-3" /> Éditer
                             </button>
                           )}
                           {(ins.status === 'COMPLETED' || ins.status === 'SIGNED') && (
                             <>
                               <button type="button" onClick={() => openWizard(ins._id)}
-                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
                                 <Eye className="inline h-3 w-3 mr-1" />Voir
                               </button>
                               {ins.type === 'EXIT' && (
                                 <button type="button" onClick={() => setCompareId(ins._id)}
-                                  className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-semibold text-violet-700 hover:bg-violet-100 transition-colors">
+                                  className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors">
                                   <GitCompare className="inline h-3 w-3 mr-1" />Comparer
                                 </button>
                               )}
                               {ins.pdfUrl && (
-                                <a href={ins.pdfUrl} download className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                <a href={ins.pdfUrl} download className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
                                   <Download className="inline h-3 w-3 mr-1" />PDF
                                 </a>
                               )}
@@ -406,6 +408,87 @@ export function EdlPanel() {
             </table>
           </div>
         </div>
+
+        {/* Mobile cards */}
+        <div className="block md:hidden space-y-3">
+          {inspections.map((ins) => {
+            const cfg = STATUS_CONFIG[ins.status] || STATUS_CONFIG.DRAFT;
+            const tenantName = ins.lease
+              ? `${(ins.lease as { tenantFirstName?: string }).tenantFirstName || ''} ${(ins.lease as { tenantLastName?: string }).tenantLastName || ''}`.trim()
+              : '—';
+            const degradedCount = ins.rooms.filter(
+              (r) => r.wallCondition === 'DEGRADED' || r.wallCondition === 'NEEDS_RENOVATION' ||
+                     r.floorCondition === 'DEGRADED' || r.floorCondition === 'NEEDS_RENOVATION' ||
+                     r.ceilingCondition === 'DEGRADED' || r.ceilingCondition === 'NEEDS_RENOVATION'
+            ).length;
+
+            return (
+              <div key={ins._id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                {/* Header: tenant + status */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={tenantName} id={ins._id} size="sm" />
+                    <span className="text-sm font-semibold text-slate-900 truncate">{tenantName}</span>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                    {cfg.label}
+                  </span>
+                </div>
+
+                {/* Property */}
+                <div className="mb-2 text-sm text-slate-600">
+                  {ins.property?.name || ins.property?.address?.split(',')[0] || '—'}
+                </div>
+
+                {/* Type + date + rooms */}
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-semibold ${
+                    ins.type === 'ENTRY' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-violet-200 bg-violet-50 text-violet-700'
+                  }`}>
+                    {ins.type === 'ENTRY' ? 'Entrée' : 'Sortie'}
+                  </span>
+                  <span>{new Date(ins.date).toLocaleDateString('fr-FR')}</span>
+                  <span>{ins.rooms.length} pièces</span>
+                  {degradedCount > 0 && (
+                    <span className="font-semibold text-amber-600">
+                      ({degradedCount} dégradée{degradedCount > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                  {(ins.status === 'DRAFT' || ins.status === 'IN_PROGRESS') && (
+                    <button type="button" onClick={() => openWizard(ins._id)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
+                      <PenLine className="h-3 w-3" /> Éditer
+                    </button>
+                  )}
+                  {(ins.status === 'COMPLETED' || ins.status === 'SIGNED') && (
+                    <>
+                      <button type="button" onClick={() => openWizard(ins._id)}
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <Eye className="inline h-3 w-3 mr-1" />Voir
+                      </button>
+                      {ins.type === 'EXIT' && (
+                        <button type="button" onClick={() => setCompareId(ins._id)}
+                          className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors">
+                          <GitCompare className="inline h-3 w-3 mr-1" />Comparer
+                        </button>
+                      )}
+                      {ins.pdfUrl && (
+                        <a href={ins.pdfUrl} download className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                          <Download className="inline h-3 w-3 mr-1" />PDF
+                        </a>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        </>
       )}
 
       {/* Create modal */}
@@ -535,11 +618,11 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50">
-                      <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">Pièce / Élément</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-blue-500">Entrée</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-violet-500">Sortie</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">Diff</th>
-                      <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">Retenue €</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Pièce / Élément</th>
+                      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wider text-blue-500">Entrée</th>
+                      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wider text-violet-500">Sortie</th>
+                      <th className="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500">Diff</th>
+                      <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Retenue €</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -641,7 +724,7 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
 
 function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return (
-    <th className={`px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 ${className}`}>
+    <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 ${className}`}>
       {children}
     </th>
   );

@@ -317,7 +317,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
           <>
             <h3 className="mb-1 font-semibold text-slate-900">Paramètres financiers</h3>
             <p className="mb-5 text-sm text-slate-500">Le loyer alimente le scoring automatique des candidatures.</p>
-            <div className="mb-5 grid grid-cols-2 gap-4">
+            <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="actif-rent" className={LabelCls}>Loyer HC (€/mois) *</label>
                 <input id="actif-rent" type="number" min={0} placeholder="1 200" className={InputCls}
@@ -364,7 +364,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                 ['Prix d\'achat', form.purchasePrice ? `${parseFloat(form.purchasePrice).toLocaleString('fr-FR')} €` : '—'],
               ] as [string, string][]).filter(([, v]) => v !== '—').map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span className="text-slate-500">{k}</span><span className="font-semibold text-slate-900">{v}</span>
+                  <span className="text-slate-500 shrink-0">{k}</span><span className="font-semibold text-slate-900 text-right break-words min-w-0">{v}</span>
                 </div>
               ))}
               {form.equipment.length > 0 && (

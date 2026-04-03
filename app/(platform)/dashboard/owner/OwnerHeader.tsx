@@ -63,12 +63,12 @@ export default function OwnerHeader() {
       <div className="relative" ref={switcherRef}>
         <button
           onClick={() => setSwitcherOpen((o) => !o)}
-          className="group flex max-w-full items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-white/70 px-3 py-2.5 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)] transition-colors hover:bg-white"
+          className="group flex max-w-full items-center gap-3 rounded-[1rem] border border-slate-200/80 bg-white/70 px-3 py-3 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.35)] transition-colors hover:bg-white"
         >
           <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
             <Building2 className="w-4 h-4 text-white" />
           </div>
-          <span className="hidden max-w-[220px] truncate text-sm font-semibold text-slate-800 sm:inline">
+          <span className="max-w-[120px] truncate text-xs font-semibold text-slate-800 sm:max-w-[220px] sm:text-sm">
             {property?.address || property?.title || 'Aucun bien'}
           </span>
           {activeEntry?.flow?.stageLabel ? (
@@ -88,7 +88,7 @@ export default function OwnerHeader() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 z-50 mt-2 w-80 overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_-42px_rgba(15,23,42,0.28)] backdrop-blur"
+              className="absolute top-full left-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[rgba(255,255,255,0.96)] shadow-[0_30px_80px_-42px_rgba(15,23,42,0.28)] backdrop-blur"
             >
               <div className="border-b border-slate-100 px-4 py-3">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -194,7 +194,7 @@ export default function OwnerHeader() {
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard/owner/profile"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.35)] transition-all hover:ring-2 hover:ring-slate-300/70"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-[0_12px_30px_-22px_rgba(15,23,42,0.35)] transition-all hover:ring-2 hover:ring-slate-300/70 md:h-9 md:w-9"
         >
           <span className="font-serif text-sm font-bold text-slate-900">{initial}</span>
         </Link>

@@ -58,13 +58,13 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Tunnel de sélection du locataire">
       <div className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-4 px-6 py-4">
-          <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
             <X className="h-4 w-4" /> Fermer
           </button>
           <div className="h-6 w-px bg-slate-200" />
           <div className="flex items-center gap-2 min-w-0">
             <span className="rounded-xl border border-slate-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shrink-0">🏠 {bien.label}</span>
-            <span className="hidden truncate text-sm text-slate-500 sm:block">{bien.adresse}</span>
+            <span className="truncate text-xs text-slate-500 sm:text-sm">{bien.adresse}</span>
             <Tag type="slate">{bien.loyer.toLocaleString()} €/mois</Tag>
           </div>
           <div className="ml-auto hidden w-72 shrink-0 sm:block">
@@ -160,7 +160,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     ['Revenus', `${selected.revenus.toLocaleString()} €`, 'text-emerald-700'],
                     ['Ratio', `${(selected.revenus / (bien.loyer || 1)).toFixed(1)}×`, selected.revenus / (bien.loyer || 1) >= 3 ? 'text-emerald-600' : 'text-amber-600'],
