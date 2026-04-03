@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { logger } from '@/lib/server-logger';
 import { z } from 'zod';
 import mongoose from 'mongoose';
 
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (err: unknown) {
-    console.error('[management/add]', err);
+    logger.error('[management/add]', { error: err instanceof Error ? err.message : err });
     const message = err instanceof Error ? err.message : 'Erreur serveur';
     return NextResponse.json({ error: message }, { status: 500 });
   }

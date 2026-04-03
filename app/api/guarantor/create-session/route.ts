@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
+import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -17,9 +18,9 @@ export async function POST(request: NextRequest) {
   let body: { invitationToken?: string; applyToken?: string; email?: string; firstName?: string; lastName?: string; slot?: number | string };
   try {
     body = await request.json();
-    console.log('[GUARANTOR CREATE-SESSION] Body reçu:', JSON.stringify(body));
+    logger.info('[GUARANTOR CREATE-SESSION] Body reçu', { body });
   } catch (parseError) {
-    console.error('[GUARANTOR CREATE-SESSION] Erreur parsing JSON:', parseError);
+    logger.error('[GUARANTOR CREATE-SESSION] Erreur parsing JSON', { error: parseError instanceof Error ? parseError.message : parseError });
     return NextResponse.json(
       { error: 'Corps de requête invalide' },
       { status: 400 }
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     };
     const effectiveApplyToken = applyToken || candidatureId;
     const normalizedSlot = normalizeSlot(slot) || 1;
-    console.log('[GUARANTOR CREATE-SESSION] invitationToken:', invitationToken, 'applyToken:', effectiveApplyToken);
+    logger.info('[GUARANTOR CREATE-SESSION] Tokens', { invitationToken, applyToken: effectiveApplyToken });
 
     // Si invitationToken, chercher le garant existant
     // Sinon, créer un nouveau garant pour l'option "En Direct"
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     if (!diditResponse.ok) {
       const errorData = await diditResponse.json().catch(() => ({}));
-      console.error('Erreur création session Didit garant:', errorData);
+      logger.error('Erreur création session Didit garant', { error: errorData });
       return NextResponse.json(
         { error: 'Erreur lors de la création de la session Didit' },
         { status: 500 }
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
       fallbackMode: false,
     });
   } catch (error) {
-    console.error('Erreur création session garant:', error);
+    logger.error('Erreur création session garant', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur serveur' },
       { status: 500 }

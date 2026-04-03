@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { validateMRZ } from '@/app/actions/validate-mrz';
+import { logger } from '@/lib/server-logger';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildCategoryMismatchMessage } = require('@/src/utils/documentCertificationRules');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     const fileSizeMB = file.size / (1024 * 1024);
 
     if (fileSizeMB > 10) {
-      console.warn(`⚠️ Fichier volumineux (${fileSizeMB.toFixed(2)}MB)`);
+      logger.warn('Fichier volumineux', { sizeMB: fileSizeMB.toFixed(2) });
     }
 
     // Vérifier le header PDF
@@ -311,7 +312,7 @@ export async function POST(request: NextRequest) {
             result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 40);
           }
         } catch (error) {
-          console.error('⚠️ Erreur décodage sceau 2D-Doc:', error);
+          logger.error('Erreur décodage sceau 2D-Doc', { error: error instanceof Error ? error.message : error });
           result.trust_and_security.forensic_alerts.push('⚠️ Erreur lors du décodage du sceau 2D-Doc');
         }
       }
@@ -368,7 +369,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('❌ Erreur analyse V2:', error);
+    logger.error('Erreur analyse V2', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Une erreur technique est survenue.', isIllegible: true, errorMessage: 'Une erreur technique est survenue. Veuillez réessayer.' },
       { status: 500 }

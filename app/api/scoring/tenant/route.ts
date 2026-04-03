@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Document from '@/models/Document';
 import Candidature from '@/models/Candidature';
 import { calculatePatrimoScore } from '@/scoringEngine';
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(scoreResult);
   } catch (error: any) {
-    console.error('Erreur calcul score:', error);
+    logger.error('Erreur calcul score', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur lors du calcul du score', details: error.message },
       { status: 500 }

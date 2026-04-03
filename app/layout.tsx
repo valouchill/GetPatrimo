@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   },
 };
 
+// i18n: Application en français uniquement pour le lancement (marché France).
+// Pour ajouter d'autres langues : installer next-intl, créer /messages/{locale}.json,
+// wraper le layout avec NextIntlClientProvider, et ajouter le middleware de détection locale.
 export default function RootLayout({
   children,
 }: Readonly<{

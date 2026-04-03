@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 import Lease from '@/models/Lease';
@@ -271,7 +272,7 @@ export async function GET(
       },
     });
   } catch (e) {
-    console.error('GET /api/owner/properties/[id]', e);
+    logger.error('GET /api/owner/properties/[id]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -326,7 +327,7 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, property });
   } catch (e) {
-    console.error('PATCH /api/owner/properties/[id]', e);
+    logger.error('PATCH /api/owner/properties/[id]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -364,7 +365,7 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error('DELETE /api/owner/properties/[id]', e);
+    logger.error('DELETE /api/owner/properties/[id]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

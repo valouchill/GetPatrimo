@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { auditLog } from '@/lib/services/audit';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bcrypt = require('bcryptjs');
@@ -18,23 +20,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { currentPassword, newPassword } = body;
 
-    if (!newPassword || newPassword.length < 8) {
+    const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/;
+    if (!newPassword || !PASSWORD_REGEX.test(newPassword)) {
       return NextResponse.json(
-        { error: 'Le nouveau mot de passe doit contenir au moins 8 caractères' },
-        { status: 400 }
-      );
-    }
-
-    if (!/[A-Z]/.test(newPassword)) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 1 majuscule' },
-        { status: 400 }
-      );
-    }
-
-    if (!/\d/.test(newPassword)) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 1 chiffre' },
+        { error: 'Le mot de passe doit contenir au moins 12 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial' },
         { status: 400 }
       );
     }
@@ -67,9 +56,11 @@ export async function POST(request: NextRequest) {
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
+    await auditLog({ userId: String(user._id), action: 'PASSWORD_CHANGED' });
+
     return NextResponse.json({ success: true, message: 'Mot de passe mis à jour' });
   } catch (error) {
-    console.error('[password POST]', error);
+    logger.error('[password POST]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

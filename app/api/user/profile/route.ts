@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -38,7 +39,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[profile GET]', error);
+    logger.error('[profile GET]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -86,7 +87,7 @@ export async function PUT(request: NextRequest) {
       const messages = Object.values(error.errors || {}).map((e: any) => e.message);
       return NextResponse.json({ error: messages.join(', ') || 'Données invalides' }, { status: 400 });
     }
-    console.error('[profile PUT]', error);
+    logger.error('[profile PUT]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

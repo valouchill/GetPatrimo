@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { logger } from '@/lib/server-logger';
 
 async function getDiditConfig(issuer: string) {
   const res = await fetch(`${issuer}/.well-known/openid-configuration`, { cache: 'no-store' });
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
     redirect.cookies.delete('didit_return');
     return redirect;
   } catch (error) {
-    console.error('Erreur callback Didit:', error);
+    logger.error('Erreur callback Didit', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

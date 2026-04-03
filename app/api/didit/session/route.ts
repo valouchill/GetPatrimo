@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../db';
+import { logger } from '@/lib/server-logger';
 import IdentitySession from '@/models/IdentitySession';
 
 // Liste des endpoints Didit à essayer (ordre de priorité)
@@ -21,14 +22,14 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch (error) {
     // Body vide ou invalide, on continue avec un objet vide
-    console.warn('Body Didit session vide ou invalide:', error);
+    logger.warn('Body Didit session vide ou invalide', { error: error instanceof Error ? error.message : error });
   }
   
   const reference = body.reference || body.token || 'apply-session';
 
   // Si les credentials Didit ne sont pas configurées, mode dégradé
   if (!apiKey || !workflowId) {
-    console.warn('Didit non configuré (API_KEY ou WORKFLOW_ID manquant), mode dégradé activé');
+    logger.warn('Didit non configuré (API_KEY ou WORKFLOW_ID manquant), mode dégradé activé');
     return NextResponse.json({
       sessionId: null,
       clientId: null,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      console.log(`Tentative Didit: ${endpoint}`);
+      logger.info('Tentative Didit', { endpoint });
       
       const sessionResponse = await fetch(endpoint, {
         method: 'POST',
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
         const verificationUrl = data?.verification_url || data?.url || data?.redirect_url;
 
         if (sessionId) {
-          console.log(`✅ Session Didit créée via ${endpoint}:`, sessionId);
+          logger.info('Session Didit créée', { endpoint, sessionId });
           
           try {
             await connectDiditDb();
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
               { upsert: true, new: true }
             );
           } catch (dbError) {
-            console.error('Erreur DB Didit:', dbError);
+            logger.error('Erreur DB Didit', { error: dbError instanceof Error ? dbError.message : dbError });
           }
 
           return NextResponse.json({
@@ -96,16 +97,16 @@ export async function POST(request: NextRequest) {
       
       const errorData = await sessionResponse.json().catch(() => ({}));
       lastError = `${endpoint}: ${sessionResponse.status} - ${JSON.stringify(errorData)}`;
-      console.warn(`Endpoint Didit échoué: ${lastError}`);
+      logger.warn('Endpoint Didit échoué', { error: lastError });
       
     } catch (error) {
       lastError = `${endpoint}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
-      console.warn(`Erreur endpoint Didit: ${lastError}`);
+      logger.warn('Erreur endpoint Didit', { error: lastError });
     }
   }
 
   // Tous les endpoints ont échoué, mode dégradé
-  console.error('Tous les endpoints Didit ont échoué. Dernier: ' + lastError);
+  logger.error('Tous les endpoints Didit ont échoué', { lastError });
   
   return NextResponse.json({
     sessionId: null,

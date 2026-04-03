@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../db';
+import { logger } from '@/lib/server-logger';
 import IdentitySession from '@/models/IdentitySession';
 
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDiditDb();
   } catch (error) {
-    console.error('Erreur connexion DB Didit:', error);
+    logger.error('Erreur connexion DB Didit', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ verified: false });
   }
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
         `https://apx.didit.me/v2/session/${sessionId}`
       ];
       
-      console.log('[DIDIT STATUS] Interrogation API Didit pour session:', sessionId);
+      logger.info('[DIDIT STATUS] Interrogation API Didit pour session', { sessionId });
       
       let response: Response | null = null;
       let successEndpoint = '';
@@ -52,20 +53,20 @@ export async function GET(request: NextRequest) {
             break;
           } else {
             const errorText = await tempResponse.text();
-            console.log(`[DIDIT STATUS] Endpoint ${apiUrl} failed:`, tempResponse.status, errorText);
+            logger.info('[DIDIT STATUS] Endpoint failed', { apiUrl, status: tempResponse.status, errorText });
           }
         } catch (e) {
-          console.log(`[DIDIT STATUS] Endpoint ${apiUrl} error:`, e);
+          logger.error('[DIDIT STATUS] Endpoint error', { apiUrl, error: e instanceof Error ? e.message : e });
         }
       }
       
       if (!response) {
-        console.log('[DIDIT STATUS] Tous les endpoints ont échoué');
+        logger.warn('[DIDIT STATUS] Tous les endpoints ont échoué');
       }
       
       if (response) {
         const data = await response.json();
-        console.log('[DIDIT STATUS] Réponse API Didit via', successEndpoint, ':', JSON.stringify(data, null, 2));
+        logger.info('[DIDIT STATUS] Réponse API Didit', { endpoint: successEndpoint, data });
         
         // Vérifier si le statut est "Approved" ou équivalent
         // V3: data.status peut être "Approved", "Completed", etc.
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
             { upsert: true, new: true }
           );
           
-          console.log('[DIDIT STATUS] Session mise à jour vers CERTIFIEE:', sessionId);
+          logger.info('[DIDIT STATUS] Session mise à jour vers CERTIFIEE', { sessionId });
           
           return NextResponse.json({
             verified: true,
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
       }
       // Si aucun endpoint n'a fonctionné, le log a déjà été fait dans la boucle
     } catch (apiError) {
-      console.error('[DIDIT STATUS] Erreur API Didit:', apiError);
+      logger.error('[DIDIT STATUS] Erreur API Didit', { error: apiError instanceof Error ? apiError.message : apiError });
     }
     
     // Si l'API Didit ne répond pas mais la session locale est CERTIFIEE, retourner les données

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -52,7 +53,7 @@ export async function GET(
       lastViewedAt: (app as any).passportLastViewedAt ?? null,
     });
   } catch (e) {
-    console.error('GET /api/passport/application/[id]', e);
+    logger.error('GET /api/passport/application/[id]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

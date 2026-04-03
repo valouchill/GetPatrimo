@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { logger } from '@/lib/server-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '../../didit/db';
 import IdentitySession from '@/models/IdentitySession';
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   const sessionId = allParams.verificationSessionId || allParams.session_id || allParams.sessionId;
   const status = allParams.status;
 
-  console.log('[DIDIT WEBHOOK GET] Paramètres:', { sessionId, status });
+  logger.info('[DIDIT WEBHOOK GET] Paramètres', { sessionId, status });
   
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID manquant' }, { status: 400 });
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
 
           if (response.ok) {
             const data = await response.json();
-            console.log('[DIDIT WEBHOOK GET] Réponse API:', apiUrl);
+            logger.info('[DIDIT WEBHOOK GET] Réponse API', { apiUrl });
 
             const idVerification = data?.decision?.id_verifications?.[0] || {};
             const idDocument = data?.id_document || data?.document || {};
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
             if (extractedFirstName || extractedLastName) break;
           }
         } catch (e) {
-          console.log('[DIDIT WEBHOOK GET] Endpoint échoué:', apiUrl);
+          logger.info('[DIDIT WEBHOOK GET] Endpoint échoué', { apiUrl });
         }
       }
 
@@ -98,26 +99,40 @@ export async function GET(request: NextRequest) {
       const finalFirstName = extractedFirstName || existingSession?.firstName || '';
       const finalLastName = extractedLastName || existingSession?.lastName || '';
       const finalBirthDate = extractedBirthDate || existingSession?.birthDate || '';
-      
-      // Marquer comme CERTIFIEE même si on n'a pas les détails (Didit a confirmé l'approbation)
-      const updatedSession = await IdentitySession.findOneAndUpdate(
-        { sessionId },
-        {
-          sessionId,
-          status: 'approved',
-          identityStatus: 'CERTIFIEE',
-          firstName: finalFirstName,
-          lastName: finalLastName,
-          birthDate: finalBirthDate,
-          humanVerified: true,
-          verifiedAt: new Date()
-        },
-        { upsert: true, new: true }
-      );
-      
-      console.log('[DIDIT WEBHOOK GET] Session mise à jour vers CERTIFIEE:', sessionId);
+
+      // SÉCURITÉ : ne marquer CERTIFIEE que si l'API Didit a confirmé l'identité
+      // (au moins un nom extrait de l'API). Sinon, on ne fait confiance qu'au POST signé.
+      if (extractedFirstName || extractedLastName) {
+        await IdentitySession.findOneAndUpdate(
+          { sessionId },
+          {
+            sessionId,
+            status: 'approved',
+            identityStatus: 'CERTIFIEE',
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            birthDate: finalBirthDate,
+            humanVerified: true,
+            verifiedAt: new Date()
+          },
+          { upsert: true, new: true }
+        );
+        logger.info('[DIDIT WEBHOOK GET] Session certifiée via API Didit', { sessionId });
+      } else {
+        // L'API n'a pas confirmé — on met à jour le statut redirect seulement (pas CERTIFIEE)
+        // La certification se fera via le webhook POST signé
+        await IdentitySession.findOneAndUpdate(
+          { sessionId },
+          {
+            sessionId,
+            status: 'pending_confirmation',
+          },
+          { upsert: true, new: true }
+        );
+        logger.info('[DIDIT WEBHOOK GET] API non confirmée, en attente du webhook POST signé', { sessionId });
+      }
     } catch (error) {
-      console.error('[DIDIT WEBHOOK GET] Erreur:', error);
+      logger.error('[DIDIT WEBHOOK GET] Erreur', { error: error instanceof Error ? error.message : error });
     }
   }
   
@@ -126,7 +141,7 @@ export async function GET(request: NextRequest) {
       await connectDiditDb();
       existingSession = await IdentitySession.findOne({ sessionId });
     } catch (error) {
-      console.error('[DIDIT WEBHOOK GET] Impossible de relire la session:', error);
+      logger.error('[DIDIT WEBHOOK GET] Impossible de relire la session', { error: error instanceof Error ? error.message : error });
     }
   }
 
@@ -175,10 +190,10 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get(signatureHeader);
 
   const signatureValid = verifySignature(rawBody, signature, secret);
-  console.log('[DIDIT WEBHOOK POST] Signature valide:', signatureValid);
+  logger.info('[DIDIT WEBHOOK POST] Signature valide', { signatureValid });
 
   if (!signatureValid) {
-    console.warn('[DIDIT WEBHOOK POST] Signature invalide — requête rejetée');
+    logger.warn('[DIDIT WEBHOOK POST] Signature invalide — requête rejetée');
     return NextResponse.json({ error: 'Signature invalide.' }, { status: 401 });
   }
 
@@ -186,7 +201,7 @@ export async function POST(request: NextRequest) {
   try {
     payload = JSON.parse(rawBody);
   } catch (e) {
-    console.error('[DIDIT WEBHOOK POST] Erreur parsing JSON:', e);
+    logger.error('[DIDIT WEBHOOK POST] Erreur parsing JSON', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Body invalide.' }, { status: 400 });
   }
   
@@ -200,7 +215,7 @@ export async function POST(request: NextRequest) {
   // Vérifier le statut (case-insensitive)
   const normalizedStatus = status?.toLowerCase();
   if (normalizedStatus !== 'approved' && normalizedStatus !== 'completed' && normalizedStatus !== 'verified') {
-    console.log('[DIDIT WEBHOOK POST] Statut non-approved:', status);
+    logger.info('[DIDIT WEBHOOK POST] Statut non-approved', { status });
     return NextResponse.json({ received: true, status });
   }
 
@@ -290,7 +305,7 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch (error) {
-    console.error('Erreur mise à jour Didit:', error);
+    logger.error('Erreur mise à jour Didit', { error: error instanceof Error ? error.message : error });
   }
 
   return NextResponse.json({ received: true });

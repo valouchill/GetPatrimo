@@ -37,6 +37,7 @@ const providers: any[] = [
           id: String(user._id),
           email: user.email,
           name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+          totpEnabled: Boolean(user.totpEnabled),
         };
       } catch {
         return null;
@@ -102,12 +103,14 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.totpEnabled = user.totpEnabled || false;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session.user) {
         session.user.id = token?.id ?? token?.sub;
+        session.user.totpEnabled = token?.totpEnabled || false;
       }
       return session;
     },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { logger } from '@/lib/server-logger';
 
 function base64UrlEncode(buffer: Buffer) {
   return buffer
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set('didit_return', returnUrl, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600 });
     return response;
   } catch (error) {
-    console.error('Erreur démarrage Didit:', error);
+    logger.error('Erreur démarrage Didit', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

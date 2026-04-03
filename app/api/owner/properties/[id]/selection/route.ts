@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { validateRequest } from '@/lib/validate-request';
 import { SelectionSchema } from '@/lib/validations/lease';
+import { logger } from '@/lib/server-logger';
 
 import Property from '@/models/Property';
 import Application from '@/models/Application';
@@ -113,7 +114,7 @@ export async function PUT(
       selectedCandidateId: String(application._id),
     });
   } catch (error) {
-    console.error('PUT /api/owner/properties/[id]/selection', error);
+    logger.error('PUT /api/owner/properties/[id]/selection', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -174,7 +175,7 @@ export async function DELETE(
       selectedCandidateId: null,
     });
   } catch (error) {
-    console.error('DELETE /api/owner/properties/[id]/selection', error);
+    logger.error('DELETE /api/owner/properties/[id]/selection', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

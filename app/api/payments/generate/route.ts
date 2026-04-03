@@ -6,6 +6,7 @@ import { withErrorHandler } from '@/lib/with-error-handler';
 import { validateRequest } from '@/lib/validate-request';
 import { GeneratePaymentsSchema } from '@/lib/validations/payment';
 import { generateMonthlyPayments } from '@/lib/services/paymentService';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -85,7 +86,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`Bail ${lease._id}: ${msg}`);
-      console.error(`[payments/generate] Erreur bail ${lease._id}:`, msg);
+      logger.error('[payments/generate] Erreur bail', { leaseId: lease._id, error: msg });
     }
   }
 

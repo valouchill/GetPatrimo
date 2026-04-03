@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { computeDossierStrategique } from '@/lib/owner-tunnel/dossier-strategique-engine';
 import type { VisionAtouts } from '@/lib/owner-tunnel/schemas';
+import { logger } from '@/lib/server-logger';
 
 const DEFAULT_ATOUTS: VisionAtouts = {
   parquet_massif: false,
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
-    console.error('owner-tunnel dossier-strategique:', e);
+    logger.error('owner-tunnel dossier-strategique', { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Erreur' },
       { status: 500 }

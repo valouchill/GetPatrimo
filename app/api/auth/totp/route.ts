@@ -1,0 +1,174 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
+import { connectDiditDb } from '@/app/api/didit/db';
+import { withErrorHandler } from '@/lib/with-error-handler';
+import crypto from 'crypto';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const User = require('@/models/User');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bcrypt = require('bcryptjs');
+
+// Use dynamic import for ESM-only otpauth
+async function getOTPAuth() {
+  const { TOTP, Secret } = await import('otpauth');
+  return { TOTP, Secret };
+}
+
+/**
+ * POST /api/auth/totp — Setup or verify TOTP
+ * Body: { action: 'setup' | 'enable' | 'disable' | 'verify', code?: string }
+ */
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const session = await getServerSession(authOptions as Record<string, unknown>);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { action, code } = body;
+
+  await connectDiditDb();
+  const user = await User.findOne({ email: session.user.email });
+  if (!user) {
+    return NextResponse.json({ error: 'Utilisateur non trouve' }, { status: 404 });
+  }
+
+  const { TOTP, Secret } = await getOTPAuth();
+
+  if (action === 'setup') {
+    // Generate a new TOTP secret
+    const secret = new Secret({ size: 20 });
+    const totp = new TOTP({
+      issuer: 'PatrimoTrust',
+      label: user.email,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret,
+    });
+
+    // Store secret temporarily (not yet enabled)
+    user.totpSecret = secret.base32;
+    user.totpEnabled = false;
+    await user.save();
+
+    const otpauthUrl = totp.toString();
+
+    // Generate QR code as data URL
+    const QRCode = await import('qrcode');
+    const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+    return NextResponse.json({
+      secret: secret.base32,
+      qrCode: qrDataUrl,
+      otpauthUrl,
+    });
+  }
+
+  if (action === 'enable') {
+    // Verify the code and enable 2FA
+    if (!code || !user.totpSecret) {
+      return NextResponse.json({ error: 'Code et secret requis' }, { status: 400 });
+    }
+
+    const totp = new TOTP({
+      issuer: 'PatrimoTrust',
+      label: user.email,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(user.totpSecret),
+    });
+
+    const delta = totp.validate({ token: code, window: 1 });
+    if (delta === null) {
+      return NextResponse.json({ error: 'Code invalide' }, { status: 400 });
+    }
+
+    // Generate backup codes
+    const backupCodes: string[] = [];
+    const hashedCodes: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      const raw = crypto.randomBytes(4).toString('hex'); // 8-char hex code
+      backupCodes.push(raw);
+      hashedCodes.push(await bcrypt.hash(raw, 10));
+    }
+
+    user.totpEnabled = true;
+    user.totpBackupCodes = hashedCodes;
+    await user.save();
+
+    return NextResponse.json({
+      enabled: true,
+      backupCodes, // Show once, user must save them
+    });
+  }
+
+  if (action === 'disable') {
+    if (!code) {
+      return NextResponse.json({ error: 'Code requis pour desactiver le 2FA' }, { status: 400 });
+    }
+
+    // Verify current TOTP before disabling
+    if (user.totpEnabled && user.totpSecret) {
+      const totp = new TOTP({
+        issuer: 'PatrimoTrust',
+        label: user.email,
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: Secret.fromBase32(user.totpSecret),
+      });
+
+      const delta = totp.validate({ token: code, window: 1 });
+      if (delta === null) {
+        return NextResponse.json({ error: 'Code invalide' }, { status: 400 });
+      }
+    }
+
+    user.totpSecret = '';
+    user.totpEnabled = false;
+    user.totpBackupCodes = [];
+    await user.save();
+
+    return NextResponse.json({ enabled: false });
+  }
+
+  if (action === 'verify') {
+    // Verify a TOTP code (used during login flow)
+    if (!code || !user.totpSecret || !user.totpEnabled) {
+      return NextResponse.json({ error: 'Code requis' }, { status: 400 });
+    }
+
+    const totp = new TOTP({
+      issuer: 'PatrimoTrust',
+      label: user.email,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(user.totpSecret),
+    });
+
+    const delta = totp.validate({ token: code, window: 1 });
+    if (delta !== null) {
+      return NextResponse.json({ valid: true });
+    }
+
+    // Check backup codes
+    for (let i = 0; i < (user.totpBackupCodes || []).length; i++) {
+      const match = await bcrypt.compare(code, user.totpBackupCodes[i]);
+      if (match) {
+        // Remove used backup code
+        user.totpBackupCodes.splice(i, 1);
+        await user.save();
+        return NextResponse.json({ valid: true, backupCodeUsed: true });
+      }
+    }
+
+    return NextResponse.json({ error: 'Code invalide' }, { status: 400 });
+  }
+
+  return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
+});

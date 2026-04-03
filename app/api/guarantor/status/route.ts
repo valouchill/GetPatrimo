@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '../../didit/db';
+import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
 
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
       try {
         const apiKey = process.env.DIDIT_API_KEY || process.env.DIDIT_CLIENT_SECRET;
         if (!apiKey) {
-          console.warn('DIDIT_API_KEY non configuré');
+          logger.warn('DIDIT_API_KEY non configuré');
         } else {
           diditStatus = await fetchDiditSessionVerification(guarantor.diditSessionId, apiKey as string);
 
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error('Erreur vérification statut Didit garant:', error);
+        logger.error('Erreur vérification statut Didit garant', { error: error instanceof Error ? error.message : error });
       }
     }
 
@@ -172,7 +173,7 @@ export async function GET(request: NextRequest) {
         : maskedEmail,
     });
   } catch (error) {
-    console.error('Erreur récupération statut garant:', error);
+    logger.error('Erreur récupération statut garant', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

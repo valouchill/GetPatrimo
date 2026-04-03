@@ -33,6 +33,7 @@ export const GET = withErrorHandler(async () => {
   const leases = await Lease.find({ property: { $in: propertyIds } })
     .populate('property', 'name address')
     .sort({ createdAt: -1 })
+    .limit(100)
     .lean();
 
   return NextResponse.json({ success: true, data: leases });

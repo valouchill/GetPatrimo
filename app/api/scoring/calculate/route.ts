@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Document from '@/models/Document';
 import Property from '@/models/Property';
 import Candidature from '@/models/Candidature';
@@ -46,14 +47,14 @@ export async function GET(request: NextRequest) {
     let tenantName = 'Candidat';
 
     if (candidatureId) {
-      const candidature = await Candidature.findById(candidatureId);
+      const candidature: any = await Candidature.findById(candidatureId).lean();
       if (!candidature) {
         return NextResponse.json(
           { error: 'Candidature introuvable' },
           { status: 404 }
         );
       }
-      const property = await Property.findById(candidature.property);
+      const property: any = await Property.findById(candidature.property).lean();
       if (!property) {
         return NextResponse.json(
           { error: 'Bien introuvable' },
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     const scoreResult = calculatePatrimoScore(documents, { tenantName });
     return NextResponse.json(scoreResult);
   } catch (error: any) {
-    console.error('Erreur calcul score:', error);
+    logger.error('Erreur calcul score', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur lors du calcul du score', details: error.message },
       { status: 500 }
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     const scoreResult = calculatePatrimoScore(documents, { tenantName: tenantName || 'Candidat' });
     return NextResponse.json(scoreResult);
   } catch (error: any) {
-    console.error('Erreur calcul score:', error);
+    logger.error('Erreur calcul score', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur lors du calcul du score', details: error.message },
       { status: 500 }

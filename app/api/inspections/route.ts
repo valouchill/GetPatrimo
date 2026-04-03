@@ -33,6 +33,7 @@ export const GET = withErrorHandler(async () => {
     .populate('property', 'name address')
     .populate('lease', 'tenantFirstName tenantLastName tenantEmail startDate endDate')
     .sort({ createdAt: -1 })
+    .limit(100)
     .lean();
 
   return NextResponse.json({ success: true, data: inspections });

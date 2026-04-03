@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAnnonce } from '../../../../lib/owner-tunnel/annonce-generator';
+import { logger } from '@/lib/server-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({ success: true, annonce });
   } catch (e) {
-    console.error('owner-tunnel generate-annonce:', e);
+    logger.error('owner-tunnel generate-annonce', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
   }
 }

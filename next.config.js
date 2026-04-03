@@ -1,5 +1,7 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
-module.exports = {
+const nextConfig = {
   serverExternalPackages: ['pdfkit', 'fontkit'],
   experimental: {
     serverActions: { bodySizeLimit: '15mb' },
@@ -45,3 +47,11 @@ module.exports = {
     ],
   },
 };
+
+// Wrap with Sentry only when DSN is configured
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      hideSourceMaps: true,
+    })
+  : nextConfig;

@@ -4,6 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { validateRequest } from '@/lib/validate-request';
 import { RegisterSchema } from '@/lib/validations/auth';
+import { logger } from '@/lib/server-logger';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[register]', err);
+    logger.error('[register]', { error: err instanceof Error ? err.message : err });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

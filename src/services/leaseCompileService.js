@@ -192,7 +192,7 @@ function convertDocxWithLibreOffice(docxBuffer) {
 
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
-      // Fallback géré plus bas.
+      console.warn(`[lease-compile] LibreOffice (${binary}) non disponible:`, error?.message || error);
     }
   }
 
@@ -203,6 +203,7 @@ async function convertDocxToPdfBuffer(docxBuffer, title) {
   const libreOfficeBuffer = convertDocxWithLibreOffice(docxBuffer);
   if (libreOfficeBuffer) return libreOfficeBuffer;
 
+  console.warn('[lease-compile] LibreOffice indisponible — fallback texte brut. Le PDF perdra sa mise en forme.');
   const extractedText = extractDocxText(docxBuffer);
   return renderTextPdfBuffer(title, extractedText);
 }

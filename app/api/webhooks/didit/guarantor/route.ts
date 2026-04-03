@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { connectDiditDb } from '../../../didit/db';
+import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import Candidature from '@/models/Candidature';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.DIDIT_CLIENT_SECRET;
 
     if (!webhookSecret) {
-      console.error('[didit-webhook] DIDIT_CLIENT_SECRET non configure');
+      logger.error('[didit-webhook] DIDIT_CLIENT_SECRET non configure');
       return NextResponse.json(
         { error: 'Configuration webhook invalide.' },
         { status: 500 }
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Verifier la signature HMAC-SHA256 — rejeter si absente ou invalide
     if (!signature || !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-      console.error('[didit-webhook] Signature invalide ou absente');
+      logger.error('[didit-webhook] Signature invalide ou absente');
       return NextResponse.json(
         { error: 'Signature invalide.' },
         { status: 401 }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Verifier le statut de la session Didit
     const apiKey = process.env.DIDIT_API_KEY || process.env.DIDIT_CLIENT_SECRET;
     if (!apiKey) {
-      console.error('[didit-webhook] DIDIT_API_KEY non configure');
+      logger.error('[didit-webhook] DIDIT_API_KEY non configure');
       return NextResponse.json({ received: true });
     }
 
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[didit-webhook] Erreur:', error);
+    logger.error('[didit-webhook] Erreur', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur serveur' },
       { status: 500 }

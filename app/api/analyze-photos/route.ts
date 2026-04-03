@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/server-logger';
 
 export const maxDuration = 60;
 
@@ -190,7 +191,7 @@ Retourne uniquement le JSON, sans markdown ni explication.`;
         .trim();
       analysis = JSON.parse(cleanedContent);
     } catch (parseError) {
-      console.error('Erreur parsing JSON:', content);
+      logger.error('Erreur parsing JSON', { content });
       // Retourner une analyse par défaut en cas d'erreur
       analysis = {
         features: [{ name: 'Bien immobilier', emoji: '🏠', confidence: 0.8, selling_point: true }],
@@ -237,7 +238,7 @@ Retourne uniquement le JSON, sans markdown ni explication.`;
     });
 
   } catch (error: any) {
-    console.error('Erreur analyse photos:', error);
+    logger.error('Erreur analyse photos', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { 
         error: 'Erreur lors de l\'analyse des photos',

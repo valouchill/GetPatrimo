@@ -3,9 +3,11 @@ import { z } from 'zod';
 export const RegisterSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+    .min(12, 'Le mot de passe doit contenir au moins 12 caractères')
+    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins 1 minuscule')
     .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins 1 majuscule')
-    .regex(/\d/, 'Le mot de passe doit contenir au moins 1 chiffre'),
+    .regex(/\d/, 'Le mot de passe doit contenir au moins 1 chiffre')
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Le mot de passe doit contenir au moins 1 caractère spécial'),
 });
 
 export const SendOtpSchema = z.object({

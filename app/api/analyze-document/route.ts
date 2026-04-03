@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { logger } from '@/lib/server-logger';
+import { trackUsage, checkUserLimit } from '@/lib/services/openai-usage';
 import { scanDPE } from '@/lib/owner-tunnel/dpe-scanner';
 import { checkRateLimit } from '@/lib/rate-limit';
 
@@ -118,22 +120,10 @@ RETOURNE UNIQUEMENT UN JSON valide avec cette structure:
 IMPORTANT: Si tu ne trouves pas une valeur, mets null. La note DPE (dpe_note) est L'INFORMATION LA PLUS IMPORTANTE à extraire.`;
 }
 
-function getAnalysisPrompt(
-  candidateStatus?: string,
-  isTextMode: boolean = false,
-  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null }
-): string {
-  const personaContext = candidateStatus 
-    ? `\n\nCONTEXTE CANDIDAT: Le candidat a déclaré être "${candidateStatus}". Vérifie la cohérence entre le profil déclaré et les documents fournis.`
-    : '';
-
-  const modeContext = isTextMode 
+function getAnalysisSystemPrompt(isTextMode: boolean = false): string {
+  const modeContext = isTextMode
     ? 'Tu analyses le TEXTE extrait d\'un document PDF.'
     : 'Tu analyses une IMAGE de document.';
-
-  const diditContext = diditIdentity?.firstName || diditIdentity?.lastName
-    ? `\n\nIDENTITÉ CERTIFIÉE DIDIT:\n- Nom: ${diditIdentity.lastName || 'N/A'}\n- Prénom: ${diditIdentity.firstName || 'N/A'}\n- Date de naissance: ${diditIdentity.birthDate || 'N/A'}\nVérifie la cohérence entre ces informations et le document.`
-    : '';
 
   return `Tu es un expert en audit de documents locatifs pour GetPatrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
 
@@ -162,8 +152,7 @@ MISSION:
    - 50-69: Document incomplet, nécessite vérification
    - 0-49: Document illisible ou très suspect
 
-${personaContext}
-${diditContext}
+5. Si un contexte candidat ou une identité certifiée sont fournis dans le message utilisateur, vérifie la cohérence avec le document analysé.
 
 RETOURNE UNIQUEMENT UN JSON valide avec cette structure:
 {
@@ -191,6 +180,23 @@ RETOURNE UNIQUEMENT UN JSON valide avec cette structure:
 }`;
 }
 
+/** Build the user-context message (candidate status + verified identity).
+ *  This is sent as a separate user message to avoid prompt injection via
+ *  user-controlled data in the system prompt. */
+function buildUserContext(
+  candidateStatus?: string,
+  diditIdentity?: { firstName?: string | null; lastName?: string | null; birthDate?: string | null }
+): string {
+  const parts: string[] = [];
+  if (candidateStatus) {
+    parts.push(`CONTEXTE CANDIDAT: Le candidat a déclaré être "${candidateStatus}". Vérifie la cohérence entre le profil déclaré et les documents fournis.`);
+  }
+  if (diditIdentity?.firstName || diditIdentity?.lastName) {
+    parts.push(`IDENTITÉ CERTIFIÉE:\n- Nom: ${diditIdentity.lastName || 'N/A'}\n- Prénom: ${diditIdentity.firstName || 'N/A'}\n- Date de naissance: ${diditIdentity.birthDate || 'N/A'}\nVérifie la cohérence entre ces informations et le document.`);
+  }
+  return parts.join('\n\n');
+}
+
 // Extraire le texte d'un PDF avec pdf-parse
 async function extractPDFText(buffer: ArrayBuffer): Promise<string> {
   try {
@@ -200,7 +206,7 @@ async function extractPDFText(buffer: ArrayBuffer): Promise<string> {
     const data = await pdfParse(pdfBuffer);
     return data.text || '';
   } catch (error) {
-    console.error('Erreur extraction PDF:', error);
+    logger.error('Erreur extraction PDF', { error: error instanceof Error ? error.message : error });
     return '';
   }
 }
@@ -216,6 +222,17 @@ export async function POST(request: NextRequest) {
     const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de requêtes, réessayez dans 1 minute.' }, { status: 429 });
+    }
+
+    // Check monthly OpenAI cost limit per user
+    const userId = session.user.id || session.user.email || ip;
+    const { allowed: costAllowed, monthlyCost } = checkUserLimit(userId);
+    if (!costAllowed) {
+      logger.warn('[analyze] Monthly OpenAI cost limit reached', { userId, monthlyCost });
+      return NextResponse.json(
+        { error: 'Limite mensuelle d\'analyses atteinte. Contactez le support.' },
+        { status: 429 }
+      );
     }
 
     const formData = await request.formData();
@@ -245,7 +262,7 @@ export async function POST(request: NextRequest) {
     const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const buffer = await file.arrayBuffer();
     
-    console.log(`📄 Analyse RÉELLE: ${file.name} (${(file.size/1024).toFixed(0)}KB) - Type: ${isPDF ? 'PDF' : 'Image'}${isDPE ? ' - Mode DPE (Structured Outputs)' : ''}`);
+    logger.info('Analyse RÉELLE', { fileName: file.name, sizeKB: (file.size/1024).toFixed(0), fileType: isPDF ? 'PDF' : 'Image', isDPE });
 
     // Pipeline déterministe DPE : json_schema strict (zéro hallucination)
     if (isDPE) {
@@ -280,7 +297,7 @@ export async function POST(request: NextRequest) {
         };
         return NextResponse.json(jsonResponse);
       } catch (dpeError) {
-        console.error('❌ Erreur scan DPE structuré:', dpeError);
+        logger.error('Erreur scan DPE structuré', { error: dpeError instanceof Error ? dpeError.message : dpeError });
         return NextResponse.json(
           { error: dpeError instanceof Error ? dpeError.message : 'Erreur extraction DPE' },
           { status: 500 }
@@ -292,23 +309,27 @@ export async function POST(request: NextRequest) {
     let model: string;
 
     // Sélectionner le bon prompt selon le type de document
-    const getPromptForDocument = (isTextMode: boolean) => {
+    // User-controlled data (candidateStatus, diditIdentity) is sent as a separate
+    // user message to prevent prompt injection via the system prompt.
+    const getSystemPromptForDocument = (isTextMode: boolean) => {
       if (isDPE) {
         return getDPEAnalysisPrompt(isTextMode);
       }
-      return getAnalysisPrompt(candidateStatus || undefined, isTextMode, {
-        firstName: diditFirstName,
-        lastName: diditLastName,
-        birthDate: diditBirthDate,
-      });
+      return getAnalysisSystemPrompt(isTextMode);
     };
+
+    const userContext = isDPE ? '' : buildUserContext(candidateStatus || undefined, {
+      firstName: diditFirstName,
+      lastName: diditLastName,
+      birthDate: diditBirthDate,
+    });
 
     if (isPDF) {
       // Pour les PDF: extraire le texte et utiliser GPT-4
       const pdfText = await extractPDFText(buffer);
-      
+
       if (!pdfText || pdfText.trim().length < 50) {
-        console.log('⚠️ PDF sans texte extractible - document probablement scanné');
+        logger.warn('PDF sans texte extractible - document probablement scanné');
         return NextResponse.json({
           documentType: isDPE ? 'dpe' : 'autre',
           extractedData: {},
@@ -318,31 +339,32 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`📝 Texte PDF extrait: ${pdfText.length} caractères`);
-      
+      logger.info('Texte PDF extrait', { characters: pdfText.length });
+
       model = 'gpt-4o';
       messages = [
-        {
-          role: 'user',
-          content: `${getPromptForDocument(true)}\n\n--- CONTENU DU DOCUMENT ---\n${pdfText.substring(0, 8000)}`,
-        },
+        { role: 'system', content: getSystemPromptForDocument(true) },
+        ...(userContext ? [{ role: 'user', content: userContext }] : []),
+        { role: 'user', content: `--- CONTENU DU DOCUMENT ---\n${pdfText.substring(0, 8000)}` },
       ];
     } else {
       // Pour les images: utiliser GPT-4o Vision
       const base64 = Buffer.from(buffer).toString('base64');
-      
+
       let mimeType = 'image/jpeg';
       if (file.type.includes('image/png')) mimeType = 'image/png';
       if (file.type.includes('image/webp')) mimeType = 'image/webp';
-      
+
       const base64Image = `data:${mimeType};base64,${base64}`;
-      
+
       model = 'gpt-4o';
       messages = [
+        { role: 'system', content: getSystemPromptForDocument(false) },
+        ...(userContext ? [{ role: 'user', content: userContext }] : []),
         {
           role: 'user',
           content: [
-            { type: 'text', text: getPromptForDocument(false) },
+            { type: 'text', text: 'Analyse ce document.' },
             { type: 'image_url', image_url: { url: base64Image } },
           ],
         },
@@ -350,7 +372,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Appel à l'API OpenAI
-    console.log(`🤖 Appel OpenAI (${model})...`);
+    logger.info('Appel OpenAI', { model });
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -368,7 +390,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Erreur OpenAI:', response.status, errorData);
+      logger.error('Erreur OpenAI', { status: response.status, errorData });
       
       // Message d'erreur plus explicite
       const errorMessage = errorData.error?.message || 'Erreur API OpenAI';
@@ -376,6 +398,12 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    // Track token usage for cost monitoring
+    if (data.usage) {
+      trackUsage(userId, model, data.usage);
+    }
+
     const content = data.choices?.[0]?.message?.content || '{}';
 
     // Parser la réponse JSON
@@ -391,7 +419,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`✅ Analyse RÉELLE terminée: ${result.documentType}, score: ${result.confidenceScore}%`);
+    logger.info('Analyse RÉELLE terminée', { documentType: result.documentType, confidenceScore: result.confidenceScore });
 
     // Construire la réponse avec les champs spécifiques DPE si applicable
     const jsonResponse: Record<string, unknown> = {
@@ -423,7 +451,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(jsonResponse);
 
   } catch (error) {
-    console.error('❌ Erreur analyse:', error);
+    logger.error('Erreur analyse', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors de l\'analyse' },
       { status: 500 }

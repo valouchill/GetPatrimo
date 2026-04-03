@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import fs from 'fs';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur serveur';
-    console.error('[preview]', message);
+    logger.error('[preview]', { error: message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

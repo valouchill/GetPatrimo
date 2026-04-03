@@ -8,8 +8,8 @@ const AiAnalysisSchema = new mongoose.Schema({
   extractedFields: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
   flags: [{ type: String }],
   summary: { type: String, default: '' },
-  fraudScore: { type: Number, default: 0 },
-}, { _id: false, strict: false });
+  fraudScore: { type: Number, default: 0, min: 0, max: 1 },
+}, { _id: false });
 
 const GuaranteeSchema = new mongoose.Schema({
   type: { type: String, default: '' },
@@ -17,7 +17,7 @@ const GuaranteeSchema = new mongoose.Schema({
   amount: { type: Number, default: 0 },
   provider: { type: String, default: '' },
   visaleNumber: { type: String, default: '' },
-}, { _id: false, strict: false });
+}, { _id: false });
 
 const BreakdownSchema = new mongoose.Schema({
   loyer: { type: Number, default: 0 },

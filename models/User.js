@@ -52,6 +52,11 @@ const UserSchema = new mongoose.Schema({
     marketing: { type: Boolean, default: true },
   },
 
+  // 2FA TOTP (optional)
+  totpSecret: { type: String, default: '' },   // encrypted base32 secret
+  totpEnabled: { type: Boolean, default: false },
+  totpBackupCodes: [{ type: String }],          // hashed backup codes
+
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 });

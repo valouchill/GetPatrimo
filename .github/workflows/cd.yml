@@ -1,0 +1,82 @@
+name: CD — Build & Deploy
+
+on:
+  push:
+    branches: [master, main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ── Build & push Docker image ──────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            JWT_SECRET=build-time-placeholder
+            NEXTAUTH_SECRET=build-time-placeholder
+            MONGO_URI=mongodb://127.0.0.1:27017/doc2loc-build
+
+  # ── Deploy to staging ──────────────────────────────────────
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy to staging
+        run: |
+          echo "Deploy to staging server via SSH or webhook."
+          echo "Image: ${{ needs.build.outputs.image_tag }}"
+          # Example: ssh deploy@staging "docker pull $IMAGE && docker compose up -d"
+          # Uncomment and configure when staging server is ready:
+          # ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }} \
+          #   "cd /opt/doc2loc && docker compose pull && docker compose up -d"
+
+  # ── Deploy to production (manual approval) ─────────────────
+  deploy-production:
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploy to production server."
+          echo "Image: ${{ needs.build.outputs.image_tag }}"
+          # Uncomment and configure when production server is ready:
+          # ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }} \
+          #   "cd /opt/doc2loc && docker compose pull && docker compose up -d"

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 const User = require('@/models/User');
 
@@ -39,7 +40,7 @@ export async function POST() {
 
     return NextResponse.json({ url: portalSession.url });
   } catch (e: any) {
-    console.error('[billing-portal]', e);
+    logger.error('[billing-portal]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
       { error: e.message || 'Erreur lors de la création du portail.' },
       { status: 500 },

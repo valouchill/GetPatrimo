@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
 import { calculateIntegrityScore } from '@/app/utils/integrity-score';
@@ -26,7 +27,7 @@ export async function GET(
     const { id } = await params;
     
     // Trouver la propriété
-    const property = await Property.findById(id).select('_id title address applyToken');
+    const property = await Property.findById(id).select('_id title address applyToken').lean();
     if (!property) {
       return NextResponse.json(
         { error: 'Propriété introuvable' },
@@ -91,17 +92,18 @@ export async function GET(
       };
     });
 
+    const prop = property as any;
     return NextResponse.json({
       property: {
-        id: property._id.toString(),
-        title: property.title,
-        address: property.address,
+        id: prop._id.toString(),
+        title: prop.title,
+        address: prop.address,
       },
       candidatures: candidaturesWithIntegrity,
       total: candidaturesWithIntegrity.length,
     });
   } catch (error: any) {
-    console.error('Erreur récupération candidatures:', error);
+    logger.error('Erreur récupération candidatures', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des candidatures' },
       { status: 500 }

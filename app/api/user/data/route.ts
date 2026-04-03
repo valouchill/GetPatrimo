@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -114,7 +115,7 @@ export async function DELETE() {
       message: 'Vos données personnelles ont été supprimées et votre compte anonymisé.',
     });
   } catch (err) {
-    console.error('[DELETE /api/user/data] Erreur:', err instanceof Error ? err.message : err);
+    logger.error('[DELETE /api/user/data] Erreur', { error: err instanceof Error ? err.message : err });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

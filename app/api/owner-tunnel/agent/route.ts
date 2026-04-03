@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { PropertyData } from "@/lib/owner-tunnel/property-data-schema";
+import { logger } from "@/lib/server-logger";
 
 const SYSTEM_PROMPT = `# RÔLE ET PERSONA
 Tu es l'Expert PatrimoTrust, un concierge immobilier de très haut niveau. Ton rôle est d'accompagner un propriétaire exigeant dans la valorisation de son actif immobilier.
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (e) {
-    console.error("owner-tunnel agent:", e);
+    logger.error("owner-tunnel agent", { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erreur agent" },
       { status: 500 }

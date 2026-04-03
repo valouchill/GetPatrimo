@@ -79,6 +79,169 @@ function PasswordInput({
 }
 
 // ─── Section card ───────────────────────────────────────────────
+function TwoFactorSection() {
+  const [step, setStep] = useState<'idle' | 'setup' | 'confirm' | 'done'>('idle');
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [code, setCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+
+  useEffect(() => {
+    fetch('/api/auth/totp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'verify', code: '000000' }) })
+      .catch(() => {});
+  }, []);
+
+  const handleSetup = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/totp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'setup' }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setQrCode(data.qrCode);
+      setSecret(data.secret);
+      setStep('setup');
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnable = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/totp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'enable', code }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setBackupCodes(data.backupCodes);
+      setEnabled(true);
+      setStep('done');
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/totp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'disable', code: disableCode }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEnabled(false);
+      setStep('idle');
+      setDisableCode('');
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Section icon={Shield} title="Authentification à deux facteurs" description="Protégez votre compte avec Google Authenticator" delay={0.12}>
+      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 mb-3">{error}</div>}
+
+      {step === 'idle' && !enabled && (
+        <button
+          type="button"
+          onClick={handleSetup}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+          Activer le 2FA
+        </button>
+      )}
+
+      {step === 'setup' && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">Scannez ce QR code avec Google Authenticator ou une application TOTP compatible :</p>
+          {qrCode && <img src={qrCode} alt="QR Code 2FA" className="w-48 h-48 mx-auto border rounded-xl" />}
+          <p className="text-xs text-slate-500 text-center font-mono break-all">Clé manuelle : {secret}</p>
+          <div>
+            <label htmlFor="totp-code" className="block text-xs font-semibold text-slate-700 mb-1.5">Code de vérification</label>
+            <input
+              id="totp-code"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="000000"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleEnable}
+            disabled={loading || code.length !== 6}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Valider et activer
+          </button>
+        </div>
+      )}
+
+      {step === 'done' && backupCodes.length > 0 && (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700 flex items-center gap-2">
+            <Check className="w-4 h-4" /> 2FA activé avec succès
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-800 mb-2">Codes de secours (sauvegardez-les maintenant) :</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {backupCodes.map((c) => (
+                <code key={c} className="text-xs font-mono bg-white px-2 py-1 rounded border text-amber-900">{c}</code>
+              ))}
+            </div>
+            <p className="text-xs text-amber-600 mt-2">Ces codes ne seront plus affichés. Chaque code est utilisable une seule fois.</p>
+          </div>
+        </div>
+      )}
+
+      {enabled && step !== 'done' && (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700 flex items-center gap-2">
+            <Check className="w-4 h-4" /> 2FA actif
+          </div>
+          <div>
+            <label htmlFor="disable-code" className="block text-xs font-semibold text-slate-700 mb-1.5">Code TOTP pour désactiver</label>
+            <input
+              id="disable-code"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={disableCode}
+              onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="000000"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleDisable}
+            disabled={loading || disableCode.length !== 6}
+            className="inline-flex items-center gap-2 rounded-xl border border-red-200 text-red-600 px-5 py-2.5 text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+            Désactiver le 2FA
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 function Section({
   icon: Icon, title, description, children, delay = 0,
 }: {
@@ -332,7 +495,7 @@ export default function ProfilePage() {
           <Section icon={Lock} title="Mot de passe" description="Créez ou modifiez votre mot de passe" delay={0.1}>
             <form onSubmit={handleChangePassword} className="space-y-4">
               <PasswordInput id="currentPw" label="Mot de passe actuel" value={pwForm.current} onChange={(v) => setPwForm((f) => ({ ...f, current: v }))} placeholder="Laissez vide si vous n'en avez pas encore" />
-              <PasswordInput id="newPw" label="Nouveau mot de passe" value={pwForm.newPw} onChange={(v) => setPwForm((f) => ({ ...f, newPw: v }))} placeholder="Min. 8 caractères, 1 majuscule, 1 chiffre" />
+              <PasswordInput id="newPw" label="Nouveau mot de passe" value={pwForm.newPw} onChange={(v) => setPwForm((f) => ({ ...f, newPw: v }))} placeholder="Min. 12 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 spécial" />
               <PasswordInput id="confirmPw" label="Confirmer" value={pwForm.confirm} onChange={(v) => setPwForm((f) => ({ ...f, confirm: v }))} placeholder="Retapez le nouveau mot de passe" />
 
               {pwError && (
@@ -354,6 +517,9 @@ export default function ProfilePage() {
               </button>
             </form>
           </Section>
+
+          {/* Authentification à deux facteurs */}
+          <TwoFactorSection />
 
           {/* Données & Confidentialité */}
           <Section icon={Shield} title="Données & Confidentialité" description="RGPD : export et suppression de vos données" delay={0.15}>

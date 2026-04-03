@@ -230,19 +230,18 @@ async function runRGPDPurge() {
     report.completedAt = new Date().toISOString();
 
     logger.info('[RGPD] Rapport de purge', { report });
-
-    process.exit(0);
+    return report;
   } catch (error) {
     report.errors.push(`Erreur fatale: ${error.message}`);
     report.completedAt = new Date().toISOString();
     logger.error('[RGPD] Erreur fatale', { error: error?.message || error, report });
-    process.exit(1);
+    return report;
   }
 }
 
 // Exécution si appelé directement
 if (require.main === module) {
-  runRGPDPurge();
+  runRGPDPurge().then(() => process.exit(0)).catch(() => process.exit(1));
 }
 
 module.exports = { runRGPDPurge };

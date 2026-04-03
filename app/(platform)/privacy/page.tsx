@@ -103,12 +103,35 @@ export default function Privacy() {
               <strong>Documents comptables :</strong> 10 ans (obligation légale, Code de commerce art. L.123-22).
             </li>
             <li>
-              <strong>Dossiers candidats non retenus :</strong> suppression automatique après 90 jours.
+              <strong>Dossiers candidats non retenus :</strong> anonymisation automatique après 90 jours
+              (noms, emails, téléphones, documents supprimés). Seules les données statistiques anonymisées
+              sont conservées.
+            </li>
+            <li>
+              <strong>Pièces d&apos;identité des candidats non retenus :</strong> suppression immédiate
+              des fichiers (CNI, passeport) dès la sélection d&apos;un candidat par le propriétaire.
+            </li>
+            <li>
+              <strong>Données biométriques (Didit) :</strong> les selfies, données de liveness et données
+              de comparaison faciale sont purgées automatiquement après la fin de la vérification.
+              Seuls le statut de vérification et le nom certifié sont conservés.
+            </li>
+            <li>
+              <strong>Leads marketing :</strong> suppression automatique après 3 ans sans interaction.
+            </li>
+            <li>
+              <strong>Tokens d&apos;authentification :</strong> OTP et tokens de connexion expirés sont
+              purgés automatiquement toutes les heures.
             </li>
             <li>
               <strong>Données de connexion :</strong> 12 mois (LCEN art. 6-II).
             </li>
           </ul>
+          <p className="mt-3 text-sm text-slate-500">
+            Les purges automatiques sont exécutées quotidiennement par nos systèmes.
+            Vous pouvez exercer votre droit à l&apos;effacement à tout moment depuis votre espace
+            personnel (Profil &gt; Données &amp; Confidentialité).
+          </p>
         </div>
 
         <div>

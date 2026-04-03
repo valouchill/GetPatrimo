@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { validateRequest } from '@/lib/validate-request';
 import { CompileLeaseSchema } from '@/lib/validations/lease';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       compileMeta: prepared.compileMeta,
     });
   } catch (error: any) {
-    console.error('POST /api/owner/leases/check-readiness', error);
+    logger.error('POST /api/owner/leases/check-readiness', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { msg: error?.message || 'Verification de dossier impossible', warnings: [] },
       { status: 500 },

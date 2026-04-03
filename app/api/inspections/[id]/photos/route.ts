@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -33,15 +34,26 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Fichier requis' }, { status: 400 });
   }
 
-  // Validate file type
-  if (!file.type.startsWith('image/')) {
-    return NextResponse.json({ error: 'Seules les images sont acceptées' }, { status: 400 });
-  }
-
   // Limit to 10MB
   if (file.size > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'Fichier trop volumineux (max 10 Mo)' }, { status: 400 });
   }
+
+  // Validate file type via magic bytes (not client-controlled file.type)
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ALLOWED_SIGNATURES: Record<string, number[]> = {
+    'image/jpeg': [0xFF, 0xD8, 0xFF],
+    'image/png': [0x89, 0x50, 0x4E, 0x47],
+    'image/webp': [0x52, 0x49, 0x46, 0x46], // RIFF
+  };
+  const detectedType = Object.entries(ALLOWED_SIGNATURES).find(([, sig]) =>
+    sig.every((byte, i) => buffer[i] === byte)
+  );
+  if (!detectedType) {
+    return NextResponse.json({ error: 'Type de fichier non autorisé (image JPEG/PNG/WebP uniquement)' }, { status: 400 });
+  }
+  const mimeToExt: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const safeExt = mimeToExt[detectedType[0]] || 'jpg';
 
   await connectDiditDb();
   const user = await User.findOne({ email: (session.user as { email: string }).email }).lean();
@@ -53,15 +65,13 @@ export const POST = withErrorHandler(async (
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
-  // Save file
+  // Save file with UUID name (prevents extension spoofing)
   const uploadsDir = path.join(process.cwd(), 'uploads', 'edl', id);
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-  const ext = file.name.split('.').pop() || 'jpg';
-  const fileName = `room${roomIndex}_${Date.now()}.${ext}`;
+  const uuid = crypto.randomUUID();
+  const fileName = `room${roomIndex}_${uuid}.${safeExt}`;
   const filePath = path.join(uploadsDir, fileName);
-
-  const buffer = Buffer.from(await file.arrayBuffer());
   fs.writeFileSync(filePath, buffer);
 
   const url = `/uploads/edl/${id}/${fileName}`;

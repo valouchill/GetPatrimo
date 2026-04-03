@@ -7,6 +7,7 @@ import path from 'path';
 import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 const User = require('@/models/User');
 const Document = require('@/models/Document');
@@ -83,17 +84,17 @@ export async function DELETE(request: NextRequest) {
       await fs.access(filePath);
     } catch {
       // Le fichier n'existe pas, considérer comme supprimé
-      console.log('[DELETE] Fichier déjà supprimé ou inexistant:', filePath);
+      logger.info('[DELETE] Fichier déjà supprimé ou inexistant', { filePath });
       return NextResponse.json({ success: true, message: 'Fichier déjà supprimé' });
     }
 
     // Supprimer le fichier
     await fs.unlink(filePath);
-    console.log('[DELETE] Fichier supprimé:', filePath);
+    logger.info('[DELETE] Fichier supprimé', { filePath });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[DELETE] Erreur suppression fichier:', error);
+    logger.error('[DELETE] Erreur suppression fichier', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { error: 'Erreur lors de la suppression du fichier' },
       { status: 500 }

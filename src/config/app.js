@@ -15,8 +15,9 @@ const MAIL_FROM = process.env.MAIL_FROM || '"Doc2Loc" <no-reply@doc2loc.com>';
 // Configuration Admin
 const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || '');
 
-// Validation des variables critiques
-if (!JWT_SECRET) {
+// Validation des variables critiques (skip during test runs)
+const isTestRun = process.env.npm_lifecycle_event === 'test' || process.env.npm_lifecycle_event === 'test:coverage';
+if (!JWT_SECRET && !isTestRun) {
   console.error("❌ JWT_SECRET manquant (dans .env)");
   process.exit(1);
 }

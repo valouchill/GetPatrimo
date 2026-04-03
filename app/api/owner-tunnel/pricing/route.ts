@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchBaseMarketPrice, computePricingWithAI } from '@/lib/owner-tunnel/pricing-engine';
+import { logger } from '@/lib/server-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     const result = await computePricingWithAI(loyerBase, atouts, apiKey);
     return NextResponse.json({ success: true, loyer_base_euros: loyerBase, ...result });
   } catch (e) {
-    console.error('owner-tunnel pricing:', e);
+    logger.error('owner-tunnel pricing', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
   }
 }

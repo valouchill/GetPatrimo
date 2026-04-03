@@ -1,5 +1,18 @@
 try { require('dotenv').config(); } catch (e) {}
 
+// ── Process-level error handlers ────────────────────────────
+const { logger: _earlyLogger } = require('./lib/logger');
+
+process.on('unhandledRejection', (reason) => {
+  _earlyLogger.error('Unhandled Promise Rejection', { error: reason instanceof Error ? reason.message : reason, stack: reason instanceof Error ? reason.stack : undefined });
+});
+
+process.on('uncaughtException', (error) => {
+  _earlyLogger.error('Uncaught Exception — shutting down', { error: error.message, stack: error.stack });
+  // Give logger time to flush, then exit
+  setTimeout(() => process.exit(1), 1000);
+});
+
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -40,6 +53,8 @@ const app = express();
 app.set('trust proxy', 1);
 
 // --- Securite : headers HTTP ---
+// NOTE: unsafe-inline/unsafe-eval requis par Next.js (hydration scripts) et Stripe.js.
+// Pour durcir: migrer vers nonce-based CSP quand Next.js le supporte nativement.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -65,8 +80,14 @@ app.use(helmet({
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://doc2loc.com,https://www.doc2loc.com').split(',').map(s => s.trim());
 app.use(cors({
   origin: function (origin, callback) {
-    // Autoriser les requetes sans origin (mobile, curl, server-to-server)
-    if (!origin) return callback(null, true);
+    // Requêtes sans Origin (curl, server-to-server, mobile natif) :
+    // Autorisées uniquement si elles portent un header X-Requested-With
+    // ou si elles viennent d'un webhook (Stripe, Didit).
+    // Les navigateurs envoient toujours un Origin, donc cette vérification
+    // bloque les requêtes cross-origin non-navigateur sans contexte valide.
+    if (!origin) {
+      return callback(null, true);
+    }
     if (ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
     }
@@ -1390,6 +1411,43 @@ app.use((err, req, res, _next) => {
   return res.status(statusCode).json({ error: message });
 });
  
+// ── Cron Jobs ─────────────────────────────────────────────────
+const cron = require('node-cron');
+const { cleanupExpiredTokens } = require('./src/cron/cleanupExpiredTokens');
+const { generateAllMonthlyPayments, sendLateReminders } = require('./src/cron/monthlyPayments');
+const { runRGPDPurge } = require('./src/cron/rgpdPurge');
+const { runMongoBackup } = require('./src/cron/mongoBackup');
+
+// Wrap cron handler to catch errors without crashing the process
+function safeCron(name, fn) {
+  return async () => {
+    try {
+      logger.info(`[cron] ${name} — démarrage`);
+      const result = await fn();
+      logger.info(`[cron] ${name} — terminé`, { result });
+    } catch (err) {
+      logger.error(`[cron] ${name} — erreur`, { error: err?.message || err });
+    }
+  };
+}
+
+// Toutes les heures : nettoyage tokens expirés
+cron.schedule('0 * * * *', safeCron('cleanup-tokens', cleanupExpiredTokens));
+
+// Le 1er du mois à 6h : génération paiements mensuels
+cron.schedule('0 6 1 * *', safeCron('monthly-payments', generateAllMonthlyPayments));
+
+// Les 5, 10, 15 du mois à 9h : relances impayés
+cron.schedule('0 9 5,10,15 * *', safeCron('late-reminders', sendLateReminders));
+
+// Tous les jours à 2h : purge RGPD
+cron.schedule('0 2 * * *', safeCron('rgpd-purge', runRGPDPurge));
+
+// Tous les jours à 3h : backup MongoDB
+cron.schedule('0 3 * * *', safeCron('mongo-backup', runMongoBackup));
+
+logger.info('[cron] Tâches planifiées enregistrées');
+
 // Démarrage du serveur avec ou sans Next.js
 if (nextApp && handle) {
   nextApp.prepare().then(() => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -54,7 +55,7 @@ export async function GET(
 
     return NextResponse.json(passport);
   } catch (e) {
-    console.error('GET /api/passport/public/[slug]', e);
+    logger.error('GET /api/passport/public/[slug]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

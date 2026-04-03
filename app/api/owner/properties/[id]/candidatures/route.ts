@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 import Application from '@/models/Application';
 import Property from '@/models/Property';
@@ -169,7 +170,7 @@ export async function GET(
       unlocked: isManaged,
     });
   } catch (error) {
-    console.error('GET /api/owner/properties/[id]/candidatures', error);
+    logger.error('GET /api/owner/properties/[id]/candidatures', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

@@ -3,8 +3,11 @@
 import crypto from 'crypto';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
-// Types
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const PassportShare = require('@/models/PassportShare');
+
 interface ShareResult {
   success: boolean;
   shareToken?: string;
@@ -15,18 +18,6 @@ interface ShareData {
   recipientEmail: string;
   recipientName?: string;
   personalMessage?: string;
-}
-
-// Modèle pour stocker les partages (tracking)
-interface PassportShare {
-  applicationId: string;
-  shareToken: string;
-  recipientEmail: string;
-  recipientName?: string;
-  personalMessage?: string;
-  sharedAt: Date;
-  openedAt?: Date;
-  viewCount: number;
 }
 
 /**
@@ -82,10 +73,15 @@ export async function sharePassportByEmail(
     const incomeVerified = appData.financialSummary?.certifiedIncome || false;
     const guarantorCertified = guarantor.status === 'CERTIFIED' || guarantor.status === 'AUDITED';
     
-    // Stocker le partage en base (pour tracking)
-    // TODO: Créer un modèle PassportShare si nécessaire
-    // Pour l'instant, on stocke dans un champ de l'application
-    
+    // Stocker le partage en base pour tracking
+    await PassportShare.create({
+      application: applicationId,
+      shareToken,
+      recipientEmail: shareData.recipientEmail,
+      recipientName: shareData.recipientName || '',
+      personalMessage: shareData.personalMessage || '',
+    });
+
     // Envoyer l'email
     const emailSent = await sendPassportShareEmail({
       recipientEmail: shareData.recipientEmail,
@@ -109,7 +105,7 @@ export async function sharePassportByEmail(
     return { success: true, shareToken };
     
   } catch (error) {
-    console.error('Erreur sharePassportByEmail:', error);
+    logger.error('Erreur sharePassportByEmail', { error: error instanceof Error ? error.message : error });
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Erreur lors du partage' 
@@ -153,7 +149,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
     const BREVO_PASS = process.env.BREVO_PASS;
     
     if (!BREVO_USER || !BREVO_PASS) {
-      console.warn('⚠️ BREVO_USER/BREVO_PASS manquant: email non envoyé');
+      logger.warn('BREVO_USER/BREVO_PASS manquant: email non envoyé');
       return process.env.NODE_ENV === 'development';
     }
     
@@ -372,11 +368,11 @@ La technologie au service de votre patrimoine
       html: emailHtml,
     });
     
-    console.log(`✅ Email de partage Passeport envoyé à ${data.recipientEmail}`);
+    logger.info('Email de partage Passeport envoyé', { recipientEmail: data.recipientEmail });
     return true;
     
   } catch (error) {
-    console.error('Erreur envoi email partage passeport:', error);
+    logger.error('Erreur envoi email partage passeport', { error: error instanceof Error ? error.message : error });
     return false;
   }
 }
@@ -406,7 +402,7 @@ export async function notifyPassportViewed(
     const BREVO_PASS = process.env.BREVO_PASS;
     
     if (!BREVO_USER || !BREVO_PASS) {
-      console.warn('⚠️ BREVO manquant: notification non envoyée');
+      logger.warn('BREVO manquant: notification non envoyée');
       return false;
     }
     
@@ -465,11 +461,11 @@ export async function notifyPassportViewed(
       html: emailHtml,
     });
     
-    console.log(`✅ Notification vue passeport envoyée à ${tenantEmail}`);
+    logger.info('Notification vue passeport envoyée', { tenantEmail });
     return true;
     
   } catch (error) {
-    console.error('Erreur notification vue passeport:', error);
+    logger.error('Erreur notification vue passeport', { error: error instanceof Error ? error.message : error });
     return false;
   }
 }

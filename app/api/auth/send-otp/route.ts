@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { validateRequest } from '@/lib/validate-request';
 import { SendOtpSchema } from '@/lib/validations/auth';
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error('[send-otp]', e);
+    logger.error('[send-otp]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur lors de l\'envoi du code.' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
     const result = await runPhase1Healthcheck({ mode });
     return NextResponse.json(result, { status: result.ok ? 200 : 503 });
   } catch (error: any) {
-    console.error('GET /api/trust/phase1/health', error);
+    logger.error('GET /api/trust/phase1/health', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       {
         ok: false,

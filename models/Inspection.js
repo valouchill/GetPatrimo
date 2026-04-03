@@ -84,6 +84,7 @@ const InspectionSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+InspectionSchema.index({ user: 1 });
 InspectionSchema.index({ user: 1, property: 1 });
 InspectionSchema.index({ lease: 1, type: 1 });
 InspectionSchema.index({ property: 1, type: 1 });

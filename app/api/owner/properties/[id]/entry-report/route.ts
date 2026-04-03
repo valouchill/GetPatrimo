@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import { MoveInInventoryPDFDocument } from '@/app/components/MoveInInventoryPDF';
 
@@ -75,7 +76,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('GET /api/owner/properties/[id]/entry-report', error);
+    logger.error('GET /api/owner/properties/[id]/entry-report', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur lors de la génération du PDF' }, { status: 500 });
   }
 }

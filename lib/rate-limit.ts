@@ -1,6 +1,11 @@
 /**
  * Simple in-memory rate limiter for Next.js API routes.
  * Uses a sliding window per IP address.
+ *
+ * LIMITATION: In-memory store does not persist across restarts and does not
+ * work in multi-instance deployments. For horizontal scaling, migrate to a
+ * Redis-backed rate limiter (e.g. rate-limit-redis or ioredis).
+ * Acceptable for single-instance deployments.
  */
 
 const ipHits = new Map<string, { count: number; resetAt: number }>();

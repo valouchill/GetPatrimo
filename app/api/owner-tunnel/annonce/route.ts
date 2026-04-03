@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/server-logger';
 
 const SYSTEM = `Rédacteur d'annonces immobilières. Tu rédiges une annonce 120-180 mots en intégrant UNIQUEMENT les variables fournies.
 Surface et DPE viennent du JSON DPE. Atouts viennent du JSON Vision. Prix et justification viennent du Pricing Engine.
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     const annonce = (d.choices?.[0]?.message?.content?.trim() as string) || '';
     return NextResponse.json({ success: true, annonce });
   } catch (e) {
-    console.error('owner-tunnel annonce:', e);
+    logger.error('owner-tunnel annonce', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
   }
 }

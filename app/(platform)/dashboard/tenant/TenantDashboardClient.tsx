@@ -71,11 +71,32 @@ interface Application {
   ownerDecision: string;
 }
 
+interface LeaseInfo {
+  _id: string;
+  property?: { name: string; address: string };
+  startDate: string;
+  endDate?: string;
+  rentAmount: number;
+  chargesAmount?: number;
+  tenantFirstName?: string;
+  tenantLastName?: string;
+}
+
+interface PaymentInfo {
+  _id: string;
+  period: { month: number; year: number };
+  amounts: { totalTTC: number; paidAmount: number };
+  status: string;
+  property?: { name: string; address: string };
+}
+
 interface Props {
   userEmail: string;
   userName?: string;
   applications: Application[];
   latestApplication: Application | null;
+  activeLease?: LeaseInfo | null;
+  recentPayments?: PaymentInfo[];
 }
 
 const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -95,13 +116,15 @@ const DOCUMENT_TYPES = [
   { category: 'guarantor', label: 'Documents garant', icon: '🤝', description: 'Documents du garant' },
 ];
 
-export default function TenantDashboardClient({ 
-  userEmail, 
-  userName, 
-  applications, 
-  latestApplication 
+export default function TenantDashboardClient({
+  userEmail,
+  userName,
+  applications,
+  latestApplication,
+  activeLease,
+  recentPayments = [],
 }: Props) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'candidatures'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'housing' | 'documents' | 'candidatures'>('overview');
 
   const app = latestApplication;
   const firstName = app?.profile?.firstName || userName?.split(' ')[0] || 'Locataire';
@@ -223,6 +246,7 @@ export default function TenantDashboardClient({
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {[
             { id: 'overview', label: 'Vue d\'ensemble', icon: HomeIcon },
+            ...(activeLease ? [{ id: 'housing', label: 'Mon Logement', icon: HomeIcon }] : []),
             { id: 'documents', label: 'Mes Documents', icon: DocumentTextIcon },
             { id: 'candidatures', label: 'Mes Candidatures', icon: UserCircleIcon },
           ].map((tab) => (
@@ -294,6 +318,86 @@ export default function TenantDashboardClient({
               }
               href={app?.applyToken ? `/apply/${app.applyToken}` : undefined}
             />
+          </motion.div>
+        )}
+
+        {activeTab === 'housing' && activeLease && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Bail actif */}
+            <PremiumSurface padding="md">
+              <PremiumSectionHeader
+                eyebrow="Bail"
+                title="Mon bail actif"
+                description={activeLease.property?.address || ''}
+              />
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500 mb-1">Loyer HC</p>
+                  <p className="text-lg font-bold text-navy">{activeLease.rentAmount} €</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500 mb-1">Charges</p>
+                  <p className="text-lg font-bold text-navy">{activeLease.chargesAmount || 0} €</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500 mb-1">Total TTC</p>
+                  <p className="text-lg font-bold text-emerald-600">{(activeLease.rentAmount + (activeLease.chargesAmount || 0))} €</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500 mb-1">Depuis le</p>
+                  <p className="text-lg font-bold text-navy">{new Date(activeLease.startDate).toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+            </PremiumSurface>
+
+            {/* Paiements récents */}
+            <PremiumSurface padding="md">
+              <PremiumSectionHeader
+                eyebrow="Paiements"
+                title="Derniers paiements"
+                description="Historique de vos 6 derniers loyers"
+              />
+              {recentPayments.length > 0 ? (
+                <div className="mt-6 divide-y divide-slate-100">
+                  {recentPayments.map((p) => {
+                    const months = ['', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+                    return (
+                      <div key={p._id} className="flex items-center justify-between py-3 px-2">
+                        <div>
+                          <p className="font-medium text-slate-800">{months[p.period.month]} {p.period.year}</p>
+                          <p className="text-sm text-slate-500">{p.amounts.totalTTC.toFixed(2)} €</p>
+                        </div>
+                        <StatusBadge
+                          tone={
+                            p.status === 'CONFIRMED' ? 'success' :
+                            p.status === 'PARTIAL' ? 'warning' :
+                            p.status === 'LATE' || p.status === 'UNPAID' ? 'danger' : 'neutral'
+                          }
+                          label={
+                            p.status === 'CONFIRMED' ? 'Payé' :
+                            p.status === 'PARTIAL' ? 'Partiel' :
+                            p.status === 'LATE' ? 'En retard' :
+                            p.status === 'UNPAID' ? 'Impayé' : 'En attente'
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-6">
+                  <EmptyState
+                    icon={<DocumentTextIcon className="w-8 h-8 text-slate-300" />}
+                    title="Aucun paiement"
+                    description="Vos paiements de loyer apparaîtront ici."
+                  />
+                </div>
+              )}
+            </PremiumSurface>
           </motion.div>
         )}
 

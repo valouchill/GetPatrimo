@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 const Property = require('@/models/Property');
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (e: any) {
-    console.error('[create-checkout]', e);
+    logger.error('[create-checkout]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
       { error: e.message || 'Erreur lors de la création de la session.' },
       { status: 500 },

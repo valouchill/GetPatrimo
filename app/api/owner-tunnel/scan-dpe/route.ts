@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scanDPE } from '../../../../lib/owner-tunnel/dpe-scanner';
+import { logger } from '@/lib/server-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const dpe = await scanDPE({ buffer, mimeType: file.type || 'image/jpeg', isPdf, pdfText }, apiKey);
     return NextResponse.json({ success: true, dpe });
   } catch (e) {
-    console.error('owner-tunnel scan-dpe:', e);
+    logger.error('owner-tunnel scan-dpe', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur scan DPE' }, { status: 500 });
   }
 }

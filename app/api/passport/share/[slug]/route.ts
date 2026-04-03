@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 
 /**
@@ -31,7 +32,7 @@ export async function POST(
     }
     return NextResponse.json({ shareCount: (app as any).passportShareCount });
   } catch (e) {
-    console.error('POST /api/passport/share/[slug]', e);
+    logger.error('POST /api/passport/share/[slug]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

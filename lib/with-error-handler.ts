@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 
 type RouteHandler = (
   req: NextRequest,
@@ -8,15 +9,7 @@ type RouteHandler = (
 /**
  * Wrapper pour les API Routes Next.js qui centralise la gestion d'erreur.
  * Log structuré JSON + réponse sans stack trace en production.
- *
- * @example
- * ```ts
- * export const POST = withErrorHandler(async (req) => {
- *   const body = await req.json();
- *   // ... logique métier
- *   return NextResponse.json({ success: true });
- * });
- * ```
+ * Envoie les erreurs 5xx à Sentry quand configuré.
  */
 export function withErrorHandler(handler: RouteHandler): RouteHandler {
   return async (req: NextRequest, context?: any) => {
@@ -36,6 +29,13 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
         ...(process.env.NODE_ENV !== 'production' && { stack: error.stack }),
       };
       console.error(JSON.stringify(logEntry));
+
+      // Report server errors to Sentry
+      if (statusCode >= 500) {
+        Sentry.captureException(error, {
+          extra: { method: req.method, path: req.nextUrl.pathname },
+        });
+      }
 
       return NextResponse.json({ error: message }, { status: statusCode });
     }

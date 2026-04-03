@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import { getPaymentHistory } from '@/lib/services/paymentService';
+import { getPagination } from '@/lib/pagination';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -36,16 +37,22 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ success: true, data: payments });
   }
 
-  // Liste tous les paiements du propriétaire
+  // Liste tous les paiements du propriétaire (paginé)
+  const { limit, skip } = getPagination(new URL(request.url));
   const query: Record<string, unknown> = { owner: user._id };
   if (year) query['period.year'] = Number(year);
   if (status) query.status = status;
 
-  const payments = await Payment.find(query)
-    .populate('property', 'address name')
-    .populate('tenant', 'firstName lastName email')
-    .sort({ 'period.year': -1, 'period.month': -1 })
-    .lean();
+  const [payments, total] = await Promise.all([
+    Payment.find(query)
+      .populate('property', 'address name')
+      .populate('tenant', 'firstName lastName email')
+      .sort({ 'period.year': -1, 'period.month': -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Payment.countDocuments(query),
+  ]);
 
-  return NextResponse.json({ success: true, data: payments });
+  return NextResponse.json({ success: true, data: payments, total, limit, skip });
 });

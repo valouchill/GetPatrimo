@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -97,7 +98,7 @@ export async function GET(
       return NextResponse.json({ msg: 'Fichier introuvable' }, { status: 404 });
     }
 
-    console.error('GET /api/owner/leases/compiled/[fileName]', error);
+    logger.error('GET /api/owner/leases/compiled/[fileName]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ msg: 'Erreur serveur' }, { status: 500 });
   }
 }

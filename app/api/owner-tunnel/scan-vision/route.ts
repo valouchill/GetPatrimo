@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scanVision } from '@/lib/owner-tunnel/vision-scanner';
+import { logger } from '@/lib/server-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     const atouts = await scanVision(images, apiKey);
     return NextResponse.json({ success: true, atouts });
   } catch (e) {
-    console.error('owner-tunnel scan-vision:', e);
+    logger.error('owner-tunnel scan-vision', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
   }
 }

@@ -198,9 +198,28 @@ async function updateLeaseSignature(req, res) {
       return res.status(403).json({ msg: 'Accès refusé' });
     }
 
-    // Met à jour selon le signataire
+    // Save signature to file instead of storing Base64 in DB
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
+
+    let signatureUrl = signatureData;
+    if (signatureData && signatureData.startsWith('data:image/')) {
+      const sigDir = path.join(process.cwd(), 'uploads', 'signatures');
+      if (!fs.existsSync(sigDir)) fs.mkdirSync(sigDir, { recursive: true });
+
+      const ext = signatureData.includes('image/png') ? 'png' : 'jpg';
+      const fileName = `${leaseId}-${signerType}-${crypto.randomUUID()}.${ext}`;
+      const filePath = path.join(sigDir, fileName);
+
+      const base64Data = signatureData.replace(/^data:image\/\w+;base64,/, '');
+      fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+
+      signatureUrl = `/uploads/signatures/${fileName}`;
+    }
+
     if (signerType === 'owner') {
-      lease.ownerSignatureData = signatureData;
+      lease.ownerSignatureData = signatureUrl;
       lease.ownerSignedAt = new Date();
       if (lease.signatureStatus === 'PENDING') {
         lease.signatureStatus = 'SIGNED_BY_OWNER';
@@ -208,7 +227,7 @@ async function updateLeaseSignature(req, res) {
         lease.signatureStatus = 'SIGNED_BOTH';
       }
     } else if (signerType === 'tenant') {
-      lease.tenantSignatureData = signatureData;
+      lease.tenantSignatureData = signatureUrl;
       lease.tenantSignedAt = new Date();
       if (lease.signatureStatus === 'PENDING') {
         lease.signatureStatus = 'SIGNED_BY_TENANT';

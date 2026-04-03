@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 import { notifyPassportViewed } from '@/app/actions/share-passport';
@@ -32,7 +33,7 @@ export async function GET(
         $inc: { passportViewCount: 1 },
         passportLastViewedAt: new Date(),
       });
-      notifyPassportViewed((app as any)._id.toString()).catch(console.error);
+      notifyPassportViewed((app as any)._id.toString()).catch((err: unknown) => logger.error('notifyPassportViewed failed', { error: err instanceof Error ? err.message : err }));
     }
 
     const host = request.headers.get('host') || '';
@@ -52,7 +53,7 @@ export async function GET(
 
     return NextResponse.json(passport);
   } catch (error) {
-    console.error('GET /api/verify/[token]', error);
+    logger.error('GET /api/verify/[token]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

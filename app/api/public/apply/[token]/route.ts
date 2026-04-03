@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 
 export async function GET(
@@ -17,9 +18,9 @@ export async function GET(
       return NextResponse.json({ msg: 'Lien invalide' }, { status: 404 });
     }
 
-    return NextResponse.json({ property: JSON.parse(JSON.stringify(property)) });
+    return NextResponse.json({ property });
   } catch (error: any) {
-    console.error('GET /api/public/apply/[token]', error);
+    logger.error('GET /api/public/apply/[token]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       { msg: 'Erreur serveur', error: error?.message || 'unknown_error' },
       { status: 500 }

@@ -38,7 +38,8 @@ export default function OwnerHeader() {
 
   const navLinks = [
     { label: 'Portefeuille', href: '/dashboard/owner' },
-    { label: 'Coffre-Fort', href: '/dashboard/owner/vault' },
+    // Vault masqué — backend non implémenté. Réactiver après implémentation du stockage documents.
+    // { label: 'Coffre-Fort', href: '/dashboard/owner/vault' },
     ...(hasManagement ? [{ label: 'Gestion', href: '/dashboard/owner?stage=management' }] : []),
   ];
 

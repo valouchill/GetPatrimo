@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '../../didit/db';
+import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import { auditGuarantorIdentity } from '@/app/actions/audit-identity';
 import { validateRequest } from '@/lib/validate-request';
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       
       await guarantor.save();
       
-      console.log(`✅ Garant ${guarantor.email} certifié par Audit PatrimoTrust`);
+      logger.info('Garant certifié par Audit PatrimoTrust', { email: guarantor.email });
     }
     
     return NextResponse.json({
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Erreur audit garant:', error);
+    logger.error('Erreur audit garant', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
       {
         error: 'Erreur lors de l\'audit',

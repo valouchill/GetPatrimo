@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import { logger } from '@/lib/server-logger';
+import crypto from 'crypto';
+import fsSync from 'fs';
+import path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
@@ -68,10 +72,31 @@ export const PATCH = withErrorHandler(async (
   const { rooms, meterReadings, signatures, status, comparison, keysDelivered } = body;
   if (rooms !== undefined) inspection.rooms = rooms;
   if (meterReadings !== undefined) inspection.meterReadings = meterReadings;
-  if (signatures !== undefined) inspection.signatures = signatures;
   if (keysDelivered !== undefined) inspection.keysDelivered = keysDelivered;
   if (status !== undefined) inspection.status = status;
   if (comparison !== undefined) inspection.comparison = comparison;
+
+  // Save Base64 signature data to file instead of storing in DB
+  if (signatures !== undefined) {
+    const savedSigs = { ...signatures };
+    for (const role of ['owner', 'tenant'] as const) {
+      const sigData = savedSigs[role]?.data;
+      if (sigData && typeof sigData === 'string' && sigData.startsWith('data:image/')) {
+        const sigDir = path.join(process.cwd(), 'uploads', 'signatures');
+        if (!fsSync.existsSync(sigDir)) fsSync.mkdirSync(sigDir, { recursive: true });
+
+        const ext = sigData.includes('image/png') ? 'png' : 'jpg';
+        const fileName = `edl-${id}-${role}-${crypto.randomUUID()}.${ext}`;
+        const filePath = path.join(sigDir, fileName);
+
+        const base64Data = sigData.replace(/^data:image\/\w+;base64,/, '');
+        fsSync.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+
+        savedSigs[role] = { ...savedSigs[role], data: `/uploads/signatures/${fileName}` };
+      }
+    }
+    inspection.signatures = savedSigs;
+  }
 
   // Validate signatures before completion (loi ALUR art. 3-2 — état des lieux contradictoire)
   if (status === 'COMPLETED') {
@@ -94,7 +119,7 @@ export const PATCH = withErrorHandler(async (
       inspection.pdfUrl = pdfUrl;
       await inspection.save();
     } catch (e) {
-      console.error('EDL PDF generation failed:', e);
+      logger.error('EDL PDF generation failed', { error: e instanceof Error ? e.message : e });
       pdfError = e instanceof Error ? e.message : 'Erreur de génération PDF';
     }
   }

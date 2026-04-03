@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 
@@ -225,9 +226,13 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
+    });
   } catch (e) {
-    console.error('GET /api/owner/properties', e);
+    logger.error('GET /api/owner/properties', { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des biens' },
       { status: 500 }
@@ -284,7 +289,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (e) {
-    console.error('POST /api/owner/properties', e);
+    logger.error('POST /api/owner/properties', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

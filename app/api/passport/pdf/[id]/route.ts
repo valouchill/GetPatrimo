@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 import QRCode from 'qrcode';
@@ -87,7 +88,7 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('GET /api/passport/pdf/[id]', error);
+    logger.error('GET /api/passport/pdf/[id]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({
       error: 'Erreur lors de la génération du PDF'
     }, { status: 500 });

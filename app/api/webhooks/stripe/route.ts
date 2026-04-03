@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { logger } from '@/lib/server-logger';
 import { connectDiditDb } from '@/app/api/didit/db';
 
 const Property = require('@/models/Property');
 const User = require('@/models/User');
+const Event = require('@/models/Event');
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -11,16 +13,81 @@ function getStripe() {
   });
 }
 
+/** Idempotency: check if this Stripe event was already processed. */
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const existing = await Event.findOne({ type: 'STRIPE_WEBHOOK', 'meta.stripeEventId': eventId }).lean();
+  return !!existing;
+}
+
+async function markEventProcessed(eventId: string, eventType: string) {
+  await Event.create({
+    type: 'STRIPE_WEBHOOK',
+    meta: { stripeEventId: eventId, stripeEventType: eventType },
+  });
+}
+
+// ── Handlers ────────────────────────────────────────────────
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const { propertyId, userId } = session.metadata || {};
+
+  if (!propertyId) {
+    logger.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
+    return;
+  }
+
+  await Property.findByIdAndUpdate(propertyId, {
+    managed: true,
+    stripeCustomerId: session.customer as string,
+    stripeSubscriptionId: session.subscription as string,
+  });
+
+  if (userId && session.customer) {
+    await User.findByIdAndUpdate(userId, {
+      stripeCustomerId: session.customer as string,
+    });
+  }
+
+  logger.info(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId} → cus ${session.customer}.`);
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const subscriptionId = subscription.id;
+
+  const property = await Property.findOne({ stripeSubscriptionId: subscriptionId });
+  if (!property) {
+    logger.warn(`[stripe-webhook] Aucun bien trouvé pour subscription ${subscriptionId}`);
+    return;
+  }
+
+  await Property.findByIdAndUpdate(property._id, {
+    managed: false,
+    stripeSubscriptionId: null,
+  });
+
+  logger.info(`[stripe-webhook] Bien ${property._id} désactivé (subscription annulée).`);
+}
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const subscriptionId = (invoice as any).subscription as string;
+  if (!subscriptionId) return;
+
+  const property = await Property.findOne({ stripeSubscriptionId: subscriptionId });
+  if (!property) return;
+
+  // Log the failure — don't disable yet (Stripe retries automatically)
+  logger.warn(`[stripe-webhook] Paiement échoué pour bien ${property._id}, subscription ${subscriptionId}. Stripe va réessayer.`);
+
+  // Optionally notify the owner via email in a future iteration
+}
+
 /**
  * ATTENTION : STRIPE_WEBHOOK_SECRET doit etre un secret de webhook Stripe
  * au format "whsec_..." (recuperable dans le dashboard Stripe > Webhooks).
- * Si le .env contient une URL ou une autre valeur, la verification de
- * signature echouera silencieusement et toutes les requetes seront rejetees.
  */
 export async function POST(request: NextRequest) {
-  // Verification de la configuration du secret webhook avant tout traitement
   if (!process.env.STRIPE_WEBHOOK_SECRET || !process.env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
-    console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET mal configure - doit commencer par whsec_');
+    logger.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET mal configure - doit commencer par whsec_');
     return NextResponse.json({ error: 'Configuration webhook invalide.' }, { status: 500 });
   }
 
@@ -42,38 +109,38 @@ export async function POST(request: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error('[stripe-webhook] Signature invalide:', message);
+    logger.error('[stripe-webhook] Signature invalide', { error: message });
     return NextResponse.json({ error: 'Signature invalide.' }, { status: 400 });
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const { propertyId, userId } = session.metadata || {};
+  try {
+    await connectDiditDb();
 
-    if (!propertyId) {
-      console.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
+    // Idempotency check — skip already-processed events
+    if (await isEventProcessed(event.id)) {
+      logger.info(`[stripe-webhook] Event ${event.id} déjà traité, ignoré.`);
       return NextResponse.json({ received: true });
     }
 
-    try {
-      await connectDiditDb();
-
-      await Property.findByIdAndUpdate(propertyId, {
-        managed: true,
-        stripeCustomerId: session.customer as string,
-        stripeSubscriptionId: session.subscription as string,
-      });
-
-      if (userId && session.customer) {
-        await User.findByIdAndUpdate(userId, {
-          stripeCustomerId: session.customer as string,
-        });
-      }
-
-      console.log(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId} → cus ${session.customer}.`);
-    } catch (e) {
-      console.error('[stripe-webhook] Erreur DB:', e);
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      default:
+        logger.info(`[stripe-webhook] Event non géré: ${event.type}`);
     }
+
+    await markEventProcessed(event.id, event.type);
+  } catch (e) {
+    logger.error('[stripe-webhook] Erreur traitement', { error: e instanceof Error ? e.message : e });
+    // Return 500 so Stripe retries
+    return NextResponse.json({ error: 'Erreur traitement' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
