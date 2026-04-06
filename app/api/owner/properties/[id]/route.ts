@@ -8,6 +8,34 @@ import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 import Lease from '@/models/Lease';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Document = require('@/models/Document');
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  BAIL: 'Bail',
+  ETAT_DES_LIEUX: 'État des lieux',
+  DIAGNOSTIC: 'Diagnostic',
+  DPE: 'DPE',
+  PLOMB: 'Plomb (CREP)',
+  AMIANTE: 'Amiante',
+  ELECTRICITE: 'Électricité',
+  GAZ: 'Gaz',
+  ERP: 'ERP',
+  BOUTIN: 'Loi Boutin',
+  ANNEXES_TECHNIQUES: 'Annexes techniques',
+  QUITTANCE: 'Quittance de loyer',
+  QUITTANCE_LOYER: 'Quittance de loyer',
+  AUTRE: 'Autre',
+};
+const META_TYPE_LABELS: Record<string, string> = {
+  FACTURE_TRAVAUX: 'Facture de travaux',
+  ASSURANCE: 'Assurance',
+};
+function labelForDocument(doc: any): string {
+  const metaType = doc?.metadata?.documentType;
+  if (metaType && META_TYPE_LABELS[metaType]) return META_TYPE_LABELS[metaType];
+  return DOC_TYPE_LABELS[doc?.type] || 'Document';
+}
 
 const PatchPropertySchema = z.object({
   name: z.string().min(1).optional(),
@@ -19,6 +47,15 @@ const PatchPropertySchema = z.object({
   rooms: z.number().int().optional(),
   floor: z.number().int().optional(),
   archived: z.boolean({ error: 'Le champ archivé doit être un booléen' }).optional(),
+  // Caractéristiques bail (sauvegardées depuis le wizard)
+  constructionYear: z.number().int().min(1600).max(2030).optional(),
+  habitatType: z.string().optional(),
+  dpeClass: z.string().max(1).optional(),
+  dpeDate: z.string().optional(),
+  energyEstimate: z.string().optional(),
+  heatingMode: z.string().optional(),
+  hotWaterMode: z.string().optional(),
+  legalRegime: z.string().optional(),
 });
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
@@ -36,10 +73,11 @@ async function resolveUserId(session: any): Promise<string | null> {
   return userId || null;
 }
 
-function buildVaultDocuments(lease: any) {
-  if (!lease) return [];
-
+async function buildVaultDocuments(lease: any, propertyId: string, userId: string) {
   const documents = new Map<string, any>();
+  if (!lease) {
+    // on continue pour charger les docs uploadés ci-dessous
+  }
 
   const register = (id: string, payload: Record<string, unknown>) => {
     if (!id) return;
@@ -49,7 +87,7 @@ function buildVaultDocuments(lease: any) {
     });
   };
 
-  const generatedDocuments = Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
+  const generatedDocuments = lease && Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
   generatedDocuments.forEach((document: any, index: number) => {
     const fileName = String(document?.fileName || '').trim();
     const pdfPath = String(document?.pdfPath || '').trim();
@@ -66,7 +104,7 @@ function buildVaultDocuments(lease: any) {
     });
   });
 
-  const openSignDocuments = Array.isArray(lease.opensignDocuments) ? lease.opensignDocuments : [];
+  const openSignDocuments = lease && Array.isArray(lease.opensignDocuments) ? lease.opensignDocuments : [];
   openSignDocuments.forEach((document: any, index: number) => {
     register(`opensign-${index}-${document?.kind || 'lease'}`, {
       id: `opensign-${index}-${document?.kind || 'lease'}`,
@@ -78,7 +116,7 @@ function buildVaultDocuments(lease: any) {
     });
   });
 
-  if (lease.signedPdfPath) {
+  if (lease && lease.signedPdfPath) {
     register('signed-primary-lease', {
       id: 'signed-primary-lease',
       label: 'Bail signe',
@@ -89,7 +127,7 @@ function buildVaultDocuments(lease: any) {
     });
   }
 
-  if (lease.edlPdfPath) {
+  if (lease && lease.edlPdfPath) {
     register('entry-report', {
       id: 'entry-report',
       label: "Etat des lieux d'entree",
@@ -98,6 +136,32 @@ function buildVaultDocuments(lease: any) {
       fileName: String(lease.edlPdfPath).split('/').pop() || 'etat-des-lieux.pdf',
       downloadUrl: null,
     });
+  }
+
+  // Documents uploadés par le propriétaire (bail externe, EDL, diagnostics, quittances, etc.)
+  try {
+    const uploadedDocs: any[] = await Document.find({ property: propertyId, user: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    for (const doc of uploadedDocs) {
+      const docId = String(doc._id);
+      documents.set(`uploaded-${docId}`, {
+        id: `uploaded-${docId}`,
+        rawId: docId,
+        label: labelForDocument(doc),
+        status: 'uploaded',
+        kind: doc.type || 'AUTRE',
+        fileName: doc.originalName || doc.filename || null,
+        downloadUrl: `/api/owner/properties/${propertyId}/documents/${docId}`,
+        deletable: true,
+        uploadedAt: doc.createdAt || null,
+        expirationDate: doc.expirationDate || null,
+        size: doc.size || 0,
+        mimeType: doc.mimeType || '',
+      });
+    }
+  } catch {
+    // silent: ne pas bloquer le GET si la requête Document échoue
   }
 
   return Array.from(documents.values());
@@ -253,11 +317,25 @@ export async function GET(
       rentAmount: property.rentAmount,
       chargesAmount: property.chargesAmount,
       surfaceM2: property.surfaceM2,
+      surfaceHabitableM2: property.surfaceHabitableM2 ?? property.surfaceM2,
       propertyType: property.propertyType || '',
       rooms: property.rooms ?? null,
+      nbPieces: property.nbPieces ?? property.rooms ?? null,
+      bedrooms: property.bedrooms ?? null,
       floor: property.floor ?? null,
       type: property.type || '',
       furnished: property.furnished || '',
+      equipment: property.equipment || [],
+      constructionYear: property.constructionYear ?? property.yearBuilt ?? null,
+      habitatType: property.habitatType ?? null,
+      dpeClass: property.dpeClass ?? property.etiquetteDPE ?? null,
+      dpeDate: property.dpeDate ?? null,
+      energyEstimate: property.energyEstimate ?? null,
+      heatingMode: property.heatingMode ?? property.heatingType ?? null,
+      hotWaterMode: property.hotWaterMode ?? null,
+      legalRegime: property.legalRegime ?? null,
+      zipCode: property.zipCode ?? null,
+      city: property.city ?? null,
       archived: Boolean(property.archived),
       managed: isManaged,
       status: property.status,
@@ -268,7 +346,7 @@ export async function GET(
         leaseId: leaseDoc?._id ? String(leaseDoc._id) : null,
         signatureStatus: leaseDoc?.signatureStatus || 'PENDING',
         edlStatus: leaseDoc?.edlStatus || 'PENDING',
-        vaultDocuments: buildVaultDocuments(leaseDoc),
+        vaultDocuments: await buildVaultDocuments(leaseDoc, id, userId),
       },
     });
   } catch (e) {
@@ -312,6 +390,14 @@ export async function PATCH(
     if (body.chargesAmount !== undefined) updates.chargesAmount = Number(body.chargesAmount) || 0;
     if (body.propertyType !== undefined) updates.propertyType = body.propertyType;
     if (body.rooms !== undefined) updates.rooms = Number(body.rooms) || null;
+    if (body.constructionYear !== undefined) updates.constructionYear = Number(body.constructionYear) || null;
+    if (body.habitatType !== undefined) updates.habitatType = body.habitatType;
+    if (body.dpeClass !== undefined) updates.dpeClass = body.dpeClass;
+    if (body.dpeDate !== undefined) updates.dpeDate = body.dpeDate;
+    if (body.energyEstimate !== undefined) updates.energyEstimate = body.energyEstimate;
+    if (body.heatingMode !== undefined) updates.heatingMode = body.heatingMode;
+    if (body.hotWaterMode !== undefined) updates.hotWaterMode = body.hotWaterMode;
+    if (body.legalRegime !== undefined) updates.legalRegime = body.legalRegime;
     if (body.floor !== undefined) updates.floor = Number(body.floor);
     if (body.archived !== undefined) updates.archived = Boolean(body.archived);
 

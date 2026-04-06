@@ -32,7 +32,7 @@ function applySecurityHeaders(response: NextResponse, pathname: string): NextRes
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/dashboard/tenant', '/dashboard/owner'];
+  const protectedRoutes = ['/dashboard/tenant', '/dashboard/owner', '/dashboard/admin'];
   const authRoutes = ['/auth/login', '/auth/signin', '/auth/verify-request', '/auth/register'];
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));

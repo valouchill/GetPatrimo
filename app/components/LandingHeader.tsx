@@ -26,7 +26,7 @@ export default function LandingHeader() {
             Connexion
           </Link>
           <Link
-            href="/auth/login"
+            href="/auth/register"
             className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow-md transition-colors"
           >
             Essai gratuit →

@@ -8,6 +8,7 @@ import { ContractPreview } from "./wizard/ContractPreview";
 import { FormPanel } from "./wizard/FormPanel";
 import { ActionFooter } from "./wizard/ActionFooter";
 import { useLeaseVariables } from "./wizard/useLeaseVariables";
+import { useFormCompletion } from "./wizard/useFormCompletion";
 import type {
   ApplicationRecord,
   CandidatureRecord,
@@ -28,6 +29,7 @@ function buildInitialFormState(property?: PropertyRecord | null): LeaseFormData 
   const leaseType = deriveLeaseType(property || {}, null);
   const rentHC = Number(property?.rentAmount || 0);
   return {
+    // Core
     leaseType,
     startDate: getTomorrowDateInputValue(),
     paymentDay: 5,
@@ -36,7 +38,42 @@ function buildInitialFormState(property?: PropertyRecord | null): LeaseFormData 
     deposit: computeSmartDeposit(leaseType, rentHC),
     durationMonths: leaseType === "MOBILITE" ? 10 : 12,
     clauses: "",
+    // Property characteristics (pre-fill from DB)
+    surfaceHabitable: Number(property?.surfaceHabitableM2 || property?.surfaceM2) || undefined,
+    rooms: Number(property?.rooms || property?.nbPieces) || undefined,
+    // Smart defaults: pré-rempli si dispo en DB, sinon valeur par défaut raisonnable
+    typeHabitat: (property?.habitatType?.toLowerCase?.() === "individuel" ? "individuel" : "collectif") as LeaseFormData["typeHabitat"],
+    constructionYear: Number(property?.constructionYear || property?.yearBuilt) || undefined,
+    dpeClass: property?.dpeClass || undefined,
+    dpeDate: property?.dpeDate || undefined,
+    energyEstimate: property?.energyEstimate || undefined,
+    modeChauffage: property?.heatingMode || property?.heatingType || undefined,
+    modeEauChaude: property?.hotWaterMode || undefined,
+    regimeJuridique: (property?.legalRegime?.toLowerCase?.().includes("copro") ? "copropriete" : "monopropriete") as LeaseFormData["regimeJuridique"],
+    // Payment defaults
+    paymentMode: "virement bancaire",
   };
+}
+
+/** Save property characteristics back to property for future reuse */
+function persistPropertyCharacteristics(propertyId: string, fd: LeaseFormData) {
+  const patch: Record<string, unknown> = {};
+  if (fd.surfaceHabitable) patch.surfaceM2 = fd.surfaceHabitable;
+  if (fd.rooms) patch.rooms = fd.rooms;
+  if (fd.constructionYear) patch.constructionYear = fd.constructionYear;
+  if (fd.typeHabitat) patch.habitatType = fd.typeHabitat;
+  if (fd.dpeClass) patch.dpeClass = fd.dpeClass;
+  if (fd.dpeDate) patch.dpeDate = fd.dpeDate;
+  if (fd.energyEstimate) patch.energyEstimate = fd.energyEstimate;
+  if (fd.modeChauffage) patch.heatingMode = fd.modeChauffage;
+  if (fd.modeEauChaude) patch.hotWaterMode = fd.modeEauChaude;
+  if (fd.regimeJuridique) patch.legalRegime = fd.regimeJuridique;
+  if (Object.keys(patch).length === 0) return;
+  fetch(`/api/owner/properties/${propertyId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).catch(() => {});
 }
 
 async function fetchOwnerResource<T>(url: string, retries = 2): Promise<{ ok: boolean; data?: T }> {
@@ -192,7 +229,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   });
 
   // ── Form handlers ─────────────────────────────────────────────
-  const handleFieldChange = (field: string, value: string | number) => {
+  const handleFieldChange = (field: string, value: string | number | boolean | Record<string, unknown>) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -283,6 +320,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
           depositAmount: formData.deposit,
           paymentDay: formData.paymentDay,
           additionalClauses: formData.clauses,
+          formData,
           generatedDocuments: compiledDocuments.map((doc) => ({
             kind: doc.kind,
             template: doc.template || "",
@@ -296,6 +334,8 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || data.msg || "Impossible d'enregistrer");
       setSaveStatus("success");
+      // Persist property characteristics for future leases (fire-and-forget)
+      persistPropertyCharacteristics(propertyId, formData);
       window.setTimeout(() => router.push("/dashboard/owner?page=baux"), 1500);
     } catch (error) {
       setSaveStatus("error");
@@ -313,7 +353,9 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
     router.push(returnUrl);
   };
 
-  const canCompile = Boolean(activeTenant) && !contractLocked && !selectionRequired;
+  const hasGuarantor = selectedApplication?.guarantee?.mode !== "NONE" && Boolean(selectedApplication?.guarantee);
+  const { canCompile: formComplete, missingRequired } = useFormCompletion(formData, hasGuarantor);
+  const canCompile = Boolean(activeTenant) && !contractLocked && !selectionRequired && formComplete;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -430,6 +472,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         saveError={saveError}
         compiledDocuments={compiledDocuments}
         canCompile={canCompile}
+        missingRequired={missingRequired}
         onCompile={handleCompile}
         onSave={handleSaveLease}
         onDownload={handleDownload}

@@ -30,7 +30,18 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, default: '', validate: { validator: function(v) { return !v || /^\+?[0-9]{10,15}$/.test(v); }, message: 'Numéro de téléphone invalide' } },
 
   plan: { type: String, enum: ['FREE', 'PRO'], default: 'FREE' },
+  role: { type: String, enum: ['owner', 'tenant', 'admin', 'superadmin'], default: 'owner' },
   credits: { type: Number, default: 0 },
+
+  // Suspension (bloque le login)
+  suspended: { type: Boolean, default: false },
+  suspendedAt: { type: Date },
+  suspendedReason: { type: String, default: '' },
+  suspendedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // Traçabilité promotion admin
+  adminPromotedAt: { type: Date },
+  adminPromotedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
   usage: {
     receipts: {
@@ -60,6 +71,8 @@ const UserSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ suspended: 1 });
 
 // Politique de mot de passe : min 12 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/;

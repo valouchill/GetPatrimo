@@ -17,6 +17,7 @@ const providers: any[] = [
     credentials: {
       email: { label: 'Email', type: 'email' },
       token: { label: 'Token', type: 'text' },
+      impersonatorEmail: { label: 'ImpersonatorEmail', type: 'text' },
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.token) return null;
@@ -33,12 +34,30 @@ const providers: any[] = [
         await User.findByIdAndUpdate(user._id, {
           $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1 },
         });
+
+        // Impersonation : si impersonatorEmail fourni, valider qu'il s'agit d'un superadmin existant
+        let impersonatedBy: string | null = null;
+        const impersonatorEmail = String(credentials.impersonatorEmail || '').trim().toLowerCase();
+        if (impersonatorEmail) {
+          const impersonator = await User.findOne({ email: impersonatorEmail }).select('role').lean();
+          if (impersonator && impersonator.role === 'superadmin') {
+            // Empêche d'impersonate un admin/superadmin
+            if (user.role === 'admin' || user.role === 'superadmin') {
+              return null;
+            }
+            impersonatedBy = impersonatorEmail;
+          } else {
+            return null;
+          }
+        }
+
         return {
           id: String(user._id),
           email: user.email,
           name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
           totpEnabled: Boolean(user.totpEnabled),
-        };
+          ...(impersonatedBy ? { impersonatedBy } : {}),
+        } as any;
       } catch {
         return null;
       }
@@ -100,10 +119,62 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user }: any) {
+      // Bootstrap ADMIN_EMAILS → auto-promotion superadmin au 1er login
+      const parseAdminEmails = () =>
+        String(process.env.ADMIN_EMAILS || '')
+          .split(',')
+          .map((v) => v.trim().toLowerCase())
+          .filter(Boolean);
+
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.totpEnabled = user.totpEnabled || false;
+        if ((user as any).impersonatedBy) {
+          token.impersonatedBy = (user as any).impersonatedBy;
+        }
+
+        try {
+          await connectDiditDb();
+          const adminEmails = parseAdminEmails();
+          const userEmail = String(user.email || '').toLowerCase();
+
+          // Auto-promotion superadmin si email whitelisté
+          if (userEmail && adminEmails.includes(userEmail)) {
+            const current = await User.findById(user.id).select('role').lean();
+            if (current && current.role !== 'superadmin') {
+              await User.updateOne(
+                { _id: user.id },
+                { $set: { role: 'superadmin', adminPromotedAt: new Date() } }
+              );
+              token.role = 'superadmin';
+            } else {
+              token.role = current?.role || 'superadmin';
+            }
+          } else {
+            const dbUser = await User.findById(user.id).select('role suspended').lean();
+            if (dbUser?.suspended) {
+              // Bloque le login pour compte suspendu
+              return null;
+            }
+            token.role = dbUser?.role || 'owner';
+          }
+        } catch (err) {
+          console.error('[auth-options] jwt bootstrap error:', err);
+          token.role = 'owner';
+        }
+      } else if (token?.id) {
+        // Refresh du rôle à chaque request — propagation promotion/suspension dans les 24h
+        try {
+          await connectDiditDb();
+          const dbUser = await User.findById(token.id).select('role suspended').lean();
+          if (!dbUser || dbUser.suspended) {
+            return null; // force logout
+          }
+          token.role = dbUser.role || 'owner';
+        } catch (err) {
+          console.error('[auth-options] jwt refresh error:', err);
+        }
       }
       return token;
     },
@@ -111,6 +182,10 @@ export const authOptions = {
       if (session.user) {
         session.user.id = token?.id ?? token?.sub;
         session.user.totpEnabled = token?.totpEnabled || false;
+        session.user.role = token?.role || 'owner';
+        if (token?.impersonatedBy) {
+          session.user.impersonatedBy = token.impersonatedBy;
+        }
       }
       return session;
     },

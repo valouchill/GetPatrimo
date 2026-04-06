@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 interface ProgressRingProps {
   filled: number;
@@ -11,6 +11,9 @@ export function ProgressRing({ filled, total, size = 36 }: ProgressRingProps) {
   const radius = (size - 6) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percent / 100) * circumference;
+
+  // Color coding: red < 50%, amber 50-80%, green > 80%
+  const strokeColor = percent > 80 ? "#10b981" : percent > 50 ? "#f59e0b" : "#ef4444";
 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
@@ -28,7 +31,7 @@ export function ProgressRing({ filled, total, size = 36 }: ProgressRingProps) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#f97316"
+          stroke={strokeColor}
           strokeWidth={3}
           strokeDasharray={circumference}
           strokeDashoffset={offset}

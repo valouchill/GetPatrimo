@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Archive,
@@ -15,6 +15,8 @@ import {
   Lock,
   Pencil,
   ScrollText,
+  Trash2,
+  Upload,
   User,
   Users,
   X,
@@ -35,12 +37,54 @@ type ModalTab = 'overview' | 'candidatures' | 'docs';
 
 type VaultDocument = {
   id: string;
+  rawId?: string;
   label: string;
   status: string;
   kind: string;
   fileName?: string | null;
   downloadUrl?: string | null;
+  deletable?: boolean;
+  uploadedAt?: string | null;
+  expirationDate?: string | null;
+  size?: number;
+  mimeType?: string;
 };
+
+const UPLOAD_DOC_TYPES: { value: string; label: string }[] = [
+  { value: 'BAIL', label: 'Bail' },
+  { value: 'ETAT_DES_LIEUX', label: 'État des lieux' },
+  { value: 'DPE', label: 'DPE' },
+  { value: 'PLOMB', label: 'Plomb (CREP)' },
+  { value: 'AMIANTE', label: 'Amiante' },
+  { value: 'ELECTRICITE', label: 'Électricité' },
+  { value: 'GAZ', label: 'Gaz' },
+  { value: 'ERP', label: 'ERP' },
+  { value: 'BOUTIN', label: 'Loi Boutin' },
+  { value: 'QUITTANCE', label: 'Quittance de loyer' },
+  { value: 'FACTURE_TRAVAUX', label: 'Facture de travaux' },
+  { value: 'ASSURANCE', label: 'Assurance' },
+  { value: 'AUTRE', label: 'Autre' },
+];
+
+const TYPES_WITH_EXPIRATION = new Set(['DPE', 'PLOMB', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'BOUTIN', 'ASSURANCE']);
+
+function formatBytes(n?: number) {
+  if (!n || n <= 0) return '';
+  if (n < 1024) return `${n} o`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} Ko`;
+  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
+}
+function formatDateFR(v?: string | null) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function isExpired(v?: string | null) {
+  if (!v) return false;
+  const d = new Date(v);
+  return !isNaN(d.getTime()) && d.getTime() < Date.now();
+}
 
 type ManagementTools = {
   leaseId?: string | null;
@@ -157,7 +201,19 @@ export function PropertyDetailModal({
   const hasSel = !!selectedCand;
   const showTenant = flow?.stage === 'management' || bien.isRented;
 
-  // Fetch management tools (vault docs, leaseId) on mount
+  // Fetch management tools (vault docs, leaseId) on mount + on demand
+  const refreshMgmt = useCallback(async () => {
+    setMgmtLoading(true);
+    try {
+      const res = await fetch(`/api/owner/properties/${bien.id}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setMgmt(data.managementTools || null);
+      }
+    } catch { /* silent */ }
+    finally { setMgmtLoading(false); }
+  }, [bien.id]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -477,6 +533,9 @@ export function PropertyDetailModal({
             {/* ─── DOCUMENTS & GESTION ─────────────────────────────── */}
             {tab === 'docs' && (
               <div className="space-y-5">
+                {/* Uploader */}
+                <DocumentUploader propertyId={bien.id} onUploaded={refreshMgmt} />
+
                 {/* Coffre-fort documentaire */}
                 <div>
                   <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -488,30 +547,64 @@ export function PropertyDetailModal({
                     </div>
                   ) : vaultDocs.length > 0 ? (
                     <div className="space-y-2">
-                      {vaultDocs.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-900">{doc.label}</div>
-                            <div className="mt-0.5 text-xs capitalize text-slate-400">{doc.status}</div>
+                      {vaultDocs.map((doc) => {
+                        const expired = isExpired(doc.expirationDate);
+                        return (
+                          <div key={doc.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-slate-900 truncate">{doc.label}</span>
+                                {expired && (
+                                  <span className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                    Expiré
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                                {doc.fileName && <span className="truncate max-w-[220px]">{doc.fileName}</span>}
+                                {doc.uploadedAt && <span>· {formatDateFR(doc.uploadedAt)}</span>}
+                                {doc.size ? <span>· {formatBytes(doc.size)}</span> : null}
+                                {doc.expirationDate && !expired && (
+                                  <span>· Expire le {formatDateFR(doc.expirationDate)}</span>
+                                )}
+                                {!doc.uploadedAt && <span className="capitalize">{doc.status}</span>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {doc.downloadUrl ? (
+                                <a href={doc.downloadUrl} download={doc.fileName || undefined}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                  <Download className="h-3.5 w-3.5" /> Télécharger
+                                </a>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
+                                  <Lock className="h-3.5 w-3.5" /> En attente
+                                </span>
+                              )}
+                              {doc.deletable && doc.rawId && (
+                                <button type="button"
+                                  aria-label="Supprimer"
+                                  onClick={async () => {
+                                    if (!window.confirm('Supprimer ce document ?')) return;
+                                    try {
+                                      const res = await fetch(`/api/owner/properties/${bien.id}/documents/${doc.rawId}`, { method: 'DELETE' });
+                                      if (res.ok) refreshMgmt();
+                                    } catch { /* silent */ }
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          {doc.downloadUrl ? (
-                            <a href={doc.downloadUrl}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                              <Download className="h-3.5 w-3.5" /> Télécharger
-                            </a>
-                          ) : (
-                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
-                              <Lock className="h-3.5 w-3.5" /> En attente
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-8 text-center">
                       <FileText className="mx-auto h-7 w-7 text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-500">Aucun document disponible.</p>
-                      <p className="mt-1 text-xs text-slate-400">Bail, acte de caution et EDL apparaîtront ici.</p>
+                      <p className="text-sm text-slate-500">Aucun document.</p>
+                      <p className="mt-1 text-xs text-slate-400">Téléversez vos documents ci-dessus.</p>
                     </div>
                   )}
                 </div>
@@ -596,6 +689,124 @@ function KPI({ label, value, small, children }: { label: string; value: string; 
       <div className="mt-0.5 text-[10px] font-semibold uppercase text-slate-500">{label}</div>
       {children && <div className="mt-1">{children}</div>}
     </div>
+  );
+}
+
+function DocumentUploader({ propertyId, onUploaded }: { propertyId: string; onUploaded: () => void }) {
+  const [type, setType] = useState<string>('BAIL');
+  const [file, setFile] = useState<File | null>(null);
+  const [expirationDate, setExpirationDate] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const reset = () => {
+    setFile(null);
+    setExpirationDate('');
+    setError(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!file) { setError('Choisissez un fichier'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('Fichier trop volumineux (max 10 Mo)'); return; }
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('type', type);
+      if (expirationDate) fd.append('expirationDate', expirationDate);
+
+      const res = await fetch(`/api/owner/properties/${propertyId}/documents`, {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error || 'Erreur lors du téléversement');
+        return;
+      }
+      reset();
+      onUploaded();
+    } catch {
+      setError('Erreur réseau — veuillez réessayer');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const showExpiration = TYPES_WITH_EXPIRATION.has(type);
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Upload className="h-4 w-4 text-orange-500" />
+        <span className="text-sm font-bold text-slate-900">Ajouter un document</span>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Type</label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            disabled={uploading}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-orange-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-100"
+          >
+            {UPLOAD_DOC_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Fichier (PDF/Image, 10 Mo max)</label>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            disabled={uploading}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-orange-700 hover:file:bg-orange-200"
+          />
+        </div>
+        {showExpiration && (
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Date d&apos;expiration (optionnel)</label>
+            <input
+              type="date"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              disabled={uploading}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-orange-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-100 sm:max-w-xs"
+            />
+          </div>
+        )}
+      </div>
+      {error && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
+      )}
+      <div className="mt-3 flex justify-end">
+        <button
+          type="submit"
+          disabled={uploading || !file}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {uploading ? (
+            <>
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Téléversement…
+            </>
+          ) : (
+            <>
+              <Upload className="h-3.5 w-3.5" />
+              Téléverser
+            </>
+          )}
+        </button>
+      </div>
+    </form>
   );
 }
 

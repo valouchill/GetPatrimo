@@ -6,6 +6,7 @@ import type { TemplateParagraph, PreviewData, LeaseFormData, CompileMeta } from 
 // Client-side mapping: form fields → template variable names
 // This allows instant preview updates without server roundtrip
 const FORM_TO_VARS: Record<string, string[]> = {
+  // Core
   rentHC: ['loyer_mensuel', 'loyer_principal_chiffres', 'loyer_chiffres', 'mention_loyer_chiffres'],
   charges: ['forfait_charges_mensuel', 'charges_chiffres', 'mention_charges_chiffres', 'montant_provisions_charges'],
   deposit: ['depot_garantie', 'depot_garantie_chiffres'],
@@ -13,6 +14,54 @@ const FORM_TO_VARS: Record<string, string[]> = {
   durationMonths: ['duree_bail_mois', 'duree_contrat', 'duree_location'],
   paymentDay: ['paiement_jour_mois'],
   clauses: ['autres_conditions_particulieres'],
+  // Property
+  surfaceHabitable: ['surface_habitable_m2', 'surface_totale_m2'],
+  rooms: ['nb_pieces_principales', 'nb_pieces_places'],
+  dpeClass: ['dpe_classe'],
+  modeChauffage: ['mode_chauffage'],
+  modeEauChaude: ['mode_eau_chaude'],
+  // Financial
+  irlReference: ['irl_reference'],
+  irlReferenceDate: ['irl_reference_date'],
+  loyerReference: ['loyer_reference'],
+  loyerReferenceMajore: ['loyer_reference_majore'],
+  complementLoyer: ['complement_loyer', 'complement_loyer_details'],
+  // Payment
+  paymentMode: ['mode_paiement'],
+  paymentLocation: ['lieu_paiement'],
+  // Mandataire
+  mandataireNomPrenom: ['mandataire_nom_prenom'],
+  mandataireDenomination: ['mandataire_denomination'],
+  mandataireAdresse: ['mandataire_adresse'],
+  mandataireActivite: ['mandataire_activite'],
+  mandataireCartePro: ['mandataire_carte_pro'],
+};
+
+const CHECKBOX_SYMBOL = '\u2611';
+const UNCHECKED_SYMBOL = '\u2610';
+
+// Checkbox fields that map formData booleans to template coche_ variables
+const CHECKBOX_MAPPINGS: Record<string, { trueVar: string; falseVar: string }> = {
+  loyerRevise: { trueVar: 'coche_loyer_revise_oui', falseVar: 'coche_loyer_revise_non' },
+  soumisDecretRelocation: { trueVar: 'coche_decret_loyers_oui', falseVar: 'coche_decret_loyers_non' },
+  soumisLoyerReferenceMajore: { trueVar: 'coche_loyer_ref_majore_oui', falseVar: 'coche_loyer_ref_majore_non' },
+  paymentInArrears: { trueVar: 'coche_paiement_terme_echu', falseVar: 'coche_paiement_a_echoir' },
+  hasMandataire: { trueVar: 'coche_mandataire_oui', falseVar: 'coche_mandataire_non' },
+  isSocieteCivile: { trueVar: 'coche_societe_civile_oui', falseVar: 'coche_societe_civile_non' },
+  usageMixte: { trueVar: 'coche_usage_mixte', falseVar: 'coche_usage_habitation' },
+  balcony: { trueVar: 'coche_balcon', falseVar: '' },
+  terrace: { trueVar: 'coche_terrasse', falseVar: '' },
+  garden: { trueVar: 'coche_jardin', falseVar: '' },
+  loggia: { trueVar: 'coche_loggia', falseVar: '' },
+  garageVelo: { trueVar: 'coche_garage_velo', falseVar: '' },
+  grenier: { trueVar: 'coche_grenier', falseVar: '' },
+  comble: { trueVar: 'coche_comble', falseVar: '' },
+  airesJeux: { trueVar: 'coche_aires_jeux', falseVar: '' },
+  ascenseur: { trueVar: 'coche_ascenseur', falseVar: '' },
+  espacesVerts: { trueVar: 'coche_espaces_verts', falseVar: '' },
+  gardiennage: { trueVar: 'coche_gardiennage', falseVar: '' },
+  laverie: { trueVar: 'coche_laverie', falseVar: '' },
+  localPoubelle: { trueVar: 'coche_local_poubelle', falseVar: '' },
 };
 
 function formatAmount(value: number): string {
@@ -71,6 +120,39 @@ function applyClientOverrides(
       updated[key] = formData.clauses;
     }
   }
+
+  // String fields (property, financial, payment, mandataire)
+  const stringFields = [
+    'surfaceHabitable', 'rooms', 'dpeClass', 'modeChauffage', 'modeEauChaude',
+    'irlReference', 'irlReferenceDate', 'loyerReference', 'loyerReferenceMajore',
+    'complementLoyer', 'paymentMode', 'paymentLocation',
+    'mandataireNomPrenom', 'mandataireDenomination', 'mandataireAdresse',
+    'mandataireActivite', 'mandataireCartePro',
+  ] as const;
+
+  for (const field of stringFields) {
+    const val = (formData as Record<string, unknown>)[field];
+    if (val !== undefined && val !== null && val !== '' && FORM_TO_VARS[field]) {
+      for (const key of FORM_TO_VARS[field]) {
+        updated[key] = String(val);
+      }
+    }
+  }
+
+  // Checkbox fields
+  for (const [field, mapping] of Object.entries(CHECKBOX_MAPPINGS)) {
+    const val = Boolean((formData as Record<string, unknown>)[field]);
+    if (mapping.trueVar) updated[mapping.trueVar] = val ? CHECKBOX_SYMBOL : UNCHECKED_SYMBOL;
+    if (mapping.falseVar) updated[mapping.falseVar] = val ? UNCHECKED_SYMBOL : CHECKBOX_SYMBOL;
+  }
+
+  // Cave/garage/parking (string presence = checked)
+  if (formData.caveNumero) updated['coche_cave'] = CHECKBOX_SYMBOL;
+  if (formData.garageNumero) updated['coche_garage'] = CHECKBOX_SYMBOL;
+  if (formData.parkingNumber) updated['coche_parking'] = CHECKBOX_SYMBOL;
+  if (formData.caveNumero) updated['cave_numero'] = String(formData.caveNumero).trim();
+  if (formData.garageNumero) updated['garage_numero'] = String(formData.garageNumero).trim();
+  if (formData.parkingNumber) updated['parking_numero'] = String(formData.parkingNumber).trim();
 
   return updated;
 }
@@ -178,7 +260,13 @@ export function useLeaseVariables({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.rentHC, formData.charges, formData.deposit, formData.startDate, formData.durationMonths, formData.paymentDay]);
+  }, [
+    formData.rentHC, formData.charges, formData.deposit, formData.startDate,
+    formData.durationMonths, formData.paymentDay, formData.surfaceHabitable,
+    formData.rooms, formData.dpeClass, formData.modeChauffage, formData.modeEauChaude,
+    formData.hasMandataire, formData.loyerRevise, formData.soumisDecretRelocation,
+    formData.mobilityReason,
+  ]);
 
   // Apply client-side overrides for instant feedback
   const mergeData = serverMergeData ? applyClientOverrides(serverMergeData, formData) : {};
