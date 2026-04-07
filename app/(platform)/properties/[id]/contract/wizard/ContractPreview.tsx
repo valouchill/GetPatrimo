@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef } from 'react';
 import type { TemplateParagraph, LeaseFormData } from './types';
 import { resolveFieldForVariable, isReadonlyVariable } from './fieldRegistry';
+import type { FieldMeta } from './fieldRegistry';
 import { InlineFieldEditor } from './InlineFieldEditor';
 import { InfoBubble } from './InfoBubble';
 
@@ -65,6 +66,12 @@ function isHeading(text: string): boolean {
   return stripped === stripped.toUpperCase() && /[A-Z\u00C0-\u00DC]{3,}/.test(stripped);
 }
 
+/** Can this variable be typed into directly (text/number)? */
+function isDirectEditable(meta: FieldMeta | null): boolean {
+  if (!meta || meta.type === 'readonly') return false;
+  return meta.type === 'text' || meta.type === 'number';
+}
+
 export function ContractPreview({
   paragraphs,
   mergeData,
@@ -76,7 +83,23 @@ export function ContractPreview({
 }: ContractPreviewProps) {
   const [activeVar, setActiveVar] = useState<{ name: string; rect: DOMRect } | null>(null);
   const editable = Boolean(formData && onFieldChange);
+  const editingVarRef = useRef<string | null>(null);
 
+  /** Commit a contentEditable change back to formData */
+  const commitInlineEdit = useCallback((varName: string, el: HTMLElement) => {
+    if (!onFieldChange) return;
+    const meta = resolveFieldForVariable(varName);
+    if (!meta?.formField) return;
+    const text = el.textContent?.trim() ?? '';
+    if (meta.type === 'number') {
+      onFieldChange(meta.formField, text === '' ? 0 : Number(text) || 0);
+    } else {
+      onFieldChange(meta.formField, text);
+    }
+    editingVarRef.current = null;
+  }, [onFieldChange]);
+
+  /** Click handler: direct edit for text/number, popover for select/toggle/date */
   const handleVarClick = useCallback((varName: string, e: React.MouseEvent<HTMLSpanElement>) => {
     if (!editable) {
       const el = document.getElementById(`field-${varName}`);
@@ -84,6 +107,23 @@ export function ContractPreview({
       return;
     }
     if (isReadonlyVariable(varName)) return;
+
+    const meta = resolveFieldForVariable(varName);
+    if (isDirectEditable(meta)) {
+      // Let the contentEditable handle it — just focus
+      editingVarRef.current = varName;
+      const span = e.currentTarget;
+      span.focus();
+      // Select all text for easy replacement
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      return;
+    }
+
+    // Popover for select/toggle/date/pill
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setActiveVar({ name: varName, rect });
   }, [editable]);
@@ -128,14 +168,41 @@ export function ContractPreview({
             ? 'bg-red-50 text-red-600 border border-dashed border-red-300'
             : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300';
 
+          const missingMeta = resolveFieldForVariable(v.name);
+          const canEditMissing = editable && isDirectEditable(missingMeta);
+
           segments.push(
             <span key={`v-${paraIndex}-${i}`} className="inline-flex items-center gap-1">
               <span
                 role={editable ? 'button' : undefined}
                 tabIndex={editable ? 0 : undefined}
-                className={`inline-block rounded px-1.5 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-colors ${style} ${isActive ? 'ring-2 ring-emerald-500' : ''}`}
+                contentEditable={canEditMissing ? true : undefined}
+                suppressContentEditableWarning={canEditMissing ? true : undefined}
+                className={`inline-block rounded px-1.5 py-0.5 text-xs transition-colors outline-none ${style} ${isActive ? 'ring-2 ring-emerald-500' : ''} ${canEditMissing ? 'cursor-text focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:text-slate-800 focus:border-emerald-400' : 'cursor-pointer hover:opacity-80'}`}
                 onClick={(e) => handleVarClick(v.name, e)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleVarClick(v.name, e as unknown as React.MouseEvent<HTMLSpanElement>); }}
+                onFocus={canEditMissing ? (e) => {
+                  // Clear placeholder text on focus
+                  if (e.currentTarget.textContent === getVarLabel(v.name)) {
+                    e.currentTarget.textContent = '';
+                  }
+                } : undefined}
+                onBlur={canEditMissing ? (e) => {
+                  const text = e.currentTarget.textContent?.trim() ?? '';
+                  if (text) {
+                    commitInlineEdit(v.name, e.currentTarget);
+                  } else {
+                    // Restore placeholder
+                    e.currentTarget.textContent = getVarLabel(v.name);
+                  }
+                } : undefined}
+                onKeyDown={(e) => {
+                  if (canEditMissing && e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLElement).blur();
+                    return;
+                  }
+                  if (e.key === 'Enter' || e.key === ' ') handleVarClick(v.name, e as unknown as React.MouseEvent<HTMLSpanElement>);
+                }}
               >
                 {getVarLabel(v.name)}
               </span>
@@ -143,21 +210,36 @@ export function ContractPreview({
             </span>
           );
         } else {
+          const meta = resolveFieldForVariable(v.name);
+          const canEditInline = editable && !isReadonly && isDirectEditable(meta);
+
           segments.push(
             <span key={`v-${paraIndex}-${i}`} className="inline-flex items-center gap-1">
               <span
                 role={editable && !isReadonly ? 'button' : undefined}
                 tabIndex={editable && !isReadonly ? 0 : undefined}
-                className={`inline-block rounded px-1 py-0.5 font-medium text-xs transition-colors ${
+                contentEditable={canEditInline ? true : undefined}
+                suppressContentEditableWarning={canEditInline ? true : undefined}
+                className={`inline-block rounded px-1 py-0.5 font-medium text-xs transition-colors outline-none ${
                   isActive
                     ? 'bg-emerald-200 text-emerald-900 ring-2 ring-emerald-500'
                     : isReadonly
                       ? 'bg-slate-50 text-slate-500'
-                      : 'bg-emerald-100 text-emerald-800 cursor-pointer hover:bg-emerald-200'
+                      : canEditInline
+                        ? 'bg-emerald-100 text-emerald-800 cursor-text hover:bg-emerald-200 focus:bg-emerald-200 focus:ring-2 focus:ring-emerald-500 border-b border-dashed border-emerald-300'
+                        : 'bg-emerald-100 text-emerald-800 cursor-pointer hover:bg-emerald-200'
                 }`}
-                title={`${getVarLabel(v.name)}: ${resolvedValue}`}
+                title={canEditInline ? `Cliquez pour modifier : ${getVarLabel(v.name)}` : `${getVarLabel(v.name)}: ${resolvedValue}`}
                 onClick={(e) => handleVarClick(v.name, e)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleVarClick(v.name, e as unknown as React.MouseEvent<HTMLSpanElement>); }}
+                onBlur={canEditInline ? (e) => commitInlineEdit(v.name, e.currentTarget) : undefined}
+                onKeyDown={(e) => {
+                  if (canEditInline && e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLElement).blur();
+                    return;
+                  }
+                  if (e.key === 'Enter' || e.key === ' ') handleVarClick(v.name, e as unknown as React.MouseEvent<HTMLSpanElement>);
+                }}
               >
                 {resolvedValue}
               </span>
@@ -222,7 +304,7 @@ export function ContractPreview({
           <span className="inline-block h-3 w-6 rounded bg-slate-100 border border-dashed border-slate-300" />
           Optionnel
         </div>
-        {editable && <span className="text-slate-400">Cliquez sur un champ pour le modifier</span>}
+        {editable && <span className="text-slate-400">Cliquez sur un champ pour \u00e9crire directement dessus</span>}
       </div>
 
       {/* Inline editor */}
