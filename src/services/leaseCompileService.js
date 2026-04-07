@@ -327,21 +327,54 @@ async function buildCompiledDocument({ kind, templateName, title, data, userId, 
     throw new Error(`Erreur rendu template ${templateName}: ${err.message}`);
   }
 
-  // Post-process: remove paragraphs containing only unchecked boxes ([ ]) and no checked ([X])
-  // This hides conditional clauses that don't apply to this lease
+  // Post-process rendered DOCX: clean up checkbox lines and remove irrelevant conditional content
   const zip = doc.getZip();
   const docXml = zip.file('word/document.xml');
   if (docXml) {
     let xml = docXml.asText();
-    // Match <w:p> elements containing "[ ]" but NOT "[X]"
-    // This regex captures full paragraphs (non-greedy) that have unchecked boxes
+
     xml = xml.replace(/<w:p\b[^>]*>(?:(?!<w:p\b).)*?<\/w:p>/gs, (paragraph) => {
-      const hasUnchecked = paragraph.includes('[ ]');
-      const hasChecked = paragraph.includes('[X]');
-      // Only remove paragraphs that have unchecked boxes and NO checked boxes
+      // Extract all text from the paragraph
+      const texts = [];
+      paragraph.replace(/<w:t[^>]*>(.*?)<\/w:t>/gs, (_, t) => { texts.push(t); return ''; });
+      const fullText = texts.join('');
+
+      const hasUnchecked = fullText.includes('[ ]');
+      const hasChecked = fullText.includes('[X]');
+
+      // Case 1: Paragraph has ONLY unchecked boxes (no [X]) — remove entirely
       if (hasUnchecked && !hasChecked) return '';
+
+      // Case 2: Paragraph has both [X] and [ ] — clean up inline: remove unchecked options
+      // e.g. "[X] Personne physique    [ ] Personne morale" → "[X] Personne physique"
+      if (hasChecked && hasUnchecked) {
+        // Remove "[ ] Label" patterns from the text runs
+        // The pattern matches: "[ ]" followed by optional spaces and text until the next "["  or end
+        let cleaned = paragraph;
+        // Replace in <w:t> elements: remove "[ ] text" segments
+        cleaned = cleaned.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/gs, (match, open, content, close) => {
+          // Remove segments like "[ ] Personne morale" or "[ ] non" or "[ ] oui"
+          let c = content;
+          // Pattern: "[ ]" + spaces + word(s) until next "[" or end of string
+          c = c.replace(/\[ \]\s*[^[\]]+/g, '');
+          // Clean up leftover separators (multiple spaces, trailing slashes, leading/trailing whitespace)
+          c = c.replace(/\s*\/\s*$/, '').replace(/\s{3,}/g, '  ').replace(/^\s+|\s+$/g, ' ');
+          return open + c + close;
+        });
+        return cleaned;
+      }
+
+      // Case 3: Paragraph with dependent fields ("si personne morale", "si mandataire")
+      // that resolve to empty/placeholder — remove if all variable content is [ A COMPLETER ] or empty
+      if (fullText.includes('[ A COMPLETER ]') && !hasChecked) {
+        const stripped = fullText.replace(/\[ A COMPLETER \]/g, '').replace(/[^a-zA-Zéèêàâôûçïë0-9]/g, '');
+        // If removing placeholders leaves only a short label, remove the whole paragraph
+        if (stripped.length < 30) return '';
+      }
+
       return paragraph;
     });
+
     zip.file('word/document.xml', xml);
   }
 
