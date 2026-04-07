@@ -122,6 +122,8 @@ export type CompiledDocument = {
 export type GuarantorOverrides = {
   firstName?: string;
   lastName?: string;
+  email?: string;
+  phone?: string;
   address?: string;
   zipCode?: string;
   city?: string;

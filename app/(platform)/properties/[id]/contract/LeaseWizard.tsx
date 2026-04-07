@@ -100,6 +100,8 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const [compiledDocuments, setCompiledDocuments] = useState<CompiledDocument[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [savedLeaseId, setSavedLeaseId] = useState("");
+  const [signatureStatus, setSignatureStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [activeTab, setActiveTab] = useState<"contrat" | "formulaire">("formulaire");
 
   const explicitApplicationId = searchParams.get("applicationId") || searchParams.get("tenantId") || "";
@@ -334,12 +336,30 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || data.msg || "Impossible d'enregistrer");
       setSaveStatus("success");
+      setSavedLeaseId(data.data?._id || data.data?.id || "");
       // Persist property characteristics for future leases (fire-and-forget)
       persistPropertyCharacteristics(propertyId, formData);
-      window.setTimeout(() => router.push("/dashboard/owner?page=baux"), 1500);
     } catch (error) {
       setSaveStatus("error");
       setSaveError(error instanceof Error ? error.message : "Erreur inattendue");
+    }
+  };
+
+  // ── Launch e-signature ────────────────────────────────────────
+  const handleLaunchSignature = async () => {
+    if (!savedLeaseId) return;
+    setSignatureStatus("loading");
+    try {
+      const response = await fetch(`/api/leases/${savedLeaseId}/opensign/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Impossible de lancer la signature");
+      setSignatureStatus("success");
+      window.setTimeout(() => router.push("/dashboard/owner?page=baux"), 2000);
+    } catch {
+      setSignatureStatus("error");
     }
   };
 
@@ -473,9 +493,12 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         compiledDocuments={compiledDocuments}
         canCompile={canCompile}
         missingRequired={missingRequired}
+        leaseId={savedLeaseId}
+        signatureStatus={signatureStatus}
         onCompile={handleCompile}
         onSave={handleSaveLease}
         onDownload={handleDownload}
+        onLaunchSignature={handleLaunchSignature}
       />
     </div>
   );

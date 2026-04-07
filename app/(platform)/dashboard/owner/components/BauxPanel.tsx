@@ -20,6 +20,9 @@ interface LeaseRecord {
   leaseStatus: string;
   signatureStatus: string;
   opensignStatus?: string;
+  tenantSignedAt?: string;
+  ownerSignedAt?: string;
+  opensignDocuments?: Array<{ kind: string; status: string }>;
   durationMonths: number;
   irlRevision?: { enabled: boolean };
   termination?: { initiatedBy?: string; estimatedExitDate?: string };
@@ -314,6 +317,26 @@ export function BauxPanel({
                     {config.label}
                   </span>
                 </div>
+
+                {/* Signature detail */}
+                {status === 'PENDING_SIGNATURE' && (
+                  <div className="mb-2 flex flex-wrap gap-2 text-xs">
+                    <span className={`rounded-full px-2 py-0.5 ${lease.tenantSignedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Locataire {lease.tenantSignedAt ? 'a signé' : 'en attente'}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 ${lease.ownerSignedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      Propriétaire {lease.ownerSignedAt ? 'a signé' : 'en attente'}
+                    </span>
+                    {lease.opensignDocuments?.some(d => d.kind === 'GUARANTEE') && (
+                      <span className={`rounded-full px-2 py-0.5 ${
+                        lease.opensignDocuments.find(d => d.kind === 'GUARANTEE')?.status === 'SIGNED'
+                          ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        Garant {lease.opensignDocuments.find(d => d.kind === 'GUARANTEE')?.status === 'SIGNED' ? 'a signé' : 'en attente'}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Property + type */}
                 <div className="mb-3 text-sm text-slate-600">

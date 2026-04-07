@@ -530,8 +530,37 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     coche_situation_etudes_superieures: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('etude')),
   };
 
+  // Boolean flags for conditional template sections (docxtemplater {{#flag}}...{{/flag}})
+  const isPhysique = !normalizedLandlord.isCompany;
+  const booleanFlags = {
+    is_bailleur_physique: isPhysique,
+    is_bailleur_morale: !isPhysique,
+    has_mandataire: Boolean(formData.hasMandataire),
+    is_societe_civile: Boolean(formData.isSocieteCivile),
+    has_provision_charges: !Boolean(formData.chargesForfait),
+    has_forfait_charges: Boolean(formData.chargesForfait),
+    has_loyer_revise: Boolean(formData.loyerRevise),
+    has_decret_loyers: Boolean(formData.soumisDecretRelocation),
+    has_loyer_ref_majore: Boolean(formData.soumisLoyerReferenceMajore),
+    is_usage_mixte: Boolean(formData.usageMixte),
+    is_habitat_collectif: formData.typeHabitat === 'collectif',
+    is_habitat_individuel: formData.typeHabitat === 'individuel',
+    is_bail_vide: leaseType === 'VIDE',
+    is_bail_meuble: leaseType === 'MEUBLE',
+    is_bail_mobilite: leaseType === 'MOBILITE',
+    is_bail_garage: leaseType === 'GARAGE_PARKING',
+    has_garant: Boolean(tenant?.guarantor),
+    has_balcon: Boolean(formData.balcony),
+    has_terrasse: Boolean(formData.terrace),
+    has_jardin: Boolean(formData.garden),
+    has_cave: Boolean(formData.caveNumero),
+    has_garage: Boolean(formData.garageNumero),
+    has_parking: Boolean(formData.parkingNumber),
+  };
+
   return {
     ...baseData,
+    ...booleanFlags,
     ...buildLineMap('autres_conditions_particulieres', baseData.autres_conditions_particulieres, 4),
     ...buildLineMap('locaux_privatifs', baseData.locaux_privatifs, 2),
     ...buildLineMap('locaux_communs', baseData.locaux_communs, 2),

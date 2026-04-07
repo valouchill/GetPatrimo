@@ -44,6 +44,7 @@ FROM node:20-alpine AS production
 WORKDIR /opt/doc2loc
 
 # Runtime-only system deps (no compiler toolchain)
+# libreoffice-writer: DOCX → PDF conversion for lease contracts
 RUN apk add --no-cache \
     cairo \
     jpeg \
@@ -56,6 +57,8 @@ RUN apk add --no-cache \
     font-noto \
     font-noto-emoji \
     curl \
+    libreoffice-writer \
+    libreoffice-common \
     && fc-cache -fv
 
 # Copy everything from builder EXCEPT node_modules

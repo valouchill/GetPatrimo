@@ -36,6 +36,33 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
         </div>
       )}
 
+      {/* Email & Téléphone (requis pour la signature électronique) */}
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-xs font-medium text-slate-600 mb-1 block">
+            Email du garant <span className="text-red-400">*</span>
+          </span>
+          <input
+            type="email"
+            value={overrides.email ?? ""}
+            onChange={(e) => handleOverride("email", e.target.value)}
+            placeholder="garant@email.com"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          />
+          <p className="text-[10px] text-slate-400 mt-0.5">Requis pour la signature de l'acte de cautionnement</p>
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium text-slate-600 mb-1 block">Téléphone du garant</span>
+          <input
+            type="tel"
+            value={overrides.phone ?? ""}
+            onChange={(e) => handleOverride("phone", e.target.value)}
+            placeholder="06 12 34 56 78"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          />
+        </label>
+      </div>
+
       {/* Champs éditables du garant */}
       <div className="grid grid-cols-2 gap-3">
         <label className="block">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileCheck, Loader2, Save, CheckCircle2, AlertTriangle, ChevronUp, X } from "lucide-react";
+import { Download, FileCheck, Loader2, Save, CheckCircle2, AlertTriangle, ChevronUp, X, Send } from "lucide-react";
 import type { CompiledDocument } from "./types";
 import type { MissingField } from "./useFormCompletion";
 
@@ -16,9 +16,12 @@ interface ActionFooterProps {
   compiledDocuments: CompiledDocument[];
   canCompile: boolean;
   missingRequired?: MissingField[];
+  leaseId?: string;
+  signatureStatus: "idle" | "loading" | "success" | "error";
   onCompile: () => void;
   onSave: () => void;
   onDownload: (url?: string, fileName?: string) => void;
+  onLaunchSignature?: () => void;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -47,9 +50,12 @@ export function ActionFooter({
   compiledDocuments,
   canCompile,
   missingRequired = [],
+  leaseId,
+  signatureStatus,
   onCompile,
   onSave,
   onDownload,
+  onLaunchSignature,
 }: ActionFooterProps) {
   const [showMissing, setShowMissing] = useState(false);
 
@@ -163,10 +169,34 @@ export function ActionFooter({
             </button>
           )}
 
-          {saveStatus === "success" && (
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+          {saveStatus === "success" && signatureStatus !== "success" && (
+            <>
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
+                Enregistré
+              </span>
+              {leaseId && onLaunchSignature && (
+                <button
+                  type="button"
+                  onClick={onLaunchSignature}
+                  disabled={signatureStatus === "loading"}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  {signatureStatus === "loading" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Envoyer pour signature</span>
+                </button>
+              )}
+            </>
+          )}
+
+          {signatureStatus === "success" && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600">
               <CheckCircle2 className="h-4 w-4" />
-              Enregistré
+              Invitation envoyée
             </span>
           )}
         </div>

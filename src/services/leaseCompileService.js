@@ -312,11 +312,40 @@ function buildSecureUrl(fileName) {
 
 async function buildCompiledDocument({ kind, templateName, title, data, userId, leaseType }) {
   const templatePath = resolveTemplatePath(templateName);
-  const templateBuffer = fs.readFileSync(templatePath);
-  const doc = createDoc(templateBuffer);
-  doc.render(data);
+  let templateBuffer;
+  try {
+    templateBuffer = fs.readFileSync(templatePath);
+  } catch (err) {
+    throw new Error(`Template introuvable ou illisible: ${templatePath} — ${err.message}`);
+  }
 
-  const docxBuffer = doc.getZip().generate({
+  let doc;
+  try {
+    doc = createDoc(templateBuffer);
+    doc.render(data);
+  } catch (err) {
+    throw new Error(`Erreur rendu template ${templateName}: ${err.message}`);
+  }
+
+  // Post-process: remove paragraphs containing only unchecked boxes ([ ]) and no checked ([X])
+  // This hides conditional clauses that don't apply to this lease
+  const zip = doc.getZip();
+  const docXml = zip.file('word/document.xml');
+  if (docXml) {
+    let xml = docXml.asText();
+    // Match <w:p> elements containing "[ ]" but NOT "[X]"
+    // This regex captures full paragraphs (non-greedy) that have unchecked boxes
+    xml = xml.replace(/<w:p\b[^>]*>(?:(?!<w:p\b).)*?<\/w:p>/gs, (paragraph) => {
+      const hasUnchecked = paragraph.includes('[ ]');
+      const hasChecked = paragraph.includes('[X]');
+      // Only remove paragraphs that have unchecked boxes and NO checked boxes
+      if (hasUnchecked && !hasChecked) return '';
+      return paragraph;
+    });
+    zip.file('word/document.xml', xml);
+  }
+
+  const docxBuffer = zip.generate({
     type: 'nodebuffer',
     compression: 'DEFLATE',
   });
