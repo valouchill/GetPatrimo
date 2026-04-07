@@ -23,7 +23,7 @@ const PRIVATE_ITEMS: CheckItem[] = [
   { key: "caveNumero", label: "Cave", hasNumero: true, numeroKey: "caveNumero", numeroPlaceholder: "N\u00b0 cave" },
   { key: "garageNumero", label: "Garage", hasNumero: true, numeroKey: "garageNumero", numeroPlaceholder: "N\u00b0 garage" },
   { key: "parkingNumber", label: "Parking", hasNumero: true, numeroKey: "parkingNumber", numeroPlaceholder: "N\u00b0 parking" },
-  { key: "garageVelo", label: "Garage v\u00e9lo" },
+  { key: "garageVelo", label: "Garage vélo" },
   { key: "grenier", label: "Grenier" },
   { key: "comble", label: "Combles" },
 ];
@@ -121,7 +121,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
           type="text"
           value={formData.partiesCommunesAutres ?? ""}
           onChange={(e) => onFieldChange("partiesCommunesAutres", e.target.value)}
-          placeholder="Ex: local \u00e0 v\u00e9lo, piscine..."
+          placeholder="Ex: local à vélo, piscine..."
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
         />
       </label>

@@ -10,7 +10,7 @@ interface SectionClausesProps {
 export function SectionClauses({ formData, onFieldChange }: SectionClausesProps) {
   return (
     <div className="space-y-4">
-      {/* Checkboxes structur\u00e9s */}
+      {/* Checkboxes structurés */}
       <div className="space-y-2">
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Usage & conditions</h4>
 
@@ -23,7 +23,7 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
           />
           <div>
             <span className="text-sm font-medium text-slate-700">Usage mixte (habitation + professionnel)</span>
-            <p className="text-xs text-slate-500">Par d\u00e9faut : usage exclusif d&apos;habitation</p>
+            <p className="text-xs text-slate-500">Par défaut : usage exclusif d&apos;habitation</p>
           </div>
         </label>
 
@@ -35,9 +35,9 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
           />
           <div>
-            <span className="text-sm font-medium text-slate-700">Animaux domestiques autoris\u00e9s</span>
+            <span className="text-sm font-medium text-slate-700">Animaux domestiques autorisés</span>
             <p className="text-xs text-slate-500">
-              Note : la loi interdit d&apos;interdire la d\u00e9tention d&apos;animaux domestiques (sauf nuisances)
+              Note : la loi interdit d&apos;interdire la détention d&apos;animaux domestiques (sauf nuisances)
             </p>
           </div>
         </label>
@@ -50,9 +50,9 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
           />
           <div>
-            <span className="text-sm font-medium text-slate-700">Sous-location autoris\u00e9e</span>
+            <span className="text-sm font-medium text-slate-700">Sous-location autorisée</span>
             <p className="text-xs text-slate-500">
-              Par d\u00e9faut : la sous-location est interdite sans accord \u00e9crit du bailleur
+              Par défaut : la sous-location est interdite sans accord écrit du bailleur
             </p>
           </div>
         </label>
@@ -61,17 +61,17 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
       {/* Textarea libre */}
       <div>
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-          Clauses particuli\u00e8res libres
+          Clauses particulières libres
         </h4>
         <textarea
           id="field-autres_conditions_particulieres"
           value={formData.clauses}
           onChange={(e) => onFieldChange("clauses", e.target.value)}
-          placeholder="Ajoutez vos clauses particuli\u00e8res ici..."
+          placeholder="Ajoutez vos clauses particulières ici..."
           className="min-h-[120px] w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none resize-y"
         />
         <p className="mt-1 text-xs text-slate-400">
-          {formData.clauses.length}/2000 caract\u00e8res
+          {formData.clauses.length}/2000 caractères
         </p>
       </div>
     </div>

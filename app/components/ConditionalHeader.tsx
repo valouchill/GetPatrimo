@@ -25,6 +25,9 @@ export default function ConditionalHeader() {
   if (pathname?.startsWith('/auth/')) {
     return null;
   }
-  
+  if (pathname?.includes('/contract')) {
+    return null;
+  }
+
   return <LuxeHeader />;
 }

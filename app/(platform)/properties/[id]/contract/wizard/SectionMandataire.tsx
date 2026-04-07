@@ -30,7 +30,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
           />
         </button>
         <div>
-          <span className="text-sm font-medium text-slate-700">Le bail est g\u00e9r\u00e9 par un mandataire</span>
+          <span className="text-sm font-medium text-slate-700">Le bail est géré par un mandataire</span>
           <p className="text-xs text-slate-500">Agent immobilier ou administrateur de biens</p>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
         <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600 mb-1 block">Nom / Pr\u00e9nom</span>
+              <span className="text-xs font-medium text-slate-600 mb-1 block">Nom / Prénom</span>
               <input
                 type="text"
                 value={formData.mandataireNomPrenom ?? ""}
@@ -49,7 +49,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-600 mb-1 block">D\u00e9nomination</span>
+              <span className="text-xs font-medium text-slate-600 mb-1 block">Dénomination</span>
               <input
                 type="text"
                 value={formData.mandataireDenomination ?? ""}
@@ -66,14 +66,14 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
               type="text"
               value={formData.mandataireAdresse ?? ""}
               onChange={(e) => onFieldChange("mandataireAdresse", e.target.value)}
-              placeholder="Adresse compl\u00e8te"
+              placeholder="Adresse complète"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600 mb-1 block">Activit\u00e9</span>
+              <span className="text-xs font-medium text-slate-600 mb-1 block">Activité</span>
               <input
                 type="text"
                 value={formData.mandataireActivite ?? ""}
@@ -94,7 +94,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
             </label>
           </div>
 
-          {/* Soci\u00e9t\u00e9 civile */}
+          {/* Société civile */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -102,7 +102,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
               onChange={(e) => onFieldChange("isSocieteCivile", e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
             />
-            <span className="text-sm text-slate-700">Le bailleur est une soci\u00e9t\u00e9 civile</span>
+            <span className="text-sm text-slate-700">Le bailleur est une société civile</span>
           </label>
         </div>
       )}

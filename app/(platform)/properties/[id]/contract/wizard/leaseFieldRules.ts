@@ -75,15 +75,15 @@ export const FIELD_VISIBILITY: Record<string, Rule> = {
 export function getDurationConstraints(leaseType: string) {
   switch (leaseType) {
     case "MOBILITE":
-      return { min: 1, max: 10, defaultValue: 10, hint: "1 \u00e0 10 mois (bail mobilit\u00e9)" };
+      return { min: 1, max: 10, defaultValue: 10, hint: "1 à 10 mois (bail mobilité)" };
     case "VIDE":
     case "NUE":
-      return { min: 1, max: 120, defaultValue: 36, hint: "36 mois minimum recommand\u00e9 (bail nu)" };
+      return { min: 1, max: 120, defaultValue: 36, hint: "36 mois minimum recommandé (bail nu)" };
     case "MEUBLEE":
     case "MEUBLE":
-      return { min: 1, max: 120, defaultValue: 12, hint: "12 mois minimum recommand\u00e9 (bail meubl\u00e9)" };
+      return { min: 1, max: 120, defaultValue: 12, hint: "12 mois minimum recommandé (bail meublé)" };
     case "GARAGE_PARKING":
-      return { min: 1, max: 120, defaultValue: 12, hint: "Dur\u00e9e libre" };
+      return { min: 1, max: 120, defaultValue: 12, hint: "Durée libre" };
     default:
       return { min: 1, max: 120, defaultValue: 12, hint: "" };
   }
@@ -94,13 +94,13 @@ export function getDurationConstraints(leaseType: string) {
 export function getDepositConstraints(leaseType: string, rentHC: number) {
   switch (leaseType) {
     case "MOBILITE":
-      return { max: 0, hint: "Pas de d\u00e9p\u00f4t pour un bail mobilit\u00e9" };
+      return { max: 0, hint: "Pas de dépôt pour un bail mobilité" };
     case "VIDE":
     case "NUE":
-      return { max: rentHC, hint: `Maximum 1 mois de loyer (${rentHC} \u20ac)` };
+      return { max: rentHC, hint: `Maximum 1 mois de loyer (${rentHC} €)` };
     case "MEUBLEE":
     case "MEUBLE":
-      return { max: 2 * rentHC, hint: `Maximum 2 mois de loyer (${2 * rentHC} \u20ac)` };
+      return { max: 2 * rentHC, hint: `Maximum 2 mois de loyer (${2 * rentHC} €)` };
     default:
       return { max: Infinity, hint: "" };
   }
@@ -111,13 +111,13 @@ export function getDepositConstraints(leaseType: string, rentHC: number) {
 export function getNoticePeriod(leaseType: string) {
   switch (leaseType) {
     case "MOBILITE":
-      return { tenant: "1 mois", owner: "Pas de pr\u00e9avis (fin au terme)" };
+      return { tenant: "1 mois", owner: "Pas de préavis (fin au terme)" };
     case "VIDE":
     case "NUE":
-      return { tenant: "3 mois (1 mois en zone tendue)", owner: "6 mois avant \u00e9ch\u00e9ance" };
+      return { tenant: "3 mois (1 mois en zone tendue)", owner: "6 mois avant échéance" };
     case "MEUBLEE":
     case "MEUBLE":
-      return { tenant: "1 mois", owner: "3 mois avant \u00e9ch\u00e9ance" };
+      return { tenant: "1 mois", owner: "3 mois avant échéance" };
     default:
       return { tenant: "Variable", owner: "Variable" };
   }

@@ -9,9 +9,9 @@ interface Props {
 
 const PAYMENT_MODES = [
   { value: "virement bancaire", label: "Virement bancaire" },
-  { value: "ch\u00e8que", label: "Ch\u00e8que" },
-  { value: "pr\u00e9l\u00e8vement automatique", label: "Pr\u00e9l\u00e8vement automatique" },
-  { value: "esp\u00e8ces", label: "Esp\u00e8ces" },
+  { value: "chèque", label: "Chèque" },
+  { value: "prélèvement automatique", label: "Prélèvement automatique" },
+  { value: "espèces", label: "Espèces" },
 ];
 
 export function SectionPaiement({ formData, onFieldChange }: Props) {
@@ -44,7 +44,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            \u00c0 \u00e9choir (d\u00e9but de mois)
+            \u00c0 échoir (début de mois)
           </button>
           <button
             type="button"
@@ -55,7 +55,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            Terme \u00e9chu (fin de mois)
+            Terme échu (fin de mois)
           </button>
         </div>
       </div>

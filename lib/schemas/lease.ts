@@ -10,26 +10,26 @@ const GuarantorOverridesSchema = z.object({
 }).optional();
 
 /**
- * Sch\u00e9ma Zod pour le formulaire de cr\u00e9ation de bail.
- * R\u00e8gles d\u00e9p\u00f4t de garantie :
- * - Mobilit\u00e9 : d\u00e9p\u00f4t = 0 \u20ac
- * - Nu/Vide : d\u00e9p\u00f4t \u2264 1 mois loyer HC
- * - Meubl\u00e9 : d\u00e9p\u00f4t \u2264 2 mois loyer HC
+ * Schéma Zod pour le formulaire de création de bail.
+ * Règles dépôt de garantie :
+ * - Mobilité : dépôt = 0 €
+ * - Vide : dépôt ≤ 1 mois loyer HC
+ * - Meublé : dépôt ≤ 2 mois loyer HC
  */
 export const LeaseSchema = z.object({
   // Core
-  leaseType: z.enum(['NUE', 'MEUBLEE', 'MOBILITE', 'GARAGE_PARKING'], {
+  leaseType: z.enum(['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'], {
     error: 'Type de bail requis',
   }),
-  startDate: z.string().min(1, 'Date de d\u00e9but requise'),
+  startDate: z.string().min(1, 'Date de début requise'),
   paymentDay: z.number().int().min(1, 'Jour entre 1 et 31').max(31, 'Jour entre 1 et 31'),
-  rentHC: z.number({ error: 'Montant invalide' }).min(0, 'Le loyer ne peut pas \u00eatre n\u00e9gatif'),
-  charges: z.number({ error: 'Montant invalide' }).min(0, 'Les charges ne peuvent pas \u00eatre n\u00e9gatives'),
-  deposit: z.number({ error: 'Montant invalide' }).min(0, 'Le d\u00e9p\u00f4t ne peut pas \u00eatre n\u00e9gatif'),
-  durationMonths: z.number().int().min(1, 'Dur\u00e9e minimale : 1 mois'),
-  clauses: z.string().max(2000, 'Clauses trop longues (2000 caract\u00e8res max)').optional(),
+  rentHC: z.number({ error: 'Montant invalide' }).min(0, 'Le loyer ne peut pas être négatif'),
+  charges: z.number({ error: 'Montant invalide' }).min(0, 'Les charges ne peuvent pas être négatives'),
+  deposit: z.number({ error: 'Montant invalide' }).min(0, 'Le dépôt ne peut pas être négatif'),
+  durationMonths: z.number().int().min(1, 'Durée minimale : 1 mois'),
+  clauses: z.string().max(2000, 'Clauses trop longues (2000 caractères max)').optional(),
 
-  // Caract\u00e9ristiques du bien
+  // Caractéristiques du bien
   surfaceHabitable: z.number().positive().optional(),
   rooms: z.number().int().positive().optional(),
   typeHabitat: z.enum(['collectif', 'individuel']).optional(),
@@ -61,7 +61,7 @@ export const LeaseSchema = z.object({
   accessoireAutre: z.string().optional(),
   partiesCommunesAutres: z.string().optional(),
 
-  // Financier \u00e9tendu
+  // Financier étendu
   loyerRevise: z.boolean().optional(),
   irlReference: z.string().optional(),
   irlReferenceDate: z.string().optional(),
@@ -86,13 +86,13 @@ export const LeaseSchema = z.object({
   mandataireCartePro: z.string().optional(),
   isSocieteCivile: z.boolean().optional(),
 
-  // Mobilit\u00e9
+  // Mobilité
   mobilityReason: z.string().optional(),
 
   // Garant
   guarantorOverrides: GuarantorOverridesSchema,
 
-  // Usage & clauses structur\u00e9es
+  // Usage & clauses structurées
   usageMixte: z.boolean().optional(),
   petsAllowed: z.boolean().optional(),
   sublettingAllowed: z.boolean().optional(),
@@ -101,25 +101,25 @@ export const LeaseSchema = z.object({
     if (data.leaseType === 'MOBILITE' && data.deposit !== 0) return false;
     return true;
   },
-  { message: 'Le d\u00e9p\u00f4t de garantie doit \u00eatre de 0 \u20ac pour un bail mobilit\u00e9', path: ['deposit'] }
+  { message: 'Le dépôt de garantie doit être de 0 € pour un bail mobilité', path: ['deposit'] }
 ).refine(
   (data) => {
-    if (data.leaseType === 'NUE' && data.deposit > data.rentHC) return false;
+    if (data.leaseType === 'VIDE' && data.deposit > data.rentHC) return false;
     return true;
   },
-  { message: 'Pour un bail nu, le d\u00e9p\u00f4t de garantie ne peut exc\u00e9der 1 mois de loyer HC', path: ['deposit'] }
+  { message: 'Pour un bail vide, le dépôt de garantie ne peut excéder 1 mois de loyer HC', path: ['deposit'] }
 ).refine(
   (data) => {
-    if (data.leaseType === 'MEUBLEE' && data.deposit > 2 * data.rentHC) return false;
+    if (data.leaseType === 'MEUBLE' && data.deposit > 2 * data.rentHC) return false;
     return true;
   },
-  { message: 'Pour un bail meubl\u00e9, le d\u00e9p\u00f4t de garantie ne peut exc\u00e9der 2 mois de loyer HC', path: ['deposit'] }
+  { message: 'Pour un bail meublé, le dépôt de garantie ne peut excéder 2 mois de loyer HC', path: ['deposit'] }
 ).refine(
   (data) => {
     if (data.leaseType === 'MOBILITE' && data.durationMonths > 10) return false;
     return true;
   },
-  { message: 'Un bail mobilit\u00e9 ne peut exc\u00e9der 10 mois', path: ['durationMonths'] }
+  { message: 'Un bail mobilité ne peut excéder 10 mois', path: ['durationMonths'] }
 );
 
 export type LeaseFormData = z.infer<typeof LeaseSchema>;

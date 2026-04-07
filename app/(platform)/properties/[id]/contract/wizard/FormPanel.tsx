@@ -101,12 +101,12 @@ export function FormPanel({
             <SectionBien property={property} />
           </CollapsibleSection>
 
-          {/* 3. Caract\u00e9ristiques */}
+          {/* 3. Caractéristiques */}
           {isSectionVisible("caracteristiques") && (
             <CollapsibleSection
               icon={<Building2 className="h-4 w-4" />}
-              title="Caract\u00e9ristiques"
-              subtitle="Surface, DPE, chauffage, r\u00e9gime juridique"
+              title="Caractéristiques"
+              subtitle="Surface, DPE, chauffage, régime juridique"
               status={s("caracteristiques")}
             >
               <SectionCaracteristiques
@@ -117,11 +117,11 @@ export function FormPanel({
             </CollapsibleSection>
           )}
 
-          {/* 4. \u00c9quipements */}
+          {/* 4. Équipements */}
           {isSectionVisible("equipements") && (
             <CollapsibleSection
               icon={<Home className="h-4 w-4" />}
-              title="\u00c9quipements & accessoires"
+              title="Équipements & accessoires"
               subtitle="Parties privatives et communes"
             >
               <SectionEquipements formData={formData} onFieldChange={onFieldChange} />
@@ -131,8 +131,8 @@ export function FormPanel({
           {/* 5. Financier */}
           <CollapsibleSection
             icon={<Banknote className="h-4 w-4" />}
-            title="Conditions financi\u00e8res"
-            subtitle="Loyer, charges et d\u00e9p\u00f4t de garantie"
+            title="Conditions financières"
+            subtitle="Loyer, charges et dépôt de garantie"
             status={s("financier")}
             defaultOpen
           >
@@ -143,22 +143,22 @@ export function FormPanel({
             />
           </CollapsibleSection>
 
-          {/* 6. R\u00e9vision */}
+          {/* 6. Révision */}
           {isSectionVisible("revision") && (
             <CollapsibleSection
               icon={<TrendingUp className="h-4 w-4" />}
-              title="R\u00e9vision du loyer"
+              title="Révision du loyer"
               subtitle="IRL, encadrement des loyers"
             >
               <SectionRevision formData={formData} onFieldChange={onFieldChange} />
             </CollapsibleSection>
           )}
 
-          {/* 7. Dur\u00e9e */}
+          {/* 7. Durée */}
           <CollapsibleSection
             icon={<Calendar className="h-4 w-4" />}
-            title="Dur\u00e9e et dates"
-            subtitle="D\u00e9but, dur\u00e9e et fin du bail"
+            title="Durée et dates"
+            subtitle="Début, durée et fin du bail"
             status={s("duree")}
             defaultOpen
           >
@@ -168,19 +168,19 @@ export function FormPanel({
           {/* 8. Paiement */}
           <CollapsibleSection
             icon={<CreditCard className="h-4 w-4" />}
-            title="Modalit\u00e9s de paiement"
+            title="Modalités de paiement"
             subtitle="Mode, terme et lieu de paiement"
             status={s("paiement")}
           >
             <SectionPaiement formData={formData} onFieldChange={onFieldChange} />
           </CollapsibleSection>
 
-          {/* 9. Mobilit\u00e9 (conditionnel) */}
+          {/* 9. Mobilité (conditionnel) */}
           {isSectionVisible("mobilite") && (
             <CollapsibleSection
               icon={<Luggage className="h-4 w-4" />}
-              title="Bail mobilit\u00e9"
-              subtitle="Motif justifiant le bail mobilit\u00e9"
+              title="Bail mobilité"
+              subtitle="Motif justifiant le bail mobilité"
               status={s("mobilite")}
               defaultOpen
             >
@@ -188,17 +188,17 @@ export function FormPanel({
             </CollapsibleSection>
           )}
 
-          {/* 10. Garant r\u00e9sum\u00e9 (lecture seule) */}
+          {/* 10. Garant résumé (lecture seule) */}
           {hasGuarantor && (
             <SectionGarant selectedApplication={selectedApplication} />
           )}
 
-          {/* 11. Garant d\u00e9tails (\u00e9ditable, conditionnel) */}
+          {/* 11. Garant détails (éditable, conditionnel) */}
           {isSectionVisible("garant") && (
             <CollapsibleSection
               icon={<Shield className="h-4 w-4" />}
-              title="D\u00e9tails du garant"
-              subtitle="Informations compl\u00e9mentaires du garant"
+              title="Détails du garant"
+              subtitle="Informations complémentaires du garant"
             >
               <SectionGarantDetails
                 formData={formData}
@@ -220,8 +220,8 @@ export function FormPanel({
           {/* 13. Clauses */}
           <CollapsibleSection
             icon={<ScrollText className="h-4 w-4" />}
-            title="Clauses particuli\u00e8res"
-            subtitle="Conditions sp\u00e9cifiques et mentions compl\u00e9mentaires"
+            title="Clauses particulières"
+            subtitle="Conditions spécifiques et mentions complémentaires"
           >
             <SectionClauses formData={formData} onFieldChange={onFieldChange} />
           </CollapsibleSection>

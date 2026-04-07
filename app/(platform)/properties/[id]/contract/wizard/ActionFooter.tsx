@@ -22,13 +22,13 @@ interface ActionFooterProps {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  financier: "Conditions financi\u00e8res",
-  duree: "Dur\u00e9e",
+  financier: "Conditions financières",
+  duree: "Durée",
   paiement: "Paiement",
-  caracteristiques: "Caract\u00e9ristiques",
-  mobilite: "Mobilit\u00e9",
-  equipements: "\u00c9quipements",
-  revision: "R\u00e9vision",
+  caracteristiques: "Caractéristiques",
+  mobilite: "Mobilité",
+  equipements: "Équipements",
+  revision: "Révision",
   mandataire: "Mandataire",
   clauses: "Clauses",
   garant: "Garant",
@@ -69,7 +69,7 @@ export function ActionFooter({
           <ul className="space-y-1">
             {missingRequired.map((m) => (
               <li key={`${m.section}-${m.field}`} className="text-xs text-amber-700">
-                <span className="font-medium">{SECTION_LABELS[m.section] || m.section}</span> \u2014 {m.label}
+                <span className="font-medium">{SECTION_LABELS[m.section] || m.section}</span> — {m.label}
               </li>
             ))}
           </ul>
@@ -137,12 +137,12 @@ export function ActionFooter({
             {compileStatus === "loading" ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="hidden sm:inline">G\u00e9n\u00e9ration...</span>
+                <span className="hidden sm:inline">Génération...</span>
               </>
             ) : (
               <>
                 <FileCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">G\u00e9n\u00e9rer le bail</span>
+                <span className="hidden sm:inline">Générer le bail</span>
               </>
             )}
           </button>
@@ -166,7 +166,7 @@ export function ActionFooter({
           {saveStatus === "success" && (
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
               <CheckCircle2 className="h-4 w-4" />
-              Enregistr\u00e9
+              Enregistré
             </span>
           )}
         </div>

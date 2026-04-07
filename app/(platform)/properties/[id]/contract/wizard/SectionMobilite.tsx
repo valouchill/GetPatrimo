@@ -9,12 +9,12 @@ interface Props {
 
 const SITUATIONS = [
   { key: "stage", label: "Stage", desc: "Stage professionnel ou de formation" },
-  { key: "apprentissage", label: "Contrat d\u2019apprentissage", desc: "Contrat d\u2019apprentissage en cours" },
+  { key: "apprentissage", label: "Contrat d’apprentissage", desc: "Contrat d’apprentissage en cours" },
   { key: "formation", label: "Formation professionnelle", desc: "Formation professionnelle continue" },
-  { key: "mutation", label: "Mutation professionnelle", desc: "Mutation ou d\u00e9placement professionnel" },
+  { key: "mutation", label: "Mutation professionnelle", desc: "Mutation ou déplacement professionnel" },
   { key: "mission", label: "Mission temporaire", desc: "Mission temporaire dans le cadre professionnel" },
   { key: "service civique", label: "Service civique", desc: "Engagement de service civique" },
-  { key: "etude", label: "\u00c9tudes sup\u00e9rieures", desc: "\u00c9tudes sup\u00e9rieures en cours" },
+  { key: "etude", label: "Études supérieures", desc: "Études supérieures en cours" },
 ];
 
 export function SectionMobilite({ formData, onFieldChange }: Props) {
@@ -35,7 +35,7 @@ export function SectionMobilite({ formData, onFieldChange }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-500">
-        S\u00e9lectionnez le(s) motif(s) justifiant le bail mobilit\u00e9 (article 25-12 de la loi du 6 juillet 1989).
+        Sélectionnez le(s) motif(s) justifiant le bail mobilité (article 25-12 de la loi du 6 juillet 1989).
         Au moins un motif est obligatoire.
       </p>
 

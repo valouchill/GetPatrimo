@@ -21,16 +21,16 @@ export function SectionBien({ property }: SectionBienProps) {
       <dl className="grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium text-slate-500">Nom</dt>
-          <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.name || "\u2014"}</dd>
+          <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.name || "—"}</dd>
         </div>
         <div>
           <dt className="text-xs font-medium text-slate-500">Adresse</dt>
-          <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.address || "\u2014"}</dd>
+          <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.address || "—"}</dd>
         </div>
         {property.surfaceM2 ? (
           <div>
             <dt className="text-xs font-medium text-slate-500">Surface</dt>
-            <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.surfaceM2} m\u00b2</dd>
+            <dd className="mt-0.5 text-sm font-medium text-slate-900">{property.surfaceM2} m²</dd>
           </div>
         ) : null}
         {property.type ? (

@@ -46,19 +46,19 @@ function Toggle({
 export function SectionRevision({ formData, onFieldChange }: Props) {
   return (
     <div className="space-y-4">
-      {/* R\u00e9vision IRL */}
+      {/* Révision IRL */}
       <Toggle
-        label="R\u00e9vision annuelle du loyer (IRL)"
+        label="Révision annuelle du loyer (IRL)"
         checked={formData.loyerRevise === true}
         onChange={(v) => onFieldChange("loyerRevise", v)}
-        hint="Indexation sur l\u2019Indice de R\u00e9f\u00e9rence des Loyers"
+        hint="Indexation sur l’Indice de Référence des Loyers"
       />
 
       {formData.loyerRevise && (
         <div className="ml-12 space-y-3 animate-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs font-medium text-slate-600 mb-1 block">Indice IRL de r\u00e9f\u00e9rence</span>
+              <span className="text-xs font-medium text-slate-600 mb-1 block">Indice IRL de référence</span>
               <input
                 type="text"
                 value={formData.irlReference ?? ""}
@@ -68,7 +68,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-slate-600 mb-1 block">Date de r\u00e9f\u00e9rence IRL</span>
+              <span className="text-xs font-medium text-slate-600 mb-1 block">Date de référence IRL</span>
               <input
                 type="text"
                 value={formData.irlReferenceDate ?? ""}
@@ -79,12 +79,12 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
             </label>
           </div>
           <label className="block">
-            <span className="text-xs font-medium text-slate-600 mb-1 block">Trimestre de r\u00e9f\u00e9rence</span>
+            <span className="text-xs font-medium text-slate-600 mb-1 block">Trimestre de référence</span>
             <input
               type="text"
               value={formData.irlQuarterReference ?? ""}
               onChange={(e) => onFieldChange("irlQuarterReference", e.target.value)}
-              placeholder="Ex: 4\u00e8me trimestre 2025"
+              placeholder="Ex: 4ème trimestre 2025"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
             />
           </label>
@@ -94,17 +94,17 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
       <div className="border-t border-slate-100 pt-4">
         {/* Encadrement des loyers */}
         <Toggle
-          label="Soumis \u00e0 l\u2019encadrement des loyers"
+          label="Soumis à l’encadrement des loyers"
           checked={formData.soumisDecretRelocation === true}
           onChange={(v) => onFieldChange("soumisDecretRelocation", v)}
-          hint="D\u00e9cret de r\u00e9f\u00e9rence des loyers (zones tendues)"
+          hint="Décret de référence des loyers (zones tendues)"
         />
 
         {formData.soumisDecretRelocation && (
           <div className="ml-12 mt-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-xs font-medium text-slate-600 mb-1 block">Loyer de r\u00e9f\u00e9rence (\u20ac/m\u00b2)</span>
+                <span className="text-xs font-medium text-slate-600 mb-1 block">Loyer de référence (€/m²)</span>
                 <input
                   type="text"
                   value={formData.loyerReference ?? ""}
@@ -114,7 +114,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-slate-600 mb-1 block">Loyer de r\u00e9f. major\u00e9 (\u20ac/m\u00b2)</span>
+                <span className="text-xs font-medium text-slate-600 mb-1 block">Loyer de réf. majoré (€/m²)</span>
                 <input
                   type="text"
                   value={formData.loyerReferenceMajore ?? ""}
@@ -126,15 +126,15 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
             </div>
 
             <Toggle
-              label="Compl\u00e9ment de loyer"
+              label="Complément de loyer"
               checked={formData.soumisLoyerReferenceMajore === true}
               onChange={(v) => onFieldChange("soumisLoyerReferenceMajore", v)}
-              hint="Le loyer d\u00e9passe le loyer de r\u00e9f\u00e9rence major\u00e9"
+              hint="Le loyer dépasse le loyer de référence majoré"
             />
 
             {formData.soumisLoyerReferenceMajore && (
               <label className="block ml-12 animate-in slide-in-from-top-2 duration-200">
-                <span className="text-xs font-medium text-slate-600 mb-1 block">Justification du compl\u00e9ment</span>
+                <span className="text-xs font-medium text-slate-600 mb-1 block">Justification du complément</span>
                 <input
                   type="text"
                   value={formData.complementLoyer ?? ""}

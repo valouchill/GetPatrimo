@@ -12,17 +12,17 @@ const DPE_CLASSES = ["A", "B", "C", "D", "E", "F", "G"];
 
 const HEATING_OPTIONS = [
   { value: "individuel gaz", label: "Individuel gaz" },
-  { value: "individuel \u00e9lectrique", label: "Individuel \u00e9lectrique" },
+  { value: "individuel électrique", label: "Individuel électrique" },
   { value: "collectif gaz", label: "Collectif gaz" },
-  { value: "collectif \u00e9lectrique", label: "Collectif \u00e9lectrique" },
-  { value: "collectif urbain", label: "Collectif urbain (r\u00e9seau de chaleur)" },
+  { value: "collectif électrique", label: "Collectif électrique" },
+  { value: "collectif urbain", label: "Collectif urbain (réseau de chaleur)" },
   { value: "individuel fioul", label: "Individuel fioul" },
-  { value: "individuel pompe \u00e0 chaleur", label: "Individuel pompe \u00e0 chaleur" },
+  { value: "individuel pompe à chaleur", label: "Individuel pompe à chaleur" },
   { value: "autre", label: "Autre" },
 ];
 
 const HOT_WATER_OPTIONS = [
-  { value: "individuelle \u00e9lectrique", label: "Individuelle \u00e9lectrique" },
+  { value: "individuelle électrique", label: "Individuelle électrique" },
   { value: "individuelle gaz", label: "Individuelle gaz" },
   { value: "collective", label: "Collective" },
   { value: "individuelle thermodynamique", label: "Individuelle thermodynamique" },
@@ -56,11 +56,11 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
 
   return (
     <div className="space-y-4">
-      {/* Surface & Pi\u00e8ces */}
+      {/* Surface & Pièces */}
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-1">
-            Surface habitable (m\u00b2) {hasDefault("surfaceHabitable") && <AutoBadge />}
+            Surface habitable (m²) {hasDefault("surfaceHabitable") && <AutoBadge />}
           </span>
           <input
             type="number"
@@ -74,7 +74,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
         </label>
         <label className="block">
           <span className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-1">
-            Nb pi\u00e8ces principales {hasDefault("rooms") && <AutoBadge />}
+            Nb pièces principales {hasDefault("rooms") && <AutoBadge />}
           </span>
           <input
             type="number"
@@ -112,7 +112,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-1">
-            Ann\u00e9e de construction {hasDefault("constructionYear") && <AutoBadge />}
+            Année de construction {hasDefault("constructionYear") && <AutoBadge />}
           </span>
           <input
             type="number"
@@ -133,7 +133,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             onChange={(e) => onFieldChange("dpeClass", e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
           >
-            <option value="">S\u00e9lectionner</option>
+            <option value="">Sélectionner</option>
             {DPE_CLASSES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -152,12 +152,12 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-slate-600 mb-1 block">Estimation \u00e9nergie</span>
+          <span className="text-xs font-medium text-slate-600 mb-1 block">Estimation énergie</span>
           <input
             type="text"
             value={formData.energyEstimate ?? ""}
             onChange={(e) => onFieldChange("energyEstimate", e.target.value)}
-            placeholder="Ex: 150 kWh/m\u00b2/an"
+            placeholder="Ex: 150 kWh/m²/an"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
           />
         </label>
@@ -174,7 +174,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             onChange={(e) => onFieldChange("modeChauffage", e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
           >
-            <option value="">S\u00e9lectionner</option>
+            <option value="">Sélectionner</option>
             {HEATING_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -189,7 +189,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             onChange={(e) => onFieldChange("modeEauChaude", e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
           >
-            <option value="">S\u00e9lectionner</option>
+            <option value="">Sélectionner</option>
             {HOT_WATER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -197,9 +197,9 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
         </label>
       </div>
 
-      {/* R\u00e9gime juridique */}
+      {/* Régime juridique */}
       <div>
-        <span className="text-xs font-medium text-slate-600 mb-1 block">R\u00e9gime juridique</span>
+        <span className="text-xs font-medium text-slate-600 mb-1 block">Régime juridique</span>
         <div className="flex gap-2">
           {(["monopropriete", "copropriete"] as const).map((r) => (
             <button
@@ -212,7 +212,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
                   : "border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              {r === "monopropriete" ? "Monopropri\u00e9t\u00e9" : "Copropri\u00e9t\u00e9"}
+              {r === "monopropriete" ? "Monopropriété" : "Copropriété"}
             </button>
           ))}
         </div>

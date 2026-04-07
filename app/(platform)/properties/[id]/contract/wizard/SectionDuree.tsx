@@ -12,13 +12,13 @@ interface SectionDureeProps {
 }
 
 function computeEndDate(startDate: string, durationMonths: number): string {
-  if (!startDate || !durationMonths) return "\u2014";
+  if (!startDate || !durationMonths) return "—";
   try {
     const date = new Date(startDate);
     date.setMonth(date.getMonth() + durationMonths);
     return date.toLocaleDateString("fr-FR");
   } catch {
-    return "\u2014";
+    return "—";
   }
 }
 
@@ -32,7 +32,7 @@ export function SectionDuree({ formData, onFieldChange }: SectionDureeProps) {
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="field-date_debut_location" className="text-xs font-semibold text-slate-700 mb-1.5 block">
-            Date de d\u00e9but
+            Date de début
           </label>
           <input
             id="field-date_debut_location"
@@ -46,7 +46,7 @@ export function SectionDuree({ formData, onFieldChange }: SectionDureeProps) {
 
         <div>
           <label htmlFor="field-duree_bail_mois" className="text-xs font-semibold text-slate-700 mb-1.5 block">
-            Dur\u00e9e
+            Durée
           </label>
           <div className="relative">
             <input
@@ -71,18 +71,18 @@ export function SectionDuree({ formData, onFieldChange }: SectionDureeProps) {
             <span className="text-sm text-slate-700">{endDate}</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
               <CheckCircle2 className="h-2.5 w-2.5" />
-              Calcul\u00e9
+              Calculé
             </span>
           </div>
         </div>
       </div>
 
-      {/* Pr\u00e9avis informatif */}
+      {/* Préavis informatif */}
       <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2">
         <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="text-xs text-blue-700">
-          <span className="font-medium">Pr\u00e9avis l\u00e9gal :</span>{" "}
-          Locataire : {noticePeriod.tenant} \u2014 Propri\u00e9taire : {noticePeriod.owner}
+          <span className="font-medium">Préavis légal :</span>{" "}
+          Locataire : {noticePeriod.tenant} — Propriétaire : {noticePeriod.owner}
         </div>
       </div>
     </div>

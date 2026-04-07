@@ -36,15 +36,15 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
         </div>
       )}
 
-      {/* Champs \u00e9ditables du garant */}
+      {/* Champs éditables du garant */}
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="text-xs font-medium text-slate-600 mb-1 block">Pr\u00e9nom du garant</span>
+          <span className="text-xs font-medium text-slate-600 mb-1 block">Prénom du garant</span>
           <input
             type="text"
             value={overrides.firstName ?? ""}
             onChange={(e) => handleOverride("firstName", e.target.value)}
-            placeholder="Pr\u00e9nom"
+            placeholder="Prénom"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
           />
         </label>
@@ -66,7 +66,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
           type="text"
           value={overrides.address ?? ""}
           onChange={(e) => handleOverride("address", e.target.value)}
-          placeholder="Adresse compl\u00e8te"
+          placeholder="Adresse complète"
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
         />
       </label>

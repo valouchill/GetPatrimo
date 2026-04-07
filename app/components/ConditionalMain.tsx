@@ -19,6 +19,9 @@ export default function ConditionalMain({ children }: { children: React.ReactNod
   if (pathname?.startsWith('/dashboard/owner')) {
     return <main className="w-full">{children}</main>;
   }
-  
+  if (pathname?.includes('/contract')) {
+    return <main className="w-full">{children}</main>;
+  }
+
   return <main className="w-full pt-24">{children}</main>;
 }
