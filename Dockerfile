@@ -80,8 +80,17 @@ RUN apk add --no-cache python3 make g++ pkgconfig \
     && apk del python3 make g++ pkgconfig \
        cairo-dev jpeg-dev pango-dev giflib-dev librsvg-dev
 
-# Create upload directories
-RUN mkdir -p uploads/candidats uploads/property-documents && chmod -R 750 uploads/
+# Create upload directories (all subdirs used by the app)
+RUN mkdir -p \
+    uploads/candidats \
+    uploads/property-documents \
+    uploads/leases/compiled \
+    uploads/edl \
+    uploads/signatures \
+    uploads/receipts \
+    uploads/exports \
+    backups \
+  && chmod -R 775 uploads/ backups/
 
 # Non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
