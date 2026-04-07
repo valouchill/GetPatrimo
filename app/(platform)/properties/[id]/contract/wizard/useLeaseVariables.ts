@@ -37,8 +37,8 @@ const FORM_TO_VARS: Record<string, string[]> = {
   mandataireCartePro: ['mandataire_carte_pro'],
 };
 
-const CHECKBOX_SYMBOL = '\u2611';
-const UNCHECKED_SYMBOL = '\u2610';
+const CHECKBOX_SYMBOL = '[X]';
+const UNCHECKED_SYMBOL = '[ ]';
 
 // Checkbox fields that map formData booleans to template coche_ variables
 const CHECKBOX_MAPPINGS: Record<string, { trueVar: string; falseVar: string }> = {

@@ -11,7 +11,7 @@ const TEXT_SOFT_FALLBACK = '[ A COMPLETER ]';
 const INPUT_LINE_FALLBACK = '..........';
 
 function checkbox(value) {
-  return value ? '☒' : '☐';
+  return value ? '[X]' : '[ ]';
 }
 
 function amount(value) {
@@ -101,7 +101,7 @@ function isMissingValue(value) {
 
 function getSoftFallbackValue(key) {
   const normalizedKey = String(key || '');
-  if (normalizedKey.startsWith('coche_')) return '☐';
+  if (normalizedKey.startsWith('coche_')) return '[ ]';
   if (normalizedKey.includes('_ligne_')) return INPUT_LINE_FALLBACK;
   if (normalizedKey.startsWith('date_') || normalizedKey.endsWith('_date')) return INPUT_LINE_FALLBACK;
   return TEXT_SOFT_FALLBACK;

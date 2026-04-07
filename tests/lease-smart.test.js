@@ -53,8 +53,8 @@ test('buildLeaseData maps landlord checkboxes and french words', () => {
     }
   );
 
-  assert.equal(data.coche_bailleur_personne_physique, '☒');
-  assert.equal(data.coche_bailleur_personne_morale, '☐');
+  assert.equal(data.coche_bailleur_personne_physique, '[X]');
+  assert.equal(data.coche_bailleur_personne_morale, '[ ]');
   assert.equal(data.loyer_chiffres, '1200.00');
   assert.match(data.loyer_lettres, /mille/i);
   assert.equal(data.locataire_nom_prenom, 'Alice Martin');
@@ -91,11 +91,11 @@ test('buildLeaseData maps company landlord and mobility-specific defaults', () =
     }
   );
 
-  assert.equal(data.coche_bailleur_personne_physique, '☐');
-  assert.equal(data.coche_bailleur_personne_morale, '☒');
+  assert.equal(data.coche_bailleur_personne_physique, '[ ]');
+  assert.equal(data.coche_bailleur_personne_morale, '[X]');
   assert.equal(data.depot_garantie, '0.00');
-  assert.equal(data.coche_situation_stage, '☒');
-  assert.equal(data.coche_avant_1949, '☒');
+  assert.equal(data.coche_situation_stage, '[X]');
+  assert.equal(data.coche_avant_1949, '[X]');
 });
 
 test('shared wizard helpers compute deposit, tomorrow date and guarantee rules', () => {
@@ -155,7 +155,7 @@ test('buildLeaseArtifacts replaces missing values with visible soft fallbacks an
   assert.equal(artifacts.mergeData.surface_habitable_m2, TEXT_SOFT_FALLBACK);
   assert.equal(artifacts.mergeData.date_dpe, INPUT_LINE_FALLBACK);
   assert.equal(artifacts.mergeData.dernier_loyer_infos, TEXT_SOFT_FALLBACK);
-  assert.equal(artifacts.mergeData.coche_mandataire_oui, '☐');
+  assert.equal(artifacts.mergeData.coche_mandataire_oui, '[ ]');
   assert.equal(artifacts.mergeData.autres_conditions_particulieres_ligne_1, INPUT_LINE_FALLBACK);
   assert.ok(artifacts.warnings.includes('Surface habitable'));
   assert.ok(artifacts.warnings.includes('Date DPE'));
@@ -163,7 +163,7 @@ test('buildLeaseArtifacts replaces missing values with visible soft fallbacks an
 });
 
 test('soft fallback helper uses empty box for checkboxes and visible placeholders for text', () => {
-  assert.equal(getSoftFallbackValue('coche_chauffage_individuel'), '☐');
+  assert.equal(getSoftFallbackValue('coche_chauffage_individuel'), '[ ]');
   assert.equal(getSoftFallbackValue('date_dpe'), INPUT_LINE_FALLBACK);
   assert.equal(getSoftFallbackValue('dpe_classe'), TEXT_SOFT_FALLBACK);
 });
