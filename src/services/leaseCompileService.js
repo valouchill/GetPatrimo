@@ -55,6 +55,87 @@ function createDoc(buffer) {
   });
 }
 
+/**
+ * Professional cleanup of rendered DOCX XML for legal document output.
+ * Removes all technical artifacts ([X], [ ], [ A COMPLETER ], dotted lines).
+ */
+function cleanupForFinalOutput(xml) {
+  // Helper: extract text content from a paragraph's XML
+  function extractText(paragraphXml) {
+    const texts = [];
+    paragraphXml.replace(/<w:t[^>]*>(.*?)<\/w:t>/gs, (_, t) => { texts.push(t); return ''; });
+    return texts.join('');
+  }
+
+  // Helper: replace text within <w:t> elements
+  function replaceInTextRuns(paragraphXml, find, replacement) {
+    return paragraphXml.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/gs, (match, open, content, close) => {
+      return open + content.replace(find, replacement) + close;
+    });
+  }
+
+  // Pass 1: Process paragraphs — remove unchecked, clean checked, remove empty dependents
+  xml = xml.replace(/<w:p\b[^>]*>(?:(?!<w:p\b).)*?<\/w:p>/gs, (paragraph) => {
+    const fullText = extractText(paragraph);
+    const hasUnchecked = fullText.includes('[ ]');
+    const hasChecked = fullText.includes('[X]');
+
+    // Paragraphs with ONLY unchecked boxes → remove entirely
+    if (hasUnchecked && !hasChecked) return '';
+
+    // Paragraphs with both [X] and [ ] → remove unchecked options, strip [X] marks
+    if (hasChecked && hasUnchecked) {
+      let cleaned = paragraph;
+      cleaned = cleaned.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/gs, (m, open, content, close) => {
+        let c = content;
+        // Remove "[ ] Label" segments (unchecked option + its label text)
+        c = c.replace(/\[ \]\s*[^[\]]+/g, '');
+        // Remove [X] prefix, keeping only the label
+        c = c.replace(/\[X\]\s*/g, '');
+        // Clean up separators
+        c = c.replace(/\s*\/\s*(?=\s*$)/, '').replace(/\s{3,}/g, '  ').trim();
+        return open + c + close;
+      });
+      return cleaned;
+    }
+
+    // Paragraphs with only [X] (no unchecked) → strip [X] marks
+    if (hasChecked) {
+      return replaceInTextRuns(paragraph, /\[X\]\s*/g, '');
+    }
+
+    // Paragraphs with "[ A COMPLETER ]" as only content → remove if label is short
+    if (fullText.includes('[ A COMPLETER ]')) {
+      const stripped = fullText.replace(/\[ A COMPLETER \]/g, '').replace(/[^a-zA-ZÀ-ÿ0-9]/g, '');
+      if (stripped.length < 30) return '';
+    }
+
+    return paragraph;
+  });
+
+  // Pass 2: Remove remaining placeholders from all text runs
+  xml = xml.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/gs, (match, open, content, close) => {
+    let c = content;
+    c = c.replace(/\[ A COMPLETER \]/g, '');
+    c = c.replace(/\.\.\.\.\.\.\.\.\.\./g, '');
+    c = c.replace(/\[ \]/g, '');
+    return open + c + close;
+  });
+
+  // Pass 3: Remove empty paragraphs (only whitespace/punctuation after cleanup)
+  xml = xml.replace(/<w:p\b[^>]*>(?:(?!<w:p\b).)*?<\/w:p>/gs, (paragraph) => {
+    const text = extractText(paragraph).trim();
+    // Keep if there's meaningful content (letters or digits)
+    if (/[a-zA-ZÀ-ÿ0-9]/.test(text)) return paragraph;
+    // Keep empty paragraphs that serve as spacing (no text runs at all)
+    if (!paragraph.includes('<w:t')) return paragraph;
+    // Remove paragraphs that had content but are now empty after cleanup
+    return '';
+  });
+
+  return xml;
+}
+
 function decodeXmlEntities(value) {
   return String(value || '')
     .replace(/&amp;/g, '&')
@@ -327,54 +408,12 @@ async function buildCompiledDocument({ kind, templateName, title, data, userId, 
     throw new Error(`Erreur rendu template ${templateName}: ${err.message}`);
   }
 
-  // Post-process rendered DOCX: clean up checkbox lines and remove irrelevant conditional content
+  // Post-process rendered DOCX for professional legal output
   const zip = doc.getZip();
   const docXml = zip.file('word/document.xml');
   if (docXml) {
     let xml = docXml.asText();
-
-    xml = xml.replace(/<w:p\b[^>]*>(?:(?!<w:p\b).)*?<\/w:p>/gs, (paragraph) => {
-      // Extract all text from the paragraph
-      const texts = [];
-      paragraph.replace(/<w:t[^>]*>(.*?)<\/w:t>/gs, (_, t) => { texts.push(t); return ''; });
-      const fullText = texts.join('');
-
-      const hasUnchecked = fullText.includes('[ ]');
-      const hasChecked = fullText.includes('[X]');
-
-      // Case 1: Paragraph has ONLY unchecked boxes (no [X]) — remove entirely
-      if (hasUnchecked && !hasChecked) return '';
-
-      // Case 2: Paragraph has both [X] and [ ] — clean up inline: remove unchecked options
-      // e.g. "[X] Personne physique    [ ] Personne morale" → "[X] Personne physique"
-      if (hasChecked && hasUnchecked) {
-        // Remove "[ ] Label" patterns from the text runs
-        // The pattern matches: "[ ]" followed by optional spaces and text until the next "["  or end
-        let cleaned = paragraph;
-        // Replace in <w:t> elements: remove "[ ] text" segments
-        cleaned = cleaned.replace(/(<w:t[^>]*>)(.*?)(<\/w:t>)/gs, (match, open, content, close) => {
-          // Remove segments like "[ ] Personne morale" or "[ ] non" or "[ ] oui"
-          let c = content;
-          // Pattern: "[ ]" + spaces + word(s) until next "[" or end of string
-          c = c.replace(/\[ \]\s*[^[\]]+/g, '');
-          // Clean up leftover separators (multiple spaces, trailing slashes, leading/trailing whitespace)
-          c = c.replace(/\s*\/\s*$/, '').replace(/\s{3,}/g, '  ').replace(/^\s+|\s+$/g, ' ');
-          return open + c + close;
-        });
-        return cleaned;
-      }
-
-      // Case 3: Paragraph with dependent fields ("si personne morale", "si mandataire")
-      // that resolve to empty/placeholder — remove if all variable content is [ A COMPLETER ] or empty
-      if (fullText.includes('[ A COMPLETER ]') && !hasChecked) {
-        const stripped = fullText.replace(/\[ A COMPLETER \]/g, '').replace(/[^a-zA-Zéèêàâôûçïë0-9]/g, '');
-        // If removing placeholders leaves only a short label, remove the whole paragraph
-        if (stripped.length < 30) return '';
-      }
-
-      return paragraph;
-    });
-
+    xml = cleanupForFinalOutput(xml);
     zip.file('word/document.xml', xml);
   }
 

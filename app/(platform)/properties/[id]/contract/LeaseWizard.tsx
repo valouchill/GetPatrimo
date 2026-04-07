@@ -102,7 +102,8 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const [saveError, setSaveError] = useState("");
   const [savedLeaseId, setSavedLeaseId] = useState("");
   const [signatureStatus, setSignatureStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [activeTab, setActiveTab] = useState<"contrat" | "formulaire">("formulaire");
+  const [activeTab, setActiveTab] = useState<"contrat" | "formulaire">("contrat");
+  const [showFormPanel, setShowFormPanel] = useState(true);
 
   const explicitApplicationId = searchParams.get("applicationId") || searchParams.get("tenantId") || "";
   const explicitCandidatureId = searchParams.get("candidatureId") || "";
@@ -391,20 +392,40 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         onBack={handleBack}
       />
 
-      {/* Desktop: split-view */}
-      <div className="hidden lg:grid lg:grid-cols-2" style={{ height: "calc(100vh - 56px - 57px)" }}>
-        {/* Left: contract preview */}
-        <div className="overflow-y-auto border-r border-slate-200 bg-slate-50">
+      {/* Desktop: split-view (contract dominant 60/40) */}
+      <div className="hidden lg:grid" style={{ height: "calc(100vh - 56px - 57px)", gridTemplateColumns: showFormPanel ? '3fr 2fr' : '1fr' }}>
+        {/* Left: interactive contract editor */}
+        <div className="overflow-y-auto border-r border-slate-200 bg-slate-50 relative">
           <ContractPreview
             paragraphs={preview.paragraphs}
             mergeData={preview.mergeData}
             rawData={preview.rawData}
             isLoading={preview.isLoading}
+            formData={formData}
+            onFieldChange={handleFieldChange}
           />
+          {/* Toggle form panel */}
+          <button
+            type="button"
+            onClick={() => setShowFormPanel(!showFormPanel)}
+            className="fixed right-4 top-20 z-30 rounded-full bg-white border border-slate-200 shadow-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            style={{ display: showFormPanel ? 'none' : 'block' }}
+          >
+            Formulaire
+          </button>
         </div>
 
-        {/* Right: form */}
-        <div className="overflow-y-auto bg-slate-50 p-6">
+        {/* Right: form (collapsible) */}
+        {showFormPanel && (
+        <div className="overflow-y-auto bg-slate-50 p-6 relative">
+          <button
+            type="button"
+            onClick={() => setShowFormPanel(false)}
+            className="absolute top-2 right-2 z-10 rounded-full bg-slate-100 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
+            title="Masquer le formulaire"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+          </button>
           <FormPanel
             property={property}
             selectedApplication={selectedApplication}
@@ -421,6 +442,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             onReturnToComparison={handleReturnToComparison}
           />
         </div>
+        )}
       </div>
 
       {/* Mobile: tabs */}
@@ -459,6 +481,8 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
               mergeData={preview.mergeData}
               rawData={preview.rawData}
               isLoading={preview.isLoading}
+              formData={formData}
+              onFieldChange={handleFieldChange}
             />
           ) : (
             <div className="p-4">
