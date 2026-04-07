@@ -84,7 +84,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
             min={meta.min}
             max={meta.max}
             autoFocus
-            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
           />
           {meta.suffix && <span className="text-xs text-slate-500 whitespace-nowrap">{meta.suffix}</span>}
         </div>
@@ -96,7 +96,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
           value={(currentValue as string) ?? ''}
           onChange={(e) => onFieldChange(meta.formField, e.target.value)}
           autoFocus
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
         />
       )}
 
@@ -106,7 +106,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
           value={(currentValue as string) ?? ''}
           onChange={(e) => onFieldChange(meta.formField, e.target.value)}
           autoFocus
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
         />
       )}
 
@@ -119,7 +119,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
               onClick={() => { onFieldChange(meta.formField, opt.value); onClose(); }}
               className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors ${
                 currentValue === opt.value
-                  ? 'border-orange-400 bg-orange-50 text-orange-700 font-medium'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-medium'
                   : 'border-slate-200 hover:bg-slate-50 text-slate-700'
               }`}
             >
@@ -139,7 +139,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
               onClick={() => { onFieldChange(meta.formField, opt.value); onClose(); }}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 currentValue === opt.value
-                  ? 'bg-orange-500 text-white'
+                  ? 'bg-emerald-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -155,7 +155,7 @@ export function InlineFieldEditor({ varName, anchorRect, formData, onFieldChange
           onClick={() => { onFieldChange(meta.formField, !currentValue); onClose(); }}
           className={`w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
             currentValue
-              ? 'border-orange-400 bg-orange-50 text-orange-700'
+              ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
               : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
         >

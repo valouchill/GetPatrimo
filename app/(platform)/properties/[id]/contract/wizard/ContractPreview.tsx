@@ -133,7 +133,7 @@ export function ContractPreview({
               <span
                 role={editable ? 'button' : undefined}
                 tabIndex={editable ? 0 : undefined}
-                className={`inline-block rounded px-1.5 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-colors ${style} ${isActive ? 'ring-2 ring-orange-400' : ''}`}
+                className={`inline-block rounded px-1.5 py-0.5 text-xs cursor-pointer hover:opacity-80 transition-colors ${style} ${isActive ? 'ring-2 ring-emerald-500' : ''}`}
                 onClick={(e) => handleVarClick(v.name, e)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleVarClick(v.name, e as unknown as React.MouseEvent<HTMLSpanElement>); }}
               >
@@ -150,10 +150,10 @@ export function ContractPreview({
                 tabIndex={editable && !isReadonly ? 0 : undefined}
                 className={`inline-block rounded px-1 py-0.5 font-medium text-xs transition-colors ${
                   isActive
-                    ? 'bg-orange-200 text-orange-800 ring-2 ring-orange-400'
+                    ? 'bg-emerald-200 text-emerald-900 ring-2 ring-emerald-500'
                     : isReadonly
                       ? 'bg-slate-50 text-slate-500'
-                      : 'bg-orange-100 text-orange-700 cursor-pointer hover:bg-orange-200'
+                      : 'bg-emerald-100 text-emerald-800 cursor-pointer hover:bg-emerald-200'
                 }`}
                 title={`${getVarLabel(v.name)}: ${resolvedValue}`}
                 onClick={(e) => handleVarClick(v.name, e)}
@@ -185,7 +185,7 @@ export function ContractPreview({
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
           <p className="text-sm text-slate-500">Chargement du contrat...</p>
         </div>
       </div>
@@ -211,7 +211,7 @@ export function ContractPreview({
       {/* Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-6 rounded bg-orange-100 border border-orange-200" />
+          <span className="inline-block h-3 w-6 rounded bg-emerald-100 border border-emerald-200" />
           Rempli
         </div>
         <div className="flex items-center gap-1.5">

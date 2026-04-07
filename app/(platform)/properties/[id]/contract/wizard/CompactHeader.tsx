@@ -46,8 +46,8 @@ export function CompactHeader({
           </button>
 
           <div className="flex items-center gap-2 min-w-0">
-            <FileText className="h-4 w-4 text-orange-500 shrink-0" />
-            <span className="text-sm font-semibold text-slate-900 truncate">
+            <FileText className="h-4 w-4 text-emerald-700 shrink-0" />
+            <span className="font-serif text-base font-semibold text-emerald-900 truncate">
               {propertyName || propertyAddress || 'Bien'}
             </span>
           </div>
@@ -62,7 +62,7 @@ export function CompactHeader({
 
           <div className="hidden sm:block h-4 w-px bg-slate-200" />
 
-          <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
+          <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
             {LEASE_LABELS[leaseType] || leaseType}
           </span>
 

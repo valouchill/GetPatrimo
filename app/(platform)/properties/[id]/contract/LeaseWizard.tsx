@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LeaseSchema } from "@/lib/schemas/lease";
 import { CompactHeader } from "./wizard/CompactHeader";
 import { ContractPreview } from "./wizard/ContractPreview";
-import { FormPanel } from "./wizard/FormPanel";
-import { ActionFooter } from "./wizard/ActionFooter";
+import { SmartLeaseEditor } from "./wizard/SmartLeaseEditor";
+import { DocumentCards } from "./wizard/DocumentCards";
+import { LeaseFooter } from "./wizard/LeaseFooter";
 import { useLeaseVariables } from "./wizard/useLeaseVariables";
 import { useFormCompletion } from "./wizard/useFormCompletion";
 import type {
@@ -102,8 +103,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const [saveError, setSaveError] = useState("");
   const [savedLeaseId, setSavedLeaseId] = useState("");
   const [signatureStatus, setSignatureStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [activeTab, setActiveTab] = useState<"contrat" | "formulaire">("contrat");
-  const [showFormPanel, setShowFormPanel] = useState(true);
+  const [activeTab, setActiveTab] = useState<"editeur" | "rendu">("editeur");
 
   const explicitApplicationId = searchParams.get("applicationId") || searchParams.get("tenantId") || "";
   const explicitCandidatureId = searchParams.get("candidatureId") || "";
@@ -392,41 +392,11 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         onBack={handleBack}
       />
 
-      {/* Desktop: split-view (contract dominant 60/40) */}
-      <div className="hidden lg:grid" style={{ height: "calc(100vh - 56px - 57px)", gridTemplateColumns: showFormPanel ? '3fr 2fr' : '1fr' }}>
-        {/* Left: interactive contract editor */}
-        <div className="overflow-y-auto border-r border-slate-200 bg-slate-50 relative">
-          <ContractPreview
-            paragraphs={preview.paragraphs}
-            mergeData={preview.mergeData}
-            rawData={preview.rawData}
-            isLoading={preview.isLoading}
-            formData={formData}
-            onFieldChange={handleFieldChange}
-          />
-          {/* Toggle form panel */}
-          <button
-            type="button"
-            onClick={() => setShowFormPanel(!showFormPanel)}
-            className="fixed right-4 top-20 z-30 rounded-full bg-white border border-slate-200 shadow-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            style={{ display: showFormPanel ? 'none' : 'block' }}
-          >
-            Formulaire
-          </button>
-        </div>
-
-        {/* Right: form (collapsible) */}
-        {showFormPanel && (
-        <div className="overflow-y-auto bg-slate-50 p-6 relative">
-          <button
-            type="button"
-            onClick={() => setShowFormPanel(false)}
-            className="absolute top-2 right-2 z-10 rounded-full bg-slate-100 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
-            title="Masquer le formulaire"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
-          </button>
-          <FormPanel
+      {/* Desktop: split-view 35/65 (editor LEFT, preview RIGHT) */}
+      <div className="hidden lg:grid" style={{ height: "calc(100vh - 56px - 73px)", gridTemplateColumns: "35fr 65fr" }}>
+        {/* Left: Smart Editor */}
+        <div className="overflow-y-auto bg-white border-r border-slate-200 p-8">
+          <SmartLeaseEditor
             property={property}
             selectedApplication={selectedApplication}
             legacyCandidature={legacyCandidature}
@@ -437,56 +407,67 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             selectionRequired={selectionRequired}
             contractLocked={contractLocked}
             formData={formData}
+            hasGuarantor={hasGuarantor}
+            mergeData={preview.mergeData}
             onFieldChange={handleFieldChange}
             onDepositChange={handleDepositChange}
             onReturnToComparison={handleReturnToComparison}
           />
         </div>
-        )}
+
+        {/* Right: Document cards + Contract preview */}
+        <div className="overflow-y-auto bg-slate-50">
+          <div className="p-6">
+            <DocumentCards
+              leaseType={formData.leaseType}
+              hasGuarantor={hasGuarantor}
+              compiledDocuments={compiledDocuments}
+              compileStatus={compileStatus}
+              onDownload={handleDownload}
+            />
+          </div>
+          <ContractPreview
+            paragraphs={preview.paragraphs}
+            mergeData={preview.mergeData}
+            rawData={preview.rawData}
+            isLoading={preview.isLoading}
+            formData={formData}
+            onFieldChange={handleFieldChange}
+          />
+        </div>
       </div>
 
       {/* Mobile: tabs */}
       <div className="lg:hidden">
-        {/* Tab bar */}
         <div className="sticky top-14 z-30 flex border-b border-slate-200 bg-white">
           <button
             type="button"
-            onClick={() => setActiveTab("contrat")}
+            onClick={() => setActiveTab("editeur")}
             className={`flex-1 py-3 text-center text-sm font-semibold transition-colors ${
-              activeTab === "contrat"
-                ? "border-b-2 border-orange-500 text-orange-600"
+              activeTab === "editeur"
+                ? "border-b-2 border-emerald-700 text-emerald-800"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Contrat
+            \u00c9diteur
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("formulaire")}
+            onClick={() => setActiveTab("rendu")}
             className={`flex-1 py-3 text-center text-sm font-semibold transition-colors ${
-              activeTab === "formulaire"
-                ? "border-b-2 border-orange-500 text-orange-600"
+              activeTab === "rendu"
+                ? "border-b-2 border-emerald-700 text-emerald-800"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Formulaire
+            Rendu
           </button>
         </div>
 
-        {/* Tab content */}
         <div className="pb-24">
-          {activeTab === "contrat" ? (
-            <ContractPreview
-              paragraphs={preview.paragraphs}
-              mergeData={preview.mergeData}
-              rawData={preview.rawData}
-              isLoading={preview.isLoading}
-              formData={formData}
-              onFieldChange={handleFieldChange}
-            />
-          ) : (
+          {activeTab === "editeur" ? (
             <div className="p-4">
-              <FormPanel
+              <SmartLeaseEditor
                 property={property}
                 selectedApplication={selectedApplication}
                 legacyCandidature={legacyCandidature}
@@ -497,25 +478,44 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
                 selectionRequired={selectionRequired}
                 contractLocked={contractLocked}
                 formData={formData}
+                hasGuarantor={hasGuarantor}
+                mergeData={preview.mergeData}
                 onFieldChange={handleFieldChange}
                 onDepositChange={handleDepositChange}
                 onReturnToComparison={handleReturnToComparison}
+              />
+            </div>
+          ) : (
+            <div>
+              <div className="p-4">
+                <DocumentCards
+                  leaseType={formData.leaseType}
+                  hasGuarantor={hasGuarantor}
+                  compiledDocuments={compiledDocuments}
+                  compileStatus={compileStatus}
+                  onDownload={handleDownload}
+                />
+              </div>
+              <ContractPreview
+                paragraphs={preview.paragraphs}
+                mergeData={preview.mergeData}
+                rawData={preview.rawData}
+                isLoading={preview.isLoading}
+                formData={formData}
+                onFieldChange={handleFieldChange}
               />
             </div>
           )}
         </div>
       </div>
 
-      <ActionFooter
-        filledCount={preview.filledCount}
-        totalCount={preview.totalCount}
-        warningsCount={preview.warnings.length}
+      <LeaseFooter
+        canCompile={canCompile}
         compileStatus={compileStatus}
         compileError={compileError}
         saveStatus={saveStatus}
         saveError={saveError}
         compiledDocuments={compiledDocuments}
-        canCompile={canCompile}
         missingRequired={missingRequired}
         leaseId={savedLeaseId}
         signatureStatus={signatureStatus}
