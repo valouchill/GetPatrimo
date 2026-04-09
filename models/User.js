@@ -68,6 +68,10 @@ const UserSchema = new mongoose.Schema({
   totpEnabled: { type: Boolean, default: false },
   totpBackupCodes: [{ type: String }],          // hashed backup codes
 
+  // Signature proprietaire (PNG) pour quittances de loyer
+  signatureUrl: { type: String, default: '' },
+  signatureUploadedAt: { type: Date },
+
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 });

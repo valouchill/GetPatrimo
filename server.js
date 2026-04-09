@@ -139,7 +139,7 @@ app.use((req, res, next) => {
 // Ne pas parser le body JSON pour les routes Next.js API (elles le font elles-mêmes)
 app.use((req, res, next) => {
   // Routes Next.js API qui gèrent leur propre body
-  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments'];
+  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
   const isNextApiRoute = nextApiRoutes.some(route => req.url.startsWith(route));
   const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register'];
   if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
@@ -153,7 +153,7 @@ app.use((req, res, next) => {
 // urlencoded doit aussi skip les routes Next.js (sinon Express consomme le body
 // et Next.js hang en attendant un body déjà lu)
 app.use((req, res, next) => {
-  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments'];
+  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
   const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register'];
   if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
   if (nextApiRoutes.some(route => req.url.startsWith(route))) return next();

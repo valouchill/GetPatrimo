@@ -34,6 +34,7 @@ import {
   StatusBadge,
 } from '@/app/components/ui/premium';
 import CandidateComparisonMatrix from '../../components/CandidateComparisonMatrix';
+import RentReceiptManager from './rent-receipts';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -992,6 +993,9 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
               )}
             </PremiumSurface>
           )}
+
+          {/* Section B bis — Quittances de loyer */}
+          <RentReceiptManager propertyId={propertyId} />
 
           {/* Section C — Documents (vault) */}
           <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-slate-50/70">

@@ -531,10 +531,25 @@ export async function generateReceipt(payment: Record<string, unknown>): Promise
       .text(`Fait à __________, le ${new Date().toLocaleDateString('fr-FR')}`, M, y, { width: contentW / 2 });
     doc.fontSize(9).font('Helvetica-Bold').fillColor('#0F172A')
       .text(`Le bailleur : ${ownerName}`, M, y + 16, { width: contentW / 2 });
-    // Zone de signature vide
-    doc.rect(M + contentW / 2, y, contentW / 2, 50).strokeColor('#CBD5E1').lineWidth(0.5).stroke();
-    doc.fontSize(8).font('Helvetica').fillColor('#94A3B8')
-      .text('Signature', M + contentW / 2 + 10, y + 18, { width: contentW / 2 - 20 });
+
+    // Embed owner signature image if available, otherwise show empty box
+    const v1SigPath = (owner as Record<string, unknown>)?.signatureUrl
+      ? path.join(process.cwd(), owner.signatureUrl as string)
+      : null;
+    if (v1SigPath && fs.existsSync(v1SigPath)) {
+      try {
+        doc.image(v1SigPath, M + contentW / 2 + 10, y, { fit: [contentW / 2 - 20, 50] });
+      } catch {
+        // Fallback: empty signature box
+        doc.rect(M + contentW / 2, y, contentW / 2, 50).strokeColor('#CBD5E1').lineWidth(0.5).stroke();
+        doc.fontSize(8).font('Helvetica').fillColor('#94A3B8')
+          .text('Signature', M + contentW / 2 + 10, y + 18, { width: contentW / 2 - 20 });
+      }
+    } else {
+      doc.rect(M + contentW / 2, y, contentW / 2, 50).strokeColor('#CBD5E1').lineWidth(0.5).stroke();
+      doc.fontSize(8).font('Helvetica').fillColor('#94A3B8')
+        .text('Signature', M + contentW / 2 + 10, y + 18, { width: contentW / 2 - 20 });
+    }
 
     doc.end();
 
@@ -686,4 +701,343 @@ export async function exportPayments(
     stream.on('finish', () => resolve(`/uploads/exports/${fileName}`));
     stream.on('error', reject);
   });
+}
+
+// ─── 11. Quittance PDF v2 — design "private banking" ────────────
+
+/**
+ * Génère une quittance de loyer au design minimaliste (noir/blanc, serif).
+ * Si paiement partiel → "REÇU DE PAIEMENT" au lieu de "QUITTANCE DE LOYER".
+ */
+export async function generateReceiptV2(payment: Record<string, unknown>): Promise<string> {
+  const PDFDocument = require('pdfkit');
+  const fs = require('fs');
+  const path = require('path');
+
+  const p = typeof payment.toObject === 'function' ? payment.toObject() : payment;
+
+  const lease = await Lease.findById(p.lease).lean();
+  const property = await Property.findById(p.property).lean();
+  const owner = await User.findById(p.owner).lean();
+  const tenant = await User.findById(p.tenant).lean();
+
+  const period = p.period as { month: number; year: number };
+  const amounts = p.amounts as { rentHC: number; charges: number; totalTTC: number; paidAmount: number };
+  const totalDays = daysInMonth(period.month, period.year);
+  const periodStart = `01/${String(period.month).padStart(2, '0')}/${period.year}`;
+  const periodEnd = `${totalDays}/${String(period.month).padStart(2, '0')}/${period.year}`;
+
+  const ownerName = owner ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || owner.email : 'Proprietaire';
+  const ownerAddress = (owner as Record<string, unknown>)?.address
+    ? `${owner.address}${owner.zipCode ? ', ' + owner.zipCode : ''}${owner.city ? ' ' + owner.city : ''}`
+    : '';
+  const tenantName = tenant
+    ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || tenant.email
+    : lease ? `${lease.tenantFirstName || ''} ${lease.tenantLastName || ''}`.trim() : 'Locataire';
+  const tenantAddress = (tenant as Record<string, unknown>)?.address
+    ? `${tenant.address}${tenant.zipCode ? ', ' + tenant.zipCode : ''}${tenant.city ? ' ' + tenant.city : ''}`
+    : '';
+  const propertyAddress = (property as Record<string, unknown>)?.address || 'Adresse non renseignee';
+
+  const isPartial = amounts.paidAmount < amounts.totalTTC;
+  const docTitle = isPartial ? 'RECU DE PAIEMENT' : 'QUITTANCE DE LOYER';
+
+  const receiptsDir = path.join(process.cwd(), 'uploads', 'receipts');
+  if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
+
+  const fileName = `quittance_${period.year}_${String(period.month).padStart(2, '0')}_${String(p._id)}.pdf`;
+  const filePath = path.join(receiptsDir, fileName);
+  const receiptNumber = `QT-${period.year}-${String(period.month).padStart(2, '0')}-${String(p._id).slice(-4).toUpperCase()}`;
+
+  const methodLabels: Record<string, string> = {
+    VIREMENT: 'Virement bancaire', CHEQUE: 'Cheque', ESPECES: 'Especes',
+    PRELEVEMENT: 'Prelevement automatique', AUTRE: 'Autre',
+  };
+  const methodLabel = methodLabels[(p.paymentMethod as string) || ''] || 'Virement bancaire';
+
+  const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR';
+
+  return new Promise<string>((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 60 });
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
+
+    const M = 60;
+    const W = 595;
+    const contentW = W - M * 2;
+
+    // ─── Titre ───
+    doc.fontSize(22).font('Times-Bold').fillColor('#111827')
+      .text(docTitle, M, 60, { width: contentW, align: 'center', characterSpacing: 3 });
+
+    // Filet horizontal
+    const titleBottom = 90;
+    doc.moveTo(M, titleBottom).lineTo(W - M, titleBottom)
+      .strokeColor('#D1D5DB').lineWidth(0.5).stroke();
+
+    // N° et période
+    doc.fontSize(9).font('Times-Roman').fillColor('#6B7280')
+      .text(`N\u00b0 ${receiptNumber}  \u2014  Periode du ${periodStart} au ${periodEnd}`, M, titleBottom + 8, {
+        width: contentW, align: 'center',
+      });
+
+    // ─── Bloc parties (deux colonnes, sans bordure) ───
+    let y = 130;
+    const colW = contentW / 2;
+
+    // BAILLEUR (gauche)
+    doc.fontSize(8).font('Times-Roman').fillColor('#9CA3AF')
+      .text('BAILLEUR', M, y);
+    doc.fontSize(11).font('Times-Bold').fillColor('#111827')
+      .text(ownerName, M, y + 14, { width: colW - 20 });
+    if (ownerAddress) {
+      doc.fontSize(9).font('Times-Roman').fillColor('#6B7280')
+        .text(ownerAddress, M, y + 30, { width: colW - 20 });
+    }
+
+    // LOCATAIRE (droite)
+    doc.fontSize(8).font('Times-Roman').fillColor('#9CA3AF')
+      .text('LOCATAIRE', M + colW, y, { width: colW });
+    doc.fontSize(11).font('Times-Bold').fillColor('#111827')
+      .text(tenantName, M + colW, y + 14, { width: colW });
+    if (tenantAddress) {
+      doc.fontSize(9).font('Times-Roman').fillColor('#6B7280')
+        .text(tenantAddress, M + colW, y + 30, { width: colW });
+    }
+
+    // ─── Bien loué ───
+    y = 190;
+    doc.fontSize(8).font('Times-Roman').fillColor('#9CA3AF')
+      .text('BIEN LOUE', M, y);
+    doc.fontSize(9).font('Times-Italic').fillColor('#374151')
+      .text(propertyAddress, M, y + 14, { width: contentW });
+
+    // ─── Tableau des montants ───
+    y = 240;
+    const colLabel = M;
+    const colAmount = W - M - 100;
+    const rowH = 28;
+
+    // Filet haut
+    doc.moveTo(M, y).lineTo(W - M, y).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+
+    // Loyer HC
+    y += 6;
+    doc.fontSize(10).font('Times-Roman').fillColor('#374151')
+      .text('Loyer hors charges', colLabel, y);
+    doc.fontSize(10).font('Times-Roman').fillColor('#374151')
+      .text(fmt(amounts.rentHC), colAmount, y, { width: 100, align: 'right' });
+
+    y += rowH;
+    doc.moveTo(M, y - 4).lineTo(W - M, y - 4).strokeColor('#F3F4F6').lineWidth(0.3).stroke();
+
+    // Charges
+    doc.fontSize(10).font('Times-Roman').fillColor('#374151')
+      .text('Provision pour charges', colLabel, y);
+    doc.fontSize(10).font('Times-Roman').fillColor('#374151')
+      .text(fmt(amounts.charges), colAmount, y, { width: 100, align: 'right' });
+
+    y += rowH;
+
+    // Séparateur total
+    doc.moveTo(M, y - 4).lineTo(W - M, y - 4).strokeColor('#9CA3AF').lineWidth(0.8).stroke();
+
+    // TOTAL
+    doc.fontSize(13).font('Times-Bold').fillColor('#111827')
+      .text('TOTAL', colLabel, y + 2);
+    doc.fontSize(13).font('Times-Bold').fillColor('#111827')
+      .text(fmt(amounts.totalTTC), colAmount, y + 2, { width: 100, align: 'right' });
+
+    y += rowH + 4;
+
+    // Montant reçu (si partiel)
+    if (isPartial) {
+      doc.moveTo(M, y - 4).lineTo(W - M, y - 4).strokeColor('#F3F4F6').lineWidth(0.3).stroke();
+      doc.fontSize(10).font('Times-Italic').fillColor('#6B7280')
+        .text('Montant recu', colLabel, y);
+      doc.fontSize(10).font('Times-Italic').fillColor('#6B7280')
+        .text(fmt(amounts.paidAmount), colAmount, y, { width: 100, align: 'right' });
+      y += rowH;
+    }
+
+    // Filet bas du tableau
+    doc.moveTo(M, y - 4).lineTo(W - M, y - 4).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+
+    // ─── Détails du paiement ───
+    y += 16;
+    doc.fontSize(9).font('Times-Roman').fillColor('#6B7280')
+      .text(`Date du paiement : ${p.confirmedAt ? new Date(p.confirmedAt as string).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}`, M, y);
+    doc.fontSize(9).font('Times-Roman').fillColor('#6B7280')
+      .text(`Mode de reglement : ${methodLabel}`, M, y + 14);
+
+    // ─── Mention légale ───
+    y += 50;
+    const legalText = isPartial
+      ? `Le bailleur soussigne, ${ownerName}, reconnait avoir recu de ${tenantName} la somme de ${fmt(amounts.paidAmount)} en paiement partiel du loyer et des charges du logement situe ${propertyAddress} pour la periode du ${periodStart} au ${periodEnd}. Le present document ne constitue pas une quittance de loyer, le solde restant du de ${fmt(amounts.totalTTC - amounts.paidAmount)} demeure exigible.`
+      : `Le bailleur soussigne, ${ownerName}, reconnait avoir recu de ${tenantName} la somme de ${fmt(amounts.totalTTC)} au titre du paiement du loyer et des charges du logement situe ${propertyAddress} pour la periode du ${periodStart} au ${periodEnd}. Le bailleur donne quittance pour ladite somme.`;
+
+    doc.fontSize(8).font('Times-Italic').fillColor('#4B5563')
+      .text(legalText, M, y, { width: contentW, lineGap: 3 });
+
+    y += 60;
+    doc.fontSize(8).font('Times-Italic').fillColor('#6B7280')
+      .text('Sous reserve de tous nos droits et actions, notamment de l\'encaissement effectif si le paiement a eu lieu par cheque.', M, y, { width: contentW, lineGap: 2 });
+
+    // ─── Signature ───
+    y += 40;
+    doc.fontSize(9).font('Times-Roman').fillColor('#374151')
+      .text(`Fait a __________, le ${new Date().toLocaleDateString('fr-FR')}`, M, y);
+    doc.fontSize(9).font('Times-Bold').fillColor('#111827')
+      .text(`Le bailleur : ${ownerName}`, M, y + 18);
+
+    // Embed owner signature image if available
+    const ownerSigPath = (owner as Record<string, unknown>)?.signatureUrl
+      ? path.join(process.cwd(), owner.signatureUrl as string)
+      : null;
+    if (ownerSigPath && fs.existsSync(ownerSigPath)) {
+      try {
+        doc.image(ownerSigPath, M + contentW / 2 + 20, y - 10, { fit: [140, 55] });
+      } catch {
+        // Fallback silencieux si l'image est corrompue
+      }
+    }
+
+    doc.end();
+
+    stream.on('finish', () => resolve(`/uploads/receipts/${fileName}`));
+    stream.on('error', reject);
+  });
+}
+
+// ─── 12. Orchestrateur One-Click ────────────────────────────────
+
+export interface OneClickResult {
+  payment: Record<string, unknown>;
+  receiptUrl: string;
+  sentTo?: string;
+  emailSkipped?: boolean;
+}
+
+/**
+ * Orchestre le flux complet :
+ * 1. Find/Create Payment  2. Confirm  3. PDF v2  4. Email
+ */
+export async function generateAndSendReceipt(
+  leaseId: string,
+  month: number,
+  year: number,
+  ownerId: string,
+  paidAmount?: number
+): Promise<OneClickResult> {
+  await connectDiditDb();
+
+  // 1. Load lease
+  const lease = await Lease.findById(leaseId).lean();
+  if (!lease) throw Object.assign(new Error('Bail introuvable'), { statusCode: 404 });
+
+  const leaseOwnerId = String((lease as Record<string, unknown>).user);
+  if (leaseOwnerId !== ownerId) throw Object.assign(new Error('Non autorise'), { statusCode: 403 });
+
+  // 2. Load property
+  const property = await Property.findById(lease.property).lean();
+
+  // 3. Resolve tenant
+  const tenantEmail = (lease as Record<string, unknown>).tenantEmail as string;
+  if (!tenantEmail) throw Object.assign(new Error('Email locataire manquant sur le bail'), { statusCode: 400 });
+
+  const tenantUser = await User.findOne({ email: tenantEmail }).lean();
+  if (!tenantUser) throw Object.assign(new Error(`Locataire introuvable pour ${tenantEmail}. Le locataire doit avoir un compte.`), { statusCode: 400 });
+
+  const propertyId = (property as Record<string, unknown>)?._id || lease.property;
+  const ownId = (property as Record<string, unknown>)?.user || lease.user;
+
+  // 4. Find or create Payment
+  let payment = await Payment.findOne({ lease: leaseId, 'period.month': month, 'period.year': year });
+
+  if (!payment) {
+    const prorata = calculateProrata(lease, month, year);
+    const rentHC = prorata.isProrata
+      ? Math.round(lease.rentAmount * prorata.ratio * 100) / 100
+      : lease.rentAmount;
+    const charges = prorata.isProrata
+      ? Math.round((lease.chargesAmount || 0) * prorata.ratio * 100) / 100
+      : (lease.chargesAmount || 0);
+    const totalTTC = Math.round((rentHC + charges) * 100) / 100;
+
+    payment = await Payment.create({
+      lease: leaseId,
+      tenant: tenantUser._id,
+      owner: ownId,
+      property: propertyId,
+      period: { month, year },
+      amounts: { rentHC, charges, totalTTC, paidAmount: 0 },
+      prorata: prorata.isProrata ? prorata : { isProrata: false },
+      status: 'PENDING',
+    });
+  }
+
+  // 5. Confirm payment
+  const finalAmount = paidAmount ?? payment.amounts.totalTTC;
+  payment.amounts.paidAmount = finalAmount;
+  payment.confirmedAt = new Date();
+  payment.confirmedBy = ownerId;
+  payment.paymentMethod = 'VIREMENT';
+
+  if (finalAmount >= payment.amounts.totalTTC) {
+    payment.status = 'CONFIRMED';
+  } else if (finalAmount > 0) {
+    payment.status = 'PARTIAL';
+  }
+  await payment.save();
+
+  // 6. Generate PDF v2
+  const receiptUrl = await generateReceiptV2(payment);
+  payment.receiptUrl = receiptUrl;
+  payment.receiptGeneratedAt = new Date();
+  await payment.save();
+
+  // 7. Send email (best-effort)
+  let sentTo: string | undefined;
+  let emailSkipped = false;
+  try {
+    const { sendEmail, isEmailConfigured } = require('@/src/services/emailService');
+    if (isEmailConfigured()) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(process.cwd(), receiptUrl);
+      const pdfBuffer = fs.readFileSync(filePath);
+
+      const MONTHS = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
+      const monthLabel = MONTHS[month - 1];
+      const tName = `${tenantUser.firstName || ''} ${tenantUser.lastName || ''}`.trim() || tenantUser.email;
+
+      await sendEmail({
+        to: tenantUser.email,
+        subject: `Votre quittance de loyer \u2014 ${monthLabel} ${year}`,
+        text: `Bonjour ${tName},\n\nVeuillez trouver ci-joint votre quittance de loyer pour la periode : ${monthLabel} ${year}.\n\nCordialement,\nVotre bailleur`,
+        html: `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+          <p>Bonjour <strong>${tName}</strong>,</p>
+          <p>Veuillez trouver ci-joint votre quittance de loyer pour la periode : <strong>${monthLabel} ${year}</strong>.</p>
+          <p style="color:#6B7280;font-size:13px;">Cordialement,<br/>Votre bailleur</p>
+        </div>`,
+        attachments: [{
+          filename: `quittance_${monthLabel.toLowerCase()}_${year}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        }],
+      });
+
+      sentTo = tenantUser.email;
+      payment.receiptSentAt = new Date();
+      payment.receiptSentTo = tenantUser.email;
+      await payment.save();
+    } else {
+      emailSkipped = true;
+    }
+  } catch {
+    emailSkipped = true;
+  }
+
+  return { payment: payment.toObject(), receiptUrl, sentTo, emailSkipped };
 }
