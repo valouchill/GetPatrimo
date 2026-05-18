@@ -1494,7 +1494,7 @@ export default function ApplyClient({ token }: { token: string }) {
       return;
     }
 
-    const confirmed = window.confirm('Voulez-vous supprimer ce document ? Votre Indice de Résilience™ diminuera.');
+    const confirmed = window.confirm('Voulez-vous supprimer ce document ? Votre Indice de Résilience diminuera.');
     if (!confirmed) {
       setDeletingFileId(null);
       return;
@@ -1540,7 +1540,7 @@ export default function ApplyClient({ token }: { token: string }) {
       } else {
         setAiFeedback({
           visible: true,
-          message: '🗑️ Document supprimé. Votre Indice de Résilience™ a été recalculé.',
+          message: '🗑️ Document supprimé. Votre Indice de Résilience a été recalculé.',
           type: 'info',
           scoreIncrease: -10,
         });
