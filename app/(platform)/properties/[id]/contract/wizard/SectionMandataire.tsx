@@ -20,7 +20,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
           aria-checked={active}
           onClick={() => onFieldChange("hasMandataire", !active)}
           className={`relative mt-0.5 flex-shrink-0 h-5 w-9 rounded-full transition-colors ${
-            active ? "bg-orange-500" : "bg-slate-200"
+            active ? "bg-amber-500" : "bg-slate-200"
           }`}
         >
           <span
@@ -45,7 +45,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
                 value={formData.mandataireNomPrenom ?? ""}
                 onChange={(e) => onFieldChange("mandataireNomPrenom", e.target.value)}
                 placeholder="Nom du mandataire"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
             <label className="block">
@@ -55,7 +55,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
                 value={formData.mandataireDenomination ?? ""}
                 onChange={(e) => onFieldChange("mandataireDenomination", e.target.value)}
                 placeholder="Raison sociale"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
           </div>
@@ -67,7 +67,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
               value={formData.mandataireAdresse ?? ""}
               onChange={(e) => onFieldChange("mandataireAdresse", e.target.value)}
               placeholder="Adresse complète"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
             />
           </label>
 
@@ -79,7 +79,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
                 value={formData.mandataireActivite ?? ""}
                 onChange={(e) => onFieldChange("mandataireActivite", e.target.value)}
                 placeholder="Ex: Gestion locative"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
             <label className="block">
@@ -89,7 +89,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
                 value={formData.mandataireCartePro ?? ""}
                 onChange={(e) => onFieldChange("mandataireCartePro", e.target.value)}
                 placeholder="CPI XXXX XXXX XXXX"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
           </div>
@@ -100,7 +100,7 @@ export function SectionMandataire({ formData, onFieldChange }: Props) {
               type="checkbox"
               checked={formData.isSocieteCivile === true}
               onChange={(e) => onFieldChange("isSocieteCivile", e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+              className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
             />
             <span className="text-sm text-slate-700">Le bailleur est une société civile</span>
           </label>

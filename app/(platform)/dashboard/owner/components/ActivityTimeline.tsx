@@ -17,13 +17,13 @@ const EVENT_CONFIG: Record<string, { icon: React.ElementType; label: string; col
   tenant_created:           { icon: UserPlus,      label: 'Locataire ajouté',        color: 'bg-emerald-50 text-emerald-600' },
   tenant_updated:           { icon: UserPlus,      label: 'Locataire modifié',       color: 'bg-blue-50 text-blue-600' },
   tenant_deleted:           { icon: Trash2,        label: 'Locataire supprimé',      color: 'bg-red-50 text-red-600' },
-  pdf_quittance_generated:  { icon: FileText,      label: 'Quittance générée',       color: 'bg-orange-50 text-orange-600' },
+  pdf_quittance_generated:  { icon: FileText,      label: 'Quittance générée',       color: 'bg-amber-50 text-amber-600' },
   email_quittance_sent:     { icon: Mail,          label: 'Quittance envoyée',       color: 'bg-blue-50 text-blue-600' },
   document_uploaded:        { icon: Upload,        label: 'Document uploadé',        color: 'bg-slate-100 text-slate-600' },
   document_deleted:         { icon: Trash2,        label: 'Document supprimé',       color: 'bg-red-50 text-red-600' },
   reminder_sent:            { icon: Bell,          label: 'Relance envoyée',         color: 'bg-amber-50 text-amber-600' },
   payment_confirmed:        { icon: CreditCard,    label: 'Paiement confirmé',       color: 'bg-emerald-50 text-emerald-600' },
-  payments_generated:       { icon: CreditCard,    label: 'Loyers générés',          color: 'bg-orange-50 text-orange-600' },
+  payments_generated:       { icon: CreditCard,    label: 'Loyers générés',          color: 'bg-amber-50 text-amber-600' },
   candidature_received:     { icon: ClipboardList, label: 'Candidature reçue',       color: 'bg-blue-50 text-blue-600' },
 };
 

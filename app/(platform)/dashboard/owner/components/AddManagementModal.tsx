@@ -427,7 +427,7 @@ const AddManagementModal = memo(function AddManagementModal({
                   type="button"
                   onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
                   disabled={step === 1 ? !canGoStep2 : !canGoStep3}
-                  className="rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Suivant
                 </button>
@@ -435,7 +435,7 @@ const AddManagementModal = memo(function AddManagementModal({
                 <button
                   type="submit"
                   disabled={!canSubmit || loading}
-                  className="flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Ajouter en gestion

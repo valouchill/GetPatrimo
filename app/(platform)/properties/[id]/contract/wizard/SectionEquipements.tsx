@@ -74,7 +74,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleCheck(item)}
-                    className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+                    className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
                   />
                   <span className="text-sm text-slate-700">{item.label}</span>
                 </label>
@@ -84,7 +84,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
                     value={String((formData as Record<string, unknown>)[item.numeroKey!] || "").trim()}
                     onChange={(e) => onFieldChange(item.numeroKey!, e.target.value || " ")}
                     placeholder={item.numeroPlaceholder}
-                    className="ml-6 w-32 rounded border border-slate-200 px-2 py-1 text-xs focus:ring-1 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                    className="ml-6 w-32 rounded border border-slate-200 px-2 py-1 text-xs focus:ring-1 focus:ring-amber-300 focus:border-amber-400 outline-none"
                   />
                 )}
               </div>
@@ -105,7 +105,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
                   type="checkbox"
                   checked={checked}
                   onChange={() => onFieldChange(item.key, !checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+                  className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
                 />
                 <span className="text-sm text-slate-700">{item.label}</span>
               </label>
@@ -122,7 +122,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
           value={formData.partiesCommunesAutres ?? ""}
           onChange={(e) => onFieldChange("partiesCommunesAutres", e.target.value)}
           placeholder="Ex: local à vélo, piscine..."
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         />
       </label>
 
@@ -133,7 +133,7 @@ export function SectionEquipements({ formData, onFieldChange }: Props) {
           value={formData.accessoireAutre ?? ""}
           onChange={(e) => onFieldChange("accessoireAutre", e.target.value)}
           placeholder="Ex: antenne TV, parabole..."
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         />
       </label>
     </div>

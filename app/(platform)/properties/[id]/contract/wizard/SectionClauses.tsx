@@ -19,7 +19,7 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
             type="checkbox"
             checked={formData.usageMixte === true}
             onChange={(e) => onFieldChange("usageMixte", e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
           />
           <div>
             <span className="text-sm font-medium text-slate-700">Usage mixte (habitation + professionnel)</span>
@@ -32,7 +32,7 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
             type="checkbox"
             checked={formData.petsAllowed === true}
             onChange={(e) => onFieldChange("petsAllowed", e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
           />
           <div>
             <span className="text-sm font-medium text-slate-700">Animaux domestiques autorisés</span>
@@ -47,7 +47,7 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
             type="checkbox"
             checked={formData.sublettingAllowed === true}
             onChange={(e) => onFieldChange("sublettingAllowed", e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
           />
           <div>
             <span className="text-sm font-medium text-slate-700">Sous-location autorisée</span>
@@ -68,7 +68,7 @@ export function SectionClauses({ formData, onFieldChange }: SectionClausesProps)
           value={formData.clauses}
           onChange={(e) => onFieldChange("clauses", e.target.value)}
           placeholder="Ajoutez vos clauses particulières ici..."
-          className="min-h-[120px] w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none resize-y"
+          className="min-h-[120px] w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none resize-y"
         />
         <p className="mt-1 text-xs text-slate-400">
           {formData.clauses.length}/2000 caractères

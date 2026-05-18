@@ -110,7 +110,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-4"
+            className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-4"
           >
             Zéro dossier falsifié. Zéro impayé.
           </motion.p>
@@ -188,7 +188,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════
           3. BANDEAU TECHNOLOGIES
       ══════════════════════════════════════════ */}
-      <section className="border-b border-slate-100 bg-gradient-to-r from-orange-50/30 via-white to-orange-50/30 py-8">
+      <section className="border-b border-slate-100 bg-gradient-to-r from-amber-50/30 via-white to-amber-50/30 py-8">
         <div className="max-w-5xl mx-auto px-6">
           <p className="text-center text-xs text-slate-400 uppercase tracking-wide mb-4">Certifié &amp; intégré avec</p>
           <div className="flex items-center justify-center gap-10 flex-wrap">
@@ -214,7 +214,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="flex-1"
           >
-            <p className="text-orange-400 text-sm font-semibold tracking-wider uppercase mb-4">Le scénario habituel</p>
+            <p className="text-amber-400 text-sm font-semibold tracking-wider uppercase mb-4">Le scénario habituel</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -305,7 +305,7 @@ export default function Home() {
       <section id="features" className="bg-slate-50 py-20 md:py-28 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">En 2 minutes chrono</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">En 2 minutes chrono</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -329,8 +329,8 @@ export default function Home() {
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 className="relative bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
               >
-                <span className="absolute top-4 right-4 text-5xl font-black text-orange-100 leading-none select-none">{step}</span>
-                <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center mb-4 text-orange-500">
+                <span className="absolute top-4 right-4 text-5xl font-black text-amber-100 leading-none select-none">{step}</span>
+                <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-semibold text-slate-900 mb-2">{title}</h3>
@@ -343,7 +343,7 @@ export default function Home() {
             <button
               type="button"
               onClick={scrollToHero}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all"
             >
               Créer mon espace en 2 minutes
               <ArrowRight className="w-4 h-4" />
@@ -358,7 +358,7 @@ export default function Home() {
       <section className="py-20 md:py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Votre arsenal anti-risque</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Votre arsenal anti-risque</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -381,7 +381,7 @@ export default function Home() {
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 className="bg-white/60 backdrop-blur-md rounded-3xl p-8 border border-white hover:shadow-xl transition-all"
               >
-                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mb-6 text-orange-500">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-6 text-amber-500">
                   <Icon className="w-6 h-6" />
                 </div>
                 <h3 className="font-serif text-xl text-slate-800 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -426,8 +426,8 @@ export default function Home() {
           >
             <div className="relative w-full max-w-[280px] aspect-[9/19] rounded-[2.5rem] border-4 border-slate-700 bg-slate-800 shadow-2xl overflow-hidden">
               <div className="absolute inset-4 rounded-[2rem] bg-gradient-to-br from-slate-700 to-slate-800 flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mb-4">
-                  <Shield className="w-8 h-8 text-orange-400" />
+                <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mb-4">
+                  <Shield className="w-8 h-8 text-amber-400" />
                 </div>
                 <p className="text-white font-semibold text-lg">Grade S</p>
                 <p className="text-slate-400 text-sm mt-1">Dossier Stratégique</p>
@@ -447,7 +447,7 @@ export default function Home() {
       <section className="bg-white py-20 md:py-28 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Ils ont fait confiance à PatrimoTrust</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Ils ont fait confiance à PatrimoTrust</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -469,7 +469,7 @@ export default function Home() {
               },
               {
                 initials: 'TB',
-                color: 'bg-orange-500',
+                color: 'bg-amber-500',
                 name: 'Thomas B.',
                 location: 'Investisseur · Lyon, 3 biens',
                 quote: "Je gère 3 appartements seul, sans agence. La certif biométrique de PatrimoTrust m'a évité une fraude évidente sur la dernière sélection. L'IA voit ce que je ne voyais pas.",
@@ -529,7 +529,7 @@ export default function Home() {
       <section id="pricing" className="bg-slate-50 py-20 md:py-28 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Tarification transparente</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Tarification transparente</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -581,9 +581,9 @@ export default function Home() {
             <motion.div
               {...fadeInUp}
               transition={{ duration: 0.4, delay: 0.08 }}
-              className="bg-white rounded-2xl p-8 border-2 border-orange-500 flex flex-col relative shadow-xl shadow-orange-500/10"
+              className="bg-white rounded-2xl p-8 border-2 border-amber-500 flex flex-col relative shadow-xl shadow-amber-500/10"
             >
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                 Le plus choisi
               </span>
               <h3 className="font-bold text-slate-900 text-xl mb-1">Mise en Location Sécurisée</h3>
@@ -591,7 +591,7 @@ export default function Home() {
                 <span className="text-4xl font-black text-slate-900">89&nbsp;€</span>
                 <span className="text-slate-500 text-sm">/ bien</span>
               </div>
-              <p className="text-orange-600 text-xs font-medium mb-6">Paiement unique au moment de sélectionner un locataire.</p>
+              <p className="text-amber-600 text-xs font-medium mb-6">Paiement unique au moment de sélectionner un locataire.</p>
 
               <ul className="space-y-3 mb-4 flex-1">
                 {[
@@ -603,7 +603,7 @@ export default function Home() {
                   'Garantie de conformité ALUR',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     {item}
                   </li>
                 ))}
@@ -616,7 +616,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={scrollToHero}
-                className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-colors"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-colors"
               >
                 Commencer gratuitement →
               </button>
@@ -638,7 +638,7 @@ export default function Home() {
       {!isEnabled('OWNER_PAYWALL') && (
         <section id="pricing" className="bg-slate-50 py-20 md:py-28 px-6">
           <div className="max-w-3xl mx-auto text-center">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Phase de lancement</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Phase de lancement</p>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
               Entièrement gratuit pendant le lancement.
             </h2>
@@ -660,7 +660,7 @@ export default function Home() {
             <button
               type="button"
               onClick={scrollToHero}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all"
             >
               Créer mon espace gratuit
               <ArrowRight className="w-4 h-4" />
@@ -675,7 +675,7 @@ export default function Home() {
       <section className="bg-white py-20 md:py-28 px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Questions fréquentes</p>
+            <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Questions fréquentes</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -729,7 +729,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="flex-1"
           >
-            <p className="text-orange-400 text-sm font-semibold tracking-wider uppercase mb-4">Dernier appel</p>
+            <p className="text-amber-400 text-sm font-semibold tracking-wider uppercase mb-4">Dernier appel</p>
             <h2
               className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight"
               style={{ fontFamily: 'Playfair Display, serif' }}

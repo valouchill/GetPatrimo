@@ -386,8 +386,8 @@ export default function VerifyLandingClient({ token }: { token: string }) {
     'A': { color: '#10B981', glow: '0 0 40px rgba(16,185,129,0.5)', label: 'EXCELLENCE', bg: 'from-emerald-500 to-emerald-700' },
     'B': { color: '#3B82F6', glow: '0 0 40px rgba(59,130,246,0.5)', label: 'CONFIANCE', bg: 'from-blue-500 to-blue-700' },
     'C': { color: '#8B5CF6', glow: '0 0 40px rgba(139,92,246,0.5)', label: 'SOLIDE', bg: 'from-violet-500 to-violet-700' },
-    'D': { color: '#F59E0B', glow: '0 0 40px rgba(245,158,11,0.5)', label: 'STANDARD', bg: 'from-amber-500 to-orange-600' },
-    'E': { color: '#F97316', glow: '0 0 40px rgba(249,115,22,0.5)', label: 'À COMPLÉTER', bg: 'from-orange-500 to-red-600' },
+    'D': { color: '#F59E0B', glow: '0 0 40px rgba(245,158,11,0.5)', label: 'STANDARD', bg: 'from-amber-500 to-amber-600' },
+    'E': { color: '#F97316', glow: '0 0 40px rgba(249,115,22,0.5)', label: 'À COMPLÉTER', bg: 'from-amber-500 to-red-600' },
     'F': { color: '#6B7280', glow: '0 0 30px rgba(107,114,128,0.4)', label: 'EN COURS', bg: 'from-slate-500 to-slate-700' },
   };
 

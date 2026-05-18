@@ -44,7 +44,7 @@ export function SkipVerificationButton({ onSkip, onUpload, onScan }: { onSkip: (
             transition={{ duration: 0.2 }}
             className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-80 z-50"
           >
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-xl shadow-amber-500/10">
+            <div className="bg-gradient-to-br from-amber-50 to-amber-50 border border-amber-200 rounded-2xl p-5 shadow-xl shadow-amber-500/10">
               {/* Flèche */}
               <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-amber-50 border-l border-t border-amber-200 rotate-45" />
 

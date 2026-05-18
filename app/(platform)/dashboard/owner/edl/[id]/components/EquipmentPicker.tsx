@@ -72,11 +72,11 @@ export default function EquipmentPicker({
                     type="button"
                     onClick={() => toggle(name)}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
-                      selected.includes(name) ? 'bg-orange-50 text-orange-700 ring-1 ring-orange-200' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      selected.includes(name) ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 text-xs ${
-                      selected.includes(name) ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-300'
+                      selected.includes(name) ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-300'
                     }`}>
                       {selected.includes(name) && '✓'}
                     </div>
@@ -94,13 +94,13 @@ export default function EquipmentPicker({
                 onChange={(e) => setCustom(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addCustom()}
                 placeholder="Équipement personnalisé..."
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
               />
               <button
                 type="button"
                 onClick={addCustom}
                 disabled={!custom.trim()}
-                className="flex h-[46px] w-[46px] items-center justify-center rounded-xl bg-orange-500 text-white disabled:opacity-30"
+                className="flex h-[46px] w-[46px] items-center justify-center rounded-xl bg-amber-500 text-white disabled:opacity-30"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -113,7 +113,7 @@ export default function EquipmentPicker({
               type="button"
               onClick={() => onConfirm(selected)}
               disabled={selected.length === 0}
-              className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-orange-600 disabled:opacity-40"
+              className="w-full rounded-2xl bg-amber-500 py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-amber-600 disabled:opacity-40"
             >
               Ajouter {selected.length > 0 ? `(${selected.length})` : ''}
             </button>

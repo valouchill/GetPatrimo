@@ -140,7 +140,7 @@ export default function EdlWizardClient({ inspectionId }: { inspectionId: string
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function EdlWizardClient({ inspectionId }: { inspectionId: string
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white">
         <p className="text-lg font-semibold text-slate-900">EDL introuvable</p>
-        <button onClick={goBack} className="rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white">
+        <button onClick={goBack} className="rounded-xl bg-amber-500 px-6 py-3 text-sm font-bold text-white">
           Retour
         </button>
       </div>

@@ -26,7 +26,7 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative mt-0.5 flex-shrink-0 h-5 w-9 rounded-full transition-colors ${
-          checked ? "bg-orange-500" : "bg-slate-200"
+          checked ? "bg-amber-500" : "bg-slate-200"
         }`}
       >
         <span
@@ -64,7 +64,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                 value={formData.irlReference ?? ""}
                 onChange={(e) => onFieldChange("irlReference", e.target.value)}
                 placeholder="Ex: 142.06"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
             <label className="block">
@@ -74,7 +74,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                 value={formData.irlReferenceDate ?? ""}
                 onChange={(e) => onFieldChange("irlReferenceDate", e.target.value)}
                 placeholder="Ex: 4e trim. 2025"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
             </label>
           </div>
@@ -85,7 +85,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
               value={formData.irlQuarterReference ?? ""}
               onChange={(e) => onFieldChange("irlQuarterReference", e.target.value)}
               placeholder="Ex: 4ème trimestre 2025"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
             />
           </label>
         </div>
@@ -110,7 +110,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                   value={formData.loyerReference ?? ""}
                   onChange={(e) => onFieldChange("loyerReference", e.target.value)}
                   placeholder="Ex: 12.50"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
                 />
               </label>
               <label className="block">
@@ -120,7 +120,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                   value={formData.loyerReferenceMajore ?? ""}
                   onChange={(e) => onFieldChange("loyerReferenceMajore", e.target.value)}
                   placeholder="Ex: 15.00"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
                 />
               </label>
             </div>
@@ -140,7 +140,7 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                   value={formData.complementLoyer ?? ""}
                   onChange={(e) => onFieldChange("complementLoyer", e.target.value)}
                   placeholder="Ex: Vue exceptionnelle, terrasse..."
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
                 />
               </label>
             )}

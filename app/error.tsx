@@ -14,7 +14,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <h1 className="text-6xl font-bold text-slate-900">500</h1>
         <p className="mt-4 text-xl text-slate-600">Une erreur est survenue</p>
         <p className="mt-2 text-slate-500">Nos équipes ont été notifiées. Veuillez réessayer.</p>
-        <button onClick={reset} className="mt-6 inline-block px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
+        <button onClick={reset} className="mt-6 inline-block px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition">
           Réessayer
         </button>
       </div>

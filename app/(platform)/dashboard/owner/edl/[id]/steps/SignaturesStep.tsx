@@ -115,7 +115,7 @@ function SignaturePad({
         value={signature?.name || ''}
         onChange={(e) => onChange({ ...signature, name: e.target.value })}
         placeholder="Nom et prénom"
-        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
       />
     </div>
   );

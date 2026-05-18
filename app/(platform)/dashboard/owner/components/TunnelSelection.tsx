@@ -180,9 +180,9 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
               </div>
               {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               {selected.guaranteeMode === 'NONE' || !selected.guaranteeMode ? (
-                <div className="mb-4 rounded-xl border-2 border-orange-300 bg-orange-50 px-4 py-3">
-                  <div className="mb-1 text-sm font-bold text-orange-800">⚠ Candidat sans garant</div>
-                  <p className="text-sm text-orange-700">
+                <div className="mb-4 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+                  <div className="mb-1 text-sm font-bold text-amber-800">⚠ Candidat sans garant</div>
+                  <p className="text-sm text-amber-700">
                     Ce candidat n'a pas de garant (ni Visale, ni garant physique). Souhaitez-vous continuer la sélection ?
                   </p>
                 </div>

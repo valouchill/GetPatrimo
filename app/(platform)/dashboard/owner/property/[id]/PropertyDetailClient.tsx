@@ -187,7 +187,7 @@ const GRADE_BG: Record<string, string> = {
   B: 'bg-gradient-to-br from-blue-400 to-blue-600',
   C: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
   D: 'bg-gradient-to-br from-slate-400 to-slate-600',
-  E: 'bg-gradient-to-br from-orange-400 to-orange-600',
+  E: 'bg-gradient-to-br from-amber-400 to-amber-600',
   F: 'bg-gradient-to-br from-red-400 to-red-600',
 };
 
@@ -632,7 +632,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             type="button"
             onClick={handleCopyLink}
             disabled={!property.applyToken}
-            className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
           >
             {copied ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
             {copied ? 'Sésame copié !' : 'Copier le Sésame candidat'}
@@ -792,7 +792,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                         <button
                           type="button"
                           onClick={openUnlockModal}
-                          className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
                         >
                           <Lock className="h-4 w-4" /> Déverrouiller
                         </button>
@@ -1034,14 +1034,14 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
 
           {/* Section D — Lien Sésame (if not rented) */}
           {property.applyToken && !property.isRented && (
-            <PremiumSurface padding="md" className="rounded-3xl border-orange-100 bg-orange-50/40">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-700 mb-3">
+            <PremiumSurface padding="md" className="rounded-3xl border-amber-100 bg-amber-50/40">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700 mb-3">
                 Lien Sésame candidat
               </div>
               <p className="mb-4 text-sm leading-6 text-slate-600">
                 Partagez ce lien unique pour permettre aux candidats de déposer leur dossier directement sur ce bien. Chaque candidature est analysée automatiquement par l&apos;IA PatrimoTrust.
               </p>
-              <code className="block break-all rounded-2xl border border-orange-200 bg-white px-4 py-3 font-mono text-sm text-slate-700 mb-4">
+              <code className="block break-all rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-sm text-slate-700 mb-4">
                 {typeof window !== 'undefined'
                   ? `${window.location.origin}/apply/${property.applyToken}`
                   : `/apply/${property.applyToken}`}
@@ -1050,7 +1050,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition-colors"
                 >
                   <Copy className="h-4 w-4" />
                   {copied ? 'Copié !' : 'Copier le lien'}

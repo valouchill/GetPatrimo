@@ -88,7 +88,7 @@ export function PatrimoMeter({
 
   // Gradient de la barre
   const getGradientColor = () => {
-    if (hasExpirationMalus) return 'from-amber-400 via-amber-500 to-orange-500';
+    if (hasExpirationMalus) return 'from-amber-400 via-amber-500 to-amber-500';
     if (score >= 90) return 'from-amber-400 via-amber-500 to-yellow-400';
     if (score >= 70) return 'from-emerald-400 via-emerald-500 to-emerald-600';
     if (score >= 50) return 'from-blue-400 via-blue-500 to-blue-600';
@@ -108,7 +108,7 @@ export function PatrimoMeter({
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
         className={`glass-cockpit rounded-2xl shadow-2xl border overflow-hidden ${
-          showCelebration ? 'border-amber-300 shadow-amber-200/50' : hasInconsistency ? 'border-orange-200' : 'border-slate-100'
+          showCelebration ? 'border-amber-300 shadow-amber-200/50' : hasInconsistency ? 'border-amber-200' : 'border-slate-100'
         }`}
       >
         {/* Célébration AAA - Effet brillance dorée */}
@@ -296,11 +296,11 @@ export function PatrimoMeter({
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-5 py-3 bg-orange-50 border-t border-orange-100">
+              <div className="px-5 py-3 bg-amber-50 border-t border-amber-100">
                 <div className="flex items-center gap-2">
-                  <AlertTriangleIcon className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                  <p className="text-[10px] text-orange-700 font-medium">
-                    Incohérence détectée • <span className="text-orange-500 font-bold">-15 pts</span>
+                  <AlertTriangleIcon className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <p className="text-[10px] text-amber-700 font-medium">
+                    Incohérence détectée • <span className="text-amber-500 font-bold">-15 pts</span>
                   </p>
                 </div>
               </div>

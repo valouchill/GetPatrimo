@@ -155,7 +155,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
     }
   };
 
-  const InputCls = "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition";
+  const InputCls = "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition";
   const LabelCls = "mb-1.5 block text-xs font-semibold text-slate-700";
 
   return (
@@ -169,17 +169,17 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
             const active = i === step;
             return (
               <div key={s.label} className="flex items-center gap-2">
-                {i > 0 && <div className={`hidden sm:block h-px w-8 ${done ? 'bg-orange-500' : 'bg-slate-200'}`} />}
+                {i > 0 && <div className={`hidden sm:block h-px w-8 ${done ? 'bg-amber-500' : 'bg-slate-200'}`} />}
                 <button
                   type="button"
                   onClick={() => i < step && setStep(i)}
                   disabled={i > step}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    active ? 'bg-orange-50 text-orange-600' : done ? 'text-emerald-600 hover:bg-slate-50' : 'text-slate-400'
+                    active ? 'bg-amber-50 text-amber-600' : done ? 'text-emerald-600 hover:bg-slate-50' : 'text-slate-400'
                   }`}
                 >
                   <div className={`flex h-7 w-7 items-center justify-center rounded-full ${
-                    active ? 'bg-orange-500 text-white' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                    active ? 'bg-amber-500 text-white' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
                   }`}>
                     {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                   </div>
@@ -254,7 +254,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                   <button key={t.value} type="button" onClick={() => f('propertyType', t.value)}
                     className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                       form.propertyType === t.value
-                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                        ? 'border-amber-300 bg-amber-50 text-amber-700'
                         : 'border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}>
                     {t.label}
@@ -291,7 +291,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                   <button key={eq} type="button" onClick={() => toggleEquipment(eq)}
                     className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                       form.equipment.includes(eq)
-                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                        ? 'border-amber-300 bg-amber-50 text-amber-700'
                         : 'border-slate-200 text-slate-500 hover:border-slate-300'
                     }`}>
                     {eq}
@@ -372,15 +372,15 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                   <div className="text-sm text-slate-500 mb-1.5">Équipements</div>
                   <div className="flex flex-wrap gap-1.5">
                     {form.equipment.map(eq => (
-                      <span key={eq} className="rounded-md bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-700">{eq}</span>
+                      <span key={eq} className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">{eq}</span>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-            <div className="mb-5 flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-              <ShieldCheck className="h-5 w-5 shrink-0 text-orange-600" />
-              <span className="text-sm font-medium text-orange-800">Un lien Sésame unique sera généré pour partager aux candidats.</span>
+            <div className="mb-5 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <ShieldCheck className="h-5 w-5 shrink-0 text-amber-600" />
+              <span className="text-sm font-medium text-amber-800">Un lien Sésame unique sera généré pour partager aux candidats.</span>
             </div>
             {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
             <div className="flex justify-between">

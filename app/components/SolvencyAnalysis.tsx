@@ -93,7 +93,7 @@ export default function SolvencyAnalysis({
         };
       case 'amber':
         return {
-          gradient: 'from-amber-400 via-amber-500 to-orange-500',
+          gradient: 'from-amber-400 via-amber-500 to-amber-500',
           bg: 'bg-amber-50',
           border: 'border-amber-200',
           text: 'text-amber-700',

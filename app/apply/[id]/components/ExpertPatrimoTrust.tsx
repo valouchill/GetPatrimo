@@ -243,7 +243,7 @@ export function ExpertPatrimoTrust({
       case 'star':
         return <SparklesIcon className="w-5 h-5 text-amber-500" />;
       case 'warning':
-        return <AlertTriangleIcon className="w-5 h-5 text-orange-500" />;
+        return <AlertTriangleIcon className="w-5 h-5 text-amber-500" />;
       case 'success':
         return <CheckCircleIcon className="w-5 h-5 text-emerald-500" />;
       default:
@@ -253,8 +253,8 @@ export function ExpertPatrimoTrust({
 
   const getBorderColor = (icon: string) => {
     switch (icon) {
-      case 'star': return 'border-amber-200 bg-gradient-to-br from-amber-50/80 to-orange-50/50';
-      case 'warning': return 'border-orange-200 bg-gradient-to-br from-orange-50/80 to-amber-50/50';
+      case 'star': return 'border-amber-200 bg-gradient-to-br from-amber-50/80 to-amber-50/50';
+      case 'warning': return 'border-amber-200 bg-gradient-to-br from-amber-50/80 to-amber-50/50';
       case 'success': return 'border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-teal-50/50';
       default: return 'border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/50';
     }

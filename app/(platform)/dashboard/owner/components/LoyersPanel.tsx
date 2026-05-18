@@ -128,12 +128,12 @@ function ConfirmModal({ payment, onClose, onDone }: {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Montant reçu (€)</label>
-                  <input type="number" step="0.01" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+                  <input type="number" step="0.01" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
                     value={amount} onChange={(e) => setAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Moyen de paiement</label>
-                  <select className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+                  <select className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
                     value={method} onChange={(e) => setMethod(e.target.value)}>
                     <option value="VIREMENT">Virement</option>
                     <option value="CHEQUE">Chèque</option>
@@ -144,7 +144,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Notes <span className="font-normal text-slate-400">optionnel</span></label>
-                  <input type="text" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+                  <input type="text" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
                     placeholder="Ex: reçu le 03/03" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
               </div>
@@ -154,7 +154,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
                   Annuler
                 </button>
                 <button onClick={submit} disabled={loading || !amount}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors">
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   Confirmer
                 </button>
@@ -227,7 +227,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
       <div className="flex flex-wrap gap-2">
         {canConfirm && (
           <button onClick={() => onConfirm(p)}
-            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
+            className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600 transition-colors">
             <CheckCircle className="h-3.5 w-3.5" />Confirmer
           </button>
         )}
@@ -402,7 +402,7 @@ const LoyersPanel = memo(function LoyersPanel() {
             Relancer ({lateCount})
           </button>
           <button onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Générer les loyers
           </button>
@@ -414,22 +414,22 @@ const LoyersPanel = memo(function LoyersPanel() {
         {showGenerateBanner && (
           <motion.div
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-3.5">
+            className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100">
-                <RefreshCw className="h-4 w-4 text-orange-600" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                <RefreshCw className="h-4 w-4 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-orange-900">
+                <p className="text-sm font-semibold text-amber-900">
                   Aucun loyer pour {MONTHS[viewMonth - 1]} {viewYear}
                 </p>
-                <p className="text-xs text-orange-700">
+                <p className="text-xs text-amber-700">
                   Cliquez sur &quot;Générer&quot; pour créer les échéances du mois en cours.
                 </p>
               </div>
             </div>
             <button onClick={handleGenerate} disabled={generating}
-              className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors">
+              className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Générer maintenant
             </button>
@@ -496,7 +496,7 @@ const LoyersPanel = memo(function LoyersPanel() {
         <div className="flex gap-2">
           <div className="relative">
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filtrer par statut"
-              className="appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none cursor-pointer">
+              className="appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none cursor-pointer">
               <option value="">Tous les statuts</option>
               <option value="CONFIRMED">Payé</option>
               <option value="PENDING">En attente</option>
@@ -509,7 +509,7 @@ const LoyersPanel = memo(function LoyersPanel() {
           {properties.length > 1 && (
             <div className="relative">
               <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} aria-label="Filtrer par bien"
-                className="appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none cursor-pointer">
+                className="appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none cursor-pointer">
                 <option value="all">Tous les biens</option>
                 {properties.map(([id, label]) => (
                   <option key={id} value={id}>{label}</option>
@@ -543,7 +543,7 @@ const LoyersPanel = memo(function LoyersPanel() {
       {/* Table (desktop) / Cards (mobile) */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
         </div>
       ) : monthPayments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
@@ -607,7 +607,7 @@ const LoyersPanel = memo(function LoyersPanel() {
                         <td className="px-4 py-3.5 text-right text-sm text-slate-700">
                           {fmt(p.amounts.rentHC)}
                           {isProrata && (
-                            <div className="text-[10px] text-orange-500 font-medium">
+                            <div className="text-[10px] text-amber-500 font-medium">
                               ({p.prorata?.daysOccupied}j/{p.prorata?.daysInMonth}j)
                             </div>
                           )}
@@ -631,7 +631,7 @@ const LoyersPanel = memo(function LoyersPanel() {
                           )}
                           {isProrata && (
                             <div className="mt-0.5">
-                              <span className="rounded-md bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600">Prorata</span>
+                              <span className="rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">Prorata</span>
                             </div>
                           )}
                         </td>
@@ -639,7 +639,7 @@ const LoyersPanel = memo(function LoyersPanel() {
                           <div className="flex items-center gap-1.5">
                             {canConfirm && (
                               <button onClick={() => setConfirmPaymentData(p)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors">
+                                className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-amber-600 transition-colors">
                                 <CheckCircle className="h-3.5 w-3.5" />
                                 <span className="hidden lg:inline">Confirmer</span>
                               </button>

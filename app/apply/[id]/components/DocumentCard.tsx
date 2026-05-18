@@ -52,7 +52,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className={`group relative overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md ${
         isIllegible
-          ? 'bg-orange-50 border-orange-300'
+          ? 'bg-amber-50 border-amber-300'
           : isRejected
           ? 'bg-red-50 border-red-200'
           : isCertified
@@ -85,8 +85,8 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
               <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : isIllegible ? (
-            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
@@ -434,7 +434,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           animate={{ height: 'auto', opacity: 1 }}
           className="px-4 pb-3"
         >
-          <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+          <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-50 rounded-xl border border-amber-200">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">🧠</span>
@@ -518,14 +518,14 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           animate={{ height: 'auto', opacity: 1 }}
           className="px-4 pb-3 -mt-1"
         >
-          <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200">
+          <div className="p-4 bg-gradient-to-r from-amber-50 to-red-50 rounded-xl border border-amber-200">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">💁‍♀️</span>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-orange-700 mb-1">Conseil de l&apos;Expert</p>
-                <p className="text-sm text-orange-900 leading-relaxed">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Conseil de l&apos;Expert</p>
+                <p className="text-sm text-amber-900 leading-relaxed">
                   {file.errorMessage}
                 </p>
               </div>

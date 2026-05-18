@@ -153,7 +153,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-orange-100/30 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-amber-100/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-slate-200/40 rounded-full blur-3xl" />
       </div>
 
@@ -204,16 +204,16 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => selectRole('owner')}
-                    className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-orange-50 border-2 border-slate-200 hover:border-orange-300 rounded-2xl transition-all text-left group"
+                    className="w-full flex items-center gap-4 p-5 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-2xl transition-all text-left group"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                      <Building2 className="w-6 h-6 text-orange-600" />
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                      <Building2 className="w-6 h-6 text-amber-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900">Je suis propriétaire</div>
                       <div className="text-xs text-slate-500 mt-0.5">Je mets un bien en location</div>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-orange-500 transition-colors" />
+                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-amber-500 transition-colors" />
                   </button>
 
                   <button
@@ -252,8 +252,8 @@ export default function RegisterPage() {
                 </button>
 
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-orange-500" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-amber-500" />
                   </div>
                   <h2
                     className="text-xl font-semibold text-slate-900"
@@ -284,7 +284,7 @@ export default function RegisterPage() {
                   className={`w-full mt-6 py-4 rounded-2xl font-semibold text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${
                     !canSubmitForm
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                      : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20'
                   } disabled:opacity-60`}
                 >
                   {loading ? (
@@ -484,7 +484,7 @@ export default function RegisterPage() {
           </p>
           <p className="text-sm text-slate-500">
             Déjà inscrit ?{' '}
-            <Link href="/auth/login" className="text-orange-500 hover:text-orange-600 font-medium">
+            <Link href="/auth/login" className="text-amber-500 hover:text-amber-600 font-medium">
               Se connecter
             </Link>
           </p>
@@ -533,7 +533,7 @@ function FormFields({
 }: FormFieldsProps) {
   const strengthLabel = ['Très faible', 'Faible', 'Moyen', 'Bon', 'Fort', 'Excellent'][passwordScore];
   const strengthColor = [
-    'bg-red-400', 'bg-red-400', 'bg-orange-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500',
+    'bg-red-400', 'bg-red-400', 'bg-amber-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500',
   ][passwordScore];
 
   return (
@@ -546,7 +546,7 @@ function FormFields({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="votre@email.com"
           required
-          className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-400 focus:bg-white transition-all text-base"
+          className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all text-base"
         />
       </div>
 
@@ -559,7 +559,7 @@ function FormFields({
             onChange={(e) => setPassword(e.target.value)}
             placeholder="12 caractères minimum"
             required
-            className="w-full px-5 py-3.5 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-400 focus:bg-white transition-all text-base"
+            className="w-full px-5 py-3.5 pr-12 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all text-base"
           />
           <button
             type="button"
@@ -600,7 +600,7 @@ function FormFields({
           className={`w-full px-5 py-3.5 bg-slate-50 border-2 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white transition-all text-base ${
             confirmPassword.length > 0 && confirmPassword !== password
               ? 'border-red-300 focus:border-red-400'
-              : 'border-slate-200 focus:border-orange-400'
+              : 'border-slate-200 focus:border-amber-400'
           }`}
         />
         {confirmPassword.length > 0 && confirmPassword !== password && (
