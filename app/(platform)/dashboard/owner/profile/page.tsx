@@ -36,7 +36,7 @@ function FormInput({
           className={`w-full pl-10 ${suffix ? 'pr-16' : 'pr-4'} py-2.5 border border-slate-200 rounded-xl text-sm outline-none transition-all ${
             disabled
               ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
-              : 'bg-white text-slate-900 placeholder-slate-400 focus:border-orange-300 focus:ring-2 focus:ring-orange-100'
+              : 'bg-white text-slate-900 placeholder-slate-400 focus:border-amber-300 focus:ring-2 focus:ring-amber-100'
           }`}
         />
         {suffix && (
@@ -65,7 +65,7 @@ function PasswordInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 placeholder-slate-400 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+          className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 placeholder-slate-400 outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
         />
         <button
           type="button"
@@ -257,8 +257,8 @@ function Section({
       className="rounded-2xl border border-slate-200 bg-white p-6"
     >
       <div className="flex items-center gap-3 mb-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
-          <Icon className="h-5 w-5 text-orange-500" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
+          <Icon className="h-5 w-5 text-amber-500" />
         </div>
         <div>
           <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
@@ -436,7 +436,7 @@ export default function ProfilePage() {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
       </div>
     );
   }
@@ -479,7 +479,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={profileSaving}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-orange-600 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-amber-600 transition-colors disabled:opacity-50"
               >
                 {profileSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -88,7 +88,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
           {/* Guarantee section */}
           <div className={`mb-5 rounded-2xl border px-4 py-3 ${
             c.guaranteeMode === 'NONE' || !c.guaranteeMode
-              ? 'border-orange-200 bg-orange-50'
+              ? 'border-amber-200 bg-amber-50'
               : 'border-emerald-200 bg-emerald-50'
           }`}>
             <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
               <GuaranteeBadge mode={c.guaranteeMode} />
             </div>
             {(!c.guaranteeMode || c.guaranteeMode === 'NONE') && (
-              <p className="mt-2 text-xs text-orange-700">
+              <p className="mt-2 text-xs text-amber-700">
                 Ce candidat n'a pas de garant. Il est recommandé de privilégier les profils couverts par Visale ou un garant physique.
               </p>
             )}

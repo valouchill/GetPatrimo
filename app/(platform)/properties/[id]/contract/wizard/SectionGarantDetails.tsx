@@ -47,7 +47,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.email ?? ""}
             onChange={(e) => handleOverride("email", e.target.value)}
             placeholder="garant@email.com"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
           <p className="text-[10px] text-slate-400 mt-0.5">Requis pour la signature de l'acte de cautionnement</p>
         </label>
@@ -58,7 +58,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.phone ?? ""}
             onChange={(e) => handleOverride("phone", e.target.value)}
             placeholder="06 12 34 56 78"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
       </div>
@@ -72,7 +72,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.firstName ?? ""}
             onChange={(e) => handleOverride("firstName", e.target.value)}
             placeholder="Prénom"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
         <label className="block">
@@ -82,7 +82,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.lastName ?? ""}
             onChange={(e) => handleOverride("lastName", e.target.value)}
             placeholder="Nom"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
       </div>
@@ -94,7 +94,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
           value={overrides.address ?? ""}
           onChange={(e) => handleOverride("address", e.target.value)}
           placeholder="Adresse complète"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         />
       </label>
 
@@ -106,7 +106,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.zipCode ?? ""}
             onChange={(e) => handleOverride("zipCode", e.target.value)}
             placeholder="Code postal"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
         <label className="block">
@@ -116,7 +116,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             value={overrides.city ?? ""}
             onChange={(e) => handleOverride("city", e.target.value)}
             placeholder="Ville"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
       </div>
@@ -127,7 +127,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
           type="date"
           value={overrides.birthDate ?? ""}
           onChange={(e) => handleOverride("birthDate", e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         />
       </label>
     </div>

@@ -40,7 +40,7 @@ export function SectionDuree({ formData, onFieldChange }: SectionDureeProps) {
             value={formData.startDate}
             min={getTomorrowDateInputValue(new Date(Date.now() - 24 * 60 * 60 * 1000))}
             onChange={(e) => onFieldChange("startDate", e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
           />
         </div>
 
@@ -56,7 +56,7 @@ export function SectionDuree({ formData, onFieldChange }: SectionDureeProps) {
               max={constraints.max}
               value={formData.durationMonths}
               onChange={(e) => onFieldChange("durationMonths", Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-14 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-14 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">mois</span>
           </div>

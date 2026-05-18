@@ -205,10 +205,10 @@ export default function OwnerDashboardClient() {
       <aside className={`fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
             <div className="flex-1">
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
-              <div className="mt-0.5 inline-block rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-600">Propriétaire</div>
+              <div className="mt-0.5 inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Propriétaire</div>
             </div>
             <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:hidden" aria-label="Fermer le menu">
               <X className="h-5 w-5" />
@@ -234,12 +234,12 @@ export default function OwnerDashboardClient() {
                 return (
                   <button key={id} type="button" onClick={() => go(id)}
                     className={`mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all ${
-                      active ? 'bg-orange-50 font-medium text-orange-600' : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                      active ? 'bg-amber-50 font-medium text-amber-600' : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                     }`}>
                     <Icon className="h-5 w-5 shrink-0" />
                     <span className="flex-1 text-left">{label}</span>
                     {badge && pending > 0 && (
-                      <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-600">{pending}</span>
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-600">{pending}</span>
                     )}
                   </button>
                 );
@@ -257,11 +257,11 @@ export default function OwnerDashboardClient() {
 
         <div className="border-t border-slate-200 px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/owner/profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-xs font-bold text-white hover:opacity-90 transition-opacity">
+            <Link href="/dashboard/owner/profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-xs font-bold text-white hover:opacity-90 transition-opacity">
               {userEmail ? userEmail[0].toUpperCase() : 'P'}
             </Link>
             <div className="min-w-0">
-              <Link href="/dashboard/owner/profile" className="block truncate text-xs font-semibold text-slate-900 hover:text-orange-600 transition-colors">{userEmail || 'Propriétaire'}</Link>
+              <Link href="/dashboard/owner/profile" className="block truncate text-xs font-semibold text-slate-900 hover:text-amber-600 transition-colors">{userEmail || 'Propriétaire'}</Link>
               <div className="text-[11px] text-slate-400">Espace sécurisé</div>
             </div>
             <button type="button" onClick={refresh} aria-label="Actualiser" className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
@@ -296,7 +296,7 @@ export default function OwnerDashboardClient() {
                   {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-2 md:px-5 md:py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ajouter un bien</span></button>
+              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 md:px-5 md:py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ajouter un bien</span></button>
             </div>
 
             {/* Bandeau financier */}
@@ -306,7 +306,7 @@ export default function OwnerDashboardClient() {
             <AlertsPanel alerts={dashData.alerts} onNavigate={(t) => go(t as NavId)} />
 
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biens.length} label="Mes biens" bg="bg-orange-50" />
+              <StatCard icon={<Building2 className="h-5 w-5 text-amber-500" />} value={biens.length} label="Mes biens" bg="bg-amber-50" />
               <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures" bg="bg-blue-50" />
               <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={dashData.kpis ? dashData.kpis.activeLeasesCount : '…'} label="Baux actifs" bg="bg-emerald-50" />
               <StatCard icon={<Home className="h-5 w-5 text-teal-500" />} value={dashData.kpis ? `${dashData.kpis.occupiedProperties}/${biens.length}` : '…'} label="Occupés" bg="bg-teal-50" />
@@ -433,13 +433,13 @@ export default function OwnerDashboardClient() {
                 <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Mes biens</h1>
                 <p className="mt-1 text-sm text-slate-500">{biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille</p>
               </div>
-              <button onClick={() => go('depot')} className="hidden items-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors md:flex"><Plus className="h-4 w-4" /> Ajouter un bien</button>
+              <button onClick={() => go('depot')} className="hidden items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors md:flex"><Plus className="h-4 w-4" /> Ajouter un bien</button>
             </div>
 
             {/* FAB mobile — Ajouter un bien */}
             <button
               onClick={() => go('depot')}
-              className="fixed bottom-28 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg hover:bg-orange-600 active:scale-95 transition-all md:hidden"
+              className="fixed bottom-28 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg hover:bg-amber-600 active:scale-95 transition-all md:hidden"
               aria-label="Ajouter un bien"
             >
               <Plus className="h-6 w-6" />
@@ -460,7 +460,7 @@ export default function OwnerDashboardClient() {
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
                 <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Search className="h-6 w-6 text-slate-400" /></div>
                 <p className="mb-2 text-slate-500">Aucun bien ne correspond à vos filtres.</p>
-                <button type="button" onClick={() => { setBiensSearch(''); setBiensStatusFilter('all'); }} className="text-sm font-semibold text-orange-500 hover:underline">Réinitialiser les filtres</button>
+                <button type="button" onClick={() => { setBiensSearch(''); setBiensStatusFilter('all'); }} className="text-sm font-semibold text-amber-500 hover:underline">Réinitialiser les filtres</button>
               </div>
             ) : biens.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
@@ -486,12 +486,12 @@ export default function OwnerDashboardClient() {
                   };
                   const statusColor: Record<string, string> = {
                     OCCUPIED: 'text-emerald-600', VACANT: 'text-red-500', AVAILABLE: 'text-blue-500',
-                    CANDIDATE_SELECTION: 'text-amber-600', LEASE_IN_PROGRESS: 'text-orange-500',
+                    CANDIDATE_SELECTION: 'text-amber-600', LEASE_IN_PROGRESS: 'text-amber-500',
                   };
                   return (
                     <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:shadow-md active:scale-[0.98] cursor-pointer" onClick={() => setPropertyModalId(b.id)} role="button" tabIndex={0}>
                       <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50"><Building2 className="h-5 w-5 text-orange-500" /></div>
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50"><Building2 className="h-5 w-5 text-amber-500" /></div>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1.5">
                             <span className={`h-2 w-2 rounded-full ${b.status === 'OCCUPIED' ? 'bg-emerald-500' : b.status === 'VACANT' ? 'bg-red-500' : 'bg-amber-500'}`} />
@@ -664,7 +664,7 @@ export default function OwnerDashboardClient() {
               </Btn>
             </div>
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard icon={<Building2 className="h-5 w-5 text-orange-500" />} value={biensGeres.length}   label="Biens en gestion"    bg="bg-orange-50" />
+              <StatCard icon={<Building2 className="h-5 w-5 text-amber-500" />} value={biensGeres.length}   label="Biens en gestion"    bg="bg-amber-50" />
               <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length}  label="Candidatures totales" bg="bg-blue-50" />
               <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}  value={selectionnes}        label="Locataires actifs"   bg="bg-emerald-50" />
               <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={pending}             label="En attente"          bg="bg-amber-50" />
@@ -676,7 +676,7 @@ export default function OwnerDashboardClient() {
                 <p className="mt-1 text-sm text-slate-500">Ajoutez votre premier bien pour commencer le suivi locatif.</p>
                 <button
                   onClick={() => setShowAddManagement(true)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-orange-600 transition-colors"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-amber-600 transition-colors"
                 >
                   <Plus className="h-4 w-4" /> Ajouter un bien en gestion
                 </button>

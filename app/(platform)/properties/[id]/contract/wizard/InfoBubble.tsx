@@ -16,7 +16,7 @@ export function InfoBubble({ text, className = '' }: Props) {
     <span className={`relative inline-flex ${className}`}>
       <button
         type="button"
-        className="text-slate-400 hover:text-orange-500 transition-colors"
+        className="text-slate-400 hover:text-amber-500 transition-colors"
         onClick={() => setOpen(!open)}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}

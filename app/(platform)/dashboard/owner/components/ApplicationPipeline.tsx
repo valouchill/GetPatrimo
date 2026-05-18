@@ -141,7 +141,7 @@ export function ApplicationPipeline({
           <select
             value={propertyFilter}
             onChange={(e) => setPropertyFilter(e.target.value)}
-            className="appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-9 text-sm font-medium text-slate-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-100 transition cursor-pointer"
+            className="appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-9 text-sm font-medium text-slate-700 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100 transition cursor-pointer"
           >
             <option value="all">Tous les biens ({seenCount})</option>
             {biens.map((b) => {
@@ -205,7 +205,7 @@ export function ApplicationPipeline({
                       <div
                         key={d.id}
                         className={`rounded-xl border bg-white p-3.5 transition-all hover:shadow-md ${
-                          inCompare ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
+                          inCompare ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'
                         }`}
                       >
                         {/* Candidate header */}
@@ -264,7 +264,7 @@ export function ApplicationPipeline({
                             <button
                               type="button"
                               onClick={() => moveCandidate(d.id, STAGES[stageIdx + 1].id)}
-                              className="flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-orange-600 transition-colors"
+                              className="flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-amber-600 transition-colors"
                             >
                               <ChevronRight className="h-3 w-3" />
                               {STAGES[stageIdx + 1].label}
@@ -276,7 +276,7 @@ export function ApplicationPipeline({
                             type="button"
                             onClick={() => toggleCompare(d.id)}
                             className={`rounded-lg p-1.5 transition-colors ${
-                              inCompare ? 'bg-orange-100 text-orange-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                              inCompare ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
                             }`}
                             title={inCompare ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
                           >
@@ -389,7 +389,7 @@ function ContactModal({
       <div className="mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">
-            <MessageSquare className="mr-2 inline h-5 w-5 text-orange-500" />
+            <MessageSquare className="mr-2 inline h-5 w-5 text-amber-500" />
             Contacter {candidate.prenom} {candidate.nom}
           </h3>
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
@@ -417,7 +417,7 @@ function ContactModal({
                     onClick={() => setSelectedTemplate(t.id)}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                       selectedTemplate === t.id
-                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                        ? 'border-amber-300 bg-amber-50 text-amber-700'
                         : 'border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
@@ -434,7 +434,7 @@ function ContactModal({
                 rows={8}
                 value={messageBody}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition resize-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition resize-none"
               />
             </div>
 

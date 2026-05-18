@@ -21,7 +21,7 @@ export const AVATAR_PALETTE = [
   'from-emerald-500 to-teal-600',
   'from-teal-500 to-cyan-600',
   'from-cyan-500 to-blue-500',
-  'from-amber-400 to-orange-500',
+  'from-amber-400 to-amber-500',
   'from-emerald-400 to-emerald-600',
   'from-slate-500 to-slate-700',
 ];
@@ -49,7 +49,7 @@ export function ScorePill({ score, showGrade = false }: { score: number; showGra
   const { bg, text, ring } = GRADE_COLORS[grade];
   const dot = grade === 'S' || grade === 'A' ? 'bg-emerald-500'
     : grade === 'B' ? 'bg-amber-500'
-    : grade === 'C' ? 'bg-orange-500'
+    : grade === 'C' ? 'bg-amber-500'
     : 'bg-red-500';
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${bg} ${text} ${ring}`}>
@@ -95,8 +95,8 @@ export function Tag({ children, type = 'slate' }: { children: React.ReactNode; t
 export function GuaranteeBadge({ mode, short }: { mode?: 'NONE' | 'VISALE' | 'PHYSICAL'; short?: boolean }) {
   if (!mode || mode === 'NONE') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
-        <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
         {short ? 'Sans garant' : '⚠ Sans garant'}
       </span>
     );
@@ -121,12 +121,12 @@ export function GuaranteeBadge({ mode, short }: { mode?: 'NONE' | 'VISALE' | 'PH
 
 export type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger' | 'amber';
 export const BTN_CLS: Record<BtnVariant, string> = {
-  primary:   'bg-orange-500 text-white hover:bg-orange-600 shadow-md',
-  secondary: 'border border-orange-500 text-orange-500 hover:bg-orange-50',
+  primary:   'bg-amber-500 text-white hover:bg-amber-600 shadow-md',
+  secondary: 'border border-amber-500 text-amber-500 hover:bg-amber-50',
   ghost:     'text-slate-600 hover:text-slate-800 hover:bg-slate-100',
   success:   'bg-emerald-50 text-emerald-700 border border-emerald-200',
   danger:    'bg-red-50 text-red-700 border border-red-200',
-  amber:     'bg-orange-500 text-white hover:bg-orange-600 shadow-md',
+  amber:     'bg-amber-500 text-white hover:bg-amber-600 shadow-md',
 };
 export function Btn({ children, variant = 'primary', onClick, disabled, className = '' }: {
   children: React.ReactNode; variant?: BtnVariant; onClick?: () => void; disabled?: boolean; className?: string;
@@ -141,7 +141,7 @@ export function Btn({ children, variant = 'primary', onClick, disabled, classNam
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
-export function StatCard({ icon, value, label, bg = 'bg-orange-50' }: { icon: React.ReactNode; value: string | number; label: string; bg?: string }) {
+export function StatCard({ icon, value, label, bg = 'bg-amber-50' }: { icon: React.ReactNode; value: string | number; label: string; bg?: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>{icon}</div>

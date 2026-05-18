@@ -105,7 +105,7 @@ const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }>
   B: { bg: 'bg-gradient-to-br from-blue-400 to-blue-600', text: 'text-blue-900', border: 'border-blue-400' },
   C: { bg: 'bg-gradient-to-br from-cyan-400 to-cyan-600', text: 'text-cyan-900', border: 'border-cyan-400' },
   D: { bg: 'bg-gradient-to-br from-slate-400 to-slate-600', text: 'text-slate-900', border: 'border-slate-400' },
-  E: { bg: 'bg-gradient-to-br from-orange-400 to-orange-600', text: 'text-orange-900', border: 'border-orange-400' },
+  E: { bg: 'bg-gradient-to-br from-amber-400 to-amber-600', text: 'text-amber-900', border: 'border-amber-400' },
   F: { bg: 'bg-gradient-to-br from-red-400 to-red-600', text: 'text-red-900', border: 'border-red-400' },
 };
 
@@ -421,7 +421,7 @@ export default function TenantDashboardClient({
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                       doc.status === 'CERTIFIED' ? 'bg-emerald-100' :
                       doc.status === 'NEEDS_REVIEW' ? 'bg-amber-100' :
-                      doc.status === 'ILLEGIBLE' ? 'bg-orange-100' :
+                      doc.status === 'ILLEGIBLE' ? 'bg-amber-100' :
                       doc.status === 'FLAGGED' ? 'bg-amber-100' :
                       doc.status === 'REJECTED' ? 'bg-red-100' : 'bg-slate-100'
                     }`}>
@@ -430,7 +430,7 @@ export default function TenantDashboardClient({
                       ) : doc.status === 'NEEDS_REVIEW' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-amber-600" />
                       ) : doc.status === 'ILLEGIBLE' ? (
-                        <ExclamationCircleIcon className="w-6 h-6 text-orange-600" />
+                        <ExclamationCircleIcon className="w-6 h-6 text-amber-600" />
                       ) : doc.status === 'REJECTED' ? (
                         <ExclamationCircleIcon className="w-6 h-6 text-red-600" />
                       ) : (

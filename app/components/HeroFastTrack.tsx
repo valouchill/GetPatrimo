@@ -165,11 +165,11 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
             <div className="flex flex-col items-center gap-1">
               <div
                 className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
-                  i <= currentStepIndex ? 'bg-orange-500' : 'bg-slate-200'
+                  i <= currentStepIndex ? 'bg-amber-500' : 'bg-slate-200'
                 }`}
               />
               <span className={`hidden md:block text-[10px] font-medium transition-colors duration-300 ${
-                i <= currentStepIndex ? 'text-orange-500' : 'text-slate-300'
+                i <= currentStepIndex ? 'text-amber-500' : 'text-slate-300'
               }`}>
                 {STEP_LABELS[i]}
               </span>
@@ -177,7 +177,7 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
             {i < STEP_ORDER.length - 1 && (
               <div
                 className={`w-10 h-0.5 mb-3.5 transition-colors duration-300 ${
-                  i < currentStepIndex ? 'bg-orange-500' : 'bg-slate-200'
+                  i < currentStepIndex ? 'bg-amber-500' : 'bg-slate-200'
                 }`}
               />
             )}
@@ -220,7 +220,7 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
                 type="button"
                 onClick={validateAddress}
                 disabled={addressInput.trim().length < 3}
-                className="h-14 px-8 py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-2"
+                className="h-14 px-8 py-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-2"
               >
                 Créer mon espace gratuit
                 <ArrowRight className="w-5 h-5" />
@@ -259,7 +259,7 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
               <button
                 type="button"
                 onClick={goToEmail}
-                className="h-12 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                className="h-12 px-6 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
               >
                 Continuer
                 <ArrowRight className="w-4 h-4" />
@@ -289,7 +289,7 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
                 type="button"
                 onClick={sendOtp}
                 disabled={!canSubmitEmail || submitting}
-                className="h-14 px-8 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                className="h-14 px-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Envoi du code...</>

@@ -167,7 +167,7 @@ function CreateEdlModal({
             <select
               value={leaseId}
               onChange={(e) => setLeaseId(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
             >
               <option value="">Sélectionner un bail…</option>
               {leases.map((l) => (
@@ -185,7 +185,7 @@ function CreateEdlModal({
               {(['ENTRY', 'EXIT'] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setType(t)}
                   className={`flex-1 rounded-xl border py-3 text-sm font-medium transition-colors ${
-                    type === t ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    type === t ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}>
                   {t === 'ENTRY' ? "Entrée" : "Sortie"}
                 </button>
@@ -206,7 +206,7 @@ function CreateEdlModal({
               {Object.keys(ROOM_TEMPLATES).map((t) => (
                 <button key={t} type="button" onClick={() => setTemplate(t)}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    template === t ? 'border-orange-300 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                    template === t ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'
                   }`}>
                   {t}
                 </button>
@@ -291,7 +291,7 @@ export function EdlPanel() {
         <StatCard icon={<ClipboardCheck className="h-5 w-5 text-blue-500" />} value={total} label="Total EDL" bg="bg-blue-50" />
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={completed} label="Terminés" bg="bg-emerald-50" />
         <StatCard icon={<PenLine className="h-5 w-5 text-amber-500" />} value={draft} label="En cours" bg="bg-amber-50" />
-        <StatCard icon={<Key className="h-5 w-5 text-orange-500" />} value={entries} label="Entrées" bg="bg-orange-50" />
+        <StatCard icon={<Key className="h-5 w-5 text-amber-500" />} value={entries} label="Entrées" bg="bg-amber-50" />
       </div>
 
       {/* Action button */}
@@ -376,7 +376,7 @@ export function EdlPanel() {
                         <div className="flex items-center gap-1.5">
                           {(ins.status === 'DRAFT' || ins.status === 'IN_PROGRESS') && (
                             <button type="button" onClick={() => openWizard(ins._id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors">
                               <PenLine className="h-3 w-3" /> Éditer
                             </button>
                           )}
@@ -460,7 +460,7 @@ export function EdlPanel() {
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                   {(ins.status === 'DRAFT' || ins.status === 'IN_PROGRESS') && (
                     <button type="button" onClick={() => openWizard(ins._id)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors">
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors">
                       <PenLine className="h-3 w-3" /> Éditer
                     </button>
                   )}
@@ -666,7 +666,7 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
                                 <input
                                   type="number"
                                   min={0}
-                                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs focus:border-orange-300 outline-none"
+                                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs focus:border-amber-300 outline-none"
                                   value={retentions[key] ?? ''}
                                   onChange={(e) => setRetentions((prev) => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
                                   placeholder="0"

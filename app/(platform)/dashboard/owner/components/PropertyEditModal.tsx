@@ -121,8 +121,8 @@ export function PropertyEditModal({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                <Building2 className="h-5 w-5 text-orange-500" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+                <Building2 className="h-5 w-5 text-amber-500" />
               </div>
               <div>
                 <div id="edit-property-title" className="font-bold text-slate-900">Modifier le bien</div>
@@ -258,7 +258,7 @@ export function PropertyEditModal({
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60 transition-colors"
+                className="rounded-xl bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60 transition-colors"
               >
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </button>
@@ -270,7 +270,7 @@ export function PropertyEditModal({
   );
 }
 
-const INPUT_CLS = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all';
+const INPUT_CLS = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 transition-all';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

@@ -37,7 +37,7 @@ export default function PatrimoTrustGauge({ score, isLoading = false }: PatrimoT
     if (scoreValue < 60) {
       return "from-red-500 to-rose-500"; // Gradient Red/Rose
     } else if (scoreValue < 80) {
-      return "from-amber-500 to-orange-500"; // Gradient Amber/Orange
+      return "from-amber-500 to-amber-500"; // Gradient Amber/Orange
     } else {
       return "from-emerald-500 to-emerald-400"; // Gradient Emerald
     }

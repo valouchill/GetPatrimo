@@ -65,7 +65,7 @@ export default function PhotoCapture({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-orange-400 hover:text-orange-500"
+          className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-amber-400 hover:text-amber-500"
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" />

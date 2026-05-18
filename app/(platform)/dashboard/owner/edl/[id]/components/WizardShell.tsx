@@ -36,7 +36,7 @@ export default function WizardShell({
           <p className="truncate text-sm font-bold text-slate-900">{title}</p>
           <p className="text-xs text-slate-500">
             Étape {currentStep + 1} / {totalSteps}
-            {saving && <span className="ml-2 text-orange-500">Sauvegarde...</span>}
+            {saving && <span className="ml-2 text-amber-500">Sauvegarde...</span>}
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function WizardShell({
       {/* ── Progress bar ── */}
       <div className="h-1 bg-slate-100">
         <div
-          className="h-full bg-gradient-to-r from-orange-400 to-orange-500 transition-[width] duration-300"
+          className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-[width] duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -73,7 +73,7 @@ export default function WizardShell({
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === currentStep ? 'w-4 bg-orange-500' : i < currentStep ? 'w-1.5 bg-orange-300' : 'w-1.5 bg-slate-200'
+                  i === currentStep ? 'w-4 bg-amber-500' : i < currentStep ? 'w-1.5 bg-amber-300' : 'w-1.5 bg-slate-200'
                 }`}
               />
             ))}
@@ -83,7 +83,7 @@ export default function WizardShell({
             type="button"
             onClick={onNext}
             disabled={saving}
-            className="flex h-11 items-center gap-1.5 rounded-xl bg-orange-500 px-5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-orange-600 disabled:opacity-50"
+            className="flex h-11 items-center gap-1.5 rounded-xl bg-amber-500 px-5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-amber-600 disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -122,7 +122,7 @@ export default function InfoMetersStep({
                   value={meters[key] ?? ''}
                   onChange={(e) => setMeter(key, e.target.value)}
                   placeholder="—"
-                  className="h-12 w-full rounded-xl border border-slate-200 px-3 text-lg font-bold text-slate-900 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-3 text-lg font-bold text-slate-900 outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
                 />
                 <span className="pb-3 text-xs text-slate-400">{unit}</span>
               </div>
@@ -142,7 +142,7 @@ export default function InfoMetersStep({
               <select
                 value={k.type}
                 onChange={(e) => updateKey(i, 'type', e.target.value)}
-                className="h-10 rounded-lg border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:border-orange-300"
+                className="h-10 rounded-lg border border-slate-200 px-2 text-sm text-slate-700 outline-none focus:border-amber-300"
               >
                 <option value="Clé">Clé</option>
                 <option value="Badge">Badge</option>
@@ -156,14 +156,14 @@ export default function InfoMetersStep({
                 min="1"
                 value={k.quantity}
                 onChange={(e) => updateKey(i, 'quantity', Math.max(1, Number(e.target.value)))}
-                className="h-10 w-16 rounded-lg border border-slate-200 px-2 text-center text-sm font-bold text-slate-900 outline-none focus:border-orange-300"
+                className="h-10 w-16 rounded-lg border border-slate-200 px-2 text-center text-sm font-bold text-slate-900 outline-none focus:border-amber-300"
               />
               <input
                 type="text"
                 value={k.description}
                 onChange={(e) => updateKey(i, 'description', e.target.value)}
                 placeholder="Description"
-                className="h-10 flex-1 rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none focus:border-orange-300"
+                className="h-10 flex-1 rounded-lg border border-slate-200 px-3 text-sm text-slate-700 outline-none focus:border-amber-300"
               />
               <button
                 type="button"
@@ -178,7 +178,7 @@ export default function InfoMetersStep({
         <button
           type="button"
           onClick={addKey}
-          className="mt-2 flex items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 hover:border-orange-300 hover:text-orange-600 transition-colors w-full justify-center"
+          className="mt-2 flex items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 hover:border-amber-300 hover:text-amber-600 transition-colors w-full justify-center"
         >
           <Plus className="h-4 w-4" />
           Ajouter une clé / un accès

@@ -91,7 +91,7 @@ export function SmartAdvice({ score, profile, certifiedItems, diditVerified, use
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl p-4 border ${
         score < 50
-          ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200'
+          ? 'bg-gradient-to-r from-amber-50 to-amber-50 border-amber-200'
           : score < 80
           ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
           : 'bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200'

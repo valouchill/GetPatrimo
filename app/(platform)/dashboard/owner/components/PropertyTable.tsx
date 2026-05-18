@@ -15,7 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   AVAILABLE: 'bg-blue-50 text-blue-700 border-blue-200',
   CANDIDATE_SELECTION: 'bg-amber-50 text-amber-700 border-amber-200',
-  LEASE_IN_PROGRESS: 'bg-orange-50 text-orange-700 border-orange-200',
+  LEASE_IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200',
   OCCUPIED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   VACANT: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -68,8 +68,8 @@ export function PropertyTable({
                 >
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50">
-                        <Building2 className="h-4 w-4 text-orange-500" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                        <Building2 className="h-4 w-4 text-amber-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
@@ -138,8 +138,8 @@ export function PropertyTable({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                  <Building2 className="h-5 w-5 text-orange-500" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+                  <Building2 className="h-5 w-5 text-amber-500" />
                 </div>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-bold text-slate-900">{b.label}</div>

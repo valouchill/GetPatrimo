@@ -38,7 +38,7 @@ export function SectionFinancier({ formData, onFieldChange, onDepositChange }: S
               onClick={() => onFieldChange("leaseType", t.value)}
               className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                 formData.leaseType === t.value
-                  ? "bg-orange-500 text-white shadow-md"
+                  ? "bg-amber-500 text-white shadow-md"
                   : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
@@ -61,7 +61,7 @@ export function SectionFinancier({ formData, onFieldChange, onDepositChange }: S
               min={0}
               value={formData.rentHC}
               onChange={(e) => onFieldChange("rentHC", Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">€/mois</span>
           </div>
@@ -79,7 +79,7 @@ export function SectionFinancier({ formData, onFieldChange, onDepositChange }: S
               min={0}
               value={formData.charges}
               onChange={(e) => onFieldChange("charges", Number(e.target.value) || 0)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-16 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">€/mois</span>
           </div>
@@ -102,7 +102,7 @@ export function SectionFinancier({ formData, onFieldChange, onDepositChange }: S
                 max={depositConstraints.max}
                 value={formData.deposit}
                 onChange={(e) => onDepositChange(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-8 text-sm focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 pr-8 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">€</span>
             </div>

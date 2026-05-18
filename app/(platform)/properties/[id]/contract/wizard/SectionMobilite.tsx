@@ -45,7 +45,7 @@ export function SectionMobilite({ formData, onFieldChange }: Props) {
             key={s.key}
             className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
               isChecked(s.key)
-                ? "border-orange-300 bg-orange-50"
+                ? "border-amber-300 bg-amber-50"
                 : "border-slate-200 hover:bg-slate-50"
             }`}
           >
@@ -53,7 +53,7 @@ export function SectionMobilite({ formData, onFieldChange }: Props) {
               type="checkbox"
               checked={isChecked(s.key)}
               onChange={() => toggle(s.key)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-300"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
             />
             <div>
               <span className="text-sm font-medium text-slate-700">{s.label}</span>

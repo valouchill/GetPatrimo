@@ -23,7 +23,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
         <select
           value={formData.paymentMode ?? "virement bancaire"}
           onChange={(e) => onFieldChange("paymentMode", e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         >
           {PAYMENT_MODES.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
@@ -40,7 +40,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
             onClick={() => onFieldChange("paymentInArrears", false)}
             className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               !formData.paymentInArrears
-                ? "border-orange-400 bg-orange-50 text-orange-700"
+                ? "border-amber-400 bg-amber-50 text-amber-700"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -51,7 +51,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
             onClick={() => onFieldChange("paymentInArrears", true)}
             className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               formData.paymentInArrears
-                ? "border-orange-400 bg-orange-50 text-orange-700"
+                ? "border-amber-400 bg-amber-50 text-amber-700"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -70,7 +70,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
             max={28}
             value={formData.paymentDay}
             onChange={(e) => onFieldChange("paymentDay", Number(e.target.value) || 1)}
-            className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-20 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
           <span className="text-sm text-slate-500">du mois</span>
         </div>
@@ -84,7 +84,7 @@ export function SectionPaiement({ formData, onFieldChange }: Props) {
           value={formData.paymentLocation ?? ""}
           onChange={(e) => onFieldChange("paymentLocation", e.target.value)}
           placeholder="Ex: Domicile du bailleur, adresse..."
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
         />
       </label>
     </div>

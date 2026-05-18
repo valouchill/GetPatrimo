@@ -251,7 +251,7 @@ export function BauxPanel({
                               type="button"
                               onClick={() => handleRenew(lease._id)}
                               disabled={renewingId === lease._id}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
                             >
                               <RefreshCw className={`h-3 w-3 ${renewingId === lease._id ? 'animate-spin' : ''}`} />
                               Renouveler
@@ -270,7 +270,7 @@ export function BauxPanel({
                             <button
                               type="button"
                               onClick={() => onNavigate('contract', lease.property?._id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors"
                             >
                               <PenLine className="h-3 w-3" />
                               Rédiger
@@ -377,7 +377,7 @@ export function BauxPanel({
                       type="button"
                       onClick={() => handleRenew(lease._id)}
                       disabled={renewingId === lease._id}
-                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
                     >
                       <RefreshCw className={`h-3 w-3 ${renewingId === lease._id ? 'animate-spin' : ''}`} />
                       Renouveler
@@ -396,7 +396,7 @@ export function BauxPanel({
                     <button
                       type="button"
                       onClick={() => onNavigate('contract', lease.property?._id)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 transition-colors"
                     >
                       <PenLine className="h-3 w-3" />
                       Rédiger
@@ -429,9 +429,9 @@ export function BauxPanel({
                     key={p._id}
                     type="button"
                     onClick={() => { setShowPropertyPicker(false); onNavigate('contract', p._id, p.selectedApplicationId); }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-orange-300 hover:bg-orange-50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-amber-300 hover:bg-amber-50"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -490,7 +490,7 @@ function TerminateModal({
                 onClick={() => setInitiatedBy(who)}
                 className={`flex-1 rounded-xl border py-3 text-sm font-medium transition-colors ${
                   initiatedBy === who
-                    ? 'border-orange-300 bg-orange-50 text-orange-700'
+                    ? 'border-amber-300 bg-amber-50 text-amber-700'
                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >

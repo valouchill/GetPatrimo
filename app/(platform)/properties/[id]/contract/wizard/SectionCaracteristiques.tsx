@@ -69,7 +69,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             value={formData.surfaceHabitable ?? ""}
             onChange={(e) => onFieldChange("surfaceHabitable", Number(e.target.value) || 0)}
             placeholder="Ex: 45"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
         <label className="block">
@@ -82,7 +82,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             value={formData.rooms ?? ""}
             onChange={(e) => onFieldChange("rooms", Number(e.target.value) || 0)}
             placeholder="Ex: 3"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
       </div>
@@ -98,7 +98,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
               onClick={() => onFieldChange("typeHabitat", t)}
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                 formData.typeHabitat === t
-                  ? "border-orange-400 bg-orange-50 text-orange-700"
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
                   : "border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
@@ -121,7 +121,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             value={formData.constructionYear ?? ""}
             onChange={(e) => onFieldChange("constructionYear", Number(e.target.value) || 0)}
             placeholder="Ex: 1985"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
         <label className="block">
@@ -131,7 +131,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
           <select
             value={formData.dpeClass ?? ""}
             onChange={(e) => onFieldChange("dpeClass", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           >
             <option value="">Sélectionner</option>
             {DPE_CLASSES.map((c) => (
@@ -148,7 +148,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             type="date"
             value={formData.dpeDate ?? ""}
             onChange={(e) => onFieldChange("dpeDate", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
         <label className="block">
@@ -158,7 +158,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
             value={formData.energyEstimate ?? ""}
             onChange={(e) => onFieldChange("energyEstimate", e.target.value)}
             placeholder="Ex: 150 kWh/m²/an"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
         </label>
       </div>
@@ -172,7 +172,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
           <select
             value={formData.modeChauffage ?? ""}
             onChange={(e) => onFieldChange("modeChauffage", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           >
             <option value="">Sélectionner</option>
             {HEATING_OPTIONS.map((o) => (
@@ -187,7 +187,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
           <select
             value={formData.modeEauChaude ?? ""}
             onChange={(e) => onFieldChange("modeEauChaude", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           >
             <option value="">Sélectionner</option>
             {HOT_WATER_OPTIONS.map((o) => (
@@ -208,7 +208,7 @@ export function SectionCaracteristiques({ formData, property, onFieldChange }: P
               onClick={() => onFieldChange("regimeJuridique", r)}
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                 formData.regimeJuridique === r
-                  ? "border-orange-400 bg-orange-50 text-orange-700"
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
                   : "border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >

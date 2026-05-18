@@ -76,7 +76,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
                     type="button"
                     onClick={() => { onNavigate(id); setMoreOpen(false); }}
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${
-                      page === id ? 'bg-orange-50 text-orange-600' : 'text-slate-700 hover:bg-slate-50'
+                      page === id ? 'bg-amber-50 text-amber-600' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
@@ -99,7 +99,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
               type="button"
               onClick={() => onNavigate(id)}
               className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                active ? 'text-orange-500' : 'text-slate-400'
+                active ? 'text-amber-500' : 'text-slate-400'
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
             type="button"
             onClick={() => setMoreOpen(true)}
             className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-              isMoreActive ? 'text-orange-500' : 'text-slate-400'
+              isMoreActive ? 'text-amber-500' : 'text-slate-400'
             }`}
           >
             <MoreHorizontal className="h-5 w-5" />
