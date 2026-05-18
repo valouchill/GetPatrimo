@@ -56,7 +56,7 @@ export function SkipVerificationButton({ onSkip, onUpload, onScan }: { onSkip: (
                   <div>
                     <h4 className="text-sm font-bold text-amber-900 mb-1">Impact sur votre candidature</h4>
                     <p className="text-xs text-amber-700 leading-relaxed">
-                      L'absence de certification Didit limite votre <span className="font-bold">PatrimoScore™</span> au grade <span className="font-bold text-amber-900">B maximum</span> et nécessite un upload manuel de vos pièces d'identité à l'étape suivante.
+                      L'absence de certification Didit limite votre <span className="font-bold">Indice de Résilience™</span> au grade <span className="font-bold text-amber-900">B maximum</span> et nécessite un upload manuel de vos pièces d'identité à l'étape suivante.
                     </p>
                   </div>
                 </div>

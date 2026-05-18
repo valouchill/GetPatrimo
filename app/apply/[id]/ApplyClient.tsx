@@ -1494,7 +1494,7 @@ export default function ApplyClient({ token }: { token: string }) {
       return;
     }
 
-    const confirmed = window.confirm('Voulez-vous supprimer ce document ? Votre PatrimoScore™ diminuera.');
+    const confirmed = window.confirm('Voulez-vous supprimer ce document ? Votre Indice de Résilience™ diminuera.');
     if (!confirmed) {
       setDeletingFileId(null);
       return;
@@ -1540,7 +1540,7 @@ export default function ApplyClient({ token }: { token: string }) {
       } else {
         setAiFeedback({
           visible: true,
-          message: '🗑️ Document supprimé. Votre PatrimoScore™ a été recalculé.',
+          message: '🗑️ Document supprimé. Votre Indice de Résilience™ a été recalculé.',
           type: 'info',
           scoreIncrease: -10,
         });
@@ -2199,7 +2199,7 @@ export default function ApplyClient({ token }: { token: string }) {
           const scoreIncrease = Math.floor(finalConfidenceScore / 10);
           setAiFeedback({
             visible: true,
-            message: `✅ Document certifié avec succès ! "${finalDetectedItem.label}" ajouté à votre checklist. Score de confiance : ${finalConfidenceScore}%`,
+            message: `✅ Document certifié avec succès ! "${finalDetectedItem.label}" ajouté à votre checklist. Indice de Résilience : ${finalConfidenceScore}%`,
             type: 'success',
             scoreIncrease,
           });
@@ -2253,7 +2253,7 @@ export default function ApplyClient({ token }: { token: string }) {
             const reasons = analysis.fraudIndicators?.reasons.join(', ') || 'Vérifications recommandées';
             alertMessage += `${reasons}. Une version plus nette ou l'original PDF aidera l'expert à confirmer votre dossier.`;
           } else {
-            const reasons = analysis.fraudIndicators?.reasons.join(', ') || 'Score de confiance insuffisant';
+            const reasons = analysis.fraudIndicators?.reasons.join(', ') || 'Indice de Résilience insuffisant';
             alertMessage = `L'analyse haute définition signale un doute technique sur ce document (${reasons}). Pour lever ce doute, fournissez si possible l'original numérique (PDF) ou un scan de meilleure qualité.`;
           }
           
@@ -2854,7 +2854,7 @@ export default function ApplyClient({ token }: { token: string }) {
 
             {/* Paragraphe de rassurance */}
             <p className="text-slate-600 text-sm leading-relaxed text-center mb-8">
-              Pour garantir un traitement équitable, le propriétaire utilise le protocole d&apos;audit IA <span className="font-semibold text-emerald-700">PatrimoTrust™</span>. Préparez votre pièce d&apos;identité et vos justificatifs de revenus.
+              Pour garantir un traitement équitable, le propriétaire utilise le protocole d&apos;Audit Forensic <span className="font-semibold text-emerald-700">PatrimoTrust™</span>. Préparez votre pièce d&apos;identité et vos justificatifs de revenus.
             </p>
 
             {/* Badges de confiance */}

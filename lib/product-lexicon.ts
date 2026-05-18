@@ -103,3 +103,47 @@ export function gradeLabel(score: number): string {
 export function gradeColors(score: number) {
   return GRADE_COLORS[getGrade(score)];
 }
+
+// ── Formatters localisation française ───────────────────────────────────────
+
+/**
+ * Formate un prix en français : "1 234 €" ou "1 234,56 €" si décimales.
+ * Toujours avec le symbole €, jamais "EUR".
+ */
+export function formatPrice(amount: number, opts?: { decimals?: boolean }): string {
+  const showDecimals = opts?.decimals ?? false;
+  const value = amount.toLocaleString('fr-FR', {
+    minimumFractionDigits: showDecimals ? 2 : 0,
+    maximumFractionDigits: showDecimals ? 2 : 0,
+  });
+  return `${value} €`;
+}
+
+/**
+ * Formate une date en français long : "15 mars 2026".
+ * Accepte Date | string | undefined ; renvoie '—' si invalide.
+ */
+export function formatDate(input: Date | string | null | undefined): string {
+  if (!input) return '—';
+  const d = input instanceof Date ? input : new Date(input);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/**
+ * Formate une date courte : "15/03/2026".
+ */
+export function formatDateShort(input: Date | string | null | undefined): string {
+  if (!input) return '—';
+  const d = input instanceof Date ? input : new Date(input);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR');
+}
+
+/**
+ * Pluralisation simple : `pluralize(2, 'candidature')` → "2 candidatures".
+ */
+export function pluralize(count: number, singular: string, plural?: string): string {
+  const p = plural ?? `${singular}s`;
+  return `${count.toLocaleString('fr-FR')} ${count > 1 ? p : singular}`;
+}

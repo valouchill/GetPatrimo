@@ -176,7 +176,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
               ['Contrat', c.contrat],
               ['Grade', `Grade ${c.grade}`],
               ['Qualité dossier', c.qualityScore ? `${c.qualityScore}/100` : '—'],
-              ['Audit IA', c.auditStatus === 'CLEAR' ? '✓ Validé' : c.auditStatus === 'ALERT' ? '⚠ Alerte' : 'En revue'],
+              ['Audit Forensic', c.auditStatus === 'CLEAR' ? '✓ Validé' : c.auditStatus === 'ALERT' ? '⚠ Alerte' : 'En revue'],
               ['Prêt à signer', c.contractReady ? '✓ Oui' : 'Non'],
             ] as [string, string][]).map(([k, v]) => (
               <div key={k} className="flex justify-between px-4 py-3 text-sm">

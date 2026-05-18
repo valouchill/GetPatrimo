@@ -8,7 +8,7 @@ import Candidature from '@/models/Candidature';
 import { calculatePatrimoScore } from '@/scoringEngine';
 
 /**
- * API Route pour calculer le PatrimoScore™ d'un locataire/candidat
+ * API Route pour calculer le Indice de Résilience™ d'un locataire/candidat
  * 
  * GET /api/scoring/tenant?candidatureId=xxx
  */

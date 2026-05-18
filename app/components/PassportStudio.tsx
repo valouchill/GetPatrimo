@@ -288,7 +288,7 @@ export default function PassportStudio({
         <PremiumSectionHeader
           eyebrow="Actions"
           title="Prévisualisez et transmettez"
-          description="Les actions restent disponibles à chaque étape, mais le partage externe n’est activé que pour un passeport réellement prêt."
+          description="Les actions restent disponibles à chaque étape, mais le partage externe n’est activé que pour un Passeport Locatif réellement prêt."
           actions={loading ? <Loader2 className="h-5 w-5 animate-spin text-slate-400" /> : null}
         />
 
@@ -301,7 +301,7 @@ export default function PassportStudio({
           >
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">Voir la page web</p>
-              <p className="mt-1 text-sm text-slate-500">Ouvre l’aperçu public du passeport dans un nouvel onglet.</p>
+              <p className="mt-1 text-sm text-slate-500">Ouvre l’aperçu public du Passeport Locatif dans un nouvel onglet.</p>
             </div>
             <ArrowUpRight className="h-5 w-5 flex-shrink-0 text-slate-400" />
           </button>
@@ -328,7 +328,7 @@ export default function PassportStudio({
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">Copier le lien</p>
               <p className="mt-1 text-sm text-slate-500">
-                {canShare ? 'Lien public prêt à être partagé.' : 'Le lien externe s’active uniquement quand le passeport est prêt ou scellé.'}
+                {canShare ? 'Lien public prêt à être partagé.' : 'Le lien externe s’active uniquement quand le Passeport Locatif est prêt ou scellé.'}
               </p>
             </div>
             {copyState === 'done' ? <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" /> : <Copy className="h-5 w-5 flex-shrink-0 text-slate-400" />}
@@ -354,7 +354,7 @@ export default function PassportStudio({
             {highlights.length > 0 ? (
               highlights.map((item) => <li key={item}>• {item}</li>)
             ) : (
-              <li>• Le passeport est cohérent et synchronisé avec la page web et le PDF.</li>
+              <li>• Le Passeport Locatif est cohérent et synchronisé avec la page web et le PDF.</li>
             )}
           </ul>
         </div>
@@ -370,7 +370,7 @@ export default function PassportStudio({
           <MetricTile
             label="Validité indicative"
             value={passport?.metrics.validUntil || 'À calculer'}
-            caption="Toute modification documentaire régénère le passeport."
+            caption="Toute modification documentaire régénère le Passeport Locatif."
             tone="default"
             valueClassName="text-sm sm:text-base"
           />

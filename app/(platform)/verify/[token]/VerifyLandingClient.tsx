@@ -613,7 +613,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">Dashboard de Solvabilité</h3>
-                <p className="text-slate-500 text-xs">Données certifiées par audit IA</p>
+                <p className="text-slate-500 text-xs">Données certifiées par Audit Forensic</p>
               </div>
             </div>
             
@@ -761,7 +761,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                 </div>
               </div>
               
-              {/* Score de confiance */}
+              {/* Indice de Résilience */}
               <div className="text-center px-6 py-4 bg-slate-900/50 rounded-2xl border border-amber-500/30">
                 <p className="text-amber-400 text-xs uppercase tracking-wider mb-1">Indice de Confiance</p>
                 <p className="text-4xl font-black text-white mb-1">A+</p>
@@ -1023,7 +1023,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
             </div>
             <div>
               <span className="text-2xl mb-2 block">🤖</span>
-              <p className="text-white text-sm font-medium">Audit IA Certifié</p>
+              <p className="text-white text-sm font-medium">Audit Forensic Certifié</p>
               <p className="text-slate-500 text-xs">Vérification algorithmique</p>
             </div>
             <div>
@@ -1046,7 +1046,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
           </div>
           <p className="text-slate-500 text-xs max-w-md mx-auto">
             PatrimoTrust est conforme à la Loi Alur et au RGPD. 
-            Toutes les données sont cryptées et certifiées par audit IA.
+            Toutes les données sont cryptées et certifiées par Audit Forensic.
           </p>
         </div>
       </footer>
