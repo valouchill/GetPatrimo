@@ -40,6 +40,8 @@ import {
   CandidateBenchmark,
   AuditTimeline,
   CertificationRow,
+  CriteriaGrid,
+  deriveCriteriaFromDossier,
 } from '@/app/components/audit';
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
@@ -544,6 +546,21 @@ export default function CandidateAuditClient({
                 ),
               },
             ]}
+          />
+
+          {/* Critères d'évaluation objectifs */}
+          <CriteriaGrid
+            criteria={deriveCriteriaFromDossier({
+              revenus: Number(candidate.ownerInsights?.financial?.monthlyIncome || candidate.financialSummary?.monthlyNetIncome || 0),
+              loyer: Number(property?.rentAmount || 0),
+              effortRate: candidate.ownerInsights?.financial?.effortRate ?? null,
+              remainingIncome: candidate.ownerInsights?.financial?.remainingIncome ?? null,
+              contrat: candidate.financialSummary?.contractType,
+              guaranteeMode: candidate.guarantee?.mode,
+              garantie: candidate.ownerInsights?.guarantee?.label,
+              identityVerified: candidate.didit?.status === 'VERIFIED',
+              auditStatus: candidate.ownerInsights?.aiAudit?.status,
+            })}
           />
 
           {/* Forensic + Remaining income */}

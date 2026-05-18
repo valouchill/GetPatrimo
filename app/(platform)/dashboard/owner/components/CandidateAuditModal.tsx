@@ -13,6 +13,8 @@ import {
   AIReasoningCard,
   RemainingIncomeChart,
   CertificationRow,
+  CriteriaGrid,
+  deriveCriteriaFromDossier,
 } from '@/app/components/audit';
 import {
   PRODUCT,
@@ -204,6 +206,23 @@ export function CandidateAuditModal({
 
               {/* BODY : analyses détaillées */}
               <div className="space-y-4 px-4 py-5 md:px-6 md:py-6">
+                {/* Critères d'évaluation objectifs */}
+                <motion.div {...sectionTransition(0.03)}>
+                  <CriteriaGrid
+                    criteria={deriveCriteriaFromDossier({
+                      revenus: c.revenus,
+                      loyer: bien.loyer,
+                      effortRate: c.effortRate,
+                      remainingIncome: c.remainingIncome,
+                      contrat: c.contrat,
+                      guaranteeMode: c.guaranteeMode,
+                      garantie: c.garantie,
+                      identityVerified: c.identityVerified,
+                      auditStatus: c.auditStatus,
+                    })}
+                  />
+                </motion.div>
+
                 {/* Remaining income chart */}
                 {c.monthlyIncome && c.monthlyIncome > 0 && bien.loyer > 0 && (
                   <motion.div {...sectionTransition(0.05)}>
