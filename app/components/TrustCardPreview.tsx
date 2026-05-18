@@ -84,7 +84,6 @@ export default function TrustCardPreview({ applyUrl, privilegeCode }: TrustCardP
             </p>
             <p
               className="text-amber-400 text-sm font-semibold mt-0.5"
-              style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Invitation à Candidater
             </p>

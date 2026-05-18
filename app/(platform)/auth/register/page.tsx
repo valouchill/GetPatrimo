@@ -171,7 +171,6 @@ export default function RegisterPage() {
             </div>
             <span
               className="text-xl font-semibold text-slate-900 tracking-tight"
-              style={{ fontFamily: "'Playfair Display', serif" }}
             >
               PatrimoTrust
             </span>
@@ -191,8 +190,7 @@ export default function RegisterPage() {
                 transition={{ duration: 0.25 }}
               >
                 <h1
-                  className="text-xl font-semibold text-slate-900 mb-2"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-xl font-semibold text-slate-900 mb-2"
                 >
                   Créez votre compte
                 </h1>
@@ -256,8 +254,7 @@ export default function RegisterPage() {
                     <Building2 className="w-5 h-5 text-amber-500" />
                   </div>
                   <h2
-                    className="text-xl font-semibold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-xl font-semibold text-slate-900"
                   >
                     Créer mon coffre-fort
                   </h2>
@@ -318,8 +315,7 @@ export default function RegisterPage() {
                     <User className="w-5 h-5 text-emerald-600" />
                   </div>
                   <h2
-                    className="text-xl font-semibold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-xl font-semibold text-slate-900"
                   >
                     Code de bien
                   </h2>
@@ -403,8 +399,7 @@ export default function RegisterPage() {
                 </button>
 
                 <h2
-                  className="text-xl font-semibold text-slate-900 mb-2"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-xl font-semibold text-slate-900 mb-2"
                 >
                   Finaliser mon inscription
                 </h2>
@@ -464,8 +459,7 @@ export default function RegisterPage() {
                   <Shield className="w-7 h-7 text-emerald-600" />
                 </motion.div>
                 <h2
-                  className="text-lg font-semibold text-slate-900 mb-2"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-lg font-semibold text-slate-900 mb-2"
                 >
                   Création de votre coffre-fort…
                 </h2>

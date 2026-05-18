@@ -308,8 +308,7 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
               </div>
               <div className="text-center space-y-2">
                 <h3
-                  className="text-lg font-bold text-slate-900"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-lg font-bold text-slate-900"
                 >
                   Sceau de Vérification
                 </h3>
@@ -345,7 +344,6 @@ export default function HeroFastTrack({ id = 'hero-fast-track' }: HeroFastTrackP
               </motion.div>
               <p
                 className="text-lg font-bold text-slate-900"
-                style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 Ouverture de votre coffre-fort...
               </p>

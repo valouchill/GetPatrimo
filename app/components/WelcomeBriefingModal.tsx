@@ -90,8 +90,7 @@ export default function WelcomeBriefingModal() {
                   <Icon className="w-8 h-8" />
                 </div>
                 <h2
-                  className="text-2xl font-bold text-slate-900 mb-4"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-2xl font-bold text-slate-900 mb-4"
                 >
                   {current.title}
                 </h2>

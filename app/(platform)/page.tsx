@@ -119,7 +119,6 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.08 }}
             className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-slate-900 leading-tight tracking-tight mb-6"
-            style={{ fontFamily: 'Playfair Display, serif' }}
           >
             Ne laissez plus le hasard choisir vos locataires.
           </motion.h1>
@@ -216,8 +215,7 @@ export default function Home() {
           >
             <p className="text-amber-400 text-sm font-semibold tracking-wider uppercase mb-4">Le scénario habituel</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-white mb-10 leading-tight"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-white mb-10 leading-tight"
             >
               Vous avez déjà vécu l&apos;un de ces moments&nbsp;?
             </h2>
@@ -307,8 +305,7 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">En 2 minutes chrono</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-slate-900"
             >
               Votre espace propriétaire, sans formulaire interminable.
             </h2>
@@ -333,7 +330,7 @@ export default function Home() {
                 <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
                   <Icon className="w-5 h-5" />
                 </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{title}</h3>
+                <h3 className="font-serif font-semibold text-slate-900 mb-2">{title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
               </motion.div>
             ))}
@@ -360,8 +357,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Votre arsenal anti-risque</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-slate-900"
             >
               Trois certitudes là où les autres laissent le hasard décider.
             </h2>
@@ -384,7 +380,7 @@ export default function Home() {
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-6 text-amber-500">
                   <Icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-serif text-xl text-slate-800 mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
+                <h3 className="font-serif text-xl text-slate-800 mb-3">
                   {title}
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
@@ -406,7 +402,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="flex-1"
           >
-            <h2 className="font-serif text-3xl md:text-4xl text-white mb-4 leading-tight" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h2 className="font-serif text-3xl md:text-4xl text-white mb-4 leading-tight">
               Le seul dossier que vous aurez envie de lire.
             </h2>
             <p className="text-slate-300 text-lg leading-relaxed">
@@ -449,8 +445,7 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Ils ont fait confiance à PatrimoTrust</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-slate-900"
             >
               Ce que nos propriétaires disent.
             </h2>
@@ -531,8 +526,7 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Tarification transparente</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-4"
             >
               Gratuit pour commencer. Payant uniquement quand vous trouvez.
             </h2>
@@ -547,7 +541,7 @@ export default function Home() {
               {...fadeInUp}
               className="bg-white rounded-2xl p-8 border border-slate-200 flex flex-col"
             >
-              <h3 className="font-bold text-slate-900 text-xl mb-1">Coffre-Fort Propriétaire</h3>
+              <h3 className="font-serif font-bold text-slate-900 text-xl mb-1">Coffre-Fort Propriétaire</h3>
               <div className="flex items-baseline gap-1 mb-6">
                 <span className="text-4xl font-black text-slate-900">0&nbsp;€</span>
                 <span className="text-slate-500 text-sm">/ mois</span>
@@ -586,7 +580,7 @@ export default function Home() {
               <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                 Le plus choisi
               </span>
-              <h3 className="font-bold text-slate-900 text-xl mb-1">Mise en Location Sécurisée</h3>
+              <h3 className="font-serif font-bold text-slate-900 text-xl mb-1">Mise en Location Sécurisée</h3>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-4xl font-black text-slate-900">89&nbsp;€</span>
                 <span className="text-slate-500 text-sm">/ bien</span>
@@ -639,7 +633,7 @@ export default function Home() {
         <section id="pricing" className="bg-slate-50 py-20 md:py-28 px-6">
           <div className="max-w-3xl mx-auto text-center">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Phase de lancement</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Entièrement gratuit pendant le lancement.
             </h2>
             <p className="text-slate-500 text-lg mb-10">
@@ -677,8 +671,7 @@ export default function Home() {
           <div className="text-center mb-14">
             <p className="text-amber-500 text-sm font-semibold tracking-wider uppercase mb-3">Questions fréquentes</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-slate-900"
             >
               Tout ce que vous voulez savoir.
             </h2>
@@ -731,8 +724,7 @@ export default function Home() {
           >
             <p className="text-amber-400 text-sm font-semibold tracking-wider uppercase mb-4">Dernier appel</p>
             <h2
-              className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="font-serif text-3xl md:text-4xl font-bold text-white mb-6 leading-tight"
             >
               Votre prochain locataire attend d&apos;être certifié.
             </h2>

@@ -116,8 +116,7 @@ export default function CheckoutModal({
                 </div>
                 <div>
                   <h2
-                    className="text-xl font-bold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-xl font-bold text-slate-900"
                   >
                     {title}
                   </h2>
@@ -186,7 +185,7 @@ export default function CheckoutModal({
               {/* Total */}
               <div className="flex items-center justify-between px-1 mb-4">
                 <span className="text-sm text-slate-500">Total aujourd&apos;hui</span>
-                <span className="text-2xl font-bold text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <span className="text-2xl font-bold text-slate-900">
                   98,99 €
                 </span>
               </div>

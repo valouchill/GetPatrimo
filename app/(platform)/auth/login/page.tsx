@@ -207,7 +207,6 @@ export default function LoginPage() {
             </div>
             <span
               className="text-xl font-semibold text-slate-900 tracking-tight"
-              style={{ fontFamily: "'Playfair Display', serif" }}
             >
               PatrimoTrust
             </span>
@@ -259,8 +258,7 @@ export default function LoginPage() {
                     <Shield className="w-5 h-5 text-amber-500" />
                   </div>
                   <h1
-                    className="text-xl font-semibold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-xl font-semibold text-slate-900"
                   >
                     Connexion
                   </h1>
@@ -346,8 +344,7 @@ export default function LoginPage() {
                     <Shield className="w-5 h-5 text-amber-500" />
                   </div>
                   <h1
-                    className="text-xl font-semibold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-xl font-semibold text-slate-900"
                   >
                     Connexion par code
                   </h1>
@@ -424,8 +421,7 @@ export default function LoginPage() {
                     <Shield className="w-7 h-7 text-amber-500" />
                   </div>
                   <h2
-                    className="text-lg font-semibold text-slate-900 mb-2"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-lg font-semibold text-slate-900 mb-2"
                   >
                     Sceau de sécurité envoyé
                   </h2>
@@ -477,8 +473,7 @@ export default function LoginPage() {
                   <Shield className="w-7 h-7 text-emerald-600" />
                 </motion.div>
                 <h2
-                  className="text-lg font-semibold text-slate-900 mb-2"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="font-serif text-lg font-semibold text-slate-900 mb-2"
                 >
                   Déverrouillage en cours…
                 </h2>

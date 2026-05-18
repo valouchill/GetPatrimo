@@ -192,7 +192,6 @@ export function PatrimoMeter({
                   initial={{ y: -6, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   className="text-xl font-serif font-bold"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
                 >
                   {displayScore}
                 </motion.span>
@@ -224,7 +223,6 @@ export function PatrimoMeter({
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className={`text-4xl font-serif ${gradeInfo.color}`}
-                style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 {gradeInfo.grade}
               </motion.div>

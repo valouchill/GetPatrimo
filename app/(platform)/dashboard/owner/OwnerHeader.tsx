@@ -237,7 +237,7 @@ function AddPropertyPortal({ open, onClose, onSuccess }: { open: boolean; onClos
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="font-semibold text-slate-800" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h3 className="font-serif font-semibold text-slate-800">
                 Nouvel actif
               </h3>
               <button
