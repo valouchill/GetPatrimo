@@ -6,12 +6,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Menu, Plus, RefreshCw, ScrollText, Search, ShieldCheck, TrendingUp, Users, Wallet, X } from 'lucide-react';
 import { LoadingSpinner } from '@/app/components/shared';
+import { isEnabled } from '@/lib/features';
 import { useOwner } from './OwnerContext';
 import {
   Avatar, ScorePill, Tag, GuaranteeBadge, Btn, StatCard, Bar, StagePill,
   toBien, toDossier, NAV, STAGE_FR,
   type LocalBien, type LocalDossier, type NavId, type TagType,
 } from './components/ui';
+
+const isNavVisible = (n: (typeof NAV)[number]): boolean => {
+  if (n.hidden) return false;
+  if (n.feature && !isEnabled(n.feature)) return false;
+  return true;
+};
 import { CandidatCard } from './components/CandidatCard';
 import { TunnelSelection } from './components/TunnelSelection';
 import { NouvelActifForm } from './components/NouvelActifForm';
@@ -111,7 +118,14 @@ export default function OwnerDashboardClient() {
     return result;
   })();
 
-  const go = (p: NavId) => { setPage(p); setExpandedId(null); setSidebarOpen(false); };
+  const go = (p: NavId) => {
+    // V1 — si la cible est cachée par feature flag, on redirige vers dashboard
+    const target = NAV.find((n) => n.id === p);
+    const blocked = target?.feature && !isEnabled(target.feature);
+    setPage(blocked ? 'dashboard' : p);
+    setExpandedId(null);
+    setSidebarOpen(false);
+  };
   const goToContract = (propertyId: string, applicationId?: string) => {
     const returnUrl = encodeURIComponent("/dashboard/owner");
     const url = applicationId
@@ -203,10 +217,10 @@ export default function OwnerDashboardClient() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {[...new Set(NAV.filter((n) => !n.hidden).map((n) => n.group))].map((grp) => (
+          {[...new Set(NAV.filter(isNavVisible).map((n) => n.group))].map((grp) => (
             <div key={grp} className="mb-5">
               <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
-              {NAV.filter((n) => n.group === grp && !n.hidden).map(({ id, label, Icon, badge }) => {
+              {NAV.filter((n) => n.group === grp && isNavVisible(n)).map(({ id, label, Icon, badge }) => {
                 const active = page === id;
                 if (id === 'profil') {
                   return (
@@ -615,7 +629,7 @@ export default function OwnerDashboardClient() {
         )}
 
         {/* ─ BAUX ─ */}
-        {page === 'baux' && (
+        {page === 'baux' && isEnabled('LEASES') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
@@ -638,7 +652,7 @@ export default function OwnerDashboardClient() {
         )}
 
         {/* ─ GESTION LOCATIVE ─ */}
-        {page === 'gestion' && (
+        {page === 'gestion' && isEnabled('MANAGEMENT') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
@@ -739,10 +753,10 @@ export default function OwnerDashboardClient() {
         )}
 
         {/* ─ LOYERS & QUITTANCES ─ */}
-        {page === 'loyers' && <LoyersPanel />}
+        {page === 'loyers' && isEnabled('RECEIPTS') && <LoyersPanel />}
 
         {/* ─ ÉTATS DES LIEUX ─ */}
-        {page === 'edl' && (
+        {page === 'edl' && isEnabled('EDL') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">États des lieux</h1>

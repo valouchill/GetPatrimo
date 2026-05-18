@@ -1,9 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ShieldCheck, AlertTriangle, Check, FileText } from 'lucide-react';
 import {
   ScorePill,
+  GradeBadge,
   Tag,
   GuaranteeBadge,
   Btn,
@@ -11,6 +12,8 @@ import {
   Avatar,
 } from './ui';
 import type { TagType, LocalDossier, LocalBien } from './ui';
+import { AUDIT_LABELS, AUDIT_COLORS, PRODUCT, formatResilience } from '@/lib/product-lexicon';
+import type { AuditStatus } from '@/lib/product-lexicon';
 
 // ── Stage labels (local copy) ─────────────────────────────────────────────────
 
@@ -64,12 +67,15 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
           <div className="flex items-center gap-3">
             <Avatar name={`${c.prenom} ${c.nom}`} id={c.id} />
             <div>
-              <div id="candidate-drawer-title" className="font-bold text-slate-950">{c.prenom} {c.nom}</div>
+              <div id="candidate-drawer-title" className="font-bold text-slate-950 flex items-center gap-2">
+                {c.prenom} {c.nom}
+                <GradeBadge score={c.score} size="sm" />
+              </div>
               <div className="mt-0.5 text-xs text-slate-500">{c.contrat} · {bien.label}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ScorePill score={c.score} />
+            <ScorePill score={c.score} showGrade />
             <button type="button" onClick={onClose} aria-label="Fermer le panneau candidat" className="rounded-xl p-2.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -103,17 +109,40 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
             </div>
           )}
 
-          {/* PatrimoScore breakdown */}
+          {/* Audit Forensic banner */}
+          {(() => {
+            const auditKey = (c.auditStatus || 'PENDING') as AuditStatus;
+            const colors = AUDIT_COLORS[auditKey] || AUDIT_COLORS.PENDING;
+            const Icon = auditKey === 'CLEAR' ? ShieldCheck : auditKey === 'ALERT' ? AlertTriangle : ShieldCheck;
+            return (
+              <div className={`mb-5 flex items-center gap-3 rounded-2xl px-4 py-3 ${colors.bg}`}>
+                <Icon className={`h-5 w-5 shrink-0 ${colors.text}`} />
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-semibold ${colors.text}`}>{AUDIT_LABELS[auditKey]}</div>
+                  <div className="text-xs text-slate-600">Analyse anti-fraude des documents</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Indice de Résilience breakdown */}
           <div className="mb-5">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">PatrimoScore™ — {c.score}/100</div>
+            <div className="mb-3 flex items-baseline justify-between">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{PRODUCT.INDICE}</div>
+              <div className="font-serif text-lg font-bold text-emerald-700">{formatResilience(c.score)}</div>
+            </div>
             <div className="space-y-3">
               {pillars.map((p) => {
                 const pct = p.max > 0 ? (p.score / p.max) * 100 : 0;
                 const barColor = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+                const certified = pct >= 70;
                 return (
                   <div key={p.id}>
                     <div className="mb-1 flex justify-between text-xs font-semibold">
-                      <span className="text-slate-500">{p.label}</span>
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        {certified && <Check className="h-3 w-3 text-emerald-500" />}
+                        {p.label}
+                      </span>
                       <span className="text-slate-700">{p.score}/{p.max}</span>
                     </div>
                     <Bar value={pct} color={barColor} />
@@ -191,6 +220,28 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
 
         {/* Footer actions */}
         <div className="border-t border-slate-100 px-4 py-4 pb-safe md:px-6">
+          {(c.passportDownloadUrl || c.passportPreviewUrl) && (
+            <div className="mb-3 flex gap-2">
+              {c.passportPreviewUrl && (
+                <button
+                  type="button"
+                  onClick={() => window.open(c.passportPreviewUrl || '', '_blank', 'noopener,noreferrer')}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <FileText className="h-3.5 w-3.5" /> Voir le {PRODUCT.PASSEPORT}
+                </button>
+              )}
+              {c.passportDownloadUrl && (
+                <button
+                  type="button"
+                  onClick={() => window.open(c.passportDownloadUrl || '', '_blank', 'noopener,noreferrer')}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                >
+                  <FileText className="h-3.5 w-3.5" /> PDF
+                </button>
+              )}
+            </div>
+          )}
           <div className="flex gap-3">
             <Btn variant="secondary" onClick={onClose} className="flex-1 min-h-[44px]">Fermer</Btn>
             <Btn variant="amber" onClick={() => { onSelect(c); onClose(); }} className="flex-[2] min-h-[44px]">

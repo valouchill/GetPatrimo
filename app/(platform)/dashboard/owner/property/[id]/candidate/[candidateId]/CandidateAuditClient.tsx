@@ -29,6 +29,9 @@ import {
   StatusBadge,
   TimelineBlock,
 } from '@/app/components/ui/premium';
+import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
+import type { AuditStatus } from '@/lib/product-lexicon';
+import { isEnabled } from '@/lib/features';
 
 /* ------------------------------------------------------------------ */
 /*  Types (aligned with PropertyDetailClient / API response)           */
@@ -383,9 +386,10 @@ export default function CandidateAuditClient({
             </h1>
 
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Score de confiance : <span className="font-semibold text-slate-900">{Math.round(Number(candidate.patrimometer?.score || 0))}/100</span>
-              {candidate.patrimometer?.grade && (
-                <span className="ml-2 font-semibold text-slate-900">· Grade {candidate.patrimometer.grade}</span>
+              {PRODUCT.INDICE} : <span className="font-semibold text-slate-900">{formatResilience(Number(candidate.patrimometer?.score || 0))}</span>
+              <span className="ml-2 font-semibold text-emerald-700">· {GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}</span>
+              {candidate.ownerInsights?.aiAudit?.status && (
+                <span className="ml-2 text-slate-500">· {AUDIT_LABELS[(candidate.ownerInsights.aiAudit.status as AuditStatus)] || PRODUCT.AUDIT}</span>
               )}
             </p>
           </div>
@@ -399,10 +403,20 @@ export default function CandidateAuditClient({
                 className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 <ExternalLink className="h-4 w-4" />
-                Voir le passeport
+                Voir le Passeport Locatif
               </button>
             ) : null}
-            {!isSealed && isOwnerSelected && (
+            {candidate.passport?.downloadUrl && (
+              <button
+                type="button"
+                onClick={() => window.open(candidate.passport?.downloadUrl || '', '_blank', 'noopener,noreferrer')}
+                className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Télécharger le PDF
+              </button>
+            )}
+            {isEnabled('LEASES') && !isSealed && isOwnerSelected && (
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/owner/property/${propertyId}?tab=selected&applicationId=${candidate.id}`)}
@@ -423,7 +437,7 @@ export default function CandidateAuditClient({
                 {selectionBusy ? 'Sélection...' : 'Choisir ce dossier'}
               </button>
             )}
-            {isSealed && (
+            {isEnabled('OWNER_PAYWALL') && isSealed && (
               <button
                 type="button"
                 onClick={() => setCheckoutOpen(true)}
@@ -442,9 +456,9 @@ export default function CandidateAuditClient({
       {/* ══════════════════════════════════════════════════════════ */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Score de confiance"
-          value={`${Math.round(Number(candidate.patrimometer?.score || 0))}%`}
-          caption={candidate.patrimometer?.grade ? `Grade ${candidate.patrimometer.grade}` : 'Lecture du dossier'}
+          label={PRODUCT.INDICE}
+          value={formatResilience(Number(candidate.patrimometer?.score || 0))}
+          caption={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
         />
         <MetricTile
           label="Solvabilité"

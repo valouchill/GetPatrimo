@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Lock } from 'lucide-react';
-import { ScorePill, Tag, GuaranteeBadge, Btn, Avatar, Bar } from './ui';
+import { Lock, ShieldCheck } from 'lucide-react';
+import { ScorePill, GradeBadge, Tag, GuaranteeBadge, Btn, Avatar, Bar } from './ui';
 import type { LocalDossier, LocalBien, TagType } from './ui';
+import { AUDIT_SHORT, formatResilience, PRODUCT } from '@/lib/product-lexicon';
 
 // ── Candidat card ─────────────────────────────────────────────────────────────
 
@@ -49,12 +50,18 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-slate-900">{c.prenom} {c.nom}</span>
+            <GradeBadge score={c.score} size="sm" />
             <ScorePill score={c.score} />
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">{c.contrat}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{c.contrat} · {PRODUCT.INDICE} {formatResilience(c.score)}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag>
             <GuaranteeBadge mode={c.guaranteeMode} short />
+            {c.auditStatus === 'CLEAR' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                <ShieldCheck className="h-3 w-3" /> {PRODUCT.AUDIT} ✓
+              </span>
+            )}
             {c.contractReady && <Tag type="green">✓ Prêt à signer</Tag>}
             {c.isTop3 && c.guaranteeMode !== 'VISALE' && c.guaranteeMode !== 'PHYSICAL' ? (
               <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Shield, CreditCard, FileText, Receipt, ClipboardCheck } from 'lucide-react';
+import { isEnabled } from '@/lib/features';
 
 interface CheckoutModalProps {
   open: boolean;
@@ -29,6 +30,9 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // V1 — paywall désactivé : le modal n'est jamais rendu
+  if (!isEnabled('OWNER_PAYWALL')) return null;
 
   const handleCheckout = async () => {
     setLoading(true);

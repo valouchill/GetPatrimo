@@ -22,6 +22,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import HeroFastTrack from '@/app/components/HeroFastTrack';
+import { isEnabled } from '@/lib/features';
 
 /* ─── Compteur animé ─────────────────────────────────────── */
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
@@ -55,19 +56,19 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
 const FAQ_ITEMS = [
   {
     q: 'PatrimoTrust remplace-t-il une agence immobilière\u00a0?',
-    a: "Non. PatrimoTrust s'occupe de ce que les agences font mal ou facturent cher\u00a0: la vérification des dossiers, la rédaction du bail et la sécurisation du paiement. Vous gardez le contrôle de la sélection et de la relation locataire. Pas de commission, pas de mandat, pas de dépendance.",
+    a: "Non. PatrimoTrust automatise la partie la plus pénible — et la plus risquée — du métier d'agent\u00a0: l'audit des dossiers et la détection de fraude. Vous gardez le contrôle de la sélection et de la relation locataire. Pas de commission, pas de mandat, pas de dépendance.",
   },
   {
-    q: 'Dois-je payer avant de voir les dossiers\u00a0?',
-    a: "Non. Vous créez votre espace gratuitement, recevez vos candidats et visualisez leur Grade et leur Indice de Résilience avant de payer quoi que ce soit. Le paiement de 89\u00a0€ est demandé uniquement quand vous choisissez de débloquer le dossier complet pour finaliser la location.",
+    q: 'Combien co\u00fbte PatrimoTrust\u00a0?',
+    a: "Pendant la phase de lancement, PatrimoTrust est entièrement gratuit. Vous accédez à l'Audit Forensic complet, à l'Indice de Résilience et au Passeport Locatif PDF sans frais. Aucun engagement, aucun abonnement.",
   },
   {
     q: 'Comment PatrimoTrust vérifie-t-il les fiches de paie\u00a0?',
     a: "Nous utilisons Didit™, une technologie d'analyse de métadonnées et de biométrie faciale qui détecte les documents falsifiés, altérés ou générés par IA. Le candidat soumet ses documents depuis son téléphone\u00a0; notre IA les analyse en moins de 5\u00a0minutes et émet un verdict de certification.",
   },
   {
-    q: 'Le bail généré est-il vraiment conforme à la loi\u00a0?',
-    a: "Oui. Chaque bail est généré à partir du modèle CERFA officiel mis à jour, conforme aux dispositions de la loi ALUR et aux décrets de 2026. OpenSign assure la signature électronique à valeur légale (eIDAS).",
+    q: "Qu'est-ce que le Passeport Locatif\u00a0?",
+    a: "C'est le document PDF certifié et partageable du locataire. Il rassemble son Indice de Résilience, son Grade et la synthèse de son Audit Forensic. Vous le téléchargez en un clic depuis l'espace candidat — pratique pour confirmer un choix ou archiver le dossier.",
   },
   {
     q: 'Que se passe-t-il si je ne trouve pas de locataire\u00a0?',
@@ -79,7 +80,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Puis-je utiliser PatrimoTrust en parallèle d'une agence\u00a0?",
-    a: "Oui. PatrimoTrust est un outil complémentaire de tout dispositif existant. Vous pouvez l'utiliser uniquement pour certifier les dossiers et générer le bail, même si vous gérez la mise en relation par ailleurs.",
+    a: "Oui. PatrimoTrust est un outil complémentaire de tout dispositif existant. Vous pouvez l'utiliser uniquement pour certifier les dossiers de vos candidats, même si vous gérez la mise en relation par ailleurs.",
   },
 ];
 
@@ -128,7 +129,7 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.16 }}
             className="text-slate-500 text-lg md:text-xl max-w-2xl mx-auto mb-2"
           >
-            Fini les dossiers falsifiés et le tri chronophage. PatrimoTrust audite vos candidats par IA, certifie leurs revenus et génère votre bail automatiquement.
+            Fini les dossiers falsifiés et le tri chronophage. PatrimoTrust audite vos candidats par IA, certifie leurs revenus et vous remet un Indice de Résilience pour décider en 30\u00a0secondes.
           </motion.p>
 
           <HeroFastTrack id="hero-fast-track" />
@@ -318,7 +319,7 @@ export default function Home() {
               { step: 1, icon: MapPin, title: "Saisissez l'adresse", desc: "Nous géolocalisons votre bien et créons votre coffre-fort sécurisé en quelques secondes." },
               { step: 2, icon: Euro, title: 'Loyer & surface', desc: "Ces données alimentent le ratio loyer/revenus appliqué par l'IA à chaque candidat." },
               { step: 3, icon: Shield, title: 'Recevez vos candidats', desc: 'Partagez votre Sésame PatrimoTrust. Les dossiers arrivent déjà vérifiés biométriquement.' },
-              { step: 4, icon: FileCheck, title: 'Validez et signez', desc: 'Le bail conforme 2026 est généré automatiquement. Signature électronique incluse.' },
+              { step: 4, icon: FileCheck, title: 'Sélectionnez en 30 secondes', desc: 'Indice de Résilience, Grade S et Audit Forensic\u00a0: décidez en toute confiance, sans piège.' },
             ].map(({ step, icon: Icon, title, desc }, i) => (
               <motion.div
                 key={step}
@@ -370,7 +371,7 @@ export default function Home() {
             {[
               { icon: Eye, title: 'Audit anti-fraude IA', desc: "Nous analysons les métadonnées de chaque fiche de paie et vérifions l'identité des candidats par biométrie. Zéro fraude tolérée." },
               { icon: Shield, title: 'Le bouclier LeBonCoin', desc: 'Ne donnez plus vos coordonnées. Fournissez votre "Sésame PatrimoTrust" aux candidats pour qu\'ils déposent leur dossier dans votre coffre-fort.' },
-              { icon: FileCheck, title: 'Le bail instantané', desc: "Dès qu'un dossier Grade S vous séduit, validez-le d'un clic. Le bail conforme aux lois de 2026 est généré et prêt à être signé." },
+              { icon: FileCheck, title: 'Le Passeport Locatif', desc: "Chaque candidat repart avec un PDF certifié, partageable, contenant son Indice de Résilience et son Audit Forensic. Téléchargez-le d'un clic." },
             ].map(({ icon: Icon, title, desc }, i) => (
               <motion.article
                 key={title}
@@ -462,8 +463,8 @@ export default function Home() {
                 color: 'bg-emerald-500',
                 name: 'Marie-Dominique L.',
                 location: 'Propriétaire · Paris 11e',
-                quote: "J'avais eu un locataire indélicat il y a deux ans. Avec PatrimoTrust, j'ai reçu 12 dossiers en 4 jours. J'ai choisi le Grade S en 20 minutes. Le bail était signé le lendemain.",
-                badge: 'Bail signé en 24h',
+                quote: "J'avais eu un locataire indélicat il y a deux ans. Avec PatrimoTrust, j'ai reçu 12 dossiers en 4 jours. J'ai choisi le Grade S en 20 minutes — sans la moindre hésitation.",
+                badge: 'Locataire choisi en 24h',
                 badgeClass: 'bg-emerald-50 text-emerald-700',
               },
               {
@@ -471,7 +472,7 @@ export default function Home() {
                 color: 'bg-orange-500',
                 name: 'Thomas B.',
                 location: 'Investisseur · Lyon, 3 biens',
-                quote: "Je gère 3 appartements seul, sans agence. PatrimoTrust a remplacé mon notaire pour les baux et mon comptable pour le suivi. La certif biométrique m'a évité une fraude évidente.",
+                quote: "Je gère 3 appartements seul, sans agence. La certif biométrique de PatrimoTrust m'a évité une fraude évidente sur la dernière sélection. L'IA voit ce que je ne voyais pas.",
                 badge: '3 biens gérés',
                 badgeClass: 'bg-slate-100 text-slate-700',
               },
@@ -522,7 +523,9 @@ export default function Home() {
 
       {/* ══════════════════════════════════════════
           9. PRICING  (id="pricing")
+          V1 — affiché uniquement si OWNER_PAYWALL activé
       ══════════════════════════════════════════ */}
+      {isEnabled('OWNER_PAYWALL') && (
       <section id="pricing" className="bg-slate-50 py-20 md:py-28 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
@@ -629,6 +632,42 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
+
+      {/* V1 — Section "Gratuit pendant la phase de lancement" (en remplacement du pricing) */}
+      {!isEnabled('OWNER_PAYWALL') && (
+        <section id="pricing" className="bg-slate-50 py-20 md:py-28 px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <p className="text-orange-500 text-sm font-semibold tracking-wider uppercase mb-3">Phase de lancement</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Entièrement gratuit pendant le lancement.
+            </h2>
+            <p className="text-slate-500 text-lg mb-10">
+              Audit Forensic illimité, Indice de Résilience, Passeport Locatif PDF. Aucun abonnement, aucun frais caché.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+              {[
+                { icon: Shield, label: 'Audit Forensic illimité' },
+                { icon: Sparkles, label: 'Indice de Résilience certifié' },
+                { icon: FileCheck, label: 'Passeport Locatif PDF' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="bg-white border border-slate-200 rounded-2xl px-5 py-6 flex flex-col items-center gap-3">
+                  <Icon className="w-6 h-6 text-emerald-500" />
+                  <p className="font-semibold text-slate-900 text-sm">{label}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={scrollToHero}
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/25 transition-all"
+            >
+              Créer mon espace gratuit
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════
           10. FAQ / OBJECTIONS

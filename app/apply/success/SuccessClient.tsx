@@ -252,7 +252,7 @@ export default function SuccessClient({
                   className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-50"
                 >
                   <Eye className="h-4 w-4" />
-                  Voir la page web
+                  Voir mon Passeport Locatif
                 </button>
                 <button
                   type="button"
@@ -275,9 +275,9 @@ export default function SuccessClient({
             </div>
 
             <div className="min-w-0 rounded-[1.9rem] border border-white/10 bg-white/10 p-6 backdrop-blur-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">Synthèse du passeport</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-300">Synthèse du Passeport Locatif</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <MetricTile label="Score" value={passport.score} tone="dark" valueClassName="text-3xl font-black" />
+                <MetricTile label="Indice de Résilience" value={`${passport.score}%`} tone="dark" valueClassName="text-3xl font-black" />
                 <MetricTile label="Garantie" value={passport.guarantee.label} caption={passport.guarantee.status} tone="dark" valueClassName="text-sm sm:text-base" />
                 <MetricTile label="Revenus" value={passport.solvency.exactMonthlyIncomeLabel || 'En attente'} tone="dark" valueClassName="text-sm sm:text-base" />
                 <MetricTile label="Validité" value={passport.metrics.validUntil || 'À confirmer'} tone="dark" valueClassName="text-sm sm:text-base" />

@@ -2,6 +2,7 @@
 
 import { Fragment } from 'react';
 import { CheckCircle2, ClipboardCheck, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList, Wallet, UserCog } from 'lucide-react';
+import { getGrade, GRADE_SHORT, GRADE_COLORS } from '@/lib/product-lexicon';
 import type { Candidature as RealCandidature, PropertyWithCandidatures } from '../OwnerContext';
 
 // ── Stage labels ──────────────────────────────────────────────────────────────
@@ -43,15 +44,32 @@ export function Avatar({ name, id = 0, size = 'md' }: { name: string; id?: strin
 
 // ── Score pill ────────────────────────────────────────────────────────────────
 
-export function ScorePill({ score }: { score: number }) {
-  const cls = score >= 70 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-    : score >= 45 ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
-    : 'bg-red-50 text-red-700 ring-1 ring-red-200';
-  const dot = score >= 70 ? 'bg-emerald-500' : score >= 45 ? 'bg-amber-500' : 'bg-red-500';
+export function ScorePill({ score, showGrade = false }: { score: number; showGrade?: boolean }) {
+  const grade = getGrade(score);
+  const { bg, text, ring } = GRADE_COLORS[grade];
+  const dot = grade === 'S' || grade === 'A' ? 'bg-emerald-500'
+    : grade === 'B' ? 'bg-amber-500'
+    : grade === 'C' ? 'bg-orange-500'
+    : 'bg-red-500';
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ${bg} ${text} ${ring}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-      {score}/100
+      {showGrade ? `${GRADE_SHORT[grade]} · ${score}%` : `${score}/100`}
+    </span>
+  );
+}
+
+// ── Grade Badge (pour affichages "premium") ─────────────────────────────────
+
+export function GradeBadge({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' | 'lg' }) {
+  const grade = getGrade(score);
+  const { bg, text, ring } = GRADE_COLORS[grade];
+  const cls = size === 'lg' ? 'px-3.5 py-1.5 text-sm'
+    : size === 'sm' ? 'px-2 py-0.5 text-[10px]'
+    : 'px-2.5 py-1 text-xs';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full font-bold uppercase tracking-wide ring-1 ${bg} ${text} ${ring} ${cls}`}>
+      {GRADE_SHORT[grade]}
     </span>
   );
 }
@@ -198,6 +216,9 @@ export type LocalDossier = {
   highlights?: string[]; blockers?: string[];
   pillars?: Array<{ id: string; label: string; score: number; max: number; status: string; summary: string }>;
   decisionHeadline?: string; strengths?: string[]; watchouts?: string[];
+  passportPreviewUrl?: string | null;
+  passportDownloadUrl?: string | null;
+  passportShareUrl?: string | null;
 };
 
 export function toBien(e: PropertyWithCandidatures): LocalBien {
@@ -266,6 +287,9 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     decisionHeadline: ins?.decisionSummary?.headline,
     strengths: ins?.decisionSummary?.strengths,
     watchouts: ins?.decisionSummary?.watchouts,
+    passportPreviewUrl: c.passport?.previewUrl ?? null,
+    passportDownloadUrl: c.passport?.downloadUrl ?? null,
+    passportShareUrl: c.passport?.shareUrl ?? null,
   };
 }
 
@@ -285,14 +309,15 @@ export function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
 export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil';
-export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean; href?: string }[] = [
+import type { FeatureKey } from '@/lib/features';
+export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean; href?: string; feature?: FeatureKey }[] = [
   { id: 'dashboard',    label: "Vue d'ensemble",     Icon: LayoutDashboard,  group: 'Mon patrimoine' },
   { id: 'biens',        label: 'Mes biens',          Icon: Building2,        group: 'Mon patrimoine' },
   { id: 'candidatures', label: 'Candidatures',       Icon: Users,            group: 'Location', badge: true },
-  { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,    group: 'Location' },
-  { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location' },
-  { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances' },
+  { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
+  { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location',    feature: 'EDL' },
+  { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances',    feature: 'RECEIPTS' },
   { id: 'profil',       label: 'Mon profil',         Icon: UserCog,          group: 'Compte' },
   { id: 'depot',        label: 'Nouvel actif',       Icon: Plus,             group: '_hidden', hidden: true },
-  { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,       group: '_hidden', hidden: true },
+  { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,       group: '_hidden', hidden: true, feature: 'MANAGEMENT' },
 ];

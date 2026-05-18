@@ -3,20 +3,33 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Building2, Users, Wallet, MoreHorizontal, FileSignature, ClipboardCheck, UserCog, X } from 'lucide-react';
+import { isEnabled, type FeatureKey } from '@/lib/features';
 import type { NavId } from './ui';
 
-const PRIMARY_TABS: { id: NavId; label: string; Icon: React.ElementType }[] = [
+type Tab = { id: NavId; label: string; Icon: React.ElementType; feature?: FeatureKey };
+
+const ALL_PRIMARY: Tab[] = [
   { id: 'dashboard',    label: 'Accueil',        Icon: LayoutDashboard },
   { id: 'biens',        label: 'Biens',          Icon: Building2 },
   { id: 'candidatures', label: 'Candidatures',   Icon: Users },
-  { id: 'loyers',       label: 'Loyers',         Icon: Wallet },
+  { id: 'loyers',       label: 'Loyers',         Icon: Wallet,         feature: 'RECEIPTS' },
+  { id: 'profil',       label: 'Mon profil',     Icon: UserCog },
 ];
 
-const MORE_TABS: { id: NavId; label: string; Icon: React.ElementType }[] = [
-  { id: 'baux', label: 'Baux & Signatures', Icon: FileSignature },
-  { id: 'edl',  label: 'États des lieux',   Icon: ClipboardCheck },
-  { id: 'profil', label: 'Mon profil',      Icon: UserCog },
+const ALL_MORE: Tab[] = [
+  { id: 'baux',   label: 'Baux & Signatures', Icon: FileSignature,    feature: 'LEASES' },
+  { id: 'edl',    label: 'États des lieux',   Icon: ClipboardCheck,   feature: 'EDL' },
+  { id: 'profil', label: 'Mon profil',        Icon: UserCog },
 ];
+
+const isTabVisible = (t: Tab) => !t.feature || isEnabled(t.feature);
+
+// V1 : si certains primary tabs sont cachés, on complète avec d'autres tabs visibles (profil, biens…) pour garder 4 onglets max.
+const PRIMARY_TABS: Tab[] = ALL_PRIMARY.filter(isTabVisible).slice(0, 4);
+
+// MORE_TABS ne garde que les tabs visibles ET qui ne sont pas déjà dans PRIMARY.
+const primaryIds = new Set(PRIMARY_TABS.map((t) => t.id));
+const MORE_TABS: Tab[] = ALL_MORE.filter((t) => isTabVisible(t) && !primaryIds.has(t.id));
 
 interface MobileBottomNavProps {
   page: NavId;
@@ -26,12 +39,13 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const isMoreActive = MORE_TABS.some((t) => t.id === page);
+  const hasMore = MORE_TABS.length > 0;
 
   return (
     <>
       {/* Bottom sheet "Plus" */}
       <AnimatePresence>
-        {moreOpen && (
+        {moreOpen && hasMore && (
           <>
             <motion.div
               key="more-backdrop"
@@ -93,16 +107,18 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-            isMoreActive ? 'text-orange-500' : 'text-slate-400'
-          }`}
-        >
-          <MoreHorizontal className="h-5 w-5" />
-          <span className="text-[10px] font-medium leading-tight">Plus</span>
-        </button>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
+              isMoreActive ? 'text-orange-500' : 'text-slate-400'
+            }`}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+            <span className="text-[10px] font-medium leading-tight">Plus</span>
+          </button>
+        )}
       </nav>
     </>
   );
