@@ -219,6 +219,26 @@ export type LocalDossier = {
   passportPreviewUrl?: string | null;
   passportDownloadUrl?: string | null;
   passportShareUrl?: string | null;
+  // Phase J — Wow factor signals (exposés du payload existant)
+  remainingIncome?: number | null;       // valeur exacte (€ /mois)
+  effortRate?: number | null;            // taux d'effort (0-1)
+  monthlyIncome?: number | null;         // revenu mensuel net (€)
+  riskBand?: { label: string; score: number; tone: string };
+  integrityScore?: { score: number; category: string; label: string };
+  identityVerified?: boolean;            // Didit VERIFIED
+  readyToLease?: boolean;
+  riskLabel?: string;
+  qualityStatusLabel?: string;
+  qualityStatusTone?: string;
+  certifiedDocuments?: number;
+  reviewDocuments?: number;
+  rejectedDocuments?: number;
+  missingCriticalBlocks?: string[];
+  contractWarnings?: string[];
+  guaranteeStatus?: string;
+  guaranteeSummary?: string;
+  rank?: number;
+  totalCandidates?: number;
 };
 
 export function toBien(e: PropertyWithCandidatures): LocalBien {
@@ -290,6 +310,26 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     passportPreviewUrl: c.passport?.previewUrl ?? null,
     passportDownloadUrl: c.passport?.downloadUrl ?? null,
     passportShareUrl: c.passport?.shareUrl ?? null,
+    // Phase J — Wow factor signals (exposés du payload existant)
+    remainingIncome: ins?.financial?.remainingIncome ?? null,
+    effortRate: ins?.financial?.effortRate ?? null,
+    monthlyIncome: ins?.financial?.monthlyIncome ?? null,
+    riskBand: ins?.financial?.riskBand,
+    integrityScore: c.integrityScore,
+    identityVerified: ins?.decisionSummary?.identityVerified ?? (c.didit?.status === 'VERIFIED'),
+    readyToLease: ins?.decisionSummary?.readyToLease ?? ins?.contractReadiness?.ready,
+    riskLabel: ins?.decisionSummary?.riskLabel,
+    qualityStatusLabel: ins?.quality?.status?.label,
+    qualityStatusTone: ins?.quality?.status?.tone,
+    certifiedDocuments: ins?.quality?.certifiedDocuments,
+    reviewDocuments: ins?.quality?.reviewDocuments,
+    rejectedDocuments: ins?.quality?.rejectedDocuments,
+    missingCriticalBlocks: ins?.quality?.missingCriticalBlocks,
+    contractWarnings: ins?.contractReadiness?.warnings,
+    guaranteeStatus: ins?.guarantee?.status,
+    guaranteeSummary: ins?.guarantee?.summary,
+    rank: c.rank,
+    totalCandidates: undefined, // ajouté par le parent qui connaît le bien
   };
 }
 

@@ -29,6 +29,18 @@ import {
   StatusBadge,
   TimelineBlock,
 } from '@/app/components/ui/premium';
+import {
+  DecisionVerdict,
+  verdictFromScore,
+  ResilienceGauge,
+  ForensicAuditCard,
+  AIReasoningCard,
+  PillarsRadar,
+  RemainingIncomeChart,
+  CandidateBenchmark,
+  AuditTimeline,
+  CertificationRow,
+} from '@/app/components/audit';
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
 import { isEnabled } from '@/lib/features';
@@ -75,6 +87,7 @@ type CandidateRecord = {
     shareUrl?: string | null;
     downloadUrl?: string | null;
   } | null;
+  integrityScore?: { score: number; category?: string; label?: string };
   ownerInsights?: {
     aiAudit?: {
       status?: 'CLEAR' | 'REVIEW' | 'ALERT';
@@ -84,9 +97,20 @@ type CandidateRecord = {
       blockers?: string[];
       reviewReasons?: string[];
     };
+    decisionSummary?: {
+      headline?: string;
+      strengths?: string[];
+      watchouts?: string[];
+      identityVerified?: boolean;
+      readyToLease?: boolean;
+      riskLabel?: string;
+    };
     financial?: {
+      monthlyIncome?: number;
       monthlyIncomeLabel?: string | null;
+      remainingIncome?: number | null;
       remainingIncomeLabel?: string | null;
+      effortRate?: number | null;
       effortRateLabel?: string | null;
       riskBand?: { label?: string; tone?: string };
       summary?: string;
@@ -452,8 +476,157 @@ export default function CandidateAuditClient({
       </PremiumSurface>
 
       {/* ══════════════════════════════════════════════════════════ */}
-      {/*  SCORECARD (4 metrics)                                    */}
+      {/*  WOW AUDIT — Verdict, Gauge, Certifications                */}
       {/* ══════════════════════════════════════════════════════════ */}
+      {!isSealed && (
+        <>
+          <div className="grid gap-4 lg:grid-cols-[1fr_minmax(0,280px)]">
+            <DecisionVerdict
+              verdict={verdictFromScore(
+                Number(candidate.patrimometer?.score || 0),
+                candidate.ownerInsights?.aiAudit?.status,
+              )}
+              headline={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
+              summary={
+                candidate.ownerInsights?.aiAudit?.summary ||
+                'Analyse complète disponible ci-dessous.'
+              }
+              primaryActionLabel="Choisir ce candidat"
+              onPrimary={!isOwnerSelected && canChangeSelection ? handleChoose : undefined}
+              primaryLoading={selectionBusy}
+              secondaryActionLabel={candidate.passport?.previewUrl ? 'Voir le Passeport Locatif' : undefined}
+              onSecondary={
+                candidate.passport?.previewUrl
+                  ? () =>
+                      window.open(
+                        candidate.passport?.previewUrl || '',
+                        '_blank',
+                        'noopener,noreferrer',
+                      )
+                  : undefined
+              }
+            />
+            <div className="flex flex-col items-center justify-center rounded-card border border-slate-200 bg-white p-5 shadow-card">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                {PRODUCT.INDICE}
+              </p>
+              <ResilienceGauge score={Number(candidate.patrimometer?.score || 0)} size="sm" />
+            </div>
+          </div>
+
+          <CertificationRow
+            badges={[
+              {
+                type: 'identity',
+                label: 'Identité Didit',
+                verified: candidate.didit?.status === 'VERIFIED',
+              },
+              {
+                type: 'income',
+                label: 'Revenus certifiés',
+                verified: (candidate.ownerInsights?.quality?.certifiedDocuments || 0) > 0,
+              },
+              {
+                type: 'forensic',
+                label: PRODUCT.AUDIT,
+                verified: candidate.ownerInsights?.aiAudit?.status === 'CLEAR',
+              },
+              {
+                type: 'solvent',
+                label: 'Solvable',
+                verified: Number(candidate.ownerInsights?.financial?.remainingIncome || 0) >= 800,
+              },
+              {
+                type: 'guarantee',
+                label: candidate.ownerInsights?.guarantee?.label || 'Sans garant',
+                verified: ['VISALE', 'PHYSICAL'].includes(
+                  String(candidate.ownerInsights?.guarantee?.mode || ''),
+                ),
+              },
+            ]}
+          />
+
+          {/* Forensic + Remaining income */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ForensicAuditCard
+              auditStatus={(candidate.ownerInsights?.aiAudit?.status || 'PENDING') as AuditStatus}
+              integrityScore={candidate.integrityScore?.score}
+              integrityLabel={candidate.integrityScore?.label}
+              highlights={candidate.ownerInsights?.aiAudit?.highlights}
+              alerts={[
+                ...(candidate.ownerInsights?.aiAudit?.blockers || []),
+                ...(candidate.ownerInsights?.aiAudit?.reviewReasons || []),
+              ]}
+              documentsCount={candidate.documentsCount}
+              certifiedCount={candidate.ownerInsights?.quality?.certifiedDocuments}
+              reviewCount={candidate.ownerInsights?.quality?.reviewDocuments}
+              rejectedCount={candidate.ownerInsights?.quality?.rejectedDocuments}
+            />
+            {Number(candidate.ownerInsights?.financial?.monthlyIncome || 0) > 0 &&
+              Number(property?.rentAmount || 0) > 0 && (
+                <RemainingIncomeChart
+                  monthlyIncome={Number(candidate.ownerInsights?.financial?.monthlyIncome || 0)}
+                  monthlyRent={Number(property?.rentAmount || 0)}
+                />
+              )}
+          </div>
+
+          {/* AI Reasoning + Pillars Radar */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AIReasoningCard
+              strengths={candidate.ownerInsights?.decisionSummary?.strengths}
+              watchouts={candidate.ownerInsights?.decisionSummary?.watchouts}
+              insight={candidate.ownerInsights?.decisionSummary?.headline}
+            />
+            {pillars.length >= 3 && (
+              <div className="rounded-card border border-slate-200 bg-white p-5 shadow-card">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Radar des piliers
+                </p>
+                <PillarsRadar
+                  pillars={pillars.map((p) => ({
+                    label: p.label,
+                    score: p.score,
+                    max: p.max,
+                  }))}
+                />
+              </div>
+            )}
+          </div>
+
+          <CandidateBenchmark
+            score={Number(candidate.patrimometer?.score || 0)}
+            rank={candidate.rank}
+          />
+
+          {/* Audit Timeline si données disponibles */}
+          {timelineItems.length > 0 && (
+            <AuditTimeline
+              steps={timelineItems.map((t) => ({
+                id: t.id,
+                label: t.title,
+                description: t.description,
+                status:
+                  t.status === 'success'
+                    ? 'completed'
+                    : t.status === 'warning'
+                    ? 'in_progress'
+                    : t.status === 'danger'
+                    ? 'blocked'
+                    : 'pending',
+                timestamp: t.meta,
+              }))}
+            />
+          )}
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/*  SCORECARD (4 metrics) — legacy, conservée pour scellés    */}
+      {/* ══════════════════════════════════════════════════════════ */}
+      {isSealed && (
+        <>
+      {/* SCORECARD */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
           label={PRODUCT.INDICE}
@@ -610,19 +783,23 @@ export default function CandidateAuditClient({
       </div>
 
       {/* ══════════════════════════════════════════════════════════ */}
-      {/*  AUDIT TIMELINE                                           */}
+      {/*  AUDIT TIMELINE (legacy — visible si sealed)              */}
       {/* ══════════════════════════════════════════════════════════ */}
-      <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">Chronologie d&apos;audit</div>
-        <TimelineBlock
-          className="mt-5"
-          items={timelineItems.length > 0 ? timelineItems : [{
-            id: 'pending',
-            title: 'Timeline en attente',
-            description: 'La chronologie sera enrichie au fil des contrôles.',
-          }]}
-        />
-      </PremiumSurface>
+      {isSealed && (
+        <PremiumSurface padding="md" className="rounded-3xl border-slate-200 bg-white">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">Chronologie d&apos;audit</div>
+          <TimelineBlock
+            className="mt-5"
+            items={timelineItems.length > 0 ? timelineItems : [{
+              id: 'pending',
+              title: 'Timeline en attente',
+              description: 'La chronologie sera enrichie au fil des contrôles.',
+            }]}
+          />
+        </PremiumSurface>
+      )}
+        </>
+      )}
 
       {/* ── Mobile sticky actions ── */}
       <div className="sticky bottom-4 z-20 lg:hidden">
