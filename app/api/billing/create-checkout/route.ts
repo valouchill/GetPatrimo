@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { isEnabled } from '@/lib/features';
 
 const Property = require('@/models/Property');
 
@@ -15,6 +16,11 @@ function getStripe() {
 
 export async function POST(request: NextRequest) {
   try {
+    // V1 — paywall propriétaire désactivé : on renvoie un succès sans créer de session Stripe
+    if (!isEnabled('OWNER_PAYWALL')) {
+      return NextResponse.json({ skipped: true, allAccess: true });
+    }
+
     const session: any = await getServerSession(authOptions as any);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });

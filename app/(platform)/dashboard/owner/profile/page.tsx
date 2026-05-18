@@ -9,6 +9,7 @@ import {
   AlertTriangle, Loader2, Download, Trash2, ChevronRight,
 } from 'lucide-react';
 import { useOwner } from '../OwnerContext';
+import { isEnabled } from '@/lib/features';
 
 const FREE_AUDIT_LIMIT = 3;
 
@@ -604,7 +605,37 @@ export default function ProfilePage() {
             className="lg:sticky lg:top-28"
           >
             <div className="bg-slate-950 text-white rounded-2xl p-7 shadow-2xl shadow-slate-950/30">
-              {hasActiveSubscription ? (
+              {!isEnabled('OWNER_PAYWALL') ? (
+                <>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                      <Crown className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm flex items-center gap-2">
+                        Accès Souverain
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                      </h3>
+                      <p className="text-xs text-slate-400">Lancement V1 · Toutes les fonctionnalités débloquées</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3 mb-2">
+                    {[
+                      { icon: Check, label: 'Audit Forensic illimité' },
+                      { icon: Shield, label: 'Indice de Résilience pour chaque candidat' },
+                      { icon: Zap, label: 'Passeport Locatif PDF partageable' },
+                    ].map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex items-center gap-2.5">
+                        <Icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="text-sm text-slate-300">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500 text-center mt-5">
+                    Phase de lancement — accès complet gratuit
+                  </p>
+                </>
+              ) : hasActiveSubscription ? (
                 <>
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
