@@ -201,7 +201,7 @@ export default function FastOnboardingForm({
     >
       <div className={compact ? 'p-4' : 'p-8 md:p-10'}>
         {title && (
-          <h3 className="text-lg font-semibold text-slate-800 mb-6 text-center">{title}</h3>
+          <h3 className="font-serif text-lg font-semibold text-slate-800 mb-6 text-center">{title}</h3>
         )}
         <div className="relative min-h-[200px]">
           <AnimatePresence mode="wait">
@@ -360,8 +360,7 @@ export default function FastOnboardingForm({
                 </div>
                 <div className="text-center space-y-1.5">
                   <h3
-                    className="text-base font-bold text-slate-900"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="font-serif text-base font-bold text-slate-900"
                   >
                     Sceau de Vérification
                   </h3>
@@ -396,7 +395,6 @@ export default function FastOnboardingForm({
                 </motion.div>
                 <p
                   className="text-base font-bold text-slate-900"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
                 >
                   Ouverture du coffre-fort...
                 </p>

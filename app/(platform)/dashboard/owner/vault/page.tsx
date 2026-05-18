@@ -70,7 +70,7 @@ function VaultFolderCard({ folder }: { folder: FolderConfig }) {
           <Icon className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900">{folder.title}</h3>
+          <h3 className="font-serif text-sm font-semibold text-slate-900">{folder.title}</h3>
           <p className="text-xs text-slate-400">
             {doneCount}/{folder.docs.length} document{folder.docs.length > 1 ? 's' : ''}
           </p>
@@ -143,8 +143,7 @@ export default function VaultPage() {
     <div>
       <div className="mb-8">
         <h1
-          className="text-3xl font-bold text-slate-900 mb-2"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+          className="font-serif text-3xl font-bold text-slate-900 mb-2"
         >
           Coffre-Fort Documentaire
         </h1>

@@ -138,7 +138,7 @@ export default function SolvencyAnalysis({
           </div>
         </div>
         <div className="text-right">
-          <span className="text-3xl font-serif font-bold text-navy" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <span className="text-3xl font-serif font-bold text-navy">
             {result.ratio.toFixed(1)}x
           </span>
           <p className="text-[9px] text-slate-400 uppercase tracking-wider">le loyer</p>
