@@ -575,8 +575,8 @@ export function PassportPDFDocument({
             </View>
             <Text style={styles.scoreHint}>
               {data.shareEnabled
-                ? 'Ce passeport peut etre consulte en ligne et telecharge en PDF.'
-                : 'Ce passeport reste accessible au candidat, mais n est pas encore ouvert au partage externe.'}
+                ? 'Ce Passeport Locatif peut etre consulte en ligne et telecharge en PDF.'
+                : 'Ce Passeport Locatif reste accessible au candidat, mais n est pas encore ouvert au partage externe.'}
             </Text>
           </View>
         </View>
@@ -607,7 +607,7 @@ export function PassportPDFDocument({
         <View style={styles.split}>
           <View style={styles.half}>
             <View style={[styles.banner, { backgroundColor: statusColors.backgroundColor, borderColor: statusColors.borderColor }]}>
-              <Text style={[styles.bannerTitle, { color: statusColors.textColor }]}>Etat du passeport</Text>
+              <Text style={[styles.bannerTitle, { color: statusColors.textColor }]}>Etat du Passeport Locatif</Text>
               <Text style={[styles.bannerText, { color: colors.ink }]}>{data.summary}</Text>
             </View>
           </View>
@@ -791,7 +791,7 @@ export function PassportPDFDocument({
                 <Image src={qrCodeDataUrl} style={styles.qrImage} />
               </View>
               <Text style={styles.qrText}>
-                Scannez pour ouvrir la version web du passeport et verifier l etat le plus recent du dossier.
+                Scannez pour ouvrir la version web du Passeport Locatif et verifier l etat le plus recent du dossier.
               </Text>
               <Text style={styles.qrUrl}>{data.shareEnabled ? data.shareUrl : data.previewUrl}</Text>
             </View>

@@ -296,8 +296,8 @@ function buildStageSummary({ stage, property, candidates, primaryCandidate } = {
   if (stage.id === 'selection') {
     const topScore = primaryCandidate?.patrimometer?.score || 0;
     return count > 1
-      ? `${count} dossiers sont maintenant comparables. Le meilleur score de confiance est de ${topScore}/100. Comparez les finalistes puis choisissez votre locataire.`
-      : `Le dossier de ${tenantLabel} est exploitable (score de confiance : ${topScore}/100). Vérifiez-le puis passez à la sélection.`;
+      ? `${count} dossiers sont maintenant comparables. Le meilleur Indice de Résilience est de ${topScore}/100. Comparez les finalistes puis choisissez votre locataire.`
+      : `Le dossier de ${tenantLabel} est exploitable (Indice de Résilience : ${topScore}/100). Vérifiez-le puis passez à la sélection.`;
   }
 
   if (stage.id === 'analysis') {

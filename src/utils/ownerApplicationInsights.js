@@ -299,7 +299,7 @@ function buildAuditSummary({ application, passport, financial, quality, contract
   const remainLabel = financial.remainingIncomeLabel || '';
   const rentLabel = financial.rentAmountLabel || '';
   const grade = application?.patrimometer?.grade || '';
-  const patrimoScore = round(application?.patrimometer?.score || 0);
+  const indiceResilience = round(application?.patrimometer?.score || 0);
   const guaranteeMode = String(passport?.guarantee?.mode || 'NONE').toUpperCase();
   const qualityLabel = quality.status?.label || '';
   const certDocs = quality.certifiedDocuments || 0;
@@ -328,7 +328,7 @@ function buildAuditSummary({ application, passport, financial, quality, contract
       summaryParts.push('Un garant physique est rattaché au dossier, ce qui renforce la sécurité contractuelle.');
     }
     if (grade) {
-      summaryParts.push(`Score de confiance : ${patrimoScore}/100 (grade ${grade}). Ce profil se positionne ${patrimoScore >= 75 ? 'dans le haut de la distribution' : patrimoScore >= 55 ? 'dans la moyenne des candidats' : 'en dessous de la médiane'}.`);
+      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (grade ${grade}). Ce profil se positionne ${indiceResilience >= 75 ? 'dans le haut de la distribution' : indiceResilience >= 55 ? 'dans la moyenne des candidats' : 'en dessous de la médiane'}.`);
     }
     summaryParts.push('Le dossier est prêt pour une décision propriétaire. Vous pouvez sélectionner ce candidat ou comparer avec les autres profils reçus.');
   } else if (status === 'REVIEW') {
@@ -343,7 +343,7 @@ function buildAuditSummary({ application, passport, financial, quality, contract
       summaryParts.push('L\'identité n\'a pas encore été vérifiée par Didit. Tant que cette étape n\'est pas franchie, le dossier reste classé en revue.');
     }
     if (grade) {
-      summaryParts.push(`Score de confiance : ${patrimoScore}/100 (grade ${grade}).`);
+      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (grade ${grade}).`);
     }
     summaryParts.push('Recommandation : demandez les pièces manquantes ou la vérification d\'identité avant de finaliser votre choix.');
   } else {
@@ -497,7 +497,7 @@ function buildTunnel({ isSealed, passport, aiAudit, contractReadiness }) {
   const steps = [
     {
       id: 'audit',
-      label: 'Audit IA',
+      label: 'Audit Forensic',
       status: aiAudit.status === 'CLEAR' ? 'complete' : aiAudit.status === 'REVIEW' ? 'review' : 'blocked',
       description: aiAudit.status === 'CLEAR'
         ? 'L\'audit automatisé est terminé. Aucune anomalie majeure détectée. Le dossier peut avancer vers la phase de sélection.'

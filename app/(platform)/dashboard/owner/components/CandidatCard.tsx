@@ -38,7 +38,7 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
     ['Stabilité', c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 100 : c.contrat === 'CDD' ? 55 : 35,
       c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'bg-emerald-500' : 'bg-amber-500'],
     ['Qualité', c.qualityScore ?? 50, (c.qualityScore ?? 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'],
-    ['Audit IA', auditPct, auditColor],
+    ['Audit Forensic', auditPct, auditColor],
   ];
   return (
     <div className={`relative overflow-hidden rounded-2xl border-2 bg-white p-5 transition-all ${
@@ -120,7 +120,7 @@ export function CompareView({ ids, candidats, bien, onSelect }: {
 }) {
   const cs = candidats.filter((c) => ids.includes(c.id));
   const rows: { label: string; fn: (c: LocalDossier) => React.ReactNode }[] = [
-    { label: 'Score IA',      fn: (c) => <ScorePill score={c.score} /> },
+    { label: 'Indice de Résilience',      fn: (c) => <ScorePill score={c.score} /> },
     { label: 'Grade',         fn: (c) => <Tag type="indigo">Grade {c.grade}</Tag> },
     { label: 'Revenus',       fn: (c) => <b className="text-emerald-700">{c.revenus.toLocaleString()} €</b> },
     { label: 'Ratio',         fn: (c) => { const r = c.revenus / (bien.loyer || 1); return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}×</span>; } },
@@ -129,7 +129,7 @@ export function CompareView({ ids, candidats, bien, onSelect }: {
     { label: 'Effort locatif',fn: (c) => <span className="text-xs">{c.effortRateLabel || '—'}</span> },
     { label: 'Garantie',      fn: (c) => <GuaranteeBadge mode={c.guaranteeMode} /> },
     { label: 'Qualité',       fn: (c) => <span className={(c.qualityScore ?? 0) >= 70 ? 'font-semibold text-emerald-600' : 'text-amber-600'}>{c.qualityScore ?? '—'}/100</span> },
-    { label: 'Audit IA',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus === 'CLEAR' ? 'Validé' : c.auditStatus === 'ALERT' ? 'Alerte' : 'En cours'}</Tag> },
+    { label: 'Audit Forensic',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus === 'CLEAR' ? 'Validé' : c.auditStatus === 'ALERT' ? 'Alerte' : 'En cours'}</Tag> },
     { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? '✓ Oui' : '—'}</span> },
   ];
   return (
