@@ -12,18 +12,16 @@ services:
       # MongoDB depuis Docker : utilise le nom du service ou l'IP de l'hôte
       - MONGO_URI=${MONGO_URI}
     volumes:
+      # V1: persistance pour uploads et fichiers générés (passeports, etc.)
       - ./uploads:/opt/doc2loc/uploads
-      - ./public:/opt/doc2loc/public
-      - ./src:/opt/doc2loc/src
-      - ./app:/opt/doc2loc/app
-      - ./models:/opt/doc2loc/models
-      - ./lib:/opt/doc2loc/lib
-      - ./.next:/opt/doc2loc/.next
-      - ./server.js:/opt/doc2loc/server.js
-      - ./package.json:/opt/doc2loc/package.json
+      # .env en lecture seule
       - ./.env:/opt/doc2loc/.env:ro
+      # NB: on n'écrase plus le code (.next/app/lib/...) — l'image contient le build de production
     networks:
-      - doc2loc-net
+      doc2loc-net:
+        aliases:
+          - doc2loc
+          - getpatrimo
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
