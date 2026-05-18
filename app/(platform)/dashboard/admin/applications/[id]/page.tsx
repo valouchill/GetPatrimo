@@ -141,7 +141,7 @@ export default function AdminApplicationDetailPage() {
 
       {tab === 'scoring' && (
         <section className="bg-white border border-gray-200 rounded-lg p-4">
-          <h2 className="font-semibold mb-3">Indice de Résilience™</h2>
+          <h2 className="font-semibold mb-3">Indice de Résilience</h2>
           <div className="flex items-center gap-4 mb-4">
             <div className="text-4xl font-bold">{score.score ?? '—'}</div>
             <div>

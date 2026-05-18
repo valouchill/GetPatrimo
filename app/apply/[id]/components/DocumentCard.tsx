@@ -287,7 +287,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                 </svg>
               </div>
               <p id="delete-confirm-title" className="text-sm font-bold text-navy mb-1">Supprimer ce document ?</p>
-              <p className="text-xs text-slate-500 mb-4">Votre Indice de Résilience™ diminuera de <span className="font-bold text-red-500">-10 pts</span></p>
+              <p className="text-xs text-slate-500 mb-4">Votre Indice de Résilience diminuera de <span className="font-bold text-red-500">-10 pts</span></p>
               <div className="flex items-center gap-2 justify-center">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}

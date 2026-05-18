@@ -16,7 +16,7 @@ const CalculateScoreSchema = z.object({
 });
 
 /**
- * API Route pour calculer le Indice de Résilience™ avec règles de péremption
+ * API Route pour calculer le Indice de Résilience avec règles de péremption
  *
  * GET /api/scoring/calculate?propertyId=xxx&candidatureId=xxx
  */

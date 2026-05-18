@@ -36,7 +36,7 @@ export function ContextualSidebar({
           messages: [
             {
               type: 'info' as const,
-              text: 'La certification d\'identité est le socle de votre Indice de Résilience™. Préparez votre document officiel.',
+              text: 'La certification d\'identité est le socle de votre Indice de Résilience. Préparez votre document officiel.',
               delay: 0
             },
             {
