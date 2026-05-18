@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * @deprecated Remplacé par CandidateAuditModal (modale centrée premium).
+ * Conservé temporairement pour rollback rapide. À supprimer après validation prod.
+ * Voir : /opt/doc2loc/app/(platform)/dashboard/owner/components/CandidateAuditModal.tsx
+ */
+
 import { motion } from 'framer-motion';
 import { X, FileText, ExternalLink } from 'lucide-react';
 import {
