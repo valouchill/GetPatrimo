@@ -4,7 +4,7 @@ import React from 'react';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { ScorePill, GradeBadge, Tag, GuaranteeBadge, Btn, Avatar, Bar } from './ui';
 import type { LocalDossier, LocalBien, TagType } from './ui';
-import { AUDIT_SHORT, formatResilience, PRODUCT } from '@/lib/product-lexicon';
+import { AUDIT_SHORT, formatResilience, formatPrice, PRODUCT } from '@/lib/product-lexicon';
 
 // ── Candidat card ─────────────────────────────────────────────────────────────
 
@@ -73,7 +73,7 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="font-bold text-emerald-700">{c.revenus.toLocaleString()} €</div>
+          <div className="font-bold text-emerald-700">{formatPrice(c.revenus)}</div>
           <div className="text-[10px] text-slate-400">nets/mois</div>
           <div className={`mt-1 text-xs font-bold ${ratioColor}`}>{ratio.toFixed(1)}× loyer</div>
         </div>
@@ -122,7 +122,7 @@ export function CompareView({ ids, candidats, bien, onSelect }: {
   const rows: { label: string; fn: (c: LocalDossier) => React.ReactNode }[] = [
     { label: 'Indice de Résilience',      fn: (c) => <ScorePill score={c.score} /> },
     { label: 'Grade',         fn: (c) => <Tag type="indigo">Grade {c.grade}</Tag> },
-    { label: 'Revenus',       fn: (c) => <b className="text-emerald-700">{c.revenus.toLocaleString()} €</b> },
+    { label: 'Revenus',       fn: (c) => <b className="text-emerald-700">{formatPrice(c.revenus)}</b> },
     { label: 'Ratio',         fn: (c) => { const r = c.revenus / (bien.loyer || 1); return <span className={`font-bold ${r >= 3 ? 'text-emerald-600' : r >= 2 ? 'text-amber-600' : 'text-red-600'}`}>{r.toFixed(1)}×</span>; } },
     { label: 'Contrat',       fn: (c) => <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag> },
     { label: 'Reste à vivre', fn: (c) => <span className="text-xs">{c.remainingIncomeLabel || '—'}</span> },

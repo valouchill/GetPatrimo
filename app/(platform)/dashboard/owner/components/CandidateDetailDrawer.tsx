@@ -12,7 +12,7 @@ import {
   Avatar,
 } from './ui';
 import type { TagType, LocalDossier, LocalBien } from './ui';
-import { AUDIT_LABELS, AUDIT_COLORS, PRODUCT, formatResilience } from '@/lib/product-lexicon';
+import { AUDIT_LABELS, AUDIT_COLORS, PRODUCT, formatResilience, formatPrice, GRADE_LABELS, getGrade } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
 
 // ── Stage labels (local copy) ─────────────────────────────────────────────────
@@ -157,7 +157,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
             <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Synthèse financière</div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                ['Revenus', `${c.revenus.toLocaleString()} €`, 'text-emerald-700'],
+                ['Revenus nets', formatPrice(c.revenus), 'text-emerald-700'],
                 ['Ratio loyer', `${ratio.toFixed(1)}×`, ratioColor],
                 ['Reste à vivre', c.remainingIncomeLabel || '—', 'text-slate-700'],
                 ['Effort locatif', c.effortRateLabel || '—', 'text-slate-700'],
@@ -174,7 +174,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
           <div className="mb-5 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
             {([
               ['Contrat', c.contrat],
-              ['Grade', `Grade ${c.grade}`],
+              ['Grade', GRADE_LABELS[getGrade(c.score)]],
               ['Qualité dossier', c.qualityScore ? `${c.qualityScore}/100` : '—'],
               ['Audit Forensic', c.auditStatus === 'CLEAR' ? '✓ Validé' : c.auditStatus === 'ALERT' ? '⚠ Alerte' : 'En revue'],
               ['Prêt à signer', c.contractReady ? '✓ Oui' : 'Non'],
