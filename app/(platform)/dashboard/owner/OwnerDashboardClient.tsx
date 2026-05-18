@@ -22,7 +22,7 @@ const isNavVisible = (n: (typeof NAV)[number]): boolean => {
 import { CandidatCard } from './components/CandidatCard';
 import { TunnelSelection } from './components/TunnelSelection';
 import { NouvelActifForm } from './components/NouvelActifForm';
-import { CandidateDetailDrawer } from './components/CandidateDetailDrawer';
+import { CandidateAuditModal } from './components/CandidateAuditModal';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
 import { PropertyCardMenu } from './components/PropertyCardMenu';
 import { PropertyEditModal } from './components/PropertyEditModal';
@@ -782,23 +782,26 @@ export default function OwnerDashboardClient() {
         )}
       </AnimatePresence>
 
-      {/* ── CANDIDATE DETAIL DRAWER ───────────────────────────────── */}
-      <AnimatePresence>
-        {candidateDrawerId && (() => {
-          const c = allDossiers.find((d) => d.id === candidateDrawerId);
-          const b = c ? bienById.get(c.bien_id) : null;
-          if (!c || !b) return null;
-          return (
-            <CandidateDetailDrawer
-              key="candidate-drawer"
-              c={c}
-              bien={b}
-              onClose={() => setCandidateDrawerId(null)}
-              onSelect={(cd) => { setSelBienId(cd.bien_id); setCandidateDrawerId(null); }}
-            />
-          );
-        })()}
-      </AnimatePresence>
+      {/* ── CANDIDATE AUDIT MODAL (centered) ──────────────────────── */}
+      {candidateDrawerId && (() => {
+        const c = allDossiers.find((d) => d.id === candidateDrawerId);
+        const b = c ? bienById.get(c.bien_id) : null;
+        if (!c || !b) return null;
+        return (
+          <CandidateAuditModal
+            key="candidate-audit-modal"
+            open={true}
+            candidate={c}
+            bien={b}
+            onClose={() => setCandidateDrawerId(null)}
+            onSelect={(cd) => { setSelBienId(cd.bien_id); setCandidateDrawerId(null); }}
+            onOpenAudit={(cd) => {
+              setCandidateDrawerId(null);
+              router.push(`/dashboard/owner/property/${cd.bien_id}/candidate/${cd.id}`);
+            }}
+          />
+        );
+      })()}
 
       {/* ── ADD MANAGEMENT MODAL ──────────────────────────────────── */}
       <AddManagementModal
