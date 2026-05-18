@@ -1,19 +1,26 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, ShieldCheck, AlertTriangle, Check, FileText } from 'lucide-react';
+import { X, FileText, ExternalLink } from 'lucide-react';
 import {
   ScorePill,
   GradeBadge,
   Tag,
   GuaranteeBadge,
   Btn,
-  Bar,
   Avatar,
 } from './ui';
 import type { TagType, LocalDossier, LocalBien } from './ui';
-import { AUDIT_LABELS, AUDIT_COLORS, PRODUCT, formatResilience, formatPrice, GRADE_LABELS, getGrade } from '@/lib/product-lexicon';
+import { AUDIT_LABELS, PRODUCT, formatResilience, formatPrice, GRADE_LABELS, getGrade } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
+import {
+  DecisionVerdict,
+  verdictFromScore,
+  ForensicAuditCard,
+  AIReasoningCard,
+  RemainingIncomeChart,
+  CertificationRow,
+} from '@/app/components/audit';
 
 // ── Stage labels (local copy) ─────────────────────────────────────────────────
 
@@ -83,100 +90,80 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe md:px-6 md:py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe md:px-6 md:py-5 space-y-4">
 
-          {/* Guarantee section */}
-          <div className={`mb-5 rounded-2xl border px-4 py-3 ${
-            c.guaranteeMode === 'NONE' || !c.guaranteeMode
-              ? 'border-amber-200 bg-amber-50'
-              : 'border-emerald-200 bg-emerald-50'
-          }`}>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-700">Garantie</span>
-              <GuaranteeBadge mode={c.guaranteeMode} />
-            </div>
-            {(!c.guaranteeMode || c.guaranteeMode === 'NONE') && (
-              <p className="mt-2 text-xs text-amber-700">
-                Ce candidat n'a pas de garant. Il est recommandé de privilégier les profils couverts par Visale ou un garant physique.
+          {/* Verdict d'audit en hero */}
+          <DecisionVerdict
+            verdict={verdictFromScore(c.score, c.auditStatus)}
+            headline={GRADE_LABELS[getGrade(c.score)]}
+            summary={c.decisionHeadline || c.auditSummary}
+          />
+
+          {/* Certifications */}
+          <CertificationRow
+            badges={[
+              { type: 'identity', label: 'Identité Didit', verified: c.identityVerified === true },
+              { type: 'income', label: 'Revenus certifiés', verified: (c.certifiedDocuments || 0) > 0 },
+              { type: 'forensic', label: PRODUCT.AUDIT, verified: c.auditStatus === 'CLEAR' },
+              { type: 'solvent', label: 'Solvable', verified: (c.remainingIncome || 0) >= 800 },
+              {
+                type: 'guarantee',
+                label: c.garantie || 'Sans garant',
+                verified: ['VISALE', 'PHYSICAL'].includes(String(c.guaranteeMode || '')),
+              },
+            ]}
+          />
+
+          {/* Guarantee section (alerte si NONE) */}
+          {(!c.guaranteeMode || c.guaranteeMode === 'NONE') && (
+            <div className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-amber-900">Garantie absente</span>
+                <GuaranteeBadge mode={c.guaranteeMode} />
+              </div>
+              <p className="mt-1.5 text-xs text-amber-700">
+                Privilégiez les profils couverts par Visale ou un garant physique.
               </p>
-            )}
-          </div>
-
-          {/* Decision headline */}
-          {c.decisionHeadline && (
-            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">{c.decisionHeadline}</p>
             </div>
           )}
 
-          {/* Audit Forensic banner */}
-          {(() => {
-            const auditKey = (c.auditStatus || 'PENDING') as AuditStatus;
-            const colors = AUDIT_COLORS[auditKey] || AUDIT_COLORS.PENDING;
-            const Icon = auditKey === 'CLEAR' ? ShieldCheck : auditKey === 'ALERT' ? AlertTriangle : ShieldCheck;
-            return (
-              <div className={`mb-5 flex items-center gap-3 rounded-2xl px-4 py-3 ${colors.bg}`}>
-                <Icon className={`h-5 w-5 shrink-0 ${colors.text}`} />
-                <div className="min-w-0 flex-1">
-                  <div className={`text-sm font-semibold ${colors.text}`}>{AUDIT_LABELS[auditKey]}</div>
-                  <div className="text-xs text-slate-600">Analyse anti-fraude des documents</div>
-                </div>
-              </div>
-            );
-          })()}
+          {/* Reste-à-vivre (si données dispo) */}
+          {c.monthlyIncome && c.monthlyIncome > 0 && bien.loyer > 0 && (
+            <RemainingIncomeChart
+              monthlyIncome={c.monthlyIncome}
+              monthlyRent={bien.loyer}
+            />
+          )}
 
-          {/* Indice de Résilience breakdown */}
-          <div className="mb-5">
-            <div className="mb-3 flex items-baseline justify-between">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">{PRODUCT.INDICE}</div>
-              <div className="font-serif text-lg font-bold text-emerald-700">{formatResilience(c.score)}</div>
-            </div>
-            <div className="space-y-3">
-              {pillars.map((p) => {
-                const pct = p.max > 0 ? (p.score / p.max) * 100 : 0;
-                const barColor = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
-                const certified = pct >= 70;
-                return (
-                  <div key={p.id}>
-                    <div className="mb-1 flex justify-between text-xs font-semibold">
-                      <span className="flex items-center gap-1.5 text-slate-500">
-                        {certified && <Check className="h-3 w-3 text-emerald-500" />}
-                        {p.label}
-                      </span>
-                      <span className="text-slate-700">{p.score}/{p.max}</span>
-                    </div>
-                    <Bar value={pct} color={barColor} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Forensic Audit */}
+          <ForensicAuditCard
+            auditStatus={(c.auditStatus || 'PENDING') as AuditStatus}
+            integrityScore={c.integrityScore?.score}
+            integrityLabel={c.integrityScore?.label}
+            highlights={c.strengths}
+            alerts={c.watchouts}
+            documentsCount={(c.certifiedDocuments || 0) + (c.reviewDocuments || 0) + (c.rejectedDocuments || 0)}
+            certifiedCount={c.certifiedDocuments}
+            reviewCount={c.reviewDocuments}
+            rejectedCount={c.rejectedDocuments}
+          />
 
-          {/* Financial summary */}
-          <div className="mb-5">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Synthèse financière</div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                ['Revenus nets', formatPrice(c.revenus), 'text-emerald-700'],
-                ['Ratio loyer', `${ratio.toFixed(1)}×`, ratioColor],
-                ['Reste à vivre', c.remainingIncomeLabel || '—', 'text-slate-700'],
-                ['Effort locatif', c.effortRateLabel || '—', 'text-slate-700'],
-              ].map(([label, val, color]) => (
-                <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className={`text-base font-bold ${color}`}>{val}</div>
-                  <div className="mt-0.5 text-xs text-slate-500">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* AI Reasoning : Strengths / Watchouts détaillés */}
+          {((c.strengths && c.strengths.length > 0) || (c.watchouts && c.watchouts.length > 0)) && (
+            <AIReasoningCard
+              strengths={c.strengths}
+              watchouts={c.watchouts}
+            />
+          )}
 
           {/* Key info rows */}
-          <div className="mb-5 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+          <div className="divide-y divide-slate-100 rounded-card border border-slate-200 bg-white shadow-card">
             {([
+              ['Revenus nets', formatPrice(c.revenus)],
+              ['Ratio loyer', `${ratio.toFixed(1)}× (${(c.effortRate ? (c.effortRate * 100).toFixed(0) : (1 / ratio * 100).toFixed(0))}%)`],
               ['Contrat', c.contrat],
               ['Grade', GRADE_LABELS[getGrade(c.score)]],
               ['Qualité dossier', c.qualityScore ? `${c.qualityScore}/100` : '—'],
-              ['Audit Forensic', c.auditStatus === 'CLEAR' ? '✓ Validé' : c.auditStatus === 'ALERT' ? '⚠ Alerte' : 'En revue'],
               ['Prêt à signer', c.contractReady ? '✓ Oui' : 'Non'],
             ] as [string, string][]).map(([k, v]) => (
               <div key={k} className="flex justify-between px-4 py-3 text-sm">
@@ -185,37 +172,6 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
               </div>
             ))}
           </div>
-
-          {/* Strengths & watchouts */}
-          {c.strengths && c.strengths.length > 0 && (
-            <div className="mb-4">
-              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">Points forts</div>
-              <ul className="space-y-1">
-                {c.strengths.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />{s}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {c.watchouts && c.watchouts.length > 0 && (
-            <div className="mb-4">
-              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">Points d'attention</div>
-              <ul className="space-y-1">
-                {c.watchouts.map((w, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />{w}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Audit summary */}
-          {c.auditSummary && (
-            <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs italic leading-5 text-slate-600">{c.auditSummary}</div>
-          )}
         </div>
 
         {/* Footer actions */}

@@ -21,6 +21,7 @@ import {
   PremiumSurface,
   StatusBadge,
 } from '@/app/components/ui/premium';
+import { SealCertificate, CertificationRow } from '@/app/components/audit';
 
 interface PassportPublicData {
   state: 'draft' | 'review' | 'ready' | 'sealed';
@@ -225,18 +226,53 @@ export default function PassportLandingClient({ slug }: { slug: string }) {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.45 }}
-              className="min-w-0"
+              className="flex min-w-0 flex-col items-center justify-center"
             >
-              <PremiumSurface className="h-full" padding="lg">
-                <PremiumSectionHeader eyebrow="Synthèse instantanée" title="Lecture rapide du dossier" />
-                <div className="mt-5 grid grid-cols-2 gap-4">
-                  <MetricTile label="Score" value={data.score} caption={data.hero.gradeLabel} tone="dark" valueClassName="text-4xl font-black" />
-                  <MetricTile label="Garantie" value={data.guarantee.label} caption={data.guarantee.status} />
-                  <MetricTile label="Revenus" value={data.solvency.monthlyIncomeLabel || 'Non communiqué'} caption="Version publique masquée" />
-                  <MetricTile label="Taux d'effort" value={data.solvency.effortRateLabel || 'À calculer'} caption="Selon le loyer cible communiqué" />
-                </div>
-              </PremiumSurface>
+              <SealCertificate
+                score={data.score}
+                sealedAt={data.metrics.certificationDate}
+                size={240}
+                spinning={data.state === 'ready' || data.state === 'sealed'}
+              />
+              <div className="mt-4 flex flex-col items-center gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-emerald-900/70">
+                  Passeport Locatif certifié
+                </p>
+                <CertificationRow
+                  badges={[
+                    {
+                      type: 'identity',
+                      label: 'Identité Didit',
+                      verified: data.hero.identityVerified,
+                    },
+                    { type: 'forensic', label: 'Audit Forensic', verified: data.score >= 60 },
+                    {
+                      type: 'guarantee',
+                      label: data.guarantee.label,
+                      verified: data.guarantee.requirement !== 'BLOCKING',
+                    },
+                  ]}
+                />
+              </div>
             </motion.div>
+          </div>
+
+          {/* Bandeau conformité */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-card border border-emerald-200 bg-emerald-50/70 px-5 py-3 text-center text-xs font-semibold text-emerald-900">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Conforme RGPD
+            </span>
+            <span className="hidden text-emerald-300 sm:inline">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              Audit Forensic certifié
+            </span>
+            <span className="hidden text-emerald-300 sm:inline">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              Signature eIDAS prête
+            </span>
           </div>
         </div>
       </div>
