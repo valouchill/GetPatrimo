@@ -34,3 +34,6 @@ export type { SealCertificateProps } from "./SealCertificate";
 
 export { CertificationBadge, CertificationRow } from "./CertificationBadge";
 export type { CertificationBadgeProps } from "./CertificationBadge";
+
+export { CriteriaGrid, deriveCriteriaFromDossier } from "./CriteriaGrid";
+export type { CriteriaGridProps, Criterion } from "./CriteriaGrid";
