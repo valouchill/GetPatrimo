@@ -38,6 +38,10 @@ import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { TopCandidateCard } from './components/TopCandidateCard';
+import { DashboardEmptyState } from './components/DashboardEmptyState';
+import { PendingPropertiesStrip } from './components/PendingPropertiesStrip';
+import { SectionHeader } from '@/app/components/ui';
 
 export default function OwnerDashboardClient() {
   const router = useRouter();
@@ -284,118 +288,117 @@ export default function OwnerDashboardClient() {
           <Menu className="h-5 w-5 text-slate-700" />
         </button>
 
-        {/* ─ DASHBOARD ─ */}
-        {page === 'dashboard' && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-8 flex items-start justify-between">
-              <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
-                  Bonjour{userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase()}${userEmail.split('@')[0].slice(1)}` : ''}
-                </h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 md:px-5 md:py-2.5 text-sm font-semibold text-white shadow-md transition-colors"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ajouter un bien</span></button>
-            </div>
+        {/* ─ DASHBOARD ─ V1.6 refonte orientée analyse candidat */}
+        {page === 'dashboard' && (() => {
+          // Top 3 candidats par score (non scellés)
+          const top3 = [...allDossiers]
+            .filter((d) => !d.isSealed)
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, 3);
 
-            {/* Bandeau financier */}
-            <FinancialBanner data={dashData.financial} onNavigate={(t) => go(t as NavId)} />
+          // Biens en attente (aucune candidature active)
+          const pendingBiens = biens.filter(
+            (b) => allDossiers.filter((d) => d.bien_id === b.id).length === 0,
+          );
 
-            {/* Alertes prioritaires */}
-            <AlertsPanel alerts={dashData.alerts} onNavigate={(t) => go(t as NavId)} />
+          // Score moyen du portefeuille
+          const scoresWithValue = allDossiers.map((d) => d.score || 0).filter((s) => s > 0);
+          const avgScore = scoresWithValue.length > 0
+            ? Math.round(scoresWithValue.reduce((sum, s) => sum + s, 0) / scoresWithValue.length)
+            : null;
 
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              <StatCard icon={<Building2 className="h-5 w-5 text-amber-500" />} value={biens.length} label="Mes biens" bg="bg-amber-50" />
-              <StatCard icon={<ClipboardList className="h-5 w-5 text-blue-500" />} value={allDossiers.length} label="Candidatures" bg="bg-blue-50" />
-              <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={dashData.kpis ? dashData.kpis.activeLeasesCount : '…'} label="Baux actifs" bg="bg-emerald-50" />
-              <StatCard icon={<Home className="h-5 w-5 text-teal-500" />} value={dashData.kpis ? `${dashData.kpis.occupiedProperties}/${biens.length}` : '…'} label="Occupés" bg="bg-teal-50" />
-              <StatCard icon={<Wallet className="h-5 w-5 text-violet-500" />} value={dashData.financial ? `${dashData.financial.totalExpected.toLocaleString('fr-FR')} €` : '…'} label="Loyers du mois" bg="bg-violet-50" />
-              <StatCard icon={<Clock className="h-5 w-5 text-amber-500" />} value={dashData.alerts.length > 0 ? dashData.alerts.length : pending} label="Actions urgentes" bg="bg-amber-50" />
-            </div>
-
-            <div className="grid gap-5 lg:grid-cols-2">
-              {/* Dernières candidatures */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="font-semibold text-slate-900">Dernières candidatures</div>
-                  <button type="button" onClick={() => go('candidatures')} className="text-xs font-semibold text-emerald-600 hover:underline">Voir tout →</button>
+          return (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
+                    Bonjour{userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase()}${userEmail.split('@')[0].slice(1)}` : ''}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {biens.length} bien{biens.length !== 1 ? 's' : ''} · {allDossiers.length} candidature{allDossiers.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
-                {allDossiers.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <p className="mb-2 text-sm text-slate-500">Aucune candidature reçue.</p>
-                    <p className="text-xs text-slate-500">Partagez le lien Sésame de vos biens pour commencer.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {[...allDossiers]
-                      .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
-                      .slice(0, 5)
-                      .map((d) => {
-                        const bien = bienById.get(d.bien_id);
-                        return (
-                          <button key={d.id} type="button" onClick={() => d.isSealed ? setPropertyModalId(d.bien_id) : setCandidateDrawerId(d.id)}
-                            className="-mx-1 flex w-full items-center gap-3 rounded-xl px-1 py-3 text-left transition-colors hover:bg-slate-50">
-                            <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-slate-900">{d.prenom} {d.nom}</div>
-                              <div className="truncate text-xs text-slate-500">{bien?.label || '—'} · {d.contrat}</div>
-                            </div>
-                            <ScorePill score={d.score} />
-                          </button>
-                        );
-                      })}
-                  </div>
-                )}
+                <button onClick={() => go('depot')} className="flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 md:px-5 md:py-2.5 text-sm font-semibold text-white shadow-md transition-colors">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Ajouter un bien</span>
+                </button>
               </div>
 
-              {/* Biens avec prochaine action */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="font-semibold text-slate-900">Prochaines actions</div>
-                  <button type="button" onClick={() => go('biens')} className="text-xs font-semibold text-emerald-600 hover:underline">Tous les actifs →</button>
-                </div>
-                {biens.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <p className="mb-3 text-sm text-slate-500">Aucun bien enregistré.</p>
-                    <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un actif</Btn>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {biens.slice(0, 5).map((b) => (
-                      <div key={b.id} className="py-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Building2 className="h-4 w-4 text-slate-600" />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-slate-900">{b.label}</div>
-                              <div className="text-xs text-slate-500">{b.loyer.toLocaleString()} €/mois</div>
-                            </div>
-                          </div>
-                          <StagePill stage={b.flowStage} stageLabel={b.flowStageLabel} />
-                        </div>
-                        {b.flowSummary && (
-                          <p className="mt-2 text-xs text-slate-500 line-clamp-2">{b.flowSummary}</p>
-                        )}
-                        {b.nextActionLabel && (
-                          <button type="button" onClick={() => setPropertyModalId(b.id)}
-                            className="mt-2 text-xs font-semibold text-emerald-600 hover:underline">
-                            → {b.nextActionLabel}
-                          </button>
-                        )}
-                      </div>
+              {/* Hero : empty state ou Top 3 candidats */}
+              {allDossiers.length === 0 ? (
+                <DashboardEmptyState
+                  biens={biens}
+                  onAddBien={() => go('depot')}
+                  onOpenBien={(id) => setPropertyModalId(id)}
+                />
+              ) : (
+                <section>
+                  <SectionHeader
+                    eyebrow="Analyse IA"
+                    title="Vos meilleurs candidats"
+                    description="Triés par Indice de Résilience, mis à jour à chaque nouvelle analyse."
+                    actions={
+                      allDossiers.length > 3 ? (
+                        <button
+                          type="button"
+                          onClick={() => go('candidatures')}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                        >
+                          Voir les {allDossiers.length} candidats →
+                        </button>
+                      ) : undefined
+                    }
+                    className="mb-4"
+                  />
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {top3.map((d, i) => (
+                      <TopCandidateCard
+                        key={d.id}
+                        rank={(i + 1) as 1 | 2 | 3}
+                        candidate={d}
+                        bien={bienById.get(d.bien_id)}
+                        onOpenAudit={(c) => setCandidateDrawerId(c.id)}
+                      />
                     ))}
                   </div>
-                )}
+                </section>
+              )}
+
+              {/* 3 KPI minimalistes */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <StatCard
+                  icon={<Building2 className="h-5 w-5 text-amber-600" />}
+                  value={biens.length}
+                  label="Mes biens"
+                  bg="bg-amber-50"
+                />
+                <StatCard
+                  icon={<ClipboardList className="h-5 w-5 text-emerald-600" />}
+                  value={allDossiers.length}
+                  label="Candidatures"
+                  bg="bg-emerald-50"
+                />
+                <StatCard
+                  icon={<TrendingUp className="h-5 w-5 text-emerald-700" />}
+                  value={avgScore !== null ? `${avgScore}/100` : '—'}
+                  label="Score moyen"
+                  bg="bg-emerald-50"
+                />
               </div>
 
-              {/* Timeline d'activité */}
-              <div className="lg:col-span-2">
-                <ActivityTimeline events={dashData.recentEvents} />
-              </div>
-            </div>
-          </motion.div>
-        )}
+              {/* Biens en attente — compact, masqué si empty state global */}
+              {allDossiers.length > 0 && pendingBiens.length > 0 && (
+                <PendingPropertiesStrip
+                  biens={pendingBiens}
+                  maxVisible={3}
+                  onOpenBien={(id) => setPropertyModalId(id)}
+                  onViewAllBiens={pendingBiens.length > 3 ? () => go('biens') : undefined}
+                />
+              )}
+            </motion.div>
+          );
+        })()}
 
         {/* ─ CANDIDATURES ─ */}
         {page === 'candidatures' && (
