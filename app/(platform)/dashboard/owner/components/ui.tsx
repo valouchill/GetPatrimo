@@ -296,13 +296,38 @@ export function toBien(e: PropertyWithCandidatures): LocalBien {
 
 export function toDossier(c: RealCandidature, bienId: string, loyer: number): LocalDossier {
   const ins = c.ownerInsights;
+  // V1.4.1 — fallback intelligent sur le revenu (extraction IA peut renvoyer 0 sur anciens dossiers)
+  const aiIncome = ins?.financial?.monthlyIncome && ins.financial.monthlyIncome > 0
+    ? ins.financial.monthlyIncome
+    : null;
+  const declaredIncome = c.financialSummary?.monthlyNetIncome && c.financialSummary.monthlyNetIncome > 0
+    ? c.financialSummary.monthlyNetIncome
+    : null;
+  const finalIncome = aiIncome ?? declaredIncome ?? null;
+
+  // V1.4.1 — recalcul UI de effortRate / remainingIncome si backend les a à null (causé par monthlyIncome=0 backend)
+  const backendEffort = ins?.financial?.effortRate;
+  const backendRemain = ins?.financial?.remainingIncome;
+  const computedEffort = finalIncome && finalIncome > 0 && loyer > 0
+    ? Number(((loyer / finalIncome) * 100).toFixed(1))
+    : null;
+  const computedRemain = finalIncome && finalIncome > 0 && loyer > 0
+    ? Math.max(0, finalIncome - loyer - Math.max(50, loyer * 0.1))
+    : null;
+  const finalEffort = (backendEffort !== null && backendEffort !== undefined && backendEffort > 0)
+    ? backendEffort
+    : computedEffort;
+  const finalRemain = (backendRemain !== null && backendRemain !== undefined && backendRemain > 0)
+    ? backendRemain
+    : computedRemain;
+
   return {
     id: c.id,
     prenom: c.profile.firstName,
     nom: c.profile.lastName,
     bien_id: bienId,
     loyer,
-    revenus: ins?.financial?.monthlyIncome || c.financialSummary?.monthlyNetIncome || 0,
+    revenus: finalIncome ?? 0,
     contrat: c.financialSummary?.contractType || 'N/A',
     score: c.patrimometer.score,
     grade: c.patrimometer.grade,
@@ -329,10 +354,10 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     passportPreviewUrl: c.passport?.previewUrl ?? null,
     passportDownloadUrl: c.passport?.downloadUrl ?? null,
     passportShareUrl: c.passport?.shareUrl ?? null,
-    // Phase J — Wow factor signals (exposés du payload existant)
-    remainingIncome: ins?.financial?.remainingIncome ?? null,
-    effortRate: ins?.financial?.effortRate ?? null,
-    monthlyIncome: ins?.financial?.monthlyIncome ?? null,
+    // Phase J — Wow factor signals (avec fallback V1.4.1)
+    remainingIncome: finalRemain,
+    effortRate: finalEffort != null ? finalEffort / 100 : null, // backend expose en %, on stocke en ratio 0-1
+    monthlyIncome: finalIncome,
     riskBand: ins?.financial?.riskBand,
     integrityScore: c.integrityScore,
     identityVerified: ins?.decisionSummary?.identityVerified ?? (c.didit?.status === 'VERIFIED'),
