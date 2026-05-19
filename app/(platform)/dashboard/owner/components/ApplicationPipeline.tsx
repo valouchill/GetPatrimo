@@ -43,7 +43,7 @@ const CONTACT_TEMPLATES = [
     id: 'selection',
     label: 'Sélection',
     subject: 'Votre candidature a été retenue !',
-    body: `Bonjour {prenom},\n\nNous avons le plaisir de vous informer que votre dossier a été retenu pour le bien situé au {adresse}.\n\nNous allons maintenant préparer le bail. Vous recevrez un lien de signature électronique prochainement.\n\nCordialement,`,
+    body: `Bonjour {prenom},\n\nNous avons le plaisir de vous informer que votre dossier a été retenu pour le bien situé au {adresse}.\n\nNous revenons rapidement vers vous pour organiser la suite.\n\nCordialement,`,
   },
   {
     id: 'rejection',

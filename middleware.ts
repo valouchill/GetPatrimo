@@ -20,6 +20,8 @@ const V1_BLOCKED_PAGE_ROUTES: { prefix: string | RegExp; feature: FeatureKey }[]
   { prefix: '/dashboard/owner/baux', feature: 'LEASES' },
   { prefix: '/dashboard/owner/edl', feature: 'EDL' },
   { prefix: /^\/dashboard\/owner\/property\/[^/]+\/rent-receipts/, feature: 'RECEIPTS' },
+  // Module contrat / bail (route legacy) — bloqué tant que LEASES est off
+  { prefix: /^\/properties\/[^/]+\/contract/, feature: 'LEASES' },
 ];
 
 // V1 — routes API bloquées (renvoient 404 si la feature est off).

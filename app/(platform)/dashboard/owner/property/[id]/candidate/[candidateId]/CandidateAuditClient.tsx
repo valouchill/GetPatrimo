@@ -875,7 +875,7 @@ export default function CandidateAuditClient({
                 {selectionBusy ? 'Sélection...' : 'Choisir ce dossier'}
               </button>
             )}
-            {!isSealed && isOwnerSelected && (
+            {isEnabled('LEASES') && !isSealed && isOwnerSelected && (
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/owner/property/${propertyId}?tab=selected&applicationId=${candidate.id}`)}

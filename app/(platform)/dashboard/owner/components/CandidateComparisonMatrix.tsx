@@ -46,7 +46,7 @@ const ROWS = [
   { id: 'effort', label: 'Taux d’effort' },
   { id: 'quality', label: 'Qualité documentaire' },
   { id: 'guarantee', label: 'Garantie' },
-  { id: 'ready', label: 'Prêt pour le bail' },
+  { id: 'ready', label: 'Dossier complet' },
 ] as const;
 
 function candidateName(candidate?: CandidateRecord | null) {
