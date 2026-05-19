@@ -40,3 +40,6 @@ export type { CriteriaGridProps, Criterion } from "./CriteriaGrid";
 
 export { PayslipsBreakdown } from "./PayslipsBreakdown";
 export type { PayslipsBreakdownProps, PayslipBreakdownItem } from "./PayslipsBreakdown";
+
+export { ReanalyzeButton } from "./ReanalyzeButton";
+export type { ReanalyzeButtonProps, ReanalyzeResult } from "./ReanalyzeButton";

@@ -17,6 +17,7 @@ import {
   CriteriaGrid,
   deriveCriteriaFromDossier,
   PayslipsBreakdown,
+  ReanalyzeButton,
 } from '@/app/components/audit';
 import {
   PRODUCT,
@@ -382,6 +383,18 @@ export function CandidateAuditModal({
                     Voir l'audit complet
                   </button>
                 )}
+                <ReanalyzeButton
+                  applicationId={c.id}
+                  documentsCount={(c.certifiedDocuments || 0) + (c.reviewDocuments || 0) + (c.rejectedDocuments || 0)}
+                  variant="outline"
+                  size="sm"
+                  onSuccess={() => {
+                    // Refresh la page pour récupérer le nouveau payload (LocalDossier)
+                    if (typeof window !== 'undefined') {
+                      window.location.reload();
+                    }
+                  }}
+                />
               </div>
               <button
                 type="button"
