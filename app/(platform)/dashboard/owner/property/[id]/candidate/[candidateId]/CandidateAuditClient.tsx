@@ -484,10 +484,14 @@ export default function CandidateAuditClient({
         <>
           <div className="grid gap-4 lg:grid-cols-[1fr_minmax(0,280px)]">
             <DecisionVerdict
-              verdict={verdictFromScore(
-                Number(candidate.patrimometer?.score || 0),
-                candidate.ownerInsights?.aiAudit?.status,
-              )}
+              verdict={
+                (candidate.ownerInsights?.decisionSummary as { verdict?: 'recommended' | 'review' | 'risky' } | undefined)?.verdict ??
+                verdictFromScore(
+                  Number(candidate.patrimometer?.score || 0),
+                  candidate.ownerInsights?.aiAudit?.status,
+                )
+              }
+              reasonCodes={(candidate.ownerInsights?.decisionSummary as { reasonCodes?: string[] } | undefined)?.reasonCodes}
               headline={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
               summary={
                 candidate.ownerInsights?.aiAudit?.summary ||

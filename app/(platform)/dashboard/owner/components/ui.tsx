@@ -239,6 +239,10 @@ export type LocalDossier = {
   guaranteeSummary?: string;
   rank?: number;
   totalCandidates?: number;
+  // Phase U — Verdict propriétaire centralisé serveur
+  verdict?: 'recommended' | 'review' | 'risky';
+  verdictLabel?: string;
+  reasonCodes?: string[];
 };
 
 export function toBien(e: PropertyWithCandidatures): LocalBien {
@@ -330,6 +334,10 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     guaranteeSummary: ins?.guarantee?.summary,
     rank: c.rank,
     totalCandidates: undefined, // ajouté par le parent qui connaît le bien
+    // Phase U — Verdict propriétaire centralisé (source: serveur)
+    verdict: ins?.decisionSummary?.verdict,
+    verdictLabel: ins?.decisionSummary?.verdictLabel,
+    reasonCodes: ins?.decisionSummary?.reasonCodes,
   };
 }
 
