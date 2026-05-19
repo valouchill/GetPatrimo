@@ -133,6 +133,18 @@ export default function Home() {
 
           <HeroFastTrack id="hero-fast-track" />
 
+          {/* Locataire — accès par code */}
+          <div className="mt-6 flex items-center justify-center">
+            <Link
+              href="/acces"
+              className="inline-flex items-center gap-2 rounded-pill border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition-all hover:border-emerald-300 hover:bg-emerald-100"
+            >
+              <Shield className="h-4 w-4" />
+              Vous êtes locataire et avez reçu un code ?
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-slate-500">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
