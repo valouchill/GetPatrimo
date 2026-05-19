@@ -43,6 +43,7 @@ import {
   CriteriaGrid,
   deriveCriteriaFromDossier,
   PayslipsBreakdown,
+  ReanalyzeButton,
 } from '@/app/components/audit';
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
@@ -474,6 +475,17 @@ export default function CandidateAuditClient({
                 Déverrouiller
               </button>
             )}
+            <ReanalyzeButton
+              applicationId={candidateId}
+              documentsCount={Number(candidate.documentsCount || 0)}
+              variant="outline"
+              size="sm"
+              onSuccess={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.reload();
+                }
+              }}
+            />
           </ActionBar>
         </div>
       </PremiumSurface>
