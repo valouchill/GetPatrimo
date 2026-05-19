@@ -135,6 +135,63 @@ function buildPassportId(id) {
   return `PT-${new Date().getFullYear()}-${String(id).slice(-8).toUpperCase()}`;
 }
 
+/**
+ * Append UTM (or arbitrary query) params to an absolute URL without losing
+ * existing query strings. Returns null if input URL is falsy.
+ * Used by the Passeport Locatif PDF to track acquisition channels from CTAs.
+ */
+function appendUtm(url, params) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        parsed.searchParams.set(key, String(value));
+      }
+    });
+    return parsed.toString();
+  } catch (err) {
+    // URL relative ou mal formée — on retourne tel quel
+    return url;
+  }
+}
+
+/**
+ * Construit le bloc `marketing` exposé dans le ViewModel pour le PDF.
+ * Contient les URLs absolues + UTM pour les CTAs marketing du Passeport Locatif :
+ *  - ownerSignupUrl : "Créer mon Coffre-Fort gratuit" → /auth/register?role=owner
+ *  - verifyUrl      : "Vérifier ce passeport en ligne" → /p/{slug}
+ *  - requestAuditUrl: "Auditer un dossier" → /owner/request-audit
+ *  - homepage       : fallback marque
+ *
+ * Tous les liens sont taggés `utm_source=passport_pdf` pour analytics.
+ */
+function buildMarketingLinks({ baseUrl, slug, shareUrl, candidateFirstName, propertyName }) {
+  const base = getBaseUrl(baseUrl) || 'https://doc2loc.com';
+  const utmBase = {
+    utm_source: 'passport_pdf',
+    utm_medium: 'pdf',
+    utm_content: slug || 'passport',
+  };
+
+  return {
+    ownerSignupUrl: appendUtm(`${base}/auth/register?role=owner`, {
+      ...utmBase,
+      utm_campaign: 'owner_acq',
+    }),
+    verifyUrl: shareUrl
+      ? appendUtm(shareUrl, { ...utmBase, utm_campaign: 'verify' })
+      : null,
+    requestAuditUrl: appendUtm(`${base}/owner/request-audit`, {
+      ...utmBase,
+      utm_campaign: 'audit_request',
+    }),
+    homepageUrl: appendUtm(`${base}/`, { ...utmBase, utm_campaign: 'brand' }),
+    candidateFirstName: candidateFirstName || null,
+    propertyName: propertyName || null,
+  };
+}
+
 function buildPassportSlug(firstName = 'dossier') {
   const safeName = String(firstName || 'dossier')
     .toLowerCase()
@@ -640,6 +697,15 @@ function buildPassportViewModel({
       validUntil,
       certificationDate: formatDate(app.submittedAt || app.updatedAt || new Date()),
     },
+    // Liens marketing tagués UTM pour les CTAs du PDF (acquisition propriétaire,
+    // vérification web, demande d'audit ponctuel). Voir buildMarketingLinks().
+    marketing: buildMarketingLinks({
+      baseUrl,
+      slug: readySlug,
+      shareUrl: urls.shareUrl,
+      candidateFirstName: identity.firstName,
+      propertyName: property.name || null,
+    }),
   };
 }
 
@@ -648,4 +714,6 @@ module.exports = {
   buildPassportSlug,
   ensurePassportSlug,
   buildPassportViewModel,
+  appendUtm,
+  buildMarketingLinks,
 };
