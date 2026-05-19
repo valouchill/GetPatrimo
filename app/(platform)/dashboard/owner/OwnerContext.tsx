@@ -84,6 +84,10 @@ export interface Candidature {
       identityVerified: boolean;
       readyToLease: boolean;
       riskLabel: string;
+      // Phase U — Verdict propriétaire centralisé serveur
+      verdict?: 'recommended' | 'review' | 'risky';
+      verdictLabel?: string;
+      reasonCodes?: string[];
     };
     comparison?: {
       scoreValue: number;

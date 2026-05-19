@@ -397,6 +397,99 @@ function buildAuditSummary({ application, passport, financial, quality, contract
   };
 }
 
+/**
+ * Calcule le verdict propriétaire centralisé serveur.
+ *
+ * Source unique de vérité pour le statut affiché en hero candidat
+ * (Recommandé / À vérifier / Risqué). L'UI consomme ce verdict via
+ * ownerInsights.decisionSummary.verdict, plutôt que de le re-dériver
+ * du score seul (verdictFromScore reste un fallback UI).
+ *
+ * Règles :
+ *  - Risqué (blockers) : ALERT, taux > 38%, pièces essentielles manquantes,
+ *    contractReadiness.blockers, documents rejetés
+ *  - À vérifier (vigilances) : solvabilité non certifiée, aucune garantie,
+ *    taux 33-38%, audit REVIEW, pièces secondaires en revue, profil limité
+ *  - Recommandé : aucun blocker ni vigilance
+ */
+function computeOwnerVerdict({
+  aiAudit,
+  financial,
+  quality,
+  contractReadiness,
+  guarantee,
+  scoringFlags = [],
+  hardGateTriggered = false,
+}) {
+  const reasonCodes = [];
+
+  const auditStatus = String(aiAudit?.status || '').toUpperCase();
+  const effortRate = typeof financial?.effortRate === 'number' ? financial.effortRate : null;
+  const certifiedIncome = Boolean(financial?.certifiedIncome);
+  const monthlyIncome = Number(financial?.monthlyIncome || 0);
+  const guaranteeMode = String(guarantee?.mode || '').toUpperCase();
+  const hasStrongGuarantee = ['VISALE', 'PHYSICAL', 'BANK_DEPOSIT'].includes(guaranteeMode);
+  const rejectedDocs = Number(quality?.rejectedDocuments || 0);
+  const reviewDocs = Number(quality?.reviewDocuments || 0);
+  const contractBlockers = Array.isArray(contractReadiness?.blockers) ? contractReadiness.blockers : [];
+  const flags = Array.isArray(scoringFlags) ? scoringFlags : [];
+
+  // ── Critères Bloquants ──
+  const blockerCodes = [];
+  if (auditStatus === 'ALERT') blockerCodes.push('FORENSIC_ALERT');
+  if (effortRate != null && effortRate > 38) blockerCodes.push('HIGH_EFFORT_RATE');
+  if (hardGateTriggered || flags.includes('hard_gate_triggered')) blockerCodes.push('MISSING_ESSENTIAL_DOCS');
+  if (contractBlockers.length > 0) blockerCodes.push('CONTRACT_BLOCKED');
+  if (rejectedDocs > 0) blockerCodes.push('DOCUMENTS_REJECTED');
+
+  if (blockerCodes.length > 0) {
+    return {
+      verdict: 'risky',
+      verdictLabel: 'Risqué',
+      reasonCodes: blockerCodes,
+    };
+  }
+
+  // ── Critères Vigilance ──
+  const reviewCodes = [];
+  // Solvabilité examinée = revenu certifié ET taux d'effort calculable
+  if (!certifiedIncome || effortRate == null) {
+    if (monthlyIncome > 0 || effortRate != null || certifiedIncome) {
+      // au moins une info financière partielle, mais examen incomplet
+      reviewCodes.push('NO_CERTIFIED_SOLVENCY');
+    } else {
+      // aucune info financière du tout → traité comme bloquant
+      return {
+        verdict: 'risky',
+        verdictLabel: 'Risqué',
+        reasonCodes: ['MISSING_ESSENTIAL_DOCS'],
+      };
+    }
+  }
+
+  if (!hasStrongGuarantee) reviewCodes.push('NO_GUARANTEE');
+  if (effortRate != null && effortRate > 33 && effortRate <= 38) reviewCodes.push('ELEVATED_EFFORT_RATE');
+  if (auditStatus === 'REVIEW') reviewCodes.push('AUDIT_REVIEW');
+  if (reviewDocs > 0) reviewCodes.push('SECONDARY_DOCS_IN_REVIEW');
+  if (flags.includes('limited_profile_no_guarantee') && !reviewCodes.includes('LIMITED_PROFILE_NO_GUARANTEE')) {
+    reviewCodes.push('LIMITED_PROFILE_NO_GUARANTEE');
+  }
+
+  if (reviewCodes.length > 0) {
+    return {
+      verdict: 'review',
+      verdictLabel: 'À vérifier',
+      reasonCodes: reviewCodes,
+    };
+  }
+
+  return {
+    verdict: 'recommended',
+    verdictLabel: 'Recommandé',
+    reasonCodes: [],
+  };
+}
+
 function buildDecisionSummary({
   application,
   aiAudit,
@@ -443,6 +536,19 @@ function buildDecisionSummary({
     isSealed ? 'Profil actuellement masqué.' : null,
   ]).slice(0, 4);
 
+  // — Phase U : verdict centralisé serveur —
+  const scoringFlags = Array.isArray(application?.scoring?.flags) ? application.scoring.flags : [];
+  const hardGateTriggered = Boolean(application?.scoring?.hardGateTriggered);
+  const verdictResult = computeOwnerVerdict({
+    aiAudit,
+    financial,
+    quality,
+    contractReadiness,
+    guarantee: passport?.guarantee,
+    scoringFlags,
+    hardGateTriggered,
+  });
+
   return {
     headline,
     strengths,
@@ -450,6 +556,10 @@ function buildDecisionSummary({
     identityVerified: diditVerified,
     readyToLease,
     riskLabel: financial?.riskBand?.label || 'À confirmer',
+    // — Phase U —
+    verdict: verdictResult.verdict,
+    verdictLabel: verdictResult.verdictLabel,
+    reasonCodes: verdictResult.reasonCodes,
   };
 }
 
@@ -676,4 +786,5 @@ function buildOwnerApplicationInsights({
 
 module.exports = {
   buildOwnerApplicationInsights,
+  computeOwnerVerdict,
 };

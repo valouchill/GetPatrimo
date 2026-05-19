@@ -87,6 +87,34 @@ function getCandidatePriority(candidate, acceptedTenantId) {
   if (candidate.guarantee?.mode === 'VISALE') score += 12;
   if (candidate.guarantee?.mode === 'PHYSICAL') score += 6;
 
+  // — V1.3 : pénalisation des dossiers limites pour le Top candidat —
+  // Évite qu'un dossier sans garant + sans solvabilité certifiée remonte en #1
+  // par simple score documentaire.
+  const financial = candidate.ownerInsights?.financial;
+  const effortRate = Number(financial?.effortRate || 0);
+  const monthlyIncome = Number(financial?.monthlyIncome || 0);
+
+  // Solvabilité non certifiée alors que revenus déclarés → -25 pts
+  if (!financial?.certifiedIncome && monthlyIncome > 0) {
+    score -= 25;
+  }
+
+  // Taux d'effort élevé → pénalité graduelle
+  if (effortRate > 38) score -= 30;
+  else if (effortRate > 33) score -= 12;
+
+  // Combo aucune garantie solide + profil limite → -20 pts
+  const contractType = String(candidate.financialSummary?.contractType || '').toUpperCase();
+  const isLimited = ['CDD', 'FREELANCE', 'INDEPENDANT', 'AUTO_ENTREPRENEUR', 'ETUDIANT', 'STUDENT', 'ÉTUDIANT'].includes(contractType);
+  const hasStrongGuarantee = ['VISALE', 'PHYSICAL', 'BANK_DEPOSIT'].includes(String(candidate.guarantee?.mode || ''));
+  if (isLimited && !hasStrongGuarantee) {
+    score -= 20;
+  }
+
+  // Verdict serveur 'risky' → -40 pts (rétrogradage explicite)
+  const serverVerdict = candidate.ownerInsights?.decisionSummary?.verdict;
+  if (serverVerdict === 'risky') score -= 40;
+
   return score;
 }
 

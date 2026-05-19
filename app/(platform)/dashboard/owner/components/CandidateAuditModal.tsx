@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, FileText, ArrowRight } from 'lucide-react';
 import { Avatar, GuaranteeBadge } from './ui';
 import type { LocalDossier, LocalBien } from './ui';
+import { SelectionConfirmModal } from './SelectionConfirmModal';
 import {
   DecisionVerdict,
   verdictFromScore,
@@ -47,6 +48,7 @@ export function CandidateAuditModal({
   onOpenAudit,
 }: CandidateAuditModalProps) {
   const titleId = React.useId();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   // ESC ferme la modale
   React.useEffect(() => {
@@ -67,7 +69,9 @@ export function CandidateAuditModal({
   if (!c || !bien) return null;
 
   const ratio = bien.loyer > 0 ? c.revenus / bien.loyer : 0;
-  const verdict = verdictFromScore(c.score, c.auditStatus);
+  // Phase U — Verdict serveur en source canonique, fallback verdictFromScore pour candidats anciens
+  const verdict = c.verdict ?? verdictFromScore(c.score, c.auditStatus);
+  const reasonCodes = c.reasonCodes;
 
   // Stagger pour les sections du body
   const sectionTransition = (delay: number) => ({
@@ -200,6 +204,7 @@ export function CandidateAuditModal({
                     verdict={verdict}
                     headline={GRADE_LABELS[getGrade(c.score)].split(' — ')[1]}
                     summary={c.decisionHeadline || c.auditSummary}
+                    reasonCodes={reasonCodes}
                   />
                 </div>
               </motion.section>
@@ -364,10 +369,7 @@ export function CandidateAuditModal({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  onSelect(c);
-                  onClose();
-                }}
+                onClick={() => setConfirmOpen(true)}
                 className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-button bg-amber-500 px-5 text-sm font-bold text-white shadow-amber transition-colors hover:bg-amber-600 sm:flex-none sm:min-w-[200px]"
               >
                 Sélectionner {c.prenom}
@@ -375,6 +377,20 @@ export function CandidateAuditModal({
               </button>
             </footer>
           </motion.div>
+
+          {/* Modale de confirmation de sélection */}
+          <SelectionConfirmModal
+            open={confirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={() => {
+              setConfirmOpen(false);
+              onSelect(c);
+              onClose();
+            }}
+            candidateName={`${c.prenom} ${c.nom}`}
+            verdict={verdict}
+            reasonCodes={reasonCodes}
+          />
         </>
       )}
     </AnimatePresence>

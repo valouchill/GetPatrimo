@@ -100,9 +100,10 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
 
           {/* Verdict d'audit en hero */}
           <DecisionVerdict
-            verdict={verdictFromScore(c.score, c.auditStatus)}
+            verdict={c.verdict ?? verdictFromScore(c.score, c.auditStatus)}
             headline={GRADE_LABELS[getGrade(c.score)]}
             summary={c.decisionHeadline || c.auditSummary}
+            reasonCodes={c.reasonCodes}
           />
 
           {/* Certifications */}

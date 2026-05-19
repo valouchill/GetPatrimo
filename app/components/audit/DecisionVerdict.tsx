@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ShieldCheck, AlertTriangle, AlertOctagon } from "lucide-react";
 import { Button } from "@/app/components/ui";
+import { labelForReason } from "@/lib/verdict-reasons";
 
 type Verdict = "recommended" | "review" | "risky";
 
@@ -10,6 +11,7 @@ export interface DecisionVerdictProps {
   verdict: Verdict;
   headline?: string;
   summary?: string;
+  reasonCodes?: string[];
   primaryActionLabel?: string;
   onPrimary?: () => void;
   secondaryActionLabel?: string;
@@ -68,6 +70,7 @@ export function DecisionVerdict({
   verdict,
   headline,
   summary,
+  reasonCodes,
   primaryActionLabel = "Choisir ce candidat",
   onPrimary,
   secondaryActionLabel,
@@ -96,6 +99,25 @@ export function DecisionVerdict({
             <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
               {summary}
             </p>
+          )}
+          {reasonCodes && reasonCodes.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {reasonCodes.map((code) => (
+                <li key={code} className="flex items-start gap-2 text-xs leading-relaxed text-slate-700 sm:text-sm">
+                  <span
+                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                      verdict === "risky"
+                        ? "bg-red-500"
+                        : verdict === "review"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span>{labelForReason(code)}</span>
+                </li>
+              ))}
+            </ul>
           )}
           {(onPrimary || onSecondary) && (
             <div className="mt-5 flex flex-wrap gap-2.5">
