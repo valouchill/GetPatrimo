@@ -63,7 +63,7 @@ function determineCategory(doc: DocumentRecord): string {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   try {
     const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; email?: string } } | null;
@@ -71,7 +71,7 @@ export async function POST(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: 'ID application manquant' }, { status: 400 });
     }
