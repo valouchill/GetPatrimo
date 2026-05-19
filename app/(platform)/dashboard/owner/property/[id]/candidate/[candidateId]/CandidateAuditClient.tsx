@@ -42,6 +42,7 @@ import {
   CertificationRow,
   CriteriaGrid,
   deriveCriteriaFromDossier,
+  PayslipsBreakdown,
 } from '@/app/components/audit';
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
@@ -566,6 +567,31 @@ export default function CandidateAuditClient({
               auditStatus: candidate.ownerInsights?.aiAudit?.status,
             })}
           />
+
+          {/* V1.4 — Détail bulletins de paie analysés (avec moyenne / médiane) */}
+          {(() => {
+            const breakdown = (candidate.ownerInsights?.financial as { payslipsBreakdown?: Array<{ amount: number; period?: string | null; date?: string | null; status?: string; source?: string | null; confidence?: number | null }> } | undefined)?.payslipsBreakdown;
+            if (!breakdown || breakdown.length === 0) return null;
+            const fin = candidate.ownerInsights?.financial as {
+              monthlyIncomeMean?: number | null;
+              monthlyIncomeMedian?: number | null;
+              monthlyIncomeStdDev?: number | null;
+              monthlyIncomeMethod?: 'mean' | 'median' | 'none' | null;
+              varianceRatio?: number | null;
+              varianceHigh?: boolean;
+            };
+            return (
+              <PayslipsBreakdown
+                breakdown={breakdown}
+                mean={fin?.monthlyIncomeMean}
+                median={fin?.monthlyIncomeMedian}
+                stdDev={fin?.monthlyIncomeStdDev}
+                method={fin?.monthlyIncomeMethod}
+                varianceRatio={fin?.varianceRatio}
+                varianceHigh={fin?.varianceHigh}
+              />
+            );
+          })()}
 
           {/* Forensic + Remaining income */}
           <div className="grid gap-4 lg:grid-cols-2">

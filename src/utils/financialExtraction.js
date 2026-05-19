@@ -53,6 +53,112 @@ function average(values = []) {
   return roundCurrency(values.reduce((sum, value) => sum + normalizeIncomeAmount(value), 0) / values.length);
 }
 
+function median(values = []) {
+  if (!values.length) return 0;
+  const numeric = values.map((v) => normalizeIncomeAmount(v)).filter((v) => v > 0).sort((a, b) => a - b);
+  if (!numeric.length) return 0;
+  const mid = Math.floor(numeric.length / 2);
+  if (numeric.length % 2 === 0) {
+    return roundCurrency((numeric[mid - 1] + numeric[mid]) / 2);
+  }
+  return roundCurrency(numeric[mid]);
+}
+
+function stdDeviation(values = []) {
+  if (values.length < 2) return 0;
+  const numeric = values.map((v) => normalizeIncomeAmount(v)).filter((v) => v > 0);
+  if (numeric.length < 2) return 0;
+  const mean = numeric.reduce((sum, v) => sum + v, 0) / numeric.length;
+  const variance = numeric.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / numeric.length;
+  return roundCurrency(Math.sqrt(variance));
+}
+
+/**
+ * Agrège plusieurs bulletins de paie en une vue consolidée.
+ * @param {Array} payslipDocs - [{ amount, date, status, source?, confidence?, period? }]
+ * @returns {Object} { mean, median, stdDev, varianceRatio, varianceHigh,
+ *                     usedMethod, primaryAmount, breakdown[], certifiedCount, totalCount }
+ */
+function aggregatePayslips(payslipDocs = []) {
+  if (!Array.isArray(payslipDocs) || payslipDocs.length === 0) {
+    return {
+      mean: 0,
+      median: 0,
+      stdDev: 0,
+      varianceRatio: 0,
+      varianceHigh: false,
+      usedMethod: 'none',
+      primaryAmount: 0,
+      breakdown: [],
+      certifiedCount: 0,
+      totalCount: 0,
+    };
+  }
+
+  const sorted = sortByRecentDate(payslipDocs);
+  const certified = sorted.filter((d) => d.status === 'CERTIFIED');
+  const reviewOnly = sorted.filter((d) => d.status !== 'CERTIFIED');
+  // Préférer 3 derniers CERTIFIED, sinon compléter avec REVIEW (max 3 au total)
+  const chosen = certified.length >= 3
+    ? certified.slice(0, 3)
+    : [...certified, ...reviewOnly].slice(0, 3);
+
+  const amounts = chosen.map((d) => normalizeIncomeAmount(d.amount)).filter((v) => v > 0);
+
+  if (amounts.length === 0) {
+    return {
+      mean: 0,
+      median: 0,
+      stdDev: 0,
+      varianceRatio: 0,
+      varianceHigh: false,
+      usedMethod: 'none',
+      primaryAmount: 0,
+      breakdown: chosen.map((d) => ({
+        amount: roundCurrency(d.amount),
+        period: d.period || null,
+        date: d.date || null,
+        status: d.status || 'PENDING',
+        source: d.source || null,
+        confidence: d.confidence || null,
+      })),
+      certifiedCount: certified.length,
+      totalCount: payslipDocs.length,
+    };
+  }
+
+  const mn = average(amounts);
+  const md = median(amounts);
+  const sd = stdDeviation(amounts);
+  const varianceRatio = mn > 0 ? Number((sd / mn).toFixed(4)) : 0;
+  const varianceHigh = varianceRatio > 0.05;
+  // Si variance haute, privilégier la médiane (anti-outlier prime/régul)
+  const usedMethod = varianceHigh ? 'median' : 'mean';
+  const primaryAmount = usedMethod === 'median' ? md : mn;
+
+  const breakdown = chosen.map((d) => ({
+    amount: roundCurrency(d.amount),
+    period: d.period || null,
+    date: d.date || null,
+    status: d.status || 'PENDING',
+    source: d.source || null,
+    confidence: d.confidence || null,
+  }));
+
+  return {
+    mean: mn,
+    median: md,
+    stdDev: sd,
+    varianceRatio,
+    varianceHigh,
+    usedMethod,
+    primaryAmount,
+    breakdown,
+    certifiedCount: certified.length,
+    totalCount: payslipDocs.length,
+  };
+}
+
 function pickClosest(values = [], target = 0) {
   if (!values.length) return 0;
   return values.reduce((best, current) => {
@@ -166,19 +272,36 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
   incomeDocs.forEach((document) => {
     const ai = document?.aiAnalysis || {};
     const type = normalizeDocumentType(document?.type || ai?.documentType || ai?.document_metadata?.type);
+    const fd = ai?.financial_data || ai?.financialData || {};
+    const ed = ai?.extractedData || ai?.extracted_data || {};
     const resolved = pickBestDocumentNetIncome({
       documentType: type,
-      financialData: ai?.financial_data || ai?.financialData,
-      extractedData: ai?.extractedData || ai?.extracted_data,
+      financialData: fd,
+      extractedData: ed,
     });
 
     if (!resolved.amount || resolved.amount <= 0) return;
+
+    // Période depuis l'IA si dispo
+    const periodMonth = fd?.extra_details?.period_month || fd?.period_month || ed?.periodMonth;
+    const periodYear = fd?.extra_details?.period_year || fd?.period_year || ed?.periodYear;
+    const periodLabel = periodMonth
+      ? (periodYear ? `${periodMonth} ${periodYear}` : String(periodMonth))
+      : null;
+
+    // Confidence : prefer numeric from IA, fallback string label
+    const confidence = (typeof fd?.confidence_net_income === 'number')
+      ? fd.confidence_net_income
+      : (typeof ai?.confidence === 'number' ? ai.confidence : null);
 
     const payload = {
       amount: resolved.amount,
       date: document?.dateEmission || document?.uploadedAt || null,
       status: String(document?.status || 'PENDING'),
       type,
+      source: resolved.source,
+      confidence: confidence ?? (resolved.confidence === 'high' ? 0.9 : resolved.confidence === 'medium' ? 0.75 : 0.5),
+      period: periodLabel,
     };
 
     if (type === 'BULLETIN_SALAIRE') {
@@ -194,10 +317,10 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
     }
   });
 
+  // Agrégation enrichie : moyenne + médiane + écart-type + breakdown
+  const payslipAggregate = aggregatePayslips(salaryDocs);
   const certifiedSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status === 'CERTIFIED')).slice(0, 3);
-  const reviewSalaryDocs = sortByRecentDate(salaryDocs.filter((document) => document.status !== 'CERTIFIED')).slice(0, 3);
-  const chosenSalaryDocs = certifiedSalaryDocs.length > 0 ? certifiedSalaryDocs : reviewSalaryDocs;
-  const monthlySalaryNet = average(chosenSalaryDocs.map((document) => document.amount));
+  const monthlySalaryNet = payslipAggregate.primaryAmount;
 
   const certifiedPension = sortByRecentDate(pensionDocs.filter((document) => document.status === 'CERTIFIED'))[0];
   const fallbackPension = sortByRecentDate(pensionDocs)[0];
@@ -277,6 +400,14 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
     payslipCount: salaryDocs.length,
     certifiedPayslipCount: certifiedSalaryDocs.length,
     components,
+    // V1.4 — Détail bulletins de paie pour visibilité propriétaire
+    payslipsBreakdown: payslipAggregate.breakdown,
+    monthlyIncomeMean: payslipAggregate.mean,
+    monthlyIncomeMedian: payslipAggregate.median,
+    monthlyIncomeStdDev: payslipAggregate.stdDev,
+    monthlyIncomeMethod: payslipAggregate.usedMethod,
+    varianceRatio: payslipAggregate.varianceRatio,
+    varianceHigh: payslipAggregate.varianceHigh,
   };
 }
 
@@ -294,4 +425,7 @@ module.exports = {
   normalizeDocumentType,
   normalizeIncomeAmount,
   pickBestDocumentNetIncome,
+  aggregatePayslips,
+  median,
+  stdDeviation,
 };

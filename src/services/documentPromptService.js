@@ -108,13 +108,56 @@ PROFILS DÉTECTÉS:
 - RETIRED: Retraité (pension)
 - UNKNOWN: Non déterminable
 
-CALCUL monthly_net_income:
-- Pour BULLETIN_SALAIRE: utiliser EXCLUSIVEMENT le "Net à payer" mensuel
-- Pour AVIS_IMPOSITION: revenu_fiscal_reference / 12
-- Pour ATTESTATION_BOURSE: montant_bourse mensuel
-- Pour AIDE_LOGEMENT: montant_apl mensuel
-- Pour PENSION: montant_pension mensuel
-- Si non disponible, mettre 0.00
+═══════════════════════════════════════════════════════════════
+EXTRACTION DU REVENU NET (BULLETIN_SALAIRE) — IMPORTANT
+═══════════════════════════════════════════════════════════════
+
+Le revenu net est l'information la plus critique. Tu DOIS le trouver avec rigueur.
+
+LIBELLÉS ACCEPTÉS pour le net mensuel (rechercher TOUS, par ordre de priorité) :
+1. "Net à payer" / "Net à payer avant impôt" / "NET A PAYER"
+2. "Net à payer après impôt" / "Net à payer après prélèvement" (privilégier celui-ci si disponible, c'est ce que touche le salarié)
+3. "Net imposable" (à éviter si "Net à payer" trouvé — c'est avant prélèvement à la source)
+4. "Salaire net" / "Net mensuel" / "Net versé" / "Versement"
+5. "Net à payer mois en cours" (paie publique)
+
+LOCALISATION TYPIQUE sur le bulletin :
+- En BAS du document, ligne en GRAS ou encadrée
+- Souvent après "Cotisations totales" / "Total cotisations salariales"
+- Format : montant en euros avec 2 décimales (ex: 2 458,32 €)
+
+VALIDATION MATHÉMATIQUE (obligatoire) :
+- Extrais aussi gross_salary (Salaire brut) et total_deductions (Cotisations totales)
+- Calcule diff = |(gross_salary - total_deductions) - monthly_net_income|
+- Si diff ≤ 0,50€ → math_validation: true (cohérent)
+- Si diff > 0,50€ ET > 2% du brut → math_validation: false, fraud_score +30
+
+CHAMPS COMPLÉMENTAIRES À EXTRAIRE :
+- gross_salary : montant brut mensuel
+- total_deductions : total cotisations salariales
+- period_month : mois concerné (ex: "Mars 2026" ou "03/2026")
+- period_year : année (ex: 2026)
+- employer_name : raison sociale employeur
+- siret : SIRET employeur (14 chiffres)
+- confidence_net_income : auto-évaluation du modèle, 0-1
+  * 0.95+ si "Net à payer après impôt" lu directement avec OCR clean
+  * 0.85 si "Net à payer" trouvé mais sans la mention "après impôt"
+  * 0.7 si extrait via calcul brut - cotisations
+  * <0.6 si valeur incertaine, needs_human_review: true
+
+CAS PARTICULIERS :
+- PRIME EXCEPTIONNELLE / RAPPEL / RÉGUL : exclure ces montants, garder le NET RÉCURRENT mensuel
+- Si plusieurs nets visibles (avant/après impôt), prioriser APRÈS prélèvement
+- Heure / journalier / horaire : convertir en équivalent mensuel SI possible, sinon needs_human_review: true
+- Apprentissage / alternance : extraire le net réel touché (souvent < SMIC)
+
+CALCUL monthly_net_income (par type de document) :
+- BULLETIN_SALAIRE: appliquer les règles ci-dessus
+- AVIS_IMPOSITION: revenu_fiscal_reference / 12
+- ATTESTATION_BOURSE: montant_bourse mensuel
+- AIDE_LOGEMENT: montant_apl mensuel
+- PENSION: montant_pension mensuel
+- Si AUCUNE source fiable : monthly_net_income: 0.00, needs_human_review: true, expert_advice avec conseil pédagogique précis
 
 math_validation:
 - true si Brut - Cotisations ≈ Net à payer avec tolérance maximale de 0,50€

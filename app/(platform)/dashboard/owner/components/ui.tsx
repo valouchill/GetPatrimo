@@ -243,6 +243,21 @@ export type LocalDossier = {
   verdict?: 'recommended' | 'review' | 'risky';
   verdictLabel?: string;
   reasonCodes?: string[];
+  // V1.4 — Détail bulletins de paie
+  payslipsBreakdown?: Array<{
+    amount: number;
+    period?: string | null;
+    date?: string | null;
+    status?: string;
+    source?: string | null;
+    confidence?: number | null;
+  }>;
+  monthlyIncomeMean?: number | null;
+  monthlyIncomeMedian?: number | null;
+  monthlyIncomeStdDev?: number | null;
+  monthlyIncomeMethod?: 'mean' | 'median' | 'none' | null;
+  varianceRatio?: number | null;
+  varianceHigh?: boolean;
 };
 
 export function toBien(e: PropertyWithCandidatures): LocalBien {
@@ -338,6 +353,14 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     verdict: ins?.decisionSummary?.verdict,
     verdictLabel: ins?.decisionSummary?.verdictLabel,
     reasonCodes: ins?.decisionSummary?.reasonCodes,
+    // V1.4 — Détail bulletins de paie
+    payslipsBreakdown: ins?.financial?.payslipsBreakdown,
+    monthlyIncomeMean: ins?.financial?.monthlyIncomeMean ?? null,
+    monthlyIncomeMedian: ins?.financial?.monthlyIncomeMedian ?? null,
+    monthlyIncomeStdDev: ins?.financial?.monthlyIncomeStdDev ?? null,
+    monthlyIncomeMethod: ins?.financial?.monthlyIncomeMethod ?? null,
+    varianceRatio: ins?.financial?.varianceRatio ?? null,
+    varianceHigh: ins?.financial?.varianceHigh,
   };
 }
 

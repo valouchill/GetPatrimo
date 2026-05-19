@@ -37,3 +37,6 @@ export type { CertificationBadgeProps } from "./CertificationBadge";
 
 export { CriteriaGrid, deriveCriteriaFromDossier } from "./CriteriaGrid";
 export type { CriteriaGridProps, Criterion } from "./CriteriaGrid";
+
+export { PayslipsBreakdown } from "./PayslipsBreakdown";
+export type { PayslipsBreakdownProps, PayslipBreakdownItem } from "./PayslipsBreakdown";

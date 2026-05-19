@@ -16,6 +16,7 @@ import {
   CertificationRow,
   CriteriaGrid,
   deriveCriteriaFromDossier,
+  PayslipsBreakdown,
 } from '@/app/components/audit';
 import {
   PRODUCT,
@@ -234,6 +235,21 @@ export function CandidateAuditModal({
                     <RemainingIncomeChart
                       monthlyIncome={c.monthlyIncome}
                       monthlyRent={bien.loyer}
+                    />
+                  </motion.div>
+                )}
+
+                {/* V1.4 — Détail bulletins de paie analysés */}
+                {c.payslipsBreakdown && c.payslipsBreakdown.length > 0 && (
+                  <motion.div {...sectionTransition(0.08)}>
+                    <PayslipsBreakdown
+                      breakdown={c.payslipsBreakdown}
+                      mean={c.monthlyIncomeMean}
+                      median={c.monthlyIncomeMedian}
+                      stdDev={c.monthlyIncomeStdDev}
+                      method={c.monthlyIncomeMethod}
+                      varianceRatio={c.varianceRatio}
+                      varianceHigh={c.varianceHigh}
                     />
                   </motion.div>
                 )}
