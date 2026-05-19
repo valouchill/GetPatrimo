@@ -584,7 +584,7 @@ export default function OwnerDashboardClient() {
                         </Btn>
                         {!b.isRented && (() => {
                           const selTenantForBtn = allDossiers.find(d => d.bien_id === b.id && d.statut === 'selectionne');
-                          if (selTenantForBtn) {
+                          if (selTenantForBtn && isEnabled('LEASES')) {
                             return (
                               <Btn variant="primary" className="flex-1 py-2 text-xs" onClick={() => goToContract(b.id, selTenantForBtn.id)}>
                                 <FileSignature className="h-3.5 w-3.5" /> Rédiger le bail
