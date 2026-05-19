@@ -54,12 +54,28 @@ export interface Candidature {
       remainingIncomeLabel?: string | null;
       effortRate?: number | null;
       effortRateLabel?: string | null;
+      certifiedIncome?: boolean;
       riskBand?: {
         label: string;
         score: number;
         tone: string;
       };
       summary?: string;
+      // V1.4 — Détail bulletins de paie
+      payslipsBreakdown?: Array<{
+        amount: number;
+        period?: string | null;
+        date?: string | null;
+        status?: string;
+        source?: string | null;
+        confidence?: number | null;
+      }>;
+      monthlyIncomeMean?: number | null;
+      monthlyIncomeMedian?: number | null;
+      monthlyIncomeStdDev?: number | null;
+      monthlyIncomeMethod?: 'mean' | 'median' | 'none' | null;
+      varianceRatio?: number | null;
+      varianceHigh?: boolean;
     };
     quality?: {
       score: number;

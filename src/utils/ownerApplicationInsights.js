@@ -88,6 +88,13 @@ function buildFinancialSummary({
   guarantee,
   basisLabel,
   components,
+  payslipsBreakdown,
+  monthlyIncomeMean,
+  monthlyIncomeMedian,
+  monthlyIncomeStdDev,
+  monthlyIncomeMethod,
+  varianceRatio,
+  varianceHigh,
 }) {
   const remainingIncome = monthlyIncome > 0 ? Math.max(0, monthlyIncome - rentAmount) : null;
   const effortRate = monthlyIncome > 0 && rentAmount > 0
@@ -148,6 +155,14 @@ function buildFinancialSummary({
     components: components || null,
     riskBand,
     summary,
+    // V1.4 — Détail bulletins de paie
+    payslipsBreakdown: Array.isArray(payslipsBreakdown) ? payslipsBreakdown : [],
+    monthlyIncomeMean: monthlyIncomeMean ?? null,
+    monthlyIncomeMedian: monthlyIncomeMedian ?? null,
+    monthlyIncomeStdDev: monthlyIncomeStdDev ?? null,
+    monthlyIncomeMethod: monthlyIncomeMethod ?? null,
+    varianceRatio: varianceRatio ?? null,
+    varianceHigh: Boolean(varianceHigh),
   };
 }
 
@@ -716,6 +731,14 @@ function buildOwnerApplicationInsights({
     guarantee: passport?.guarantee,
     basisLabel: derivedFinancialProfile.basisLabel,
     components: derivedFinancialProfile.components,
+    // V1.4 — Détail bulletins de paie
+    payslipsBreakdown: derivedFinancialProfile.payslipsBreakdown,
+    monthlyIncomeMean: derivedFinancialProfile.monthlyIncomeMean,
+    monthlyIncomeMedian: derivedFinancialProfile.monthlyIncomeMedian,
+    monthlyIncomeStdDev: derivedFinancialProfile.monthlyIncomeStdDev,
+    monthlyIncomeMethod: derivedFinancialProfile.monthlyIncomeMethod,
+    varianceRatio: derivedFinancialProfile.varianceRatio,
+    varianceHigh: derivedFinancialProfile.varianceHigh,
   });
 
   const quality = buildDossierQuality(passport);
