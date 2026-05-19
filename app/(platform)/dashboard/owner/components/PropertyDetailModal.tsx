@@ -1,170 +1,76 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import * as React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Archive,
   Building2,
-  CheckCircle2,
-  Copy,
-  Download,
-  ExternalLink,
-  FileSignature,
-  FileText,
-  FolderOpen,
-  Lock,
   Pencil,
-  ScrollText,
-  Trash2,
-  Upload,
-  User,
-  Users,
   X,
+  Inbox,
+  Crown,
+  ArrowRight,
+  TrendingUp,
+  Sparkles,
 } from 'lucide-react';
-import {
-  ScorePill,
-  GuaranteeBadge,
-  Btn,
-  Bar,
-  Avatar,
-} from './ui';
 import type { LocalDossier, LocalBien } from './ui';
 import type { PropertyWithCandidatures } from '../OwnerContext';
+import { Button, SectionHeader } from '@/app/components/ui';
+import { TopCandidateCard } from './TopCandidateCard';
+import { PropertySesameCard } from './PropertySesameCard';
+import { formatPrice, PRODUCT } from '@/lib/product-lexicon';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Helper KPI tile (inline) ─────────────────────────────────────────────────
 
-type ModalTab = 'overview' | 'candidatures' | 'docs';
-
-type VaultDocument = {
-  id: string;
-  rawId?: string;
+function KpiTile({
+  label,
+  value,
+  highlight,
+}: {
   label: string;
-  status: string;
-  kind: string;
-  fileName?: string | null;
-  downloadUrl?: string | null;
-  deletable?: boolean;
-  uploadedAt?: string | null;
-  expirationDate?: string | null;
-  size?: number;
-  mimeType?: string;
-};
-
-const UPLOAD_DOC_TYPES: { value: string; label: string }[] = [
-  { value: 'BAIL', label: 'Bail' },
-  { value: 'ETAT_DES_LIEUX', label: 'État des lieux' },
-  { value: 'DPE', label: 'DPE' },
-  { value: 'PLOMB', label: 'Plomb (CREP)' },
-  { value: 'AMIANTE', label: 'Amiante' },
-  { value: 'ELECTRICITE', label: 'Électricité' },
-  { value: 'GAZ', label: 'Gaz' },
-  { value: 'ERP', label: 'ERP' },
-  { value: 'BOUTIN', label: 'Loi Boutin' },
-  { value: 'QUITTANCE', label: 'Quittance de loyer' },
-  { value: 'FACTURE_TRAVAUX', label: 'Facture de travaux' },
-  { value: 'ASSURANCE', label: 'Assurance' },
-  { value: 'AUTRE', label: 'Autre' },
-];
-
-const TYPES_WITH_EXPIRATION = new Set(['DPE', 'PLOMB', 'AMIANTE', 'ELECTRICITE', 'GAZ', 'ERP', 'BOUTIN', 'ASSURANCE']);
-
-function formatBytes(n?: number) {
-  if (!n || n <= 0) return '';
-  if (n < 1024) return `${n} o`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} Ko`;
-  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
-}
-function formatDateFR(v?: string | null) {
-  if (!v) return '';
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-function isExpired(v?: string | null) {
-  if (!v) return false;
-  const d = new Date(v);
-  return !isNaN(d.getTime()) && d.getTime() < Date.now();
-}
-
-type ManagementTools = {
-  leaseId?: string | null;
-  signatureStatus?: string;
-  edlStatus?: string;
-  vaultDocuments?: VaultDocument[];
-} | null;
-
-// ── Pipeline compact ─────────────────────────────────────────────────────────
-
-const PIPELINE = [
-  { id: 'search', num: 'I', label: 'Recherche' },
-  { id: 'analysis', num: 'II', label: 'Analyse' },
-  { id: 'selection', num: 'III', label: 'Sélection' },
-  { id: 'contract', num: 'IV', label: 'Contrat' },
-  { id: 'management', num: 'V', label: 'Gestion' },
-] as const;
-
-function CompactPipeline({ currentStage }: { currentStage?: string }) {
-  const idx = PIPELINE.findIndex((s) => s.id === currentStage);
-  const safeIdx = idx >= 0 ? idx : 0;
-
+  value: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-1 px-6 py-3 border-b border-slate-100 bg-slate-50/60">
-      {PIPELINE.map((stage, i) => {
-        const done = i < safeIdx;
-        const active = i === safeIdx;
-        return (
-          <Fragment key={stage.id}>
-            <div className="flex items-center gap-1.5">
-              <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all ${
-                done ? 'bg-emerald-500 text-white'
-                : active ? 'border-2 border-amber-400 bg-white text-amber-600'
-                : 'bg-slate-200 text-slate-400'
-              }`}>
-                {done ? <CheckCircle2 className="h-3 w-3" /> : stage.num}
-              </div>
-              <span className={`hidden text-[10px] font-semibold uppercase tracking-wide sm:inline ${
-                active ? 'text-slate-800' : done ? 'text-emerald-700' : 'text-slate-400'
-              }`}>
-                {stage.label}
-              </span>
-            </div>
-            {i < PIPELINE.length - 1 && (
-              <div className={`mx-0.5 h-px flex-1 rounded-full ${done ? 'bg-emerald-300' : 'bg-slate-200'}`} />
-            )}
-          </Fragment>
-        );
-      })}
+    <div
+      className={[
+        'rounded-card border bg-white px-3 py-2.5 shadow-card',
+        highlight ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200',
+      ].join(' ')}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p
+        className={[
+          'mt-1 font-serif font-bold tracking-tight',
+          highlight ? 'text-emerald-700' : 'text-slate-900',
+          value.length > 8 ? 'text-base' : 'text-xl',
+        ].join(' ')}
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Stage label/color helpers ────────────────────────────────────────────────
 
-function formatCurrency(v?: number | null) {
-  const n = Number(v || 0);
-  if (!Number.isFinite(n) || n <= 0) return '—';
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+const STAGE_TONE: Record<string, { bg: string; text: string; dot: string }> = {
+  search:     { bg: 'bg-slate-100',  text: 'text-slate-700',  dot: 'bg-slate-500' },
+  analysis:   { bg: 'bg-blue-50',    text: 'text-blue-700',   dot: 'bg-blue-500' },
+  selection:  { bg: 'bg-amber-50',   text: 'text-amber-700',  dot: 'bg-amber-500' },
+  contract:   { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  management: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+};
+
+function StageBadge({ stage, label }: { stage?: string; label?: string }) {
+  const tone = STAGE_TONE[String(stage || '')] || STAGE_TONE.search;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${tone.bg} ${tone.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} aria-hidden="true" />
+      {label || 'Recherche'}
+    </span>
+  );
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  AVAILABLE: 'Disponible', CANDIDATE_SELECTION: 'En recherche',
-  LEASE_IN_PROGRESS: 'Bail en cours', OCCUPIED: 'Occupé', VACANT: 'Vacant',
-};
-const STATUS_COLOR: Record<string, string> = {
-  AVAILABLE: 'bg-blue-50 text-blue-700 border-blue-200',
-  CANDIDATE_SELECTION: 'bg-amber-50 text-amber-700 border-amber-200',
-  LEASE_IN_PROGRESS: 'bg-amber-50 text-amber-700 border-amber-200',
-  OCCUPIED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  VACANT: 'bg-red-50 text-red-700 border-red-200',
-};
-
-// ── Tab config ──────────────────────────────────────────────────────────────
-
-const TABS: { id: ModalTab; label: string; Icon: typeof Building2 }[] = [
-  { id: 'overview', label: "Vue d'ensemble", Icon: Building2 },
-  { id: 'candidatures', label: 'Candidatures', Icon: Users },
-  { id: 'docs', label: 'Documents', Icon: FolderOpen },
-];
 
 // ── Main component ──────────────────────────────────────────────────────────
 
@@ -175,7 +81,6 @@ export function PropertyDetailModal({
   onClose,
   onSelectCandidate,
   onOpenTunnel,
-  onGoToContract,
   onEditProperty,
   onDeleteProperty,
 }: {
@@ -189,632 +94,310 @@ export function PropertyDetailModal({
   onEditProperty?: () => void;
   onDeleteProperty?: () => void;
 }) {
-  const [tab, setTab] = useState<ModalTab>('overview');
-  const [copied, setCopied] = useState(false);
-  const [mgmt, setMgmt] = useState<ManagementTools>(null);
-  const [mgmtLoading, setMgmtLoading] = useState(false);
-
+  const titleId = React.useId();
   const entry = allData.find((e) => e.property.id === bien.id);
   const flow = entry?.flow;
-  const ms = flow?.managementSummary;
-  const selectedCand = candidats.find((d) => d.statut === 'selectionne');
-  const hasSel = !!selectedCand;
-  const showTenant = flow?.stage === 'management' || bien.isRented;
 
-  // Fetch management tools (vault docs, leaseId) on mount + on demand
-  const refreshMgmt = useCallback(async () => {
-    setMgmtLoading(true);
-    try {
-      const res = await fetch(`/api/owner/properties/${bien.id}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        setMgmt(data.managementTools || null);
-      }
-    } catch { /* silent */ }
-    finally { setMgmtLoading(false); }
-  }, [bien.id]);
+  // ESC ferme + lock body scroll
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [onClose]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setMgmtLoading(true);
-      try {
-        const res = await fetch(`/api/owner/properties/${bien.id}`, { cache: 'no-store' });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setMgmt(data.managementTools || null);
-        }
-      } catch { /* silent */ }
-      finally { if (!cancelled) setMgmtLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, [bien.id]);
+  // Top 3 candidats non-scellés par score
+  const nonSealed = candidats.filter((d) => !d.isSealed);
+  const top3 = [...nonSealed]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, 3);
+  const topScore = nonSealed.length > 0
+    ? Math.max(...nonSealed.map((d) => d.score || 0))
+    : 0;
+  const hasSelected = candidats.some((d) => d.statut === 'selectionne');
 
-  const handleCopy = async () => {
-    if (!bien.applyToken) return;
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/apply/${bien.applyToken}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch { /* noop */ }
-  };
-
-  const sortedCandidats = [...candidats]
-    .sort((a, b) => (a.isSealed ? 1 : 0) - (b.isSealed ? 1 : 0) || b.score - a.score);
-
-  const enAttente = candidats.filter((d) => d.statut === 'en_attente').length;
-  const selectionnes = candidats.filter((d) => d.statut === 'selectionne').length;
-  const refuses = candidats.filter((d) => d.statut === 'refuse').length;
-  const vaultDocs = mgmt?.vaultDocuments || [];
+  // Animation stagger
+  const sectionTransition = (delay: number) => ({
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  });
 
   return (
-    <>
+    <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        key="property-modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
         className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
       <motion.div
-        initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[201] flex items-end md:items-center justify-center md:p-4"
-        onClick={onClose}
+        key="property-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        initial={{ opacity: 0, y: 40, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.97 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className={[
+          'fixed z-[201] flex flex-col bg-white shadow-premium',
+          // Mobile : bottom sheet
+          'inset-x-0 bottom-0 max-h-[92vh] rounded-t-modal',
+          // Desktop : modale centrée 4xl
+          'md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-h-[88vh] md:w-[calc(100vw-2rem)] md:max-w-4xl md:rounded-modal',
+        ].join(' ')}
       >
-        <div
-          className="flex h-[95vh] md:h-auto md:max-h-[92vh] w-full md:max-w-5xl flex-col overflow-hidden rounded-t-3xl md:rounded-3xl border border-slate-200 bg-white shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="property-hub-title"
-        >
-          {/* ── HEADER ─────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50">
-                <Building2 className="h-5 w-5 text-amber-500" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 id="property-hub-title" className="truncate text-lg font-bold text-slate-950">
-                    {bien.label}
-                  </h2>
-                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[bien.status || ''] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                    {STATUS_LABEL[bien.status || ''] || bien.flowStageLabel || '—'}
-                  </span>
-                </div>
-                <div className="mt-0.5 truncate text-sm text-slate-500">{bien.adresse}</div>
-              </div>
+        {/* Mobile handle */}
+        <div className="flex justify-center pt-2.5 pb-1 md:hidden">
+          <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
+        </div>
+
+        {/* Header sticky */}
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-amber-50 text-amber-700">
+              <Building2 className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {onEditProperty && (
-                <button type="button" onClick={onEditProperty} title="Modifier"
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-                  <Pencil className="h-4 w-4" />
-                </button>
-              )}
-              {onDeleteProperty && (
-                <button type="button" onClick={onDeleteProperty} title="Archiver"
-                  className="rounded-xl p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                  <Archive className="h-4 w-4" />
-                </button>
-              )}
-              <button type="button" onClick={onClose} aria-label="Fermer"
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+            <div className="min-w-0">
+              <h2 id={titleId} className="truncate font-serif text-base font-bold text-slate-900 md:text-lg">
+                {bien.label}
+              </h2>
+              <div className="mt-0.5 flex items-center gap-2">
+                <span className="text-xs text-slate-500">{formatPrice(bien.loyer)}/mois</span>
+                <span className="text-slate-300">·</span>
+                <StageBadge stage={bien.flowStage} label={bien.flowStageLabel} />
+              </div>
             </div>
           </div>
-
-          {/* ── PIPELINE ───────────────────────────────────────────── */}
-          <CompactPipeline currentStage={flow?.stage} />
-
-          {/* ── TABS ───────────────────────────────────────────────── */}
-          <div className="flex gap-1 border-b border-slate-100 px-6 pt-2">
-            {TABS.map(({ id, label, Icon }) => (
+          <div className="flex shrink-0 items-center gap-1">
+            {onEditProperty && (
               <button
-                key={id}
                 type="button"
-                onClick={() => setTab(id)}
-                className={`flex items-center gap-1.5 rounded-t-xl px-4 py-2.5 text-sm font-medium transition-all ${
-                  tab === id
-                    ? 'border-b-2 border-amber-500 bg-amber-50/50 text-amber-700'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                }`}
+                onClick={onEditProperty}
+                aria-label="Modifier le bien"
+                className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-                {id === 'candidatures' && candidats.length > 0 && (
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    tab === id ? 'bg-amber-200/60 text-amber-800' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {candidats.length}
-                  </span>
-                )}
+                <Pencil className="h-4 w-4" />
               </button>
-            ))}
-          </div>
-
-          {/* ── TAB CONTENT (scrollable) ───────────────────────────── */}
-          <div className="flex-1 overflow-y-auto px-6 py-5">
-
-            {/* ─── VUE D'ENSEMBLE ──────────────────────────────────── */}
-            {tab === 'overview' && (
-              <div className="space-y-5">
-                {/* KPIs */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <KPI label="Loyer HC" value={formatCurrency(bien.loyer)} />
-                  <KPI label="Candidatures" value={String(candidats.length)} />
-                  <KPI label="Étape" value={bien.flowStageLabel || '—'} small />
-                  <KPI label="Progression" value={`${bien.flowProgress ?? 0}%`}>
-                    <Bar value={bien.flowProgress ?? 0} />
-                  </KPI>
-                </div>
-
-                {/* Guidance */}
-                {(flow?.guidance?.whyThisStage || flow?.summary) && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Contexte</div>
-                    <p className="text-sm leading-6 text-slate-700">{flow?.guidance?.whyThisStage || flow?.summary}</p>
-                  </div>
-                )}
-
-                {/* Alerts */}
-                {(flow?.alerts || []).length > 0 && (
-                  <div className="space-y-2">
-                    {flow!.alerts.map((alert, i) => (
-                      <div key={i} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        {alert}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Locataire (si loué) */}
-                {showTenant && ms && (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <User className="h-4 w-4 text-emerald-600" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Locataire en place</span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <InfoItem label="Nom" value={ms.tenantLabel || '—'} />
-                      <InfoItem label="Bail" value={ms.leaseStatusLabel || '—'} />
-                      <InfoItem label="Prochaine échéance" value={ms.nextMilestone || 'Aucune'} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Candidat sélectionné CTA */}
-                {hasSel && selectedCand && (
-                  <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Avatar name={`${selectedCand.prenom} ${selectedCand.nom}`} id={selectedCand.id} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-slate-900">{selectedCand.prenom} {selectedCand.nom}</div>
-                        <div className="text-xs font-semibold text-amber-700">Locataire retenu</div>
-                      </div>
-                      <ScorePill score={selectedCand.score} />
-                    </div>
-                    <Btn variant="primary" className="w-full" onClick={() => { onClose(); onGoToContract(bien.id, selectedCand.id); }}>
-                      <FileSignature className="h-4 w-4" /> Rédiger le bail
-                    </Btn>
-                  </div>
-                )}
-
-                {/* Sésame (si non loué) */}
-                {bien.applyToken && !bien.isRented && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/50 px-5 py-4">
-                    <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-amber-600">Lien Sésame candidat</div>
-                    <p className="mb-3 text-sm text-slate-600">
-                      Partagez ce lien pour permettre aux candidats de déposer leur dossier.
-                    </p>
-                    <code className="mb-3 block break-all rounded-xl border border-amber-200 bg-white px-3 py-2 font-mono text-xs text-slate-600">
-                      {typeof window !== 'undefined' ? `${window.location.origin}/apply/${bien.applyToken}` : `/apply/${bien.applyToken}`}
-                    </code>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={handleCopy}
-                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                          copied ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-amber-500 text-white hover:bg-amber-600'
-                        }`}>
-                        <Copy className="h-3.5 w-3.5" />
-                        {copied ? 'Copié !' : 'Copier'}
-                      </button>
-                      <button type="button"
-                        onClick={() => window.open(`/apply/${bien.applyToken}`, '_blank', 'noopener,noreferrer')}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Voir la page
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Prochaine action */}
-                {flow?.nextAction?.label && (
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4">
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Prochaine action</div>
-                      <div className="text-sm font-semibold text-slate-900">{flow.nextAction.label}</div>
-                      {flow.nextAction.description && (
-                        <div className="mt-0.5 text-xs text-slate-500">{flow.nextAction.description}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
             )}
-
-            {/* ─── CANDIDATURES ─────────────────────────────────────── */}
-            {tab === 'candidatures' && (
-              <div className="space-y-4">
-                {/* Mini pipeline */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
-                    <div className="text-lg font-bold text-amber-600">{enAttente}</div>
-                    <div className="text-[10px] font-semibold uppercase text-slate-500">En attente</div>
-                  </div>
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center">
-                    <div className="text-lg font-bold text-emerald-700">{selectionnes}</div>
-                    <div className="text-[10px] font-semibold uppercase text-slate-500">Sélectionné{selectionnes !== 1 ? 's' : ''}</div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
-                    <div className="text-lg font-bold text-slate-500">{refuses}</div>
-                    <div className="text-[10px] font-semibold uppercase text-slate-500">Refusé{refuses !== 1 ? 's' : ''}</div>
-                  </div>
-                </div>
-
-                {/* Selected candidate banner */}
-                {hasSel && selectedCand && (
-                  <div className="flex items-center gap-3 rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <span className="text-sm font-bold text-emerald-900">{selectedCand.prenom} {selectedCand.nom}</span>
-                      <span className="ml-2 text-xs text-emerald-700">Locataire retenu</span>
-                    </div>
-                    <Btn variant="primary" className="shrink-0 text-xs py-1.5 px-3" onClick={() => { onClose(); onGoToContract(bien.id, selectedCand.id); }}>
-                      <FileSignature className="h-3.5 w-3.5" /> Bail
-                    </Btn>
-                  </div>
-                )}
-
-                {/* Candidate list */}
-                {sortedCandidats.length > 0 ? (
-                  <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
-                    {sortedCandidats.map((d) => (
-                      <button
-                        key={d.id}
-                        type="button"
-                        disabled={d.isSealed}
-                        onClick={() => { if (!d.isSealed) onSelectCandidate(d); }}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {d.isSealed
-                          ? <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100"><Lock className="h-4 w-4 text-slate-400" /></div>
-                          : <Avatar name={`${d.prenom} ${d.nom}`} id={d.id} size="sm" />
-                        }
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-slate-900">
-                            {d.isSealed ? (d.sealedLabel || 'Profil scellé') : `${d.prenom} ${d.nom}`}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span>{d.contrat}</span>
-                            {d.statut === 'selectionne' && <span className="font-semibold text-emerald-600">Retenu</span>}
-                          </div>
-                        </div>
-                        {!d.isSealed && (
-                          <div className="flex items-center gap-2 shrink-0">
-                            <GuaranteeBadge mode={d.guaranteeMode} short />
-                            <ScorePill score={d.score} />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center">
-                    <Users className="mx-auto h-8 w-8 text-slate-300 mb-3" />
-                    <p className="text-sm text-slate-500">Aucune candidature reçue.</p>
-                    {bien.applyToken && !bien.isRented && (
-                      <p className="mt-1 text-xs text-slate-400">Partagez le lien Sésame pour recevoir des dossiers.</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Select tenant action */}
-                {!hasSel && candidats.filter((d) => !d.isSealed).length > 0 && (
-                  <Btn variant="amber" className="w-full" onClick={() => { onClose(); onOpenTunnel(); }}>
-                    Sélectionner un locataire
-                  </Btn>
-                )}
-              </div>
+            {onDeleteProperty && (
+              <button
+                type="button"
+                onClick={onDeleteProperty}
+                aria-label="Archiver le bien"
+                className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+              >
+                <Archive className="h-4 w-4" />
+              </button>
             )}
-
-            {/* ─── DOCUMENTS & GESTION ─────────────────────────────── */}
-            {tab === 'docs' && (
-              <div className="space-y-5">
-                {/* Uploader */}
-                <DocumentUploader propertyId={bien.id} onUploaded={refreshMgmt} />
-
-                {/* Coffre-fort documentaire */}
-                <div>
-                  <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    Coffre-fort documentaire
-                  </div>
-                  {mgmtLoading ? (
-                    <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 py-8">
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-amber-500" />
-                    </div>
-                  ) : vaultDocs.length > 0 ? (
-                    <div className="space-y-2">
-                      {vaultDocs.map((doc) => {
-                        const expired = isExpired(doc.expirationDate);
-                        return (
-                          <div key={doc.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-slate-900 truncate">{doc.label}</span>
-                                {expired && (
-                                  <span className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
-                                    Expiré
-                                  </span>
-                                )}
-                              </div>
-                              <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400 flex-wrap">
-                                {doc.fileName && <span className="truncate max-w-[220px]">{doc.fileName}</span>}
-                                {doc.uploadedAt && <span>· {formatDateFR(doc.uploadedAt)}</span>}
-                                {doc.size ? <span>· {formatBytes(doc.size)}</span> : null}
-                                {doc.expirationDate && !expired && (
-                                  <span>· Expire le {formatDateFR(doc.expirationDate)}</span>
-                                )}
-                                {!doc.uploadedAt && <span className="capitalize">{doc.status}</span>}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {doc.downloadUrl ? (
-                                <a href={doc.downloadUrl} download={doc.fileName || undefined}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                                  <Download className="h-3.5 w-3.5" /> Télécharger
-                                </a>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
-                                  <Lock className="h-3.5 w-3.5" /> En attente
-                                </span>
-                              )}
-                              {doc.deletable && doc.rawId && (
-                                <button type="button"
-                                  aria-label="Supprimer"
-                                  onClick={async () => {
-                                    if (!window.confirm('Supprimer ce document ?')) return;
-                                    try {
-                                      const res = await fetch(`/api/owner/properties/${bien.id}/documents/${doc.rawId}`, { method: 'DELETE' });
-                                      if (res.ok) refreshMgmt();
-                                    } catch { /* silent */ }
-                                  }}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-8 text-center">
-                      <FileText className="mx-auto h-7 w-7 text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-500">Aucun document.</p>
-                      <p className="mt-1 text-xs text-slate-400">Téléversez vos documents ci-dessus.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Raccourcis */}
-                <div>
-                  <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    Raccourcis
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {mgmt?.leaseId ? (
-                      <a href={`/dashboard/owner/edl/${mgmt.leaseId}`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                        <ScrollText className="h-4 w-4 text-slate-400" />
-                        État des lieux
-                      </a>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 cursor-not-allowed">
-                        <ScrollText className="h-4 w-4" />
-                        EDL (sans bail actif)
-                      </span>
-                    )}
-                    <button type="button" onClick={onClose}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                      <FileSignature className="h-4 w-4 text-slate-400" />
-                      Baux &amp; Signatures
-                    </button>
-                  </div>
-                </div>
-
-                {/* Info gestion si loué */}
-                {showTenant && ms && (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <User className="h-4 w-4 text-emerald-600" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Gestion locative</span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <InfoItem label="Locataire" value={ms.tenantLabel || '—'} />
-                      <InfoItem label="Bail" value={ms.leaseStatusLabel || '—'} />
-                      <InfoItem label="Prochaine échéance" value={ms.nextMilestone || 'Aucune'} />
-                      <InfoItem label="Signature" value={mgmt?.signatureStatus || '—'} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer"
+              className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
+        </header>
 
-          {/* ── FOOTER ─────────────────────────────────────────────── */}
-          <div className="border-t border-slate-100 px-4 py-3 pb-safe md:px-6 flex items-center justify-between gap-2">
-            <div className="hidden text-xs text-slate-400 sm:block">
-              {bien.surface > 0 && <span>{bien.surface} m²</span>}
-              {bien.surface > 0 && bien.loyer > 0 && <span> · </span>}
-              {bien.loyer > 0 && <span>{bien.loyer.toLocaleString('fr-FR')} €/mois</span>}
-            </div>
-            <div className="flex flex-1 gap-2 sm:flex-none">
-              <Btn variant="secondary" onClick={onClose} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">Fermer</Btn>
-              {hasSel && selectedCand ? (
-                <Btn variant="primary" onClick={() => { onClose(); onGoToContract(bien.id, selectedCand.id); }} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">
-                  <FileSignature className="h-3.5 w-3.5" /> Rédiger le bail
-                </Btn>
-              ) : !hasSel && candidats.filter((d) => !d.isSealed).length > 0 ? (
-                <Btn variant="amber" onClick={() => { onClose(); onOpenTunnel(); }} className="flex-1 text-xs py-2.5 px-4 min-h-[44px] sm:flex-none">
-                  Sélectionner un locataire
-                </Btn>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-// ── Subcomponents ────────────────────────────────────────────────────────────
-
-function KPI({ label, value, small, children }: { label: string; value: string; small?: boolean; children?: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center">
-      <div className={`font-bold text-slate-900 ${small ? 'text-sm' : 'text-lg'}`}>{value}</div>
-      <div className="mt-0.5 text-[10px] font-semibold uppercase text-slate-500">{label}</div>
-      {children && <div className="mt-1">{children}</div>}
-    </div>
-  );
-}
-
-function DocumentUploader({ propertyId, onUploaded }: { propertyId: string; onUploaded: () => void }) {
-  const [type, setType] = useState<string>('BAIL');
-  const [file, setFile] = useState<File | null>(null);
-  const [expirationDate, setExpirationDate] = useState<string>('');
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const reset = () => {
-    setFile(null);
-    setExpirationDate('');
-    setError(null);
-    if (inputRef.current) inputRef.current.value = '';
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!file) { setError('Choisissez un fichier'); return; }
-    if (file.size > 10 * 1024 * 1024) { setError('Fichier trop volumineux (max 10 Mo)'); return; }
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('type', type);
-      if (expirationDate) fd.append('expirationDate', expirationDate);
-
-      const res = await fetch(`/api/owner/properties/${propertyId}/documents`, {
-        method: 'POST',
-        body: fd,
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        setError(json.error || 'Erreur lors du téléversement');
-        return;
-      }
-      reset();
-      onUploaded();
-    } catch {
-      setError('Erreur réseau — veuillez réessayer');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const showExpiration = TYPES_WITH_EXPIRATION.has(type);
-
-  return (
-    <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Upload className="h-4 w-4 text-amber-500" />
-        <span className="text-sm font-bold text-slate-900">Ajouter un document</span>
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Type</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            disabled={uploading}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-amber-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100"
+        {/* Body scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          {/* HERO */}
+          <motion.section
+            {...sectionTransition(0)}
+            className="border-b border-slate-100 bg-gradient-to-b from-slate-50/70 to-white px-4 py-5 md:px-6 md:py-6"
           >
-            {UPLOAD_DOC_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Fichier (PDF/Image, 10 Mo max)</label>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf,image/jpeg,image/png,image/webp"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            disabled={uploading}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-amber-700 hover:file:bg-amber-200"
-          />
-        </div>
-        {showExpiration && (
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Date d&apos;expiration (optionnel)</label>
-            <input
-              type="date"
-              value={expirationDate}
-              onChange={(e) => setExpirationDate(e.target.value)}
-              disabled={uploading}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-amber-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-100 sm:max-w-xs"
-            />
-          </div>
-        )}
-      </div>
-      {error && (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
-      )}
-      <div className="mt-3 flex justify-end">
-        <button
-          type="submit"
-          disabled={uploading || !file}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {uploading ? (
-            <>
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              Téléversement…
-            </>
-          ) : (
-            <>
-              <Upload className="h-3.5 w-3.5" />
-              Téléverser
-            </>
-          )}
-        </button>
-      </div>
-    </form>
-  );
-}
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-700">
+              Mon bien
+            </p>
+            <h1 className="mt-1 font-serif text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              {bien.label}
+            </h1>
+            {bien.adresse && (
+              <p className="mt-1 text-sm text-slate-500">{bien.adresse}</p>
+            )}
+            <ul className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-slate-700">
+              <li>
+                <strong className="font-serif text-base text-emerald-700">{formatPrice(bien.loyer)}</strong>
+                <span className="text-slate-500"> /mois</span>
+              </li>
+              {bien.charges !== undefined && bien.charges > 0 && (
+                <li className="text-slate-500">
+                  Charges <strong className="text-slate-700">{formatPrice(bien.charges)}</strong>
+                </li>
+              )}
+              {bien.surface > 0 && (
+                <li className="text-slate-500">
+                  <strong className="text-slate-700">{bien.surface}</strong> m²
+                </li>
+              )}
+              {bien.rooms ? (
+                <li className="text-slate-500">
+                  <strong className="text-slate-700">{bien.rooms}</strong> pièces
+                </li>
+              ) : null}
+              {bien.floor !== null && bien.floor !== undefined && (
+                <li className="text-slate-500">Étage {bien.floor}</li>
+              )}
+            </ul>
+            {flow?.summary && (
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+                {flow.summary}
+              </p>
+            )}
+          </motion.section>
 
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[10px] font-semibold uppercase text-slate-400">{label}</div>
-      <div className="text-sm font-semibold text-slate-900">{value}</div>
-    </div>
+          {/* SÉSAME CARD + KPI */}
+          <motion.section
+            {...sectionTransition(0.05)}
+            className="space-y-4 px-4 py-5 md:px-6 md:py-6"
+          >
+            <PropertySesameCard applyToken={bien.applyToken} variant="hero" />
+            <div className="grid grid-cols-3 gap-3">
+              <KpiTile
+                label="Candidatures"
+                value={String(candidats.length)}
+              />
+              <KpiTile
+                label="Top score"
+                value={topScore > 0 ? `${topScore}/100` : '—'}
+                highlight={topScore >= 75}
+              />
+              <KpiTile
+                label="Statut"
+                value={bien.flowStageLabel || 'Recherche'}
+              />
+            </div>
+          </motion.section>
+
+          {/* TOP CANDIDATS ou EMPTY STATE */}
+          {top3.length > 0 ? (
+            <motion.section
+              {...sectionTransition(0.1)}
+              className="border-t border-slate-100 px-4 py-5 md:px-6 md:py-6"
+            >
+              <SectionHeader
+                eyebrow="Analyse IA"
+                title="Vos meilleurs candidats"
+                description="Triés par Indice de Résilience sur ce bien."
+                actions={
+                  candidats.length > 3 ? (
+                    <span className="rounded-pill bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                      {candidats.length} au total
+                    </span>
+                  ) : undefined
+                }
+                className="mb-4"
+              />
+              <div className="grid gap-4 md:grid-cols-3">
+                {top3.map((c, i) => (
+                  <TopCandidateCard
+                    key={c.id}
+                    rank={(i + 1) as 1 | 2 | 3}
+                    candidate={c}
+                    bien={bien}
+                    onOpenAudit={onSelectCandidate}
+                  />
+                ))}
+              </div>
+            </motion.section>
+          ) : (
+            <motion.section
+              {...sectionTransition(0.1)}
+              className="border-t border-slate-100 px-4 py-8 md:px-6 md:py-10"
+            >
+              <div className="mx-auto flex max-w-md flex-col items-center text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <Inbox className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <h3 className="font-serif text-lg font-bold text-slate-900">
+                  Aucune candidature pour ce bien
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                  Partagez le {PRODUCT.SESAME} ci-dessus sur LeBonCoin, WhatsApp ou par email
+                  pour recevoir vos premiers dossiers analysés par l'IA.
+                </p>
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />
+                  En 24h, 78 % des dossiers reçoivent un Grade A ou B
+                </p>
+              </div>
+            </motion.section>
+          )}
+
+          {/* CTA SÉLECTION */}
+          {top3.length > 0 && !bien.isRented && !hasSelected && (
+            <motion.section
+              {...sectionTransition(0.15)}
+              className="border-t border-slate-100 px-4 py-5 md:px-6 md:py-6"
+            >
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={onOpenTunnel}
+                iconLeft={<Crown className="h-4 w-4" />}
+                iconRight={<ArrowRight className="h-4 w-4" />}
+              >
+                Lancer le tunnel de sélection
+              </Button>
+              <p className="mt-2 text-center text-xs text-slate-500">
+                Comparez les profils côte à côte et sélectionnez votre futur locataire.
+              </p>
+            </motion.section>
+          )}
+
+          {/* Confirmation sélectionné */}
+          {hasSelected && !bien.isRented && (
+            <motion.section
+              {...sectionTransition(0.15)}
+              className="border-t border-slate-100 px-4 py-5 md:px-6 md:py-6"
+            >
+              <div className="flex items-start gap-3 rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+                <TrendingUp className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-serif text-base font-bold text-emerald-900">
+                    Un candidat est déjà sélectionné
+                  </p>
+                  <p className="mt-0.5 text-xs text-emerald-800">
+                    Vous pouvez relancer le tunnel de sélection pour comparer ou changer.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={onOpenTunnel}>
+                  Tunnel
+                </Button>
+              </div>
+            </motion.section>
+          )}
+        </div>
+
+        {/* Footer sticky */}
+        <footer
+          className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-100 bg-white/95 px-4 py-3 backdrop-blur md:px-6 md:py-4"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0.75rem)' }}
+        >
+          {onEditProperty && (
+            <Button variant="outline" size="md" onClick={onEditProperty} iconLeft={<Pencil className="h-3.5 w-3.5" />}>
+              Modifier le bien
+            </Button>
+          )}
+          <Button variant="ghost" size="md" onClick={onClose}>
+            Fermer
+          </Button>
+        </footer>
+      </motion.div>
+    </AnimatePresence>
   );
 }
