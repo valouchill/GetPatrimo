@@ -52,3 +52,6 @@ export type {
   AiReportMetrics,
   AiReportStatus,
 } from "./CandidateAiReport";
+
+export { TenantCard, TenantCardDemo } from "./TenantCard";
+export type { TenantCardProps, TenantCardData } from "./TenantCard";
