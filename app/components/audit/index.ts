@@ -55,3 +55,9 @@ export type {
 
 export { TenantCard, TenantCardDemo } from "./TenantCard";
 export type { TenantCardProps, TenantCardData } from "./TenantCard";
+
+export { CandidaturesStackView, CandidaturesStackViewDemo } from "./CandidaturesStackView";
+export type {
+  CandidaturesStackViewProps,
+  StackCandidate,
+} from "./CandidaturesStackView";
