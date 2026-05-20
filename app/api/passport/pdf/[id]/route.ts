@@ -6,9 +6,7 @@ import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 import QRCode from 'qrcode';
-import React from 'react';
-import { renderToBuffer } from '@react-pdf/renderer';
-import { PassportPDFDocument } from '@/app/components/PassportPDF';
+import { generatePassportPdf } from '@/lib/passport-pdf-service';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildPassportViewModel, ensurePassportSlug } = require('@/src/utils/passportViewModel');
 
@@ -60,21 +58,23 @@ export async function GET(
     const qrCodeDataUrl = await QRCode.toDataURL(
       passport.shareEnabled ? passport.shareUrl : passport.previewUrl,
       {
-      width: 200,
-      margin: 2,
-      color: {
-        dark: '#1A1A2E',
-        light: '#FFFFFF',
-      },
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#064E3B', // Emerald 900 (cohérent palette PDF)
+          light: '#FFFFFF',
+        },
       },
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfElement = React.createElement(PassportPDFDocument, {
+    // V4.2 — Génération via WeasyPrint (HTML/CSS complet) au lieu de
+    // @react-pdf/renderer. Le HTML est construit dans
+    // lib/passport-html-template.ts puis rendu par scripts/generate_passport_pdf.py.
+    const pdfBuffer = await generatePassportPdf({
       data: passport,
       qrCodeDataUrl,
-    }) as any;
-    const pdfBuffer = await renderToBuffer(pdfElement);
+      ownerSignupUrl: passport.marketing?.ownerSignupUrl,
+    });
 
     const fileName = `Passeport_PatrimoTrust_${passport.hero.fullName || 'Dossier'}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
