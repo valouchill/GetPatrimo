@@ -424,24 +424,15 @@ export default function CandidateAuditClient({
 
           {/* Desktop actions */}
           <ActionBar className="gap-2 lg:flex-col lg:items-end">
-            {candidate.passport?.previewUrl || candidate.passport?.shareUrl ? (
-              <button
-                type="button"
-                onClick={() => window.open(candidate.passport?.previewUrl || candidate.passport?.shareUrl || '', '_blank', 'noopener,noreferrer')}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Voir le Passeport Locatif
-              </button>
-            ) : null}
             {candidate.passport?.downloadUrl && (
               <button
                 type="button"
                 onClick={() => window.open(candidate.passport?.downloadUrl || '', '_blank', 'noopener,noreferrer')}
-                className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+                className="inline-flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100"
+                title="Télécharger le Passeport Locatif au format PDF"
               >
                 <ExternalLink className="h-4 w-4" />
-                Télécharger le PDF
+                Télécharger le Passeport Locatif (PDF)
               </button>
             )}
             {isEnabled('LEASES') && !isSealed && isOwnerSelected && (
@@ -513,12 +504,12 @@ export default function CandidateAuditClient({
               primaryActionLabel="Choisir ce candidat"
               onPrimary={!isOwnerSelected && canChangeSelection ? handleChoose : undefined}
               primaryLoading={selectionBusy}
-              secondaryActionLabel={candidate.passport?.previewUrl ? 'Voir le Passeport Locatif' : undefined}
+              secondaryActionLabel={candidate.passport?.downloadUrl ? 'Télécharger le Passeport Locatif (PDF)' : undefined}
               onSecondary={
-                candidate.passport?.previewUrl
+                candidate.passport?.downloadUrl
                   ? () =>
                       window.open(
-                        candidate.passport?.previewUrl || '',
+                        candidate.passport?.downloadUrl || '',
                         '_blank',
                         'noopener,noreferrer',
                       )
