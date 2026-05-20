@@ -90,7 +90,28 @@ export interface DocumentFile {
   suggestedName?: string;
   isRenamed?: boolean;
   category: string;
-  status: 'scanning' | 'ANALYZING' | 'CERTIFIED' | 'NEEDS_REVIEW' | 'REJECTED' | 'ILLEGIBLE' | 'pending' | 'certified' | 'analyzing' | 'rejected' | 'illegible' | 'needs_review';
+  /**
+   * V4.1 — Enum strict SCREAMING_SNAKE.
+   * Anciennes variantes lowercase normalisées par normalizeDocumentStatus()
+   * dans lib/icon-system.ts. Le typage accepte les deux formes pendant la
+   * migration, mais le helper retourne toujours la version SCREAMING.
+   */
+  status:
+    | 'PENDING'
+    | 'ANALYZING'
+    | 'CERTIFIED'
+    | 'NEEDS_REVIEW'
+    | 'REJECTED'
+    | 'ILLEGIBLE'
+    | 'FLAGGED'
+    // Variantes legacy tolérées (normalisées au runtime)
+    | 'scanning'
+    | 'pending'
+    | 'certified'
+    | 'analyzing'
+    | 'rejected'
+    | 'illegible'
+    | 'needs_review';
   url?: string;
   confidenceScore?: number;
   fraudScore?: number;

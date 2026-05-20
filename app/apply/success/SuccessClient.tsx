@@ -5,8 +5,9 @@ import { useFetch } from '@/app/hooks/useFetch';
 import { useNotification } from '@/app/hooks/useNotification';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Copy, Download, Eye, Loader2, Send, Share2, X } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { sharePassportByEmail } from '@/app/actions/share-passport';
+// V4.1 — confetti retiré (effet décoratif gadget). Remplacé par une transition
+// douce sur le sceau "Passeport prêt" + animation CheckCircle2 d'entrée.
 import {
   ActionBar,
   MetricTile,
@@ -73,40 +74,12 @@ export default function SuccessClient({
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  // V4.1 — Confetti supprimé. Conservé comme no-op pour stabilité du hook
+  // useEffect dépendant et éviter le breaking change sur les appelants.
   const launchConfetti = useCallback(() => {
-    const duration = 2600;
-    const animationEnd = Date.now() + duration;
-    const colors = ['#0F766E', '#D97706', '#111827', '#14B8A6', '#FBBF24'];
-    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-    const interval = window.setInterval(() => {
-      const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) {
-        window.clearInterval(interval);
-        return;
-      }
-      const particleCount = 40 * (timeLeft / duration);
-      confetti({
-        particleCount: Math.floor(particleCount),
-        startVelocity: 26,
-        spread: 340,
-        origin: { x: randomInRange(0.08, 0.26), y: Math.random() - 0.2 },
-        colors,
-        ticks: 70,
-        gravity: 0.8,
-        scalar: 1.1,
-      });
-      confetti({
-        particleCount: Math.floor(particleCount),
-        startVelocity: 26,
-        spread: 340,
-        origin: { x: randomInRange(0.74, 0.92), y: Math.random() - 0.2 },
-        colors,
-        ticks: 70,
-        gravity: 0.8,
-        scalar: 1.1,
-      });
-    }, 240);
+    // Effet "wow" remplacé par les animations natives du sceau (rotate-once)
+    // et le CheckCircle2 d'entrée. Plus pro, plus banque privée.
+    return;
   }, []);
 
   useEffect(() => {

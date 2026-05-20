@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Brain, Send, FileText, Coins } from 'lucide-react';
 import { DocumentFile, AnalysisV2Result } from '../types';
 import { ShieldCheckIcon, AlertTriangleIcon, SparklesIcon, FileIcon } from './Icons';
+import { useReducedMotion } from '@/lib/motion';
 
 // --- Document Card avec Laser Scan ---
 export interface DocumentCardProps {
@@ -15,8 +17,9 @@ export interface DocumentCardProps {
 }
 
 export function DocumentCard({ file, showAmount = true, onDelete, onForceValidate, isDeleting = false }: DocumentCardProps) {
+  const reducedMotion = useReducedMotion();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const isAnalyzing = file.status === 'ANALYZING' || file.status === 'scanning';
+  const isAnalyzing = file.status === 'ANALYZING' || file.status === 'scanning' || file.status === 'analyzing';
   const hasInconsistency = file.inconsistencyDetected && !file.inconsistencyResolved;
   const isCertified = file.status === 'CERTIFIED' && !file.flagged && !hasInconsistency;
   const isNeedsReview = file.status === 'NEEDS_REVIEW';
@@ -46,10 +49,10 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8, y: -20 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+      transition={{ duration: reducedMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
       className={`group relative overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md ${
         isIllegible
           ? 'bg-amber-50 border-amber-300'
@@ -64,18 +67,9 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           : 'bg-white border-slate-200'
       }`}
     >
-      {/* Animation Laser Scan pendant l'analyse */}
-      <AnimatePresence>
-        {isAnalyzing && (
-          <motion.div
-            initial={{ top: '-100%' }}
-            animate={{ top: '100%' }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-            className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent z-10"
-            style={{ boxShadow: '0 0 20px 5px rgba(16, 185, 129, 0.4)' }}
-          />
-        )}
-      </AnimatePresence>
+      {/* V4.1 — Laser-scan supprimé (effet décoratif gadget, peu pertinent).
+          L'analyse en cours est signalée par le spinner + label "Analyse en cours"
+          (état CERTIFIED / ANALYZING géré par les classes de bordure ci-dessus). */}
 
       <div className="flex items-center gap-3 p-4">
         {/* Icône / Statut */}
@@ -220,9 +214,9 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
             <motion.p
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-xs font-bold text-emerald-600 mt-1"
+              className="text-xs font-bold text-emerald-600 mt-1 inline-flex items-center gap-1"
             >
-              💰 {extractedAmount.toLocaleString('fr-FR')}€ détectés
+              <Coins className="h-3 w-3" aria-hidden="true" /> {extractedAmount.toLocaleString('fr-FR')}€ détectés
             </motion.p>
           )}
         </div>
@@ -348,10 +342,10 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                     : 'text-red-700'
                 }`}>
                   {file.fraudScore <= 10
-                    ? '✅ Document authentique'
+                    ? 'Document authentique'
                     : file.fraudScore <= 50
-                    ? '⚠️ Incohérences mineures'
-                    : '🚨 Fraude suspectée'}
+                    ? 'Incohérences mineures'
+                    : 'Fraude suspectée'}
                 </p>
               </div>
             </div>
@@ -437,7 +431,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-50 rounded-xl border border-amber-200">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">🧠</span>
+                <Brain className="h-5 w-5 text-amber-700" aria-hidden="true" />
               </div>
               <div className="flex-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Expert PatrimoTrust</p>
@@ -445,8 +439,8 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                   {file.humanReviewReason || file.improvementTip || file.errorMessage || 'Document partiellement analysé. Une petite amélioration et c\'est parfait !'}
                 </p>
                 {file.extractedFields && file.extractedFields.length > 0 && (
-                  <p className="text-xs text-amber-700 mt-2">
-                    ✅ Déjà extrait : {file.extractedFields.join(', ')}
+                  <p className="text-xs text-amber-700 mt-2 inline-flex items-center gap-1">
+                    <ShieldCheckIcon className="h-3 w-3" /> Déjà extrait : {file.extractedFields.join(', ')}
                   </p>
                 )}
               </div>
@@ -481,8 +475,8 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           className="px-4 pb-3"
         >
           <div className="p-2 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-[10px] text-blue-700 flex items-center gap-1">
-              <span>📤</span>
+            <p className="text-[10px] text-blue-700 flex items-center gap-1.5">
+              <Send className="h-3 w-3" aria-hidden="true" />
               Document envoyé • Le propriétaire effectuera une vérification visuelle
             </p>
           </div>
@@ -498,7 +492,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 rounded-xl border border-red-200">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">📄</span>
+                <FileText className="h-5 w-5 text-red-700" aria-hidden="true" />
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-red-700 mb-1">Document non retenu</p>
@@ -521,7 +515,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
           <div className="p-4 bg-gradient-to-r from-amber-50 to-red-50 rounded-xl border border-amber-200">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">💁‍♀️</span>
+                <Brain className="h-5 w-5 text-amber-700" aria-hidden="true" />
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Conseil de l&apos;Expert</p>
