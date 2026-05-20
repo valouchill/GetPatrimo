@@ -44,7 +44,8 @@ FROM node:20-alpine AS production
 WORKDIR /opt/doc2loc
 
 # Runtime-only system deps (no compiler toolchain)
-# libreoffice-writer: DOCX → PDF conversion for lease contracts
+# - libreoffice-writer : DOCX → PDF conversion for lease contracts
+# - python3 + py3-pip + weasyprint deps : HTML/CSS → PDF (Passeport Locatif)
 RUN apk add --no-cache \
     cairo \
     jpeg \
@@ -59,7 +60,17 @@ RUN apk add --no-cache \
     curl \
     libreoffice-writer \
     libreoffice-common \
-    && fc-cache -fv
+    python3 \
+    py3-pip \
+    py3-cffi \
+    py3-brotli \
+    gcc \
+    musl-dev \
+    python3-dev \
+    && fc-cache -fv \
+    && pip3 install --no-cache-dir --break-system-packages \
+       'weasyprint==62.3' \
+    && apk del gcc musl-dev python3-dev
 
 # Copy everything from builder EXCEPT node_modules
 COPY --from=builder /opt/doc2loc/package*.json ./
@@ -75,6 +86,9 @@ COPY --from=builder /opt/doc2loc/.cursor ./.cursor
 COPY --from=builder /opt/doc2loc/scoring.js ./scoring.js
 COPY --from=builder /opt/doc2loc/scoringEngine.js ./scoringEngine.js
 COPY --from=builder /opt/doc2loc/scripts ./scripts
+
+# Marquer le script Python comme exécutable pour le subprocess Node.js
+RUN chmod +x /opt/doc2loc/scripts/generate_passport_pdf.py 2>/dev/null || true
 
 # Fresh production-only install (avoids npm prune --production bugs in npm 10+)
 RUN apk add --no-cache python3 make g++ pkgconfig \
