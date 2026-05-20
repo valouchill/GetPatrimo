@@ -8,7 +8,6 @@ import type { LocalDossier, LocalBien } from './ui';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import {
   DecisionVerdict,
-  verdictFromScore,
   ResilienceGauge,
   ForensicAuditCard,
   AIReasoningCard,
@@ -26,6 +25,7 @@ import {
   formatPrice,
 } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
+import { resolveVerdict } from '@/lib/verdict-system';
 
 export interface CandidateAuditModalProps {
   open: boolean;
@@ -71,8 +71,8 @@ export function CandidateAuditModal({
   if (!c || !bien) return null;
 
   const ratio = bien.loyer > 0 ? c.revenus / bien.loyer : 0;
-  // Phase U — Verdict serveur en source canonique, fallback verdictFromScore pour candidats anciens
-  const verdict = c.verdict ?? verdictFromScore(c.score, c.auditStatus);
+  // V4.1 — Verdict centralisé via resolveVerdict (privilégie serveur, fallback score)
+  const verdict = resolveVerdict(c);
   const reasonCodes = c.reasonCodes;
 
   // Stagger pour les sections du body
