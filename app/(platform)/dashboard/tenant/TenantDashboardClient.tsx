@@ -17,6 +17,7 @@ import {
   ClockIcon,
   EyeIcon,
 } from '@heroicons/react/24/solid';
+import { Crown, Download } from 'lucide-react';
 import {
   ActionBar,
   EmptyState,
@@ -202,6 +203,19 @@ export default function TenantDashboardClient({
                     <ArrowRightIcon className="w-4 h-4" />
                   </Link>
                 )}
+                {/* V4.1 — CTA téléchargement Passeport PDF (cohérent avec UI owner) */}
+                {app && app.tunnel.progress === 100 && app._id && (
+                  <a
+                    href={`/api/passport/pdf/${app._id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-6 ml-3 rounded-button border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-bold text-amber-800 hover:bg-amber-100 transition-colors"
+                    title="Télécharger mon Passeport Locatif PDF"
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                    Télécharger mon Passeport Locatif
+                  </a>
+                )}
               </div>
 
               {/* PatrimoMeter Badge */}
@@ -213,7 +227,11 @@ export default function TenantDashboardClient({
                   className={`w-32 h-32 ${gradeStyle.bg} rounded-3xl flex flex-col items-center justify-center shadow-2xl`}
                 >
                   <span className="text-white/80 text-xs font-bold uppercase tracking-wider">Grade</span>
-                  <span className="text-white text-5xl font-black">{grade === 'SOUVERAIN' ? '👑' : grade}</span>
+                  {grade === 'SOUVERAIN' ? (
+                    <Crown className="h-12 w-12 text-white" aria-hidden="true" />
+                  ) : (
+                    <span className="text-white text-5xl font-black">{grade}</span>
+                  )}
                 </motion.div>
                 <div className="mt-4 text-center">
                   <p className="text-2xl font-bold text-navy">{score}/100</p>

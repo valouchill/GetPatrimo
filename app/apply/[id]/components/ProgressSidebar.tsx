@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Shield, ShieldCheck, Lock, Star, Info } from 'lucide-react';
 import { DocumentFile, CertificationItem } from '../types';
 import { REQUIRED_DOCS_BY_PROFILE, ALL_CERTIFICATION_ITEMS } from '../constants';
+import { useReducedMotion } from '@/lib/motion';
 
 export interface ProgressSidebarProps {
   profile: 'Etudiant' | 'Salarie' | 'Independant' | 'Retraite';
@@ -14,6 +16,7 @@ export interface ProgressSidebarProps {
 }
 
 export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score, diditVerified }: ProgressSidebarProps) {
+  const reducedMotion = useReducedMotion();
   const profileDocs = REQUIRED_DOCS_BY_PROFILE[profile] || REQUIRED_DOCS_BY_PROFILE.Etudiant;
 
   const allFiles = [...uploadedFiles.identity, ...uploadedFiles.resources, ...uploadedFiles.guarantor];
@@ -35,14 +38,21 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
   const bilanCertifiedCount = allFiles.filter(f => f.status === 'CERTIFIED' && !f.flagged && isBilanFile(f)).length;
 
   const requiredCount = profileDocs.required.length + (diditVerified ? 1 : 0);
-  const satisfiedRequiredCount = profileDocs.required.filter(id => {
-    if (id === 'bilan_n1') return hasUrssaf || bilanCertifiedCount >= 1;
-    if (id === 'bilan_n2') return hasUrssaf || bilanCertifiedCount >= 2;
-    if (id === 'attestation_urssaf') return hasUrssaf || bilanCertifiedCount >= 2;
-    return certifiedItems.has(id);
-  }).length;
-  // Synchroniser la barre de progression avec le PatrimoMeter (score)
-  const completionPercent = score; // Harmonisation : progression = score PatrimoMeter
+  const satisfiedRequiredCount =
+    profileDocs.required.filter(id => {
+      if (id === 'bilan_n1') return hasUrssaf || bilanCertifiedCount >= 1;
+      if (id === 'bilan_n2') return hasUrssaf || bilanCertifiedCount >= 2;
+      if (id === 'attestation_urssaf') return hasUrssaf || bilanCertifiedCount >= 2;
+      return certifiedItems.has(id);
+    }).length + (diditVerified ? 1 : 0);
+
+  // V4.1 — DÉCOUPLAGE : la progression mesure le % de pièces requises certifiées,
+  // PAS le score résilience (qui reste un indicateur séparé via le PatrimoMeter).
+  // Ancien : completionPercent = score (trompeur — l'utilisateur voyait 50% sans uploader).
+  const docsCompletionPercent =
+    requiredCount > 0
+      ? Math.min(100, Math.round((satisfiedRequiredCount / requiredCount) * 100))
+      : 0;
 
   const isRequirementSatisfied = (itemId: string) => {
     if (itemId === 'bilan_n1') return hasUrssaf || bilanCertifiedCount >= 1;
@@ -74,26 +84,26 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-      {/* Header avec barre de complétion */}
+      {/* Header — Progression dossier (DÉCOUPLÉE du score résilience) */}
       <div className="p-4 bg-gradient-to-r from-navy to-slate-800">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-white font-bold text-sm">Progression du dossier</h3>
-          <span className="text-emerald-400 font-bold text-lg">{completionPercent}%</span>
+          <span className="text-emerald-400 font-bold text-lg">{docsCompletionPercent}%</span>
         </div>
         <div className="h-2 bg-white/20 rounded-full overflow-hidden">
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${completionPercent}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            initial={reducedMotion ? false : { width: 0 }}
+            animate={{ width: `${docsCompletionPercent}%` }}
+            transition={{ duration: reducedMotion ? 0 : 0.8, ease: 'easeOut' }}
             className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
           />
         </div>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-white/60 text-[10px] uppercase tracking-wider">
-            {certifiedCount} document{certifiedCount > 1 ? 's' : ''} certifié{certifiedCount > 1 ? 's' : ''}
+          <p className="text-white/70 text-[10px] uppercase tracking-wider">
+            {satisfiedRequiredCount}/{requiredCount} pièces certifiées
           </p>
-          <p className="text-white/40 text-[8px]">
-            Score : {score}/100
+          <p className="text-white/50 text-[9px] uppercase tracking-wider">
+            {certifiedCount} doc{certifiedCount > 1 ? 's' : ''} validé{certifiedCount > 1 ? 's' : ''}
           </p>
         </div>
       </div>
@@ -101,7 +111,7 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
       {/* Mention protection juridique */}
       <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
         <p className="text-[9px] text-slate-500 flex items-center gap-1.5">
-          <span>🔒</span>
+          <Lock className="h-3 w-3" aria-hidden="true" />
           <span>Données cryptées AES-256 • Secret professionnel PatrimoTrust</span>
         </p>
       </div>
@@ -110,14 +120,14 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
       <div className={`p-3 border-b ${diditVerified ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-100'}`}>
         <div className="flex items-center gap-3">
           <motion.div
-            animate={diditVerified ? { scale: [1, 1.2, 1] } : {}}
-            transition={{ duration: 0.3 }}
+            animate={reducedMotion || !diditVerified ? {} : { scale: [1, 1.2, 1] }}
+            transition={{ duration: reducedMotion ? 0 : 0.3 }}
             className={`w-8 h-8 rounded-full flex items-center justify-center ${
               diditVerified ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-md shadow-emerald-500/30' : 'bg-slate-200'
             }`}
           >
             {diditVerified ? (
-              <span className="text-white text-sm">🛡️</span>
+              <ShieldCheck className="h-4 w-4 text-white" aria-hidden="true" />
             ) : (
               <div className="w-4 h-4 border-2 border-slate-400 rounded-full" />
             )}
@@ -126,13 +136,19 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
             <p className={`text-sm font-medium ${diditVerified ? 'text-emerald-700' : 'text-slate-400'}`}>
               Identité certifiée Didit
             </p>
-            <p className={`text-[10px] ${diditVerified ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
-              {diditVerified ? '✓ Bloc Identité validé' : 'Bloc Identité 25 points'}
+            <p className={`text-[10px] inline-flex items-center gap-1 ${diditVerified ? 'text-emerald-600 font-medium' : 'text-slate-400'}`}>
+              {diditVerified ? (
+                <>
+                  <ShieldCheck className="h-3 w-3" aria-hidden="true" /> Bloc Identité validé
+                </>
+              ) : (
+                'Bloc Identité 25 points'
+              )}
             </p>
           </div>
           {diditVerified && (
             <motion.span
-              initial={{ scale: 0 }}
+              initial={reducedMotion ? false : { scale: 0 }}
               animate={{ scale: 1 }}
               className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full"
             >
@@ -141,8 +157,8 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
           )}
         </div>
         {!diditVerified && (
-          <p className="text-[9px] text-slate-400 mt-2 pl-11">
-            🔒 Zéro stockage de documents. Certification souveraine instantanée.
+          <p className="text-[9px] text-slate-400 mt-2 pl-11 inline-flex items-center gap-1">
+            <Lock className="h-3 w-3" aria-hidden="true" /> Zéro stockage de documents. Certification souveraine instantanée.
           </p>
         )}
       </div>
@@ -169,7 +185,7 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
                       className="flex items-center gap-3"
                     >
                       <motion.div
-                        animate={status === 'certified' ? { scale: [1, 1.3, 1] } : {}}
+                        animate={reducedMotion || status !== 'certified' ? {} : { scale: [1, 1.3, 1] }}
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
                           status === 'certified'
                             ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-md shadow-emerald-500/30'
@@ -178,7 +194,7 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
                             : 'bg-slate-100 border-2 border-slate-300'
                         }`}
                       >
-                        {status === 'certified' && <span className="text-white text-sm">🛡️</span>}
+                        {status === 'certified' && <ShieldCheck className="h-3.5 w-3.5 text-white" aria-hidden="true" />}
                         {status === 'pending' && <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />}
                       </motion.div>
                       <span className={`text-sm flex-1 ${
@@ -189,10 +205,10 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
                       {item.description && (
                         <span
                           title={item.description}
-                          className="text-[10px] text-slate-400 cursor-help"
+                          className="cursor-help text-slate-400"
                           aria-label={item.description}
                         >
-                          ℹ️
+                          <Info className="h-3 w-3" aria-hidden="true" />
                         </span>
                       )}
                     </motion.div>
@@ -211,8 +227,8 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
 
       {/* Documents optionnels (boost) */}
       <div className="p-3 bg-gradient-to-b from-amber-50 to-white border-t border-amber-100">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-3 flex items-center gap-1">
-          <span>⭐</span> Boostez votre score
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-3 flex items-center gap-1.5">
+          <Star className="h-3 w-3" aria-hidden="true" /> Boostez votre score
         </p>
         <div className="space-y-2">
           {profileDocs.boost.map(boost => {
