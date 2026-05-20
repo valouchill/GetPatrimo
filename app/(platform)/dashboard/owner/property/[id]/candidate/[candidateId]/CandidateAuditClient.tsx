@@ -29,9 +29,9 @@ import {
   StatusBadge,
   TimelineBlock,
 } from '@/app/components/ui/premium';
+import { resolveVerdict } from '@/lib/verdict-system';
 import {
   DecisionVerdict,
-  verdictFromScore,
   ResilienceGauge,
   ForensicAuditCard,
   AIReasoningCard,
@@ -488,13 +488,11 @@ export default function CandidateAuditClient({
         <>
           <div className="grid gap-4 lg:grid-cols-[1fr_minmax(0,280px)]">
             <DecisionVerdict
-              verdict={
-                (candidate.ownerInsights?.decisionSummary as { verdict?: 'recommended' | 'review' | 'risky' } | undefined)?.verdict ??
-                verdictFromScore(
-                  Number(candidate.patrimometer?.score || 0),
-                  candidate.ownerInsights?.aiAudit?.status,
-                )
-              }
+              verdict={resolveVerdict({
+                ownerInsights: candidate.ownerInsights as { decisionSummary?: { verdict?: 'recommended' | 'review' | 'risky' } } | null,
+                score: Number(candidate.patrimometer?.score || 0),
+                auditStatus: candidate.ownerInsights?.aiAudit?.status,
+              })}
               reasonCodes={(candidate.ownerInsights?.decisionSummary as { reasonCodes?: string[] } | undefined)?.reasonCodes}
               headline={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
               summary={

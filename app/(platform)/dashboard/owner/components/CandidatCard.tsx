@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Lock, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { ScorePill, GradeBadge, Tag, GuaranteeBadge, Btn, Avatar, Bar } from './ui';
 import type { LocalDossier, LocalBien, TagType } from './ui';
 import { AUDIT_SHORT, formatResilience, formatPrice, PRODUCT } from '@/lib/product-lexicon';
@@ -58,14 +58,18 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
             <Tag type={c.contrat === 'CDI' || c.contrat === 'Fonctionnaire' ? 'green' : 'amber'}>{c.contrat}</Tag>
             <GuaranteeBadge mode={c.guaranteeMode} short />
             {c.auditStatus === 'CLEAR' && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                <ShieldCheck className="h-3 w-3" /> {PRODUCT.AUDIT} ✓
+              <span className="inline-flex items-center gap-1 rounded-pill bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                <ShieldCheck className="h-3 w-3" aria-hidden="true" /> {PRODUCT.AUDIT}
               </span>
             )}
-            {c.contractReady && <Tag type="green">✓ Prêt à signer</Tag>}
+            {c.contractReady && (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                <ShieldCheck className="h-3 w-3" aria-hidden="true" /> Prêt à signer
+              </span>
+            )}
             {c.isTop3 && c.guaranteeMode !== 'VISALE' && c.guaranteeMode !== 'PHYSICAL' ? (
-              <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
-                Recommandé ⚠
+              <span className="inline-flex items-center gap-1 rounded-pill bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                <AlertTriangle className="h-3 w-3" aria-hidden="true" /> Recommandé
               </span>
             ) : c.isTop3 ? (
               <Tag type="green">Recommandé</Tag>
@@ -96,7 +100,7 @@ export function CandidatCard({ c, bien, onSelect, onDetail, compareMode, inCompa
             className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
               inCompare ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
             }`}>
-            {inCompare ? '✓ Sélectionné' : 'Ajouter'}
+            {inCompare ? 'Sélectionné' : 'Ajouter'}
           </button>
         ) : (
           <>
@@ -130,7 +134,7 @@ export function CompareView({ ids, candidats, bien, onSelect }: {
     { label: 'Garantie',      fn: (c) => <GuaranteeBadge mode={c.guaranteeMode} /> },
     { label: 'Qualité',       fn: (c) => <span className={(c.qualityScore ?? 0) >= 70 ? 'font-semibold text-emerald-600' : 'text-amber-600'}>{c.qualityScore ?? '—'}/100</span> },
     { label: 'Audit Forensic',      fn: (c) => <Tag type={c.auditStatus === 'CLEAR' ? 'green' : c.auditStatus === 'ALERT' ? 'red' : 'amber'}>{c.auditStatus === 'CLEAR' ? 'Validé' : c.auditStatus === 'ALERT' ? 'Alerte' : 'En cours'}</Tag> },
-    { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? '✓ Oui' : '—'}</span> },
+    { label: 'Prêt à signer', fn: (c) => <span className={c.contractReady ? 'font-semibold text-emerald-600' : 'text-slate-400'}>{c.contractReady ? 'Oui' : '—'}</span> },
   ];
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">

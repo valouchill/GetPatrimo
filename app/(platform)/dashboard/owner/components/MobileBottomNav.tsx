@@ -99,7 +99,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
               type="button"
               onClick={() => onNavigate(id)}
               className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-                active ? 'text-amber-500' : 'text-slate-400'
+                active ? 'text-primary' : 'text-slate-400'
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
             type="button"
             onClick={() => setMoreOpen(true)}
             className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
-              isMoreActive ? 'text-amber-500' : 'text-slate-400'
+              isMoreActive ? 'text-primary' : 'text-slate-400'
             }`}
           >
             <MoreHorizontal className="h-5 w-5" />

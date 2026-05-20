@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileSignature, X } from 'lucide-react';
+import { FileSignature, X, Lock, Crown, AlertTriangle, ShieldCheck } from 'lucide-react';
 import {
   StepBar,
   Btn,
@@ -106,7 +106,7 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
               )}
               {unlockedCands.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                  <div className="mb-3 text-4xl">🔒</div>
+                  <Lock className="mx-auto mb-3 h-10 w-10 text-slate-400" aria-hidden="true" />
                   <p className="text-slate-500">Aucun dossier déverrouillé pour ce bien.</p>
                   <p className="mt-2 text-xs text-slate-400">Déverrouillez les candidatures depuis la fiche du bien.</p>
                 </div>
@@ -143,7 +143,9 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
           {step === 2 && selected && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-lg">
               <div className="mb-8 text-center">
-                <div className="mb-3 text-5xl">🏆</div>
+                <div className="mx-auto mb-3 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-amber">
+                  <Crown className="h-7 w-7" aria-hidden="true" />
+                </div>
                 <h2 className="font-serif text-2xl font-bold text-slate-950">Confirmer la sélection</h2>
                 <p className="mt-2 text-sm text-slate-500">Cette action notifiera automatiquement tous les candidats</p>
               </div>
@@ -173,22 +175,25 @@ function TunnelSelection({ bien, candidats, onClose, onConfirmed, onGoToContract
                   ))}
                 </div>
                 {selected.contractReady && (
-                  <div className="mt-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
-                    ✓ Prêt à contracter · Dossier validé
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Prêt à contracter · Dossier validé
                   </div>
                 )}
               </div>
               {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
               {selected.guaranteeMode === 'NONE' || !selected.guaranteeMode ? (
                 <div className="mb-4 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
-                  <div className="mb-1 text-sm font-bold text-amber-800">⚠ Candidat sans garant</div>
+                  <div className="mb-1 inline-flex items-center gap-2 text-sm font-bold text-amber-800">
+                    <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Candidat sans garant
+                  </div>
                   <p className="text-sm text-amber-700">
                     Ce candidat n'a pas de garant (ni Visale, ni garant physique). Souhaitez-vous continuer la sélection ?
                   </p>
                 </div>
               ) : null}
-              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                ⚠ Les autres candidats seront notifiés automatiquement par e-mail.
+              <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                Les autres candidats seront notifiés automatiquement par e-mail.
               </div>
               <div className="flex gap-3">
                 <Btn variant="secondary" onClick={() => setStep(0)} className="flex-1">← Retour</Btn>

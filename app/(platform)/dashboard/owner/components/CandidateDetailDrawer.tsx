@@ -21,12 +21,12 @@ import { AUDIT_LABELS, PRODUCT, formatResilience, formatPrice, GRADE_LABELS, get
 import type { AuditStatus } from '@/lib/product-lexicon';
 import {
   DecisionVerdict,
-  verdictFromScore,
   ForensicAuditCard,
   AIReasoningCard,
   RemainingIncomeChart,
   CertificationRow,
 } from '@/app/components/audit';
+import { resolveVerdict } from '@/lib/verdict-system';
 
 // ── Stage labels (local copy) ─────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
 
           {/* Verdict d'audit en hero */}
           <DecisionVerdict
-            verdict={c.verdict ?? verdictFromScore(c.score, c.auditStatus)}
+            verdict={resolveVerdict(c)}
             headline={GRADE_LABELS[getGrade(c.score)]}
             summary={c.decisionHeadline || c.auditSummary}
             reasonCodes={c.reasonCodes}

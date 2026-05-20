@@ -2,16 +2,16 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, ShieldCheck, AlertTriangle, AlertOctagon, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Avatar, GradeBadge } from "./ui";
 import type { LocalDossier, LocalBien } from "./ui";
 import {
   ResilienceGauge,
   CertificationRow,
-  verdictFromScore,
 } from "@/app/components/audit";
 import { PRODUCT, formatPrice, GRADE_LABELS, getGrade } from "@/lib/product-lexicon";
 import { labelForReason } from "@/lib/verdict-reasons";
+import { VERDICT_STYLES, resolveVerdict } from "@/lib/verdict-system";
 
 export interface TopCandidateCardProps {
   rank: 1 | 2 | 3;
@@ -21,36 +21,6 @@ export interface TopCandidateCardProps {
   className?: string;
 }
 
-const VERDICT_STYLES = {
-  recommended: {
-    icon: ShieldCheck,
-    iconBg: "bg-emerald-50",
-    iconText: "text-emerald-700",
-    label: "Recommandé",
-    badgeBg: "bg-emerald-50",
-    badgeText: "text-emerald-700",
-    badgeRing: "ring-emerald-200",
-  },
-  review: {
-    icon: AlertTriangle,
-    iconBg: "bg-amber-50",
-    iconText: "text-amber-700",
-    label: "À vérifier",
-    badgeBg: "bg-amber-50",
-    badgeText: "text-amber-700",
-    badgeRing: "ring-amber-200",
-  },
-  risky: {
-    icon: AlertOctagon,
-    iconBg: "bg-red-50",
-    iconText: "text-red-700",
-    label: "Risqué",
-    badgeBg: "bg-red-50",
-    badgeText: "text-red-700",
-    badgeRing: "ring-red-200",
-  },
-} as const;
-
 export function TopCandidateCard({
   rank,
   candidate: c,
@@ -58,7 +28,8 @@ export function TopCandidateCard({
   onOpenAudit,
   className = "",
 }: TopCandidateCardProps) {
-  const verdict = c.verdict || verdictFromScore(c.score, c.auditStatus);
+  // V4.1 : verdict centralisé via resolveVerdict (privilégie serveur)
+  const verdict = resolveVerdict(c);
   const v = VERDICT_STYLES[verdict];
   const Icon = v.icon;
   const grade = getGrade(c.score);
