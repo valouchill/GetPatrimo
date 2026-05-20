@@ -37,6 +37,32 @@ export const colors = {
   borderMuted: "#F1F5F9",      // slate-100
 } as const;
 
+/**
+ * Tokens "verdict" — couleurs sémantiques par état du verdict propriétaire.
+ * Voir lib/verdict-system.ts pour VERDICT_STYLES (classes Tailwind).
+ * Ces hex sont utiles côté serveur (PDF, mails, SVG génériques).
+ */
+export const verdictColors = {
+  recommended: { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", dot: "#10B981" },
+  review:      { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", dot: "#F59E0B" },
+  risky:       { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", dot: "#DC2626" },
+  neutral:     { bg: "#F1F5F9", text: "#475569", border: "#E2E8F0", dot: "#94A3B8" },
+  premium:     { bg: "#0F1F1A", text: "#F8FAFC", border: "#F59E0B", dot: "#FCD34D" },
+} as const;
+
+/**
+ * Tokens "uploadState" — couleurs sémantiques par état d'un document
+ * dans le tunnel de dépôt /apply/[id].
+ */
+export const uploadStateColors = {
+  empty:      { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" },
+  drag:       { bg: "#FEF3C7", text: "#92400E", border: "#F59E0B" },
+  analyzing:  { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
+  certified:  { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" },
+  review:     { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A" },
+  rejected:   { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" },
+} as const;
+
 export const typography = {
   fontFamilySerif: "'Playfair Display', Merriweather, Georgia, serif",
   fontFamilySans: "'Inter', system-ui, -apple-system, sans-serif",

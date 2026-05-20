@@ -4,8 +4,9 @@ import * as React from "react";
 import { ShieldCheck, AlertTriangle, AlertOctagon } from "lucide-react";
 import { Button } from "@/app/components/ui";
 import { labelForReason } from "@/lib/verdict-reasons";
+import { verdictFromScore as verdictFromScoreShared, type ServerVerdict } from "@/lib/verdict-system";
 
-type Verdict = "recommended" | "review" | "risky";
+type Verdict = ServerVerdict;
 
 export interface DecisionVerdictProps {
   verdict: Verdict;
@@ -147,9 +148,8 @@ export function DecisionVerdict({
 
 /**
  * Helper : dérive le verdict d'un score d'Indice de Résilience + statut audit.
+ *
+ * Note V4.1 : la logique est désormais centralisée dans lib/verdict-system.ts.
+ * Cette fonction reste exportée pour rétrocompat (~5 imports existants).
  */
-export function verdictFromScore(score: number, auditStatus?: string): Verdict {
-  if (auditStatus === "ALERT" || score < 45) return "risky";
-  if (auditStatus === "REVIEW" || score < 70) return "review";
-  return "recommended";
-}
+export const verdictFromScore = verdictFromScoreShared;
