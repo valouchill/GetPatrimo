@@ -43,3 +43,12 @@ export type { PayslipsBreakdownProps, PayslipBreakdownItem } from "./PayslipsBre
 
 export { ReanalyzeButton } from "./ReanalyzeButton";
 export type { ReanalyzeButtonProps, ReanalyzeResult } from "./ReanalyzeButton";
+
+export { CandidateAiReport, CandidateAiReportDemo } from "./CandidateAiReport";
+export type {
+  CandidateAiReportProps,
+  AiReportCandidate,
+  AiReportCheck,
+  AiReportMetrics,
+  AiReportStatus,
+} from "./CandidateAiReport";
