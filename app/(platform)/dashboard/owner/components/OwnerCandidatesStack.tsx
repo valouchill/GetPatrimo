@@ -404,13 +404,14 @@ export function OwnerCandidatesStack({
         </div>
       )}
 
-      {/* Stack view */}
+      {/* Stack view — persistance localStorage par bien (V5.4) */}
       {activeBien && stackCandidates.length > 0 ? (
         <CandidaturesStackView
           key={activeBien.id}
           candidates={stackCandidates}
           onAccept={handleStackAccept}
           onReject={handleStackReject}
+          persistKey={`patrimo:stack:${activeBien.id}`}
         />
       ) : (
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12">

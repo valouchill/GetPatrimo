@@ -86,7 +86,69 @@ export interface CandidaturesStackViewProps {
   enableHistory?: boolean;
   /** Activer le click sur la carte → drawer (par défaut true) */
   enableDrawer?: boolean;
+  /**
+   * Clé de persistance localStorage (V5.4). Si fournie, l'historique des
+   * décisions est sauvegardé localement et les candidats déjà décidés
+   * (acceptés OU refusés) sont filtrés du stack au chargement.
+   *
+   * Format suggéré : "patrimo:stack:{bienId}" (par bien).
+   *
+   * Note : la décision finale "accept" est toujours posée côté serveur
+   * via le callback parent (POST /selection). Cette persistance locale
+   * permet juste de ne pas re-proposer les candidats déjà refusés au
+   * propriétaire après un reload / navigation.
+   */
+  persistKey?: string;
   className?: string;
+}
+
+// ─── Persistence helpers ─────────────────────────────────────────────────────
+
+interface PersistedState {
+  history: HistoryEntry[];
+  /** Version du schéma (pour migration future) */
+  v?: number;
+}
+
+function loadPersistedHistory(persistKey: string | undefined): HistoryEntry[] {
+  if (!persistKey || typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(persistKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as PersistedState;
+    if (Array.isArray(parsed.history)) {
+      // Valider la forme de chaque entrée
+      return parsed.history.filter(
+        (h) =>
+          h &&
+          typeof h.id === 'string' &&
+          typeof h.name === 'string' &&
+          (h.decision === 'accepted' || h.decision === 'rejected'),
+      );
+    }
+  } catch {
+    // Storage corrompu ou non-sérialisable — on ignore et repart de zéro
+  }
+  return [];
+}
+
+function savePersistedHistory(persistKey: string | undefined, history: HistoryEntry[]): void {
+  if (!persistKey || typeof window === 'undefined') return;
+  try {
+    const payload: PersistedState = { history, v: 1 };
+    window.localStorage.setItem(persistKey, JSON.stringify(payload));
+  } catch {
+    // Quota dépassé ou storage désactivé — on ignore (V1 best-effort)
+  }
+}
+
+function clearPersistedHistory(persistKey: string | undefined): void {
+  if (!persistKey || typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(persistKey);
+  } catch {
+    // ignore
+  }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -649,33 +711,56 @@ export function CandidaturesStackView({
   enableSwipe = true,
   enableHistory = true,
   enableDrawer = true,
+  persistKey,
   className = '',
 }: CandidaturesStackViewProps): React.ReactElement {
-  // ─── State management spec utilisateur ─────────────────────────────────
-  // 1. candidatesStack — pile mutable des candidats restants
-  const [candidatesStack, setCandidatesStack] = React.useState<StackCandidate[]>(candidates);
-  // 2. historyLog — décisions passées
-  const [historyLog, setHistoryLog] = React.useState<HistoryEntry[]>([]);
-  // 3. isDrawerOpen — drawer ouvert ou non
+  // ─── Initialisation depuis localStorage (V5.4) ─────────────────────────
+  // Si persistKey fourni, on hydrate l'historique depuis localStorage et
+  // on filtre les candidats déjà décidés (accept ou reject) du stack initial.
+  const computeInitialStack = React.useCallback(
+    (sourceCandidates: StackCandidate[], history: HistoryEntry[]): StackCandidate[] => {
+      if (history.length === 0) return sourceCandidates;
+      const decided = new Set(history.map((h) => h.id));
+      return sourceCandidates.filter((c) => !decided.has(c.id));
+    },
+    [],
+  );
+
+  // ─── State management ──────────────────────────────────────────────────
+  const [historyLog, setHistoryLog] = React.useState<HistoryEntry[]>(() =>
+    loadPersistedHistory(persistKey),
+  );
+  const [candidatesStack, setCandidatesStack] = React.useState<StackCandidate[]>(() =>
+    computeInitialStack(candidates, loadPersistedHistory(persistKey)),
+  );
   const [drawerCandidateId, setDrawerCandidateId] = React.useState<string | null>(null);
-  // Direction d'exit pour animation slide left/right
   const [exitDirection, setExitDirection] = React.useState<'left' | 'right' | null>(null);
 
   const isDrawerOpen = drawerCandidateId !== null;
 
-  // Si les candidates props changent (ex: changement de bien), on resync
-  // ATTENTION : on perd l'historique en cours — c'est intentionnel quand
-  // l'utilisateur change de bien.
-  const candidatesPropRef = React.useRef(candidates);
+  // Quand props.candidates OU persistKey changent (ex: changement de bien),
+  // on recharge l'historique persisté et on resynchronise le stack.
+  const initRef = React.useRef<{ candidates: StackCandidate[]; persistKey?: string }>({
+    candidates,
+    persistKey,
+  });
   React.useEffect(() => {
-    if (candidatesPropRef.current !== candidates) {
-      candidatesPropRef.current = candidates;
-      setCandidatesStack(candidates);
-      setHistoryLog([]);
-      setDrawerCandidateId(null);
-      setExitDirection(null);
-    }
-  }, [candidates]);
+    const changed =
+      initRef.current.candidates !== candidates ||
+      initRef.current.persistKey !== persistKey;
+    if (!changed) return;
+    initRef.current = { candidates, persistKey };
+    const persisted = loadPersistedHistory(persistKey);
+    setHistoryLog(persisted);
+    setCandidatesStack(computeInitialStack(candidates, persisted));
+    setDrawerCandidateId(null);
+    setExitDirection(null);
+  }, [candidates, persistKey, computeInitialStack]);
+
+  // Persistance localStorage : à chaque changement de historyLog
+  React.useEffect(() => {
+    savePersistedHistory(persistKey, historyLog);
+  }, [historyLog, persistKey]);
 
   // ─── Carte courante + behind cards ─────────────────────────────────────
   const current = candidatesStack[0];
@@ -732,12 +817,14 @@ export function CandidaturesStackView({
   );
 
   // ─── Reset / replay démo ───────────────────────────────────────────────
+  // Vide aussi la persistance localStorage (cohérence "rejouer la démo")
   const handleReset = React.useCallback(() => {
+    clearPersistedHistory(persistKey);
     setCandidatesStack(candidates);
     setHistoryLog([]);
     setDrawerCandidateId(null);
     setExitDirection(null);
-  }, [candidates]);
+  }, [candidates, persistKey]);
 
   // ─── Counters ──────────────────────────────────────────────────────────
   const total = candidates.length;
