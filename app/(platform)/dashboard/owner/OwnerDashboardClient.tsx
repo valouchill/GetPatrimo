@@ -35,6 +35,7 @@ import { AlertsPanel } from './components/AlertsPanel';
 import { PropertyFilters, type PropertyStatusFilter, type PropertySort, type PropertyView } from './components/PropertyFilters';
 import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
+import { OwnerCandidatesStack } from './components/OwnerCandidatesStack';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -400,30 +401,40 @@ export default function OwnerDashboardClient() {
           );
         })()}
 
-        {/* ─ CANDIDATURES ─ */}
+        {/* ─ CANDIDATURES (workflow Tinder-like via OwnerCandidatesStack) ─ */}
         {page === 'candidatures' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Candidatures</h1>
-                <p className="mt-1 text-sm text-slate-500">{allDossiers.length} dossier{allDossiers.length !== 1 ? 's' : ''} · Analyse IA activée · Pipeline</p>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
+                  Candidatures
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {allDossiers.filter((d) => !d.isSealed).length} dossier
+                  {allDossiers.filter((d) => !d.isSealed).length !== 1 ? 's' : ''}{' '}
+                  à examiner · Workflow de décision rapide
+                </p>
               </div>
             </div>
 
             {data.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Users className="h-6 w-6 text-slate-400" /></div>
+                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
+                  <Users className="h-6 w-6 text-slate-400" />
+                </div>
                 <p className="mb-4 text-slate-500">Aucun bien en portefeuille.</p>
-                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer un bien</Btn>
+                <Btn variant="amber" onClick={() => go('depot')}>
+                  <Plus className="h-4 w-4" /> Créer un bien
+                </Btn>
               </div>
             ) : (
-              <ApplicationPipeline
-                biens={biens}
-                allDossiers={allDossiers}
-                onSelectCandidate={(d) => setSelBienId(d.bien_id)}
-                onDetailCandidate={(id) => setCandidateDrawerId(id)}
-                onViewProperty={(id) => setPropertyModalId(id)}
-              />
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <OwnerCandidatesStack
+                  biens={biens}
+                  candidats={allDossiers}
+                  onAccept={(d) => setSelBienId(d.bien_id)}
+                />
+              </div>
             )}
           </motion.div>
         )}
