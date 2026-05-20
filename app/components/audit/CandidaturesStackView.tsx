@@ -1,27 +1,21 @@
 'use client';
 
 /**
- * <CandidaturesStackView> — Workflow "Tinder Like" pour la revue des
- * candidatures locataires. Stack de fiches premium superposées avec
- * boutons d'action ronds Refuser/Retenir.
+ * <CandidaturesStackView> — Workflow "Tinder Like" + Side-Drawer + Undo.
  *
- * Philosophie UX : forcer une décision rapide, statutaire, élégante.
- * Seule la fiche du dessus est interactive ; les cartes derrière créent
- * de la profondeur visuelle.
+ * V5.3 — Évolutions majeures :
+ *   1. Click sur la carte → ouverture <Sheet> latéral droit avec
+ *      <CandidateAiReport> complet (rapport audit IA premium)
+ *   2. Historique des décisions en bas du stack (badges compacts)
+ *      avec bouton "Rembobiner" (undo) pour ré-injecter dans le stack
  *
- * Fonctionnalités :
- *   - Stack de 5 fiches max visibles (decay shadow + scale + offset)
- *   - Top card : <TenantCard> Banque Privée + Note de Détective (synthèse IA serif italique)
- *   - Boutons d'action ronds géants (sticky bottom desktop, mobile inline)
- *   - Swipe drag (framer-motion) : left = refuser, right = retenir
- *   - État vide premium quand pile vidée
- *   - Callbacks onAccept/onReject (intégration backend ultérieure)
- *
- * Spec utilisateur respectée à la lettre :
- * - Couleurs : emerald-900 + amber-500 + slate-50 fond global
- * - Typographie : font-serif titres/score, sans-serif métriques
- * - Note IA italique encadrée comme "Note de Détective"
- * - Boutons décision ronds avec X / Check massifs
+ * Spec utilisateur respectée :
+ *   - State management React hooks (candidatesStack, historyLog, isDrawerOpen)
+ *   - handleDecision(id, status) : push history + pop stack
+ *   - handleUndo(id) : remove history + unshift stack
+ *   - Sheet latéral coulissant (custom motion drawer style shadcn/ui)
+ *   - Animations fluides 300ms transition-all
+ *   - Badges discrets : fonds dépolis, opacité 80%
  */
 
 import * as React from 'react';
@@ -30,12 +24,14 @@ import {
   AlertTriangle,
   Check,
   X,
-  Inbox,
   RotateCcw,
   Sparkles,
   Quote,
   ShieldCheck,
+  Undo2,
+  History,
 } from 'lucide-react';
+import { CandidateAiReport, type AiReportCandidate, type AiReportCheck, type AiReportMetrics } from './CandidateAiReport';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +53,23 @@ export interface StackCandidate {
   alerte?: string;
   /** Synthèse IA — note de détective serif italique */
   aiSynthesis?: string;
+  // ─── V5.3 — Champs étendus pour le drawer détaillé ─────────────────────
+  /** Métriques détaillées affichées dans <CandidateAiReport> */
+  detailMetrics?: AiReportMetrics;
+  /** Contrôles audit locataire (statuts tricolores) */
+  tenantChecks?: AiReportCheck[];
+  /** Contrôles audit garant */
+  guarantorChecks?: AiReportCheck[];
+}
+
+export type DecisionStatus = 'accepted' | 'rejected';
+
+export interface HistoryEntry {
+  id: string;
+  name: string;
+  initiales: string;
+  decision: DecisionStatus;
+  timestamp: number;
 }
 
 export interface CandidaturesStackViewProps {
@@ -65,10 +78,14 @@ export interface CandidaturesStackViewProps {
   onAccept?: (candidate: StackCandidate) => void;
   /** Callback quand l'utilisateur refuse un candidat */
   onReject?: (candidate: StackCandidate) => void;
-  /** Démarrer à un index spécifique (par défaut 0) */
-  initialIndex?: number;
+  /** Callback optionnel quand l'utilisateur rembobine une décision */
+  onUndo?: (candidate: StackCandidate, previousDecision: DecisionStatus) => void;
   /** Activer le drag swipe gestures (par défaut true) */
   enableSwipe?: boolean;
+  /** Activer l'historique en bas du stack (par défaut true) */
+  enableHistory?: boolean;
+  /** Activer le click sur la carte → drawer (par défaut true) */
+  enableDrawer?: boolean;
   className?: string;
 }
 
@@ -86,6 +103,12 @@ function pickGrade(score: number): string {
   if (score >= 60) return 'GRADE B';
   if (score >= 40) return 'GRADE C';
   return 'ALERTE';
+}
+
+function getShortName(candidate: { prenom: string; nom: string }): string {
+  const last = (candidate.nom || '').trim();
+  const lastInitial = last ? `${last[0].toUpperCase()}.` : '';
+  return `${candidate.prenom} ${lastInitial}`.trim();
 }
 
 // ─── Sub-component : Jauge Sésame SVG ────────────────────────────────────────
@@ -142,23 +165,41 @@ function SesameGauge({ score, size = 110 }: { score: number; size?: number }): R
   );
 }
 
-// ─── Sub-component : Top card (fiche active interactive) ─────────────────────
+// ─── Sub-component : Top card (interactive) ──────────────────────────────────
 
 interface TopCardProps {
   candidate: StackCandidate;
   onAccept: () => void;
   onReject: () => void;
+  onClickDetails: () => void;
   enableSwipe: boolean;
+  enableDrawer: boolean;
 }
 
-function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): React.ReactElement {
+function TopCard({
+  candidate,
+  onAccept,
+  onReject,
+  onClickDetails,
+  enableSwipe,
+  enableDrawer,
+}: TopCardProps): React.ReactElement {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
   const opacity = useTransform(x, [-300, -100, 0, 100, 300], [0, 1, 1, 1, 0]);
-
-  // Overlay teints selon direction du drag
   const acceptOverlay = useTransform(x, [0, 150], [0, 1]);
   const rejectOverlay = useTransform(x, [-150, 0], [1, 0]);
+
+  // Anti-tap-during-swipe : on track le déplacement pendant le drag
+  const dragMoved = React.useRef(false);
+
+  const handleDragStart = () => {
+    dragMoved.current = false;
+  };
+
+  const handleDrag = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 5) dragMoved.current = true;
+  };
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 120;
@@ -167,6 +208,15 @@ function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): 
     } else if (info.offset.x < -threshold) {
       onReject();
     }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!enableDrawer) return;
+    if (dragMoved.current) return; // ignore le click si on a draggé
+    // Ignore les clicks sur les boutons enfants (anti-bubble)
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    onClickDetails();
   };
 
   const initials = candidate.initiales || computeInitials(candidate.prenom, candidate.nom);
@@ -179,12 +229,30 @@ function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): 
       drag={enableSwipe ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.7}
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
       onDragEnd={handleDragEnd}
+      onClick={handleCardClick}
       style={{ x, rotate, opacity }}
-      className="relative w-full max-w-md cursor-grab overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-slate-200/60 active:cursor-grabbing"
-      whileTap={{ scale: 0.98 }}
+      className={`relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-slate-200/60 ${
+        enableDrawer ? 'cursor-pointer active:cursor-grabbing' : 'cursor-grab active:cursor-grabbing'
+      }`}
+      whileTap={{ scale: 0.99 }}
+      role={enableDrawer ? 'button' : 'article'}
+      tabIndex={enableDrawer ? 0 : -1}
+      aria-label={
+        enableDrawer
+          ? `Voir le détail complet de ${fullName} (score ${candidate.score}/100)`
+          : `${fullName}, score ${candidate.score}/100`
+      }
+      onKeyDown={(e) => {
+        if (enableDrawer && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClickDetails();
+        }
+      }}
     >
-      {/* Overlays decision feedback */}
+      {/* Overlays decision feedback (swipe) */}
       <motion.div
         style={{ opacity: acceptOverlay }}
         className="pointer-events-none absolute right-6 top-6 z-20 rotate-12 rounded-xl border-4 border-emerald-500 px-4 py-2"
@@ -242,14 +310,14 @@ function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): 
         <SesameGauge score={candidate.score} />
       </div>
 
-      {/* Note de Détective — Synthèse IA serif italique */}
+      {/* Note de Détective */}
       {candidate.aiSynthesis && (
         <div className="mx-7 mt-7 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
           <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
             <Quote className="h-3.5 w-3.5" aria-hidden="true" />
             Note de l'auditeur
           </div>
-          <p className="font-serif text-sm italic leading-relaxed text-emerald-900">
+          <p className="line-clamp-4 font-serif text-sm italic leading-relaxed text-emerald-900">
             {candidate.aiSynthesis}
           </p>
           <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -282,10 +350,10 @@ function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): 
         </div>
       </div>
 
-      {/* Smart Alert (si présente) */}
+      {/* Smart Alert */}
       {candidate.alerte && (
         <div
-          className="mx-7 mt-5 mb-7 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50/60 p-3"
+          className="mx-7 mt-5 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50/60 p-3"
           role="alert"
         >
           <AlertTriangle
@@ -296,13 +364,18 @@ function TopCard({ candidate, onAccept, onReject, enableSwipe }: TopCardProps): 
         </div>
       )}
 
-      {/* Spacer si pas d'alerte (pour aérer en bas) */}
-      {!candidate.alerte && <div className="h-7" aria-hidden="true" />}
+      {/* Hint cliquable */}
+      {enableDrawer && (
+        <p className="mx-7 mt-5 mb-7 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+          Cliquez pour le rapport d'audit complet →
+        </p>
+      )}
+      {!enableDrawer && <div className="h-7" aria-hidden="true" />}
     </motion.article>
   );
 }
 
-// ─── Sub-component : Behind cards (cartes en fond) ───────────────────────────
+// ─── Sub-component : Behind cards ────────────────────────────────────────────
 
 function BehindCard({
   candidate,
@@ -311,11 +384,9 @@ function BehindCard({
   candidate: StackCandidate;
   position: 1 | 2 | 3 | 4;
 }): React.ReactElement {
-  // Décalage / scale / opacity selon la profondeur
   const offsetY = position * 12;
   const scale = 1 - position * 0.05;
   const opacityValue = position === 1 ? 0.7 : position === 2 ? 0.45 : position === 3 ? 0.25 : 0.1;
-
   const initials = candidate.initiales || computeInitials(candidate.prenom, candidate.nom);
 
   return (
@@ -327,7 +398,6 @@ function BehindCard({
       aria-hidden="true"
       style={{ zIndex: 10 - position }}
     >
-      {/* Aperçu minimal pour donner l'illusion de profondeur */}
       <div className="flex items-center gap-3 border-b border-slate-100 px-7 py-5 opacity-60">
         <div className="h-10 w-10 rounded-full bg-emerald-900/80 font-serif text-sm font-bold text-amber-500/80 flex items-center justify-center">
           {initials}
@@ -341,7 +411,206 @@ function BehindCard({
   );
 }
 
-// ─── Sub-component : Empty state ─────────────────────────────────────────────
+// ─── Sub-component : History bar (badges + undo) ─────────────────────────────
+
+function HistoryBar({
+  history,
+  onUndo,
+}: {
+  history: HistoryEntry[];
+  onUndo: (id: string) => void;
+}): React.ReactElement | null {
+  if (history.length === 0) return null;
+
+  // Plus récent en premier
+  const sorted = [...history].sort((a, b) => b.timestamp - a.timestamp);
+  const visible = sorted.slice(0, 6);
+  const overflow = sorted.length - visible.length;
+
+  return (
+    <section
+      aria-label="Historique des décisions récentes"
+      className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+          <History className="h-3 w-3" aria-hidden="true" />
+          Décisions récentes
+        </div>
+        {overflow > 0 && (
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            +{overflow} plus tôt
+          </span>
+        )}
+      </div>
+      <ul className="flex flex-wrap gap-2">
+        {visible.map((entry) => {
+          const isAccepted = entry.decision === 'accepted';
+          return (
+            <li key={entry.id} className="group">
+              <div
+                className={`relative inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-semibold ring-1 backdrop-blur transition-all ${
+                  isAccepted
+                    ? 'bg-emerald-50/80 text-emerald-700 ring-emerald-200/80'
+                    : 'bg-red-50/80 text-red-700 ring-red-200/80'
+                }`}
+              >
+                {/* Initiales mini avatar */}
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full font-serif text-[9px] font-bold ${
+                    isAccepted
+                      ? 'bg-emerald-700 text-amber-300'
+                      : 'bg-red-700 text-white'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {entry.initiales}
+                </span>
+                {/* Status icon + nom */}
+                {isAccepted ? (
+                  <Check className="h-3 w-3" aria-hidden="true" />
+                ) : (
+                  <X className="h-3 w-3" aria-hidden="true" />
+                )}
+                <span className="max-w-[100px] truncate">{entry.name}</span>
+                {/* Undo button */}
+                <button
+                  type="button"
+                  onClick={() => onUndo(entry.id)}
+                  aria-label={`Rembobiner la décision pour ${entry.name}`}
+                  title={`Revenir sur ce choix (${entry.name})`}
+                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 opacity-60 transition-all hover:bg-white hover:text-slate-900 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+                >
+                  <Undo2 className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+// ─── Sub-component : Side drawer (sheet style shadcn/ui) ─────────────────────
+
+function DetailsSheet({
+  open,
+  candidate,
+  onClose,
+  onAccept,
+  onReject,
+}: {
+  open: boolean;
+  candidate: StackCandidate | null;
+  onClose: () => void;
+  onAccept: () => void;
+  onReject: () => void;
+}): React.ReactElement {
+  // ESC ferme le drawer
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  // Mappage StackCandidate → AiReportCandidate
+  const reportCandidate: AiReportCandidate | null = React.useMemo(() => {
+    if (!candidate) return null;
+    return {
+      name: `${candidate.prenom} ${candidate.nom}`.trim(),
+      job: candidate.profession,
+      score: candidate.score,
+      grade: candidate.grade || pickGrade(candidate.score),
+      metrics: candidate.detailMetrics || {
+        income: candidate.revenus,
+        effortRate: Number.parseFloat(candidate.effort) || 0,
+        guarantorCoverage: '—',
+      },
+      aiSynthesis:
+        candidate.aiSynthesis ||
+        "Synthèse détaillée non disponible pour ce dossier. Consultez les pièces justificatives pour analyse manuelle.",
+      tenantChecks: candidate.tenantChecks || [
+        {
+          status: candidate.alerte ? 'warning' : 'success',
+          title: 'Audit IA global',
+          desc: candidate.alerte || 'Aucune anomalie détectée par l\'audit forensic.',
+        },
+      ],
+      guarantorChecks: candidate.guarantorChecks || [
+        {
+          status: 'warning',
+          title: 'Détails garant non chargés',
+          desc: 'Cliquez sur "Voir le dossier complet" depuis la modale d\'audit pour les détails.',
+        },
+      ],
+    };
+  }, [candidate]);
+
+  return (
+    <AnimatePresence>
+      {open && reportCandidate && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="sheet-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+
+          {/* Sheet panel — slide depuis la droite (desktop), bottom-sheet (mobile) */}
+          <motion.aside
+            key="sheet-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Rapport d'audit IA détaillé"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-y-0 right-0 z-[201] flex w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl md:rounded-l-3xl"
+          >
+            {/* Floating close button */}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer le panneau de détails"
+              className="absolute right-4 top-4 z-30 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+
+            {/* Contenu : CandidateAiReport complet */}
+            <div className="flex-1 overflow-y-auto">
+              <CandidateAiReport
+                candidate={reportCandidate}
+                onValidate={() => {
+                  onClose();
+                  // Petite temporisation pour l'animation de fermeture
+                  setTimeout(() => onAccept(), 280);
+                }}
+                onReject={() => {
+                  onClose();
+                  setTimeout(() => onReject(), 280);
+                }}
+              />
+            </div>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Empty state ─────────────────────────────────────────────────────────────
 
 function EmptyState({ onReset }: { onReset?: () => void }): React.ReactElement {
   return (
@@ -354,7 +623,7 @@ function EmptyState({ onReset }: { onReset?: () => void }): React.ReactElement {
       </h3>
       <p className="mt-2 max-w-sm text-sm text-slate-500">
         Vous avez passé en revue l'ensemble des dossiers reçus pour ce bien.
-        La pile est vide.
+        Utilisez l'historique en bas pour rembobiner une décision si besoin.
       </p>
       {onReset && (
         <button
@@ -376,47 +645,110 @@ export function CandidaturesStackView({
   candidates,
   onAccept,
   onReject,
-  initialIndex = 0,
+  onUndo,
   enableSwipe = true,
+  enableHistory = true,
+  enableDrawer = true,
   className = '',
 }: CandidaturesStackViewProps): React.ReactElement {
-  const [index, setIndex] = React.useState(initialIndex);
-  const [direction, setDirection] = React.useState<'left' | 'right' | null>(null);
+  // ─── State management spec utilisateur ─────────────────────────────────
+  // 1. candidatesStack — pile mutable des candidats restants
+  const [candidatesStack, setCandidatesStack] = React.useState<StackCandidate[]>(candidates);
+  // 2. historyLog — décisions passées
+  const [historyLog, setHistoryLog] = React.useState<HistoryEntry[]>([]);
+  // 3. isDrawerOpen — drawer ouvert ou non
+  const [drawerCandidateId, setDrawerCandidateId] = React.useState<string | null>(null);
+  // Direction d'exit pour animation slide left/right
+  const [exitDirection, setExitDirection] = React.useState<'left' | 'right' | null>(null);
 
-  const remaining = candidates.slice(index);
-  const current = remaining[0];
-  const behindCards = remaining.slice(1, 5); // 4 cartes max derrière
+  const isDrawerOpen = drawerCandidateId !== null;
 
-  const handleAccept = React.useCallback(() => {
-    if (!current) return;
-    setDirection('right');
-    onAccept?.(current);
-    // Légère temporisation pour laisser l'animation d'exit jouer
-    setTimeout(() => {
-      setIndex((i) => i + 1);
-      setDirection(null);
-    }, 280);
-  }, [current, onAccept]);
+  // Si les candidates props changent (ex: changement de bien), on resync
+  // ATTENTION : on perd l'historique en cours — c'est intentionnel quand
+  // l'utilisateur change de bien.
+  const candidatesPropRef = React.useRef(candidates);
+  React.useEffect(() => {
+    if (candidatesPropRef.current !== candidates) {
+      candidatesPropRef.current = candidates;
+      setCandidatesStack(candidates);
+      setHistoryLog([]);
+      setDrawerCandidateId(null);
+      setExitDirection(null);
+    }
+  }, [candidates]);
 
-  const handleReject = React.useCallback(() => {
-    if (!current) return;
-    setDirection('left');
-    onReject?.(current);
-    setTimeout(() => {
-      setIndex((i) => i + 1);
-      setDirection(null);
-    }, 280);
-  }, [current, onReject]);
+  // ─── Carte courante + behind cards ─────────────────────────────────────
+  const current = candidatesStack[0];
+  const behindCards = candidatesStack.slice(1, 5);
 
+  // ─── handleDecision : push history + pop stack ─────────────────────────
+  const handleDecision = React.useCallback(
+    (candidateId: string, decision: DecisionStatus) => {
+      const candidate = candidatesStack.find((c) => c.id === candidateId);
+      if (!candidate) return;
+
+      const entry: HistoryEntry = {
+        id: candidate.id,
+        name: getShortName(candidate),
+        initiales:
+          candidate.initiales || computeInitials(candidate.prenom, candidate.nom),
+        decision,
+        timestamp: Date.now(),
+      };
+
+      setExitDirection(decision === 'accepted' ? 'right' : 'left');
+      setHistoryLog((prev) => [...prev, entry]);
+
+      // Temporisation pour laisser jouer l'animation d'exit avant le pop
+      setTimeout(() => {
+        setCandidatesStack((prev) => prev.filter((c) => c.id !== candidateId));
+        setExitDirection(null);
+      }, 280);
+
+      if (decision === 'accepted') onAccept?.(candidate);
+      else onReject?.(candidate);
+    },
+    [candidatesStack, onAccept, onReject],
+  );
+
+  // ─── handleUndo : remove history + unshift stack ───────────────────────
+  const handleUndo = React.useCallback(
+    (candidateId: string) => {
+      const entry = historyLog.find((h) => h.id === candidateId);
+      if (!entry) return;
+      const original = candidates.find((c) => c.id === candidateId);
+      if (!original) return;
+
+      setHistoryLog((prev) => prev.filter((h) => h.id !== candidateId));
+      setCandidatesStack((prev) => {
+        // Évite les doublons si déjà dans la pile pour une raison étrange
+        if (prev.some((c) => c.id === candidateId)) return prev;
+        return [original, ...prev];
+      });
+
+      onUndo?.(original, entry.decision);
+    },
+    [historyLog, candidates, onUndo],
+  );
+
+  // ─── Reset / replay démo ───────────────────────────────────────────────
   const handleReset = React.useCallback(() => {
-    setIndex(0);
-    setDirection(null);
-  }, []);
+    setCandidatesStack(candidates);
+    setHistoryLog([]);
+    setDrawerCandidateId(null);
+    setExitDirection(null);
+  }, [candidates]);
 
-  // Counters
+  // ─── Counters ──────────────────────────────────────────────────────────
   const total = candidates.length;
-  const seen = index;
-  const left = Math.max(0, total - seen);
+  const seen = historyLog.length;
+  const left = candidatesStack.length;
+
+  // ─── Drawer candidate ───────────────────────────────────────────────────
+  const drawerCandidate = React.useMemo(
+    () => candidatesStack.find((c) => c.id === drawerCandidateId) || null,
+    [candidatesStack, drawerCandidateId],
+  );
 
   return (
     <div
@@ -440,7 +772,6 @@ export function CandidaturesStackView({
       {/* Stack container */}
       <div className="relative flex w-full max-w-md flex-1 items-start justify-center">
         <div className="relative w-full" style={{ minHeight: '32rem' }}>
-          {/* Behind cards (deepest first → so top card stacks correctly) */}
           {behindCards
             .slice()
             .reverse()
@@ -449,22 +780,21 @@ export function CandidaturesStackView({
               return <BehindCard key={bc.id} candidate={bc} position={positionFromTop} />;
             })}
 
-          {/* Top card */}
-          <AnimatePresence custom={direction}>
+          <AnimatePresence>
             {current ? (
               <motion.div
                 key={current.id}
                 initial={{ y: -8, opacity: 0, scale: 0.98 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={
-                  direction === 'right'
+                  exitDirection === 'right'
                     ? {
                         x: 500,
                         opacity: 0,
                         rotate: 18,
                         transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
                       }
-                    : direction === 'left'
+                    : exitDirection === 'left'
                     ? {
                         x: -500,
                         opacity: 0,
@@ -479,9 +809,11 @@ export function CandidaturesStackView({
               >
                 <TopCard
                   candidate={current}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
+                  onAccept={() => handleDecision(current.id, 'accepted')}
+                  onReject={() => handleDecision(current.id, 'rejected')}
+                  onClickDetails={() => setDrawerCandidateId(current.id)}
                   enableSwipe={enableSwipe}
+                  enableDrawer={enableDrawer}
                 />
               </motion.div>
             ) : (
@@ -492,19 +824,21 @@ export function CandidaturesStackView({
                 transition={{ duration: 0.4 }}
                 className="relative w-full"
               >
-                <EmptyState onReset={onAccept ? undefined : handleReset} />
+                <EmptyState
+                  onReset={historyLog.length > 0 ? handleReset : undefined}
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Boutons d'action ronds géants (sticky bottom) */}
+      {/* Boutons d'action (sticky bottom) */}
       {current && (
         <div className="sticky bottom-4 mt-8 flex w-full max-w-md items-center justify-center gap-8 sm:bottom-8">
           <motion.button
             type="button"
-            onClick={handleReject}
+            onClick={() => handleDecision(current.id, 'rejected')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.92 }}
             className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-red-200 bg-red-50 text-red-600 shadow-xl ring-1 ring-red-100/50 backdrop-blur transition-colors hover:bg-red-100 hover:border-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
@@ -515,7 +849,7 @@ export function CandidaturesStackView({
 
           <motion.button
             type="button"
-            onClick={handleAccept}
+            onClick={() => handleDecision(current.id, 'accepted')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.92 }}
             className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-200 bg-emerald-50 text-emerald-600 shadow-xl ring-1 ring-emerald-100/50 backdrop-blur transition-colors hover:bg-emerald-100 hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
@@ -526,12 +860,32 @@ export function CandidaturesStackView({
         </div>
       )}
 
-      {/* Indication swipe (subtile, sous les boutons) */}
+      {/* Indication swipe */}
       {current && enableSwipe && (
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
           Glissez la fiche · ← Refuser · Retenir →
         </p>
       )}
+
+      {/* Historique des choix (badges + undo) */}
+      {enableHistory && historyLog.length > 0 && (
+        <div className="mt-8 flex w-full justify-center">
+          <HistoryBar history={historyLog} onUndo={handleUndo} />
+        </div>
+      )}
+
+      {/* Side drawer avec rapport d'audit complet */}
+      <DetailsSheet
+        open={isDrawerOpen}
+        candidate={drawerCandidate}
+        onClose={() => setDrawerCandidateId(null)}
+        onAccept={() => {
+          if (drawerCandidate) handleDecision(drawerCandidate.id, 'accepted');
+        }}
+        onReject={() => {
+          if (drawerCandidate) handleDecision(drawerCandidate.id, 'rejected');
+        }}
+      />
     </div>
   );
 }
@@ -553,6 +907,21 @@ const DEMO_CANDIDATES: StackCandidate[] = [
     alerte: 'Risqué • Solide — Audit Forensic en alerte, vérification manuelle requise.',
     aiSynthesis:
       "Le profil présente une stabilité financière remarquable, mais une alerte a été détectée sur l'audit forensic. Les flux de revenus sont parfaitement cohérents avec l'ancienneté. Le garant présente une assise financière triplant la couverture nécessaire. Risque de défaut historiquement nul.",
+    detailMetrics: { income: '2 800 €', effortRate: 33, guarantorCoverage: '3.1x' },
+    tenantChecks: [
+      { status: 'success', title: 'Identité biométrique', desc: 'Vérification Didit certifiée eIDAS.' },
+      { status: 'success', title: 'Cohérence fiscale', desc: 'Revenus fiscaux alignés avec les bulletins.' },
+      {
+        status: 'warning',
+        title: 'Audit Forensic',
+        desc: "L'IA a détecté une légère incohérence sur la fiche de paie de janvier.",
+        action: 'Appel de courtoisie à la RH recommandé pour confirmer le poste.',
+      },
+    ],
+    guarantorChecks: [
+      { status: 'success', title: 'Solvabilité', desc: 'Bulletins authentifiés via SILAE.' },
+      { status: 'success', title: 'Couverture 3.1× le loyer', desc: 'Garant solide, triple la couverture nécessaire.' },
+    ],
   },
   {
     id: 'louna-bernasconi',
@@ -566,7 +935,17 @@ const DEMO_CANDIDATES: StackCandidate[] = [
     loyer: '950 €',
     effort: '27%',
     aiSynthesis:
-      "Le profil présente une stabilité financière remarquable. Les flux de revenus sont parfaitement cohérents avec l'ancienneté. Le garant présente une assise financière triplant la couverture nécessaire. Risque de défaut historiquement nul. Dossier éligible à la contractualisation immédiate.",
+      "Profil exemplaire. Tous les contrôles sont au vert. Dossier éligible à la contractualisation immédiate sans réserve.",
+    detailMetrics: { income: '3 450 €', effortRate: 27.5, guarantorCoverage: '6.2x' },
+    tenantChecks: [
+      { status: 'success', title: 'Identité', desc: 'Didit eIDAS certifiée.' },
+      { status: 'success', title: 'Cohérence Fiscale', desc: 'Revenus parfaitement alignés.' },
+      { status: 'success', title: 'Stabilité', desc: '5 ans d\'ancienneté, CDI confirmé.' },
+    ],
+    guarantorChecks: [
+      { status: 'success', title: 'Couverture 6.2×', desc: 'Garant patrimonial confirmé.' },
+      { status: 'success', title: 'Patrimoine', desc: 'Propriétaire de sa résidence principale.' },
+    ],
   },
   {
     id: 'thomas-morel',
@@ -583,6 +962,27 @@ const DEMO_CANDIDATES: StackCandidate[] = [
       "Incohérence détectée : écart de 8 200 € entre fiches de paie modifiées et net fiscal déclaré aux impôts.",
     aiSynthesis:
       "ATTENTION : L'analyse approfondie révèle des anomalies structurelles majeures. Les calculs des cotisations sociales sur les derniers bulletins ne correspondent pas aux taux URSSAF. La pièce d'identité du garant est expirée depuis 14 mois. Dossier non éligible en l'état.",
+    detailMetrics: { income: '2 900 €', effortRate: 32.7, guarantorCoverage: '2.2x' },
+    tenantChecks: [
+      {
+        status: 'danger',
+        title: 'Incohérence fiscale majeure',
+        desc: 'Écart de 8 200 € entre bulletins modifiés et net fiscal déclaré.',
+      },
+      { status: 'warning', title: 'Justificatif de domicile', desc: 'Plus de 3 mois.' },
+    ],
+    guarantorChecks: [
+      {
+        status: 'danger',
+        title: "Pièce d'identité",
+        desc: 'Expirée depuis 14 mois.',
+      },
+      {
+        status: 'warning',
+        title: 'Couverture limitée',
+        desc: "Le statut retraité du garant rend son taux d'effort tendu.",
+      },
+    ],
   },
   {
     id: 'sarah-cohen',
@@ -596,7 +996,15 @@ const DEMO_CANDIDATES: StackCandidate[] = [
     loyer: '950 €',
     effort: '22%',
     aiSynthesis:
-      'Excellent profil. Revenus stables, dossier complet, garant Visale confirmé. Aucun point de vigilance détecté par l\'audit forensic. Dossier solide et fiable pour une contractualisation immédiate.',
+      "Excellent profil. Revenus stables, dossier complet, garant Visale confirmé. Aucun point de vigilance détecté.",
+    detailMetrics: { income: '4 200 €', effortRate: 22.6, guarantorCoverage: 'Visale ✓' },
+    tenantChecks: [
+      { status: 'success', title: 'Identité Didit', desc: 'Certifiée.' },
+      { status: 'success', title: 'Revenus', desc: 'Stables sur 3 ans.' },
+    ],
+    guarantorChecks: [
+      { status: 'success', title: 'Visale Action Logement', desc: 'Actif et confirmé.' },
+    ],
   },
   {
     id: 'mehdi-attia',
@@ -611,20 +1019,23 @@ const DEMO_CANDIDATES: StackCandidate[] = [
     effort: '36%',
     alerte: 'Pas de garant déclaré et statut CDD en renouvellement.',
     aiSynthesis:
-      "Profil correct mais nécessite vigilance. Le contrat CDD est en cours de renouvellement et aucun garant n'est déclaré. Le taux d'effort à 36% est dans la zone d'attention. Recommandation : exiger une caution Visale avant signature.",
+      "Profil correct mais nécessite vigilance. Le contrat CDD est en cours de renouvellement et aucun garant n'est déclaré. Le taux d'effort à 36% est dans la zone d'attention.",
+    detailMetrics: { income: '2 600 €', effortRate: 36, guarantorCoverage: '—' },
+    tenantChecks: [
+      { status: 'warning', title: 'CDD', desc: 'Renouvellement en cours, à confirmer.' },
+      { status: 'warning', title: "Taux d'effort 36%", desc: 'Zone d\'attention.' },
+    ],
+    guarantorChecks: [
+      {
+        status: 'warning',
+        title: 'Aucun garant déclaré',
+        desc: 'Recommandation forte : exiger Visale avant signature.',
+        action: 'Inviter le candidat à souscrire Visale (gratuit en ligne).',
+      },
+    ],
   },
 ];
 
 export function CandidaturesStackViewDemo(): React.ReactElement {
-  const [history, setHistory] = React.useState<
-    { candidate: StackCandidate; decision: 'accept' | 'reject' }[]
-  >([]);
-
-  return (
-    <CandidaturesStackView
-      candidates={DEMO_CANDIDATES}
-      onAccept={(c) => setHistory((h) => [...h, { candidate: c, decision: 'accept' }])}
-      onReject={(c) => setHistory((h) => [...h, { candidate: c, decision: 'reject' }])}
-    />
-  );
+  return <CandidaturesStackView candidates={DEMO_CANDIDATES} />;
 }

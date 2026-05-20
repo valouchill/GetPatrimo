@@ -21,6 +21,8 @@ import { Building2, X } from 'lucide-react';
 import {
   CandidaturesStackView,
   type StackCandidate,
+  type AiReportCheck,
+  type AiReportStatus,
 } from '@/app/components/audit';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import type { LocalDossier, LocalBien } from './ui';
@@ -63,6 +65,135 @@ function buildAiSynthesis(c: LocalDossier): string {
   return "ATTENTION : L'analyse approfondie révèle des écarts significatifs entre les documents fournis. Plusieurs points bloquants doivent être levés avant toute contractualisation.";
 }
 
+function statusFromAudit(audit?: string): AiReportStatus {
+  if (audit === 'CLEAR') return 'success';
+  if (audit === 'ALERT') return 'danger';
+  return 'warning';
+}
+
+/**
+ * Construit la liste de contrôles "locataire" pour le drawer détaillé.
+ */
+function buildTenantChecks(c: LocalDossier): AiReportCheck[] {
+  const checks: AiReportCheck[] = [];
+  const auditStatus = statusFromAudit(c.auditStatus);
+  const verdict = resolveVerdict(c);
+
+  // Identité Didit
+  if (c.identityVerified) {
+    checks.push({
+      status: 'success',
+      title: 'Identité biométrique',
+      desc: "Vérification Didit certifiée eIDAS.",
+    });
+  } else {
+    checks.push({
+      status: 'warning',
+      title: 'Identité',
+      desc: "Vérification biométrique Didit en attente.",
+      action: "Inviter le candidat à compléter la vérification d'identité.",
+    });
+  }
+
+  // Audit Forensic
+  if (auditStatus === 'success') {
+    checks.push({
+      status: 'success',
+      title: 'Cohérence fiscale & documents',
+      desc:
+        c.auditSummary ||
+        "Aucune incohérence détectée par l'audit forensic IA.",
+    });
+  } else if (auditStatus === 'warning') {
+    checks.push({
+      status: 'warning',
+      title: 'Vérifications complémentaires',
+      desc: c.auditSummary || 'Quelques points méritent un examen visuel.',
+      action: c.watchouts && c.watchouts.length > 0 ? c.watchouts[0] : undefined,
+    });
+  } else {
+    checks.push({
+      status: 'danger',
+      title: 'Anomalie détectée',
+      desc:
+        c.auditSummary ||
+        "L'IA a détecté des incohérences majeures dans les documents fournis.",
+    });
+  }
+
+  // Documents
+  const rejected = c.rejectedDocuments || 0;
+  const review = c.reviewDocuments || 0;
+  if (rejected > 0) {
+    checks.push({
+      status: 'danger',
+      title: 'Documents rejetés',
+      desc: `${rejected} pièce${rejected > 1 ? 's' : ''} rejetée${rejected > 1 ? 's' : ''} par l'audit IA.`,
+    });
+  } else if (review > 0) {
+    checks.push({
+      status: 'warning',
+      title: 'Documents à revoir',
+      desc: `${review} pièce${review > 1 ? 's' : ''} en attente de vérification visuelle.`,
+      action: 'Examiner manuellement chaque pièce en revue.',
+    });
+  }
+
+  // Watchouts résiduelles
+  if (c.watchouts && c.watchouts.length > 0 && auditStatus !== 'warning') {
+    checks.push({
+      status: verdict === 'risky' ? 'danger' : 'warning',
+      title: 'Vigilance',
+      desc: c.watchouts[0],
+    });
+  }
+
+  return checks;
+}
+
+/**
+ * Construit la liste de contrôles "garant" pour le drawer détaillé.
+ */
+function buildGuarantorChecks(c: LocalDossier): AiReportCheck[] {
+  const checks: AiReportCheck[] = [];
+  const mode = c.guaranteeMode;
+
+  if (mode === 'VISALE') {
+    checks.push({
+      status: 'success',
+      title: 'Garantie Visale',
+      desc: 'Visale Action Logement actif. Couverture impayés et dégradations confirmée.',
+    });
+    checks.push({
+      status: 'success',
+      title: 'Plafond couverture',
+      desc: 'Loyer candidaté dans les limites du plafond Visale.',
+    });
+  } else if (mode === 'PHYSICAL') {
+    checks.push({
+      status: 'success',
+      title: 'Garant physique identifié',
+      desc: "Pièce d'identité et justificatifs du garant transmis.",
+    });
+    checks.push({
+      status: 'warning',
+      title: 'Solvabilité du garant',
+      desc: 'Vérifier que les revenus du garant couvrent au moins 3× le loyer.',
+      action: "Examiner les fiches de paie ou avis d'imposition du garant.",
+    });
+  } else {
+    checks.push({
+      status: 'warning',
+      title: 'Aucune garantie déclarée',
+      desc:
+        'Le candidat ne dispose ni de Visale ni de garant physique. Risque accru.',
+      action: 'Proposer au candidat de souscrire à Visale (gratuit, en ligne).',
+    });
+  }
+
+  return checks;
+}
+
 function mapDossierToStackCandidate(c: LocalDossier, bien: LocalBien): StackCandidate {
   const grade = getGrade(c.score);
   const effortPct =
@@ -81,6 +212,14 @@ function mapDossierToStackCandidate(c: LocalDossier, bien: LocalBien): StackCand
     }
   }
 
+  // Couverture garant pour les métriques détaillées
+  const guarantorCoverage =
+    c.guaranteeMode === 'VISALE'
+      ? 'Visale ✓'
+      : c.guaranteeMode === 'PHYSICAL'
+      ? '3×+'
+      : '—';
+
   return {
     id: c.id,
     prenom: c.prenom || '',
@@ -93,6 +232,14 @@ function mapDossierToStackCandidate(c: LocalDossier, bien: LocalBien): StackCand
     effort: `${effortPct}%`,
     alerte,
     aiSynthesis: buildAiSynthesis(c),
+    // ─── V5.3 — Champs étendus pour le drawer détaillé ────────────────────
+    detailMetrics: {
+      income: formatPrice(c.revenus || 0),
+      effortRate: effortPct,
+      guarantorCoverage,
+    },
+    tenantChecks: buildTenantChecks(c),
+    guarantorChecks: buildGuarantorChecks(c),
   };
 }
 
