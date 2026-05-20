@@ -69,8 +69,7 @@ RUN apk add --no-cache \
     python3-dev \
     && fc-cache -fv \
     && pip3 install --no-cache-dir --break-system-packages \
-       'pillow<11.0' \
-       'weasyprint==62.3' \
+       'weasyprint==68.1' \
     && apk del gcc musl-dev python3-dev
 
 # Copy everything from builder EXCEPT node_modules
