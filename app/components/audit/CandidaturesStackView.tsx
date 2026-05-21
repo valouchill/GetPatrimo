@@ -628,7 +628,10 @@ function DetailsSheet({
             aria-hidden="true"
           />
 
-          {/* Sheet panel — slide depuis la droite (desktop), bottom-sheet (mobile) */}
+          {/* Sheet panel — slide depuis la droite (desktop), bottom-sheet (mobile)
+              Le bouton close est positionné en absolute par rapport à CE
+              conteneur (et NON à l'intérieur du score), garanti par z-30
+              local (toujours en-dessous de la nav globale z-50). */}
           <motion.aside
             key="sheet-panel"
             role="dialog"
@@ -640,17 +643,22 @@ function DetailsSheet({
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-y-0 right-0 z-[201] flex w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl md:rounded-l-3xl"
           >
-            {/* Floating close button */}
+            {/* Floating close button — absolute top-4 right-4 (sur le conteneur
+                principal de la modale, pas dans la div du score) */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Fermer le panneau de détails"
-              className="absolute right-4 top-4 z-30 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900"
+              className="absolute right-4 top-4 z-30 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
             >
-              <X className="h-4 w-4" aria-hidden="true" />
+              <X className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             </button>
 
-            {/* Contenu : CandidateAiReport complet */}
+            {/* Contenu scrollable — le pb-24 de la section Audit du
+                CandidateAiReport garantit déjà que le dernier élément peut
+                scroller au-dessus du footer sticky (z-10) sans être caché.
+                Le CandidateAiReport ajoute aussi pr-14 sur son header pour
+                que le score badge ne chevauche pas le bouton close (z-30). */}
             <div className="flex-1 overflow-y-auto">
               <CandidateAiReport
                 candidate={reportCandidate}

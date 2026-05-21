@@ -31,6 +31,7 @@ import {
   Users,
   Crown,
   Ban,
+  Quote,
 } from 'lucide-react';
 import { Button } from '@/app/components/ui';
 
@@ -163,13 +164,20 @@ function CheckItem({ check }: { check: AiReportCheck }): React.ReactElement {
     <li
       className={`flex items-start gap-3 rounded-xl border ${style.border} ${style.bg} px-4 py-3.5 transition-colors`}
     >
-      <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${style.iconColor}`} aria-hidden="true" />
+      {/* Règle défensive : w-X h-X flex-shrink-0 sur toute icône SVG */}
+      <Icon
+        className={`mt-0.5 h-5 w-5 flex-shrink-0 ${style.iconColor}`}
+        aria-hidden="true"
+      />
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-semibold ${style.text}`}>{check.title}</p>
         <p className="mt-0.5 text-xs leading-relaxed text-slate-700">{check.desc}</p>
         {check.action && (
           <p className="mt-2 inline-flex items-start gap-1.5 rounded-md bg-white/70 px-2 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">
-            <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`} aria-hidden="true" />
+            <span
+              className={`mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full ${style.dot}`}
+              aria-hidden="true"
+            />
             <span className="leading-relaxed">Action requise : {check.action}</span>
           </p>
         )}
@@ -196,15 +204,35 @@ function MetricTile({
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        <Icon className="h-4 w-4 text-emerald-700" aria-hidden="true" />
-        {label}
+        {/* Règle défensive : icône taille fixe + flex-shrink-0 */}
+        <Icon className="h-4 w-4 flex-shrink-0 text-emerald-700" aria-hidden="true" />
+        <span className="truncate">{label}</span>
       </div>
-      <div className="font-serif text-4xl font-bold leading-none text-emerald-900">{value}</div>
+      <div className="font-serif text-3xl font-bold leading-none text-emerald-900 sm:text-4xl">
+        {value}
+      </div>
       {hint && (
         <p className={`mt-3 text-xs font-semibold ${hintColor || 'text-slate-500'}`}>{hint}</p>
       )}
     </div>
   );
+}
+
+/**
+ * Normalise le label du grade pour éviter toute duplication "GRADE GRADE X".
+ * Accepte aussi bien "B" que "GRADE B" en entrée et garantit "GRADE B" en sortie.
+ * Le mot "ALERTE" est préservé tel quel.
+ */
+function normalizeGradeLabel(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const upper = trimmed.toUpperCase();
+  if (upper === 'ALERTE' || upper.startsWith('ALERTE')) return 'ALERTE';
+  // Strip leading "GRADE" (ou "GRADE GRADE", etc.) — gère défensivement les doublons
+  const cleaned = upper.replace(/^(GRADE\s+)+/g, '').trim();
+  if (!cleaned) return 'GRADE';
+  return `GRADE ${cleaned}`;
 }
 
 // ─── Composant principal ─────────────────────────────────────────────────────
@@ -221,26 +249,38 @@ export function CandidateAiReport({
     ...candidate.tenantChecks,
     ...candidate.guarantorChecks,
   ].filter((c) => c.status === 'danger').length;
+  // Défensif : strip d'éventuels "GRADE GRADE B"
+  const safeGrade = normalizeGradeLabel(candidate.grade);
 
   return (
     <div className={`flex flex-col bg-slate-50 ${className}`}>
       {/* ─── A. Header ─────────────────────────────────────────────────────── */}
-      <header className="border-b border-slate-200 bg-white px-6 py-8 sm:px-10 sm:py-10">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      {/* Règle défensive :
+          - flex-wrap pour passer à la ligne sur petits écrans
+          - pr-14 sm:pr-16 pour réserver l'espace du close button du Sheet
+            parent (positionné en absolute top-4 right-4 sur le conteneur) */}
+      <header className="border-b border-slate-200 bg-white px-6 py-8 pr-14 sm:px-10 sm:py-10 sm:pr-16">
+        <div className="flex flex-wrap items-start gap-4 sm:flex-nowrap sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0 flex-1">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
               Analyse IA du candidat
             </p>
-            <h1 className="font-serif text-3xl font-bold leading-tight text-emerald-900 sm:text-4xl">
+            {/* Règle défensive : line-clamp-2 pour gérer les noms longs */}
+            <h1
+              className="font-serif text-2xl font-bold leading-tight text-emerald-900 line-clamp-2 sm:text-3xl"
+              title={candidate.name}
+            >
               {candidate.name}
             </h1>
-            <p className="mt-1.5 text-sm text-slate-600">{candidate.job}</p>
+            <p className="mt-1.5 truncate text-sm text-slate-600" title={candidate.job}>
+              {candidate.job}
+            </p>
           </div>
 
-          {/* Indice de Résilience */}
+          {/* Indice de Résilience — shrink-0 garanti */}
           <div
-            className={`flex shrink-0 flex-col items-center justify-center rounded-2xl border-2 ${scoreBadge.border} ${scoreBadge.bg} px-7 py-4 text-center shadow-sm`}
-            aria-label={`Indice de Résilience : ${candidate.score} sur 100, ${candidate.grade}`}
+            className={`flex shrink-0 flex-col items-center justify-center rounded-2xl border-2 ${scoreBadge.border} ${scoreBadge.bg} px-6 py-4 text-center shadow-sm`}
+            aria-label={`Indice de Résilience : ${candidate.score} sur 100, ${safeGrade}`}
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
               Indice de Résilience
@@ -249,15 +289,18 @@ export function CandidateAiReport({
               {candidate.score}
               <span className="text-2xl text-slate-400">/100</span>
             </p>
-            <p className={`mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider ${scoreBadge.text} ring-1 ${scoreBadge.border}`}>
+            {/* Règle défensive : icône avec w-X h-X flex-shrink-0 garantis */}
+            <p
+              className={`mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider ${scoreBadge.text} ring-1 ${scoreBadge.border}`}
+            >
               {candidate.score >= 80 ? (
-                <Crown className="h-3 w-3" aria-hidden="true" />
+                <Crown className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
               ) : candidate.score < 60 ? (
-                <Ban className="h-3 w-3" aria-hidden="true" />
+                <Ban className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
               ) : (
-                <AlertCircle className="h-3 w-3" aria-hidden="true" />
+                <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
               )}
-              {candidate.grade}
+              {safeGrade}
             </p>
           </div>
         </div>
@@ -293,37 +336,33 @@ export function CandidateAiReport({
       </section>
 
       {/* ─── C. Synthèse de l'Auditeur Virtuel ────────────────────────────── */}
+      {/* Règle défensive : icônes Quote avec w-8 h-8 flex-shrink-0 (jamais
+          d'explosion type text-7xl qui chevauchait le texte) */}
       <section className="border-b border-slate-200 bg-slate-50 px-6 py-10 sm:px-10">
-        <div className="relative mx-auto max-w-3xl">
+        <div className="mx-auto max-w-3xl">
           <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <Sparkles className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             Synthèse de l'Auditeur Virtuel
           </div>
-          <blockquote className="relative">
-            <span
-              className="absolute -left-2 -top-4 select-none font-serif text-7xl leading-none text-amber-300"
+          <blockquote className="flex gap-3 sm:gap-4">
+            <Quote
+              className="h-8 w-8 flex-shrink-0 text-amber-500"
               aria-hidden="true"
-            >
-              «
-            </span>
-            <p className="font-serif text-lg italic leading-relaxed text-emerald-900 sm:text-xl sm:leading-relaxed">
+            />
+            <p className="font-serif text-base italic leading-relaxed text-emerald-900 sm:text-lg sm:leading-relaxed">
               {candidate.aiSynthesis}
             </p>
-            <span
-              className="absolute -bottom-8 right-0 select-none font-serif text-7xl leading-none text-amber-300"
-              aria-hidden="true"
-            >
-              »
-            </span>
           </blockquote>
-          <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <p className="mt-6 ml-11 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
             — Auditeur IA PatrimoTrust · Confidentiel
           </p>
         </div>
       </section>
 
       {/* ─── D. Audit Forensic split ───────────────────────────────────────── */}
-      <section className="border-b border-slate-200 bg-white px-6 py-8 sm:px-10">
+      {/* Padding-bottom généreux pour que le dernier élément puisse scroller
+          au-dessus du footer sticky (z-10) sans être caché */}
+      <section className="border-b border-slate-200 bg-white px-6 pt-8 pb-24 sm:px-10 sm:pb-28">
         <div className="mb-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
             Audit Forensic
@@ -333,21 +372,27 @@ export function CandidateAiReport({
           </h2>
           {dangerCount > 0 && (
             <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-red-700">
-              <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
-              {dangerCount} alerte{dangerCount > 1 ? 's' : ''} bloquante{dangerCount > 1 ? 's' : ''} détectée{dangerCount > 1 ? 's' : ''}
+              <XCircle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+              <span>
+                {dangerCount} alerte{dangerCount > 1 ? 's' : ''} bloquante
+                {dangerCount > 1 ? 's' : ''} détectée
+                {dangerCount > 1 ? 's' : ''}
+              </span>
             </p>
           )}
         </div>
 
+        {/* Règle défensive : grid pour passer proprement à la ligne sur lg- */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Locataire */}
           <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <header className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
+            <header className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
               <h3 className="font-serif text-lg font-bold text-emerald-900">
                 Audit du Locataire
               </h3>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                {candidate.tenantChecks.length} contrôle{candidate.tenantChecks.length > 1 ? 's' : ''}
+                {candidate.tenantChecks.length} contrôle
+                {candidate.tenantChecks.length > 1 ? 's' : ''}
               </span>
             </header>
             <ul className="space-y-3">
@@ -359,12 +404,13 @@ export function CandidateAiReport({
 
           {/* Garant */}
           <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <header className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
+            <header className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
               <h3 className="font-serif text-lg font-bold text-emerald-900">
                 Audit de la Caution
               </h3>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                {candidate.guarantorChecks.length} contrôle{candidate.guarantorChecks.length > 1 ? 's' : ''}
+                {candidate.guarantorChecks.length} contrôle
+                {candidate.guarantorChecks.length > 1 ? 's' : ''}
               </span>
             </header>
             <ul className="space-y-3">
@@ -377,6 +423,9 @@ export function CandidateAiReport({
       </section>
 
       {/* ─── E. Boutons sticky bottom ──────────────────────────────────────── */}
+      {/* Règle défensive : z-10 (local) — ne passera jamais au-dessus de la nav
+          globale (z-50). Le scroll parent doit déjà avoir pb-24+ pour qu'on
+          puisse scroller au-dessus de ce footer. */}
       <footer
         className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur sm:px-10 sm:py-5"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}
@@ -387,7 +436,7 @@ export function CandidateAiReport({
             size="lg"
             onClick={onReject}
             disabled={busy}
-            iconLeft={<XCircle className="h-4 w-4" />}
+            iconLeft={<XCircle className="h-4 w-4 flex-shrink-0" />}
             className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
           >
             Écarter ce candidat
@@ -397,7 +446,7 @@ export function CandidateAiReport({
             size="lg"
             onClick={onValidate}
             disabled={busy}
-            iconRight={<CheckCircle2 className="h-4 w-4" />}
+            iconRight={<CheckCircle2 className="h-4 w-4 flex-shrink-0" />}
             className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber"
           >
             Valider ce dossier et passer au bail
