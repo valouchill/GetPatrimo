@@ -11,6 +11,8 @@ import {
   type AiReportCheck,
   type AiReportStatus,
   ReanalyzeButton,
+  CandidateDossier,
+  type DossierDocument,
 } from '@/app/components/audit';
 import { PRODUCT, formatPrice, getGrade, GRADE_SHORT } from '@/lib/product-lexicon';
 import { resolveVerdict } from '@/lib/verdict-system';
@@ -239,6 +241,11 @@ export function CandidateAuditModal({
   const titleId = React.useId();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
+  // V5.6 — État des pièces du dossier (fetch on open)
+  const [docs, setDocs] = React.useState<DossierDocument[]>([]);
+  const [docsLoading, setDocsLoading] = React.useState(false);
+  const [docsError, setDocsError] = React.useState<string | null>(null);
+
   // ESC ferme la modale
   React.useEffect(() => {
     if (!open) return;
@@ -253,6 +260,37 @@ export function CandidateAuditModal({
       document.body.style.overflow = originalOverflow;
     };
   }, [open, onClose]);
+
+  // Fetch des pièces dès que la modale s'ouvre (par candidat)
+  React.useEffect(() => {
+    if (!open || !c?.id) return;
+    let cancelled = false;
+    setDocsLoading(true);
+    setDocsError(null);
+    setDocs([]);
+    fetch(`/api/owner/applications/${c.id}/documents`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || `Erreur ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data: { documents: DossierDocument[] }) => {
+        if (cancelled) return;
+        setDocs(Array.isArray(data.documents) ? data.documents : []);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setDocsError(err.message || 'Erreur réseau');
+      })
+      .finally(() => {
+        if (!cancelled) setDocsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, c?.id]);
 
   if (!c || !bien) return null;
 
@@ -340,13 +378,30 @@ export function CandidateAuditModal({
               </button>
             </div>
 
-            {/* Body scrollable contenant <CandidateAiReport> */}
+            {/* Body scrollable contenant <CandidateAiReport> + <CandidateDossier> */}
             <div id={titleId} className="flex-1 overflow-y-auto">
               <CandidateAiReport
                 candidate={reportCandidate}
                 onValidate={() => setConfirmOpen(true)}
                 onReject={onClose}
               />
+
+              {/* V5.6 — Section "Pièces du dossier" (Trust-List + SecureDocumentViewer)
+                  affichée après le rapport IA, avant le footer sticky.
+                  Le score est déjà visible plus haut → showScoring={false}. */}
+              <div className="border-t border-slate-200 bg-slate-50">
+                <CandidateDossier
+                  candidateName={`${c.prenom} ${c.nom}`.trim()}
+                  candidateJob={c.contrat}
+                  score={c.score}
+                  documents={docs}
+                  loading={docsLoading}
+                  error={docsError}
+                  showScoring={false}
+                  showHeader={false}
+                  viewerIdentity={`Propriétaire · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`}
+                />
+              </div>
             </div>
           </motion.div>
         </>
