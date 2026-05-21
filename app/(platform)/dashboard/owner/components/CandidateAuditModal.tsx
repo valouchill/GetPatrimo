@@ -386,13 +386,14 @@ export function CandidateAuditModal({
                 onReject={onClose}
               />
 
-              {/* V5.6 — Section "Pièces du dossier" (Trust-List + SecureDocumentViewer)
-                  affichée après le rapport IA, avant le footer sticky.
-                  Le score est déjà visible plus haut → showScoring={false}. */}
+              {/* V5.8 — Section "Pièces du dossier" (Trust-List adaptée
+                  au profil + Didit). Si l'identité est vérifiée par Didit,
+                  la catégorie Identité est auto-validée. */}
               <div className="border-t border-slate-200 bg-slate-50">
                 <CandidateDossier
                   candidateName={`${c.prenom} ${c.nom}`.trim()}
                   candidateJob={c.contrat}
+                  diditVerified={c.identityVerified === true}
                   score={c.score}
                   documents={docs}
                   loading={docsLoading}

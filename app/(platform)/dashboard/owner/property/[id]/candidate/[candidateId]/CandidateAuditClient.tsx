@@ -872,7 +872,12 @@ export default function CandidateAuditClient({
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
         <CandidateDossier
           candidateName={`${candidate.profile?.firstName || ''} ${candidate.profile?.lastName || ''}`.trim()}
-          candidateJob="Profil candidat"
+          candidateJob={
+            (candidate as any)?.candidateStatus ||
+            (candidate as any)?.profile?.status ||
+            'Profil candidat'
+          }
+          diditVerified={(candidate as any)?.didit?.status === 'VERIFIED'}
           score={Number(candidate.patrimometer?.score || 0)}
           documents={dossierDocs}
           loading={dossierLoading}

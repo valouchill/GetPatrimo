@@ -66,8 +66,19 @@ export interface ScoringBreakdown {
 export interface CandidateDossierProps {
   /** Nom du candidat affiché dans le header */
   candidateName?: string;
-  /** Profession / contexte */
+  /** Profession / contexte (utilisé pour normaliser le profil si profile non fourni) */
   candidateJob?: string;
+  /**
+   * Profil candidat — adapte les pièces requises.
+   * Si non fourni, normaliseProfile(candidateJob) est utilisé.
+   */
+  profile?: CandidateProfile;
+  /**
+   * Identité vérifiée par Didit ?
+   * Si true, la catégorie "Identité" est automatiquement complète
+   * (pas de CNI requise — la biométrie suffit).
+   */
+  diditVerified?: boolean;
   /** Indice de Résilience 0-100 */
   score: number;
   /** Détail du scoring (sinon dérivé par défaut depuis le score) */
@@ -132,7 +143,62 @@ function getDocumentIcon(type: DocumentType): React.ElementType {
   }
 }
 
-// ─── Catégories requises (V5.7) ──────────────────────────────────────────────
+// ─── Profils candidat (V5.8) ─────────────────────────────────────────────────
+
+export type CandidateProfile =
+  | 'SALARIE' // CDI, CDD, Fonctionnaire, Cadre
+  | 'INDEPENDANT' // Freelance, Auto-entrepreneur, Profession libérale
+  | 'ETUDIANT'
+  | 'RETRAITE'
+  | 'AUTRE';
+
+/** Normalise une chaîne de contrat ("CDI", "Freelance", etc.) → profil */
+export function normalizeProfile(contrat?: string | null): CandidateProfile {
+  const c = (contrat || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (!c) return 'AUTRE';
+  if (
+    c.includes('CDI') ||
+    c.includes('CDD') ||
+    c.includes('FONCTIONNAIRE') ||
+    c.includes('CADRE') ||
+    c.includes('SALARIE')
+  )
+    return 'SALARIE';
+  if (
+    c.includes('INDEPENDANT') ||
+    c.includes('FREELANCE') ||
+    c.includes('AUTO-ENTREPRENEUR') ||
+    c.includes('AUTO ENTREPRENEUR') ||
+    c.includes('LIBERAL') ||
+    c.includes('LIBERALE') ||
+    c.includes('LIBERAL') ||
+    c.includes('PROFESSION LIBERALE') ||
+    c.includes('MICRO-ENTREPRISE')
+  )
+    return 'INDEPENDANT';
+  if (c.includes('ETUDIANT') || c.includes('ETUDIANTE')) return 'ETUDIANT';
+  if (c.includes('RETRAITE') || c.includes('RETRAITEE')) return 'RETRAITE';
+  return 'AUTRE';
+}
+
+/** Label fr du profil (affichage) */
+export function getProfileLabel(profile: CandidateProfile): string {
+  switch (profile) {
+    case 'SALARIE':
+      return 'Salarié·e';
+    case 'INDEPENDANT':
+      return 'Indépendant·e';
+    case 'ETUDIANT':
+      return 'Étudiant·e';
+    case 'RETRAITE':
+      return 'Retraité·e';
+    case 'AUTRE':
+    default:
+      return 'Profil personnalisé';
+  }
+}
+
+// ─── Catégories requises (V5.8 — adaptatives selon profil + Didit) ──────────
 
 interface CategorySpec {
   type: DocumentType;
@@ -143,43 +209,158 @@ interface CategorySpec {
   expectedCount: number;
   /** Libellé exact de chaque pièce attendue (slot manquant) */
   expectedItems: string[];
+  /** Si true, la catégorie est automatiquement validée (ex: Didit pour l'ID) */
+  autoComplete?: { reason: string; certifier: string };
 }
 
-export const REQUIRED_CATEGORIES: CategorySpec[] = [
-  {
-    type: 'ID',
-    label: 'Identité',
-    hint: 'Vérification eIDAS + biométrie',
-    expectedCount: 1,
-    expectedItems: ["Pièce d'identité (recto/verso)"],
-  },
-  {
-    type: 'FINANCE',
-    label: 'Revenus & Solvabilité',
-    hint: 'Cohérence fiches de paie / avis fiscal',
-    expectedCount: 4,
-    expectedItems: [
-      'Fiche de paie M-1',
-      'Fiche de paie M-2',
-      'Fiche de paie M-3',
-      "Avis d'imposition (année N-1)",
-    ],
-  },
-  {
-    type: 'PRO',
-    label: 'Activité professionnelle',
-    hint: 'Confirmation poste et ancienneté',
-    expectedCount: 1,
-    expectedItems: ['Attestation employeur ou contrat de travail'],
-  },
-  {
+/**
+ * Retourne la liste des catégories attendues selon :
+ *  - le profil du candidat (Salarié / Indépendant / Étudiant / Retraité)
+ *  - le statut Didit (si verified → catégorie ID auto-complète, pas de CNI requise)
+ */
+export function getRequiredCategories(
+  profile: CandidateProfile,
+  diditVerified: boolean,
+): CategorySpec[] {
+  // ─── Catégorie Identité ──────────────────────────────────────────────
+  const idCategory: CategorySpec = diditVerified
+    ? {
+        type: 'ID',
+        label: 'Identité',
+        hint: '✓ Vérification biométrique Didit (eIDAS)',
+        expectedCount: 0,
+        expectedItems: [],
+        autoComplete: {
+          reason: 'Identité certifiée par vérification biométrique Didit',
+          certifier: 'Didit eIDAS',
+        },
+      }
+    : {
+        type: 'ID',
+        label: 'Identité',
+        hint: 'Pièce d\'identité officielle requise',
+        expectedCount: 1,
+        expectedItems: ["Pièce d'identité (recto/verso)"],
+      };
+
+  // ─── Catégorie Revenus & Activité (selon profil) ────────────────────
+  let financeCategory: CategorySpec;
+  let proCategory: CategorySpec | null;
+
+  switch (profile) {
+    case 'SALARIE':
+      financeCategory = {
+        type: 'FINANCE',
+        label: 'Revenus & Solvabilité',
+        hint: 'Cohérence fiches de paie / avis fiscal',
+        expectedCount: 4,
+        expectedItems: [
+          'Fiche de paie M-1',
+          'Fiche de paie M-2',
+          'Fiche de paie M-3',
+          "Avis d'imposition (année N-1)",
+        ],
+      };
+      proCategory = {
+        type: 'PRO',
+        label: 'Activité professionnelle',
+        hint: 'Confirmation poste et ancienneté',
+        expectedCount: 1,
+        expectedItems: ['Attestation employeur ou contrat de travail'],
+      };
+      break;
+
+    case 'INDEPENDANT':
+      financeCategory = {
+        type: 'FINANCE',
+        label: 'Revenus & Solvabilité',
+        hint: 'Bilans + attestation fiscale',
+        expectedCount: 3,
+        expectedItems: [
+          'Bilan / liasse fiscale N-1',
+          'Bilan / liasse fiscale N-2',
+          "Avis d'imposition (année N-1)",
+        ],
+      };
+      proCategory = {
+        type: 'PRO',
+        label: 'Activité professionnelle',
+        hint: 'Statut entreprise + cotisations',
+        expectedCount: 2,
+        expectedItems: ['Extrait Kbis ou avis SIRENE', 'Attestation URSSAF'],
+      };
+      break;
+
+    case 'ETUDIANT':
+      financeCategory = {
+        type: 'FINANCE',
+        label: 'Ressources financières',
+        hint: 'Bourse / aides + avis fiscal',
+        expectedCount: 2,
+        expectedItems: [
+          'Notification de bourse CROUS ou justificatif de ressources',
+          "Avis d'imposition (ou avis parental si à charge)",
+        ],
+      };
+      proCategory = {
+        type: 'PRO',
+        label: 'Scolarité',
+        hint: 'Établissement et cursus en cours',
+        expectedCount: 1,
+        expectedItems: ['Certificat de scolarité ou attestation d\'inscription'],
+      };
+      break;
+
+    case 'RETRAITE':
+      financeCategory = {
+        type: 'FINANCE',
+        label: 'Revenus de retraite',
+        hint: 'Pension + avis fiscal',
+        expectedCount: 2,
+        expectedItems: [
+          'Bulletin de pension (3 derniers mois)',
+          "Avis d'imposition (année N-1)",
+        ],
+      };
+      proCategory = null; // pas d'activité pour les retraités
+      break;
+
+    case 'AUTRE':
+    default:
+      financeCategory = {
+        type: 'FINANCE',
+        label: 'Ressources financières',
+        hint: 'Tous justificatifs de revenus',
+        expectedCount: 2,
+        expectedItems: [
+          'Justificatif de ressources',
+          "Avis d'imposition (année N-1)",
+        ],
+      };
+      proCategory = {
+        type: 'PRO',
+        label: 'Activité',
+        hint: 'Justificatif d\'activité ou de situation',
+        expectedCount: 1,
+        expectedItems: ['Justificatif d\'activité ou de situation'],
+      };
+      break;
+  }
+
+  // ─── Catégorie Domicile (commune) ────────────────────────────────────
+  const addressCategory: CategorySpec = {
     type: 'ADDRESS',
     label: 'Domicile',
     hint: 'Justificatif de moins de 3 mois',
     expectedCount: 1,
     expectedItems: ['Justificatif de domicile (facture / quittance)'],
-  },
-];
+  };
+
+  return [idCategory, financeCategory, ...(proCategory ? [proCategory] : []), addressCategory];
+}
+
+/** Backward compat — utilisé par la démo + autres composants */
+export const REQUIRED_CATEGORIES = getRequiredCategories('SALARIE', false);
 
 interface CategoryGroup {
   spec: CategorySpec;
@@ -187,25 +368,32 @@ interface CategoryGroup {
   missingCount: number;
   /** Labels des pièces manquantes (slots à remplir) */
   missingLabels: string[];
+  /** Si autoComplete présent → catégorie validée par certificateur tiers */
+  isAutoComplete: boolean;
 }
 
 /**
  * Regroupe les documents reçus par catégorie + calcule les manquants
  * à partir des `expectedItems` configurés.
+ *
+ * @param documents Pièces reçues du dossier
+ * @param categories Config des catégories (générée par getRequiredCategories)
  */
-function groupByCategory(documents: DossierDocument[]): CategoryGroup[] {
-  return REQUIRED_CATEGORIES.map((spec) => {
+function groupByCategory(
+  documents: DossierDocument[],
+  categories: CategorySpec[],
+): CategoryGroup[] {
+  return categories.map((spec) => {
     const received = documents.filter(
       (d) => d.type === spec.type && d.transmissionStatus === 'received',
     );
-    const missingCount = Math.max(0, spec.expectedCount - received.length);
-    // Slots manquants : on prend les expectedItems non couverts
-    // (logique simplifiée : on affiche les N derniers items expectés)
+    const isAutoComplete = !!spec.autoComplete;
+    const missingCount = isAutoComplete
+      ? 0
+      : Math.max(0, spec.expectedCount - received.length);
     const missingLabels =
-      missingCount > 0
-        ? spec.expectedItems.slice(-missingCount)
-        : [];
-    return { spec, received, missingCount, missingLabels };
+      missingCount > 0 ? spec.expectedItems.slice(-missingCount) : [];
+    return { spec, received, missingCount, missingLabels, isAutoComplete };
   });
 }
 
@@ -303,6 +491,38 @@ function ScoringColumn({
 
 // ─── Sub-component : Document row ────────────────────────────────────────────
 
+/**
+ * Slot virtuel "Identité Didit certifiée" — remplace la pièce CNI quand
+ * le candidat a complété la vérification biométrique Didit.
+ */
+function DiditCertifiedSlot({
+  reason,
+  certifier,
+}: {
+  reason: string;
+  certifier: string;
+}): React.ReactElement {
+  return (
+    <li className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 ring-1 ring-emerald-200">
+        <ShieldCheck className="h-5 w-5 flex-shrink-0 text-emerald-700" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-serif text-sm font-semibold text-emerald-900" title={reason}>
+          {reason}
+        </p>
+        <p className="mt-0.5 text-xs text-emerald-700">
+          Aucune pièce à fournir — l'identité est validée par {certifier}.
+        </p>
+      </div>
+      <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-800 ring-1 ring-emerald-300">
+        <ShieldCheck className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+        Biométrie certifiée
+      </span>
+    </li>
+  );
+}
+
 function MissingSlot({ label, Icon }: { label: string; Icon: React.ElementType }): React.ReactElement {
   return (
     <li className="flex flex-col gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
@@ -334,6 +554,7 @@ function CategorySectionHeader({
   const total = group.spec.expectedCount;
   const got = group.received.length;
   const complete = group.missingCount === 0;
+  const isDiditCertified = group.isAutoComplete;
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-3 sm:gap-4">
@@ -371,7 +592,9 @@ function CategorySectionHeader({
         ) : (
           <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
         )}
-        {got}/{total} {complete ? 'complet' : 'reçus'}
+        {isDiditCertified
+          ? 'Certifié Didit'
+          : `${got}/${total} ${complete ? 'complet' : 'reçus'}`}
       </span>
     </div>
   );
@@ -450,6 +673,8 @@ function DocumentRow({
 export function CandidateDossier({
   candidateName,
   candidateJob,
+  profile,
+  diditVerified = false,
   score,
   scoring,
   documents,
@@ -466,18 +691,31 @@ export function CandidateDossier({
   const safeScore = Math.max(0, Math.min(100, Math.round(score || 0)));
   const breakdown = scoring || defaultScoring(safeScore);
 
+  // V5.8 — Résolution profil + catégories adaptatives
+  const resolvedProfile = React.useMemo<CandidateProfile>(
+    () => profile || normalizeProfile(candidateJob),
+    [profile, candidateJob],
+  );
+  const categories = React.useMemo(
+    () => getRequiredCategories(resolvedProfile, diditVerified),
+    [resolvedProfile, diditVerified],
+  );
+
   // Statistiques globales
   const receivedCount = documents.filter((d) => d.transmissionStatus === 'received').length;
   const verifiedCount = documents.filter((d) => d.auditStatus === 'verified').length;
   const alteredCount = documents.filter((d) => d.auditStatus === 'altered').length;
-  // V5.7 — Total attendu = somme des expectedCount par catégorie
   const totalExpected = React.useMemo(
-    () => REQUIRED_CATEGORIES.reduce((sum, cat) => sum + cat.expectedCount, 0),
-    [],
+    () => categories.reduce((sum, cat) => sum + cat.expectedCount, 0),
+    [categories],
   );
   const totalMissing = React.useMemo(
-    () => groupByCategory(documents).reduce((sum, g) => sum + g.missingCount, 0),
-    [documents],
+    () =>
+      groupByCategory(documents, categories).reduce(
+        (sum, g) => sum + g.missingCount,
+        0,
+      ),
+    [documents, categories],
   );
 
   return (
@@ -592,18 +830,18 @@ export function CandidateDossier({
           </p>
         </div>
 
-        {/* V5.7 — Groupement par catégorie + slots manquants ──────────────── */}
+        {/* V5.8 — Groupement par catégorie + slots manquants + Didit auto ─── */}
         {(() => {
-          const groups = groupByCategory(documents);
-          // Documents reçus mais hors catégories standard (OTHER)
+          const groups = groupByCategory(documents, categories);
+          // Documents reçus mais hors catégories standard
           const orphanDocs = documents.filter(
             (d) =>
               d.transmissionStatus === 'received' &&
-              !REQUIRED_CATEGORIES.some((cat) => cat.type === d.type),
+              !categories.some((cat) => cat.type === d.type),
           );
           const allEmpty =
             documents.length === 0 &&
-            groups.every((g) => g.received.length === 0);
+            groups.every((g) => g.received.length === 0 && !g.isAutoComplete);
 
           if (allEmpty && !loading) {
             return (
@@ -632,6 +870,13 @@ export function CandidateDossier({
                   >
                     <CategorySectionHeader group={group} />
                     <ul className="flex flex-col gap-3">
+                      {/* V5.8 — Slot virtuel Didit (auto-complete) en premier */}
+                      {group.isAutoComplete && group.spec.autoComplete && (
+                        <DiditCertifiedSlot
+                          reason={group.spec.autoComplete.reason}
+                          certifier={group.spec.autoComplete.certifier}
+                        />
+                      )}
                       {group.received.map((doc) => (
                         <DocumentRow
                           key={doc.id}
@@ -753,11 +998,66 @@ const DEMO_DOCUMENTS: DossierDocument[] = [
 ];
 
 export function CandidateDossierDemo(): React.ReactElement {
+  // V5.8 — Toggle pour visualiser plusieurs profils + Didit
+  const [profile, setProfile] = React.useState<CandidateProfile>('SALARIE');
+  const [diditVerified, setDiditVerified] = React.useState(true);
+
+  const profileJob: Record<CandidateProfile, { job: string; name: string }> = {
+    SALARIE: { job: 'CDI · Cadre du Secteur Privé · Paris 11e', name: 'Louna Bernasconi' },
+    INDEPENDANT: { job: 'Freelance · Designer UX/UI', name: 'Marc Dupont' },
+    ETUDIANT: { job: 'Étudiant · Master 2 Droit', name: 'Léa Martin' },
+    RETRAITE: { job: 'Retraitée · Ancienne enseignante', name: 'Claire Lefèvre' },
+    AUTRE: { job: 'Profession libérale', name: 'Sophie Cohen' },
+  };
+
+  const current = profileJob[profile];
+
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Toggle sticky top pour la démo */}
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+            Démo · Profils
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(['SALARIE', 'INDEPENDANT', 'ETUDIANT', 'RETRAITE'] as CandidateProfile[]).map(
+              (p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setProfile(p)}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                    profile === p
+                      ? 'bg-emerald-900 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {getProfileLabel(p)}
+                </button>
+              ),
+            )}
+            <button
+              type="button"
+              onClick={() => setDiditVerified((v) => !v)}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                diditVerified
+                  ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <ShieldCheck className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+              Didit {diditVerified ? 'OUI' : 'NON'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <CandidateDossier
-        candidateName="Louna Bernasconi"
-        candidateJob="CDI · Cadre du Secteur Privé · Paris 11e"
+        candidateName={current.name}
+        candidateJob={current.job}
+        profile={profile}
+        diditVerified={diditVerified}
         score={98}
         documents={DEMO_DOCUMENTS}
         viewerIdentity="Démo · Propriétaire #PT-2026"
