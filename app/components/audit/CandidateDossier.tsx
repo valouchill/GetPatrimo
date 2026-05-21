@@ -78,6 +78,17 @@ export interface CandidateDossierProps {
   viewerIdentity?: string;
   /** Permettre le téléchargement (par défaut : non, sécurité) */
   allowDownload?: boolean;
+  /**
+   * Affiche le bloc "Décryptage du Scoring IA" (header + score géant +
+   * 3 colonnes). Par défaut true. Mettre false pour intégrer dans une
+   * modale qui affiche déjà le score (ex: CandidateAuditModal). */
+  showScoring?: boolean;
+  /** Affiche le header avec nom du candidat (par défaut true) */
+  showHeader?: boolean;
+  /** État de chargement (skeleton) */
+  loading?: boolean;
+  /** Message d'erreur si fetch échoue */
+  error?: string | null;
   className?: string;
 }
 
@@ -293,6 +304,10 @@ export function CandidateDossier({
   documents,
   viewerIdentity,
   allowDownload = false,
+  showScoring = true,
+  showHeader = true,
+  loading = false,
+  error = null,
   className = '',
 }: CandidateDossierProps): React.ReactElement {
   const [activeDoc, setActiveDoc] = React.useState<DossierDocument | null>(null);
@@ -308,7 +323,7 @@ export function CandidateDossier({
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 ${className}`}>
       {/* ─── Header optionnel (nom candidat) ─────────────────────────────── */}
-      {(candidateName || candidateJob) && (
+      {showHeader && (candidateName || candidateJob) && (
         <header className="mb-6">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
             Audit de Confiance
@@ -330,6 +345,7 @@ export function CandidateDossier({
       )}
 
       {/* ─── A. Décryptage du Scoring IA (encadré premium emerald-900) ──── */}
+      {showScoring && (
       <section
         className="mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-900 to-emerald-800 p-8 text-white shadow-xl sm:p-10"
         aria-label="Décryptage du scoring IA"
@@ -372,6 +388,31 @@ export function CandidateDossier({
           </div>
         </div>
       </section>
+      )}
+
+      {/* ─── Loading / Error states ───────────────────────────────────────── */}
+      {loading && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div
+            className="h-5 w-5 flex-shrink-0 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600"
+            aria-hidden="true"
+          />
+          <p className="text-sm text-slate-600">
+            Chargement des pièces du dossier…
+          </p>
+        </div>
+      )}
+      {error && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-semibold text-red-900">
+              Impossible de charger les pièces
+            </p>
+            <p className="mt-0.5 text-xs text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* ─── B. Trust-List (grille des documents) ─────────────────────────── */}
       <section aria-label="Pièces du dossier">
