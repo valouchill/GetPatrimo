@@ -22,7 +22,13 @@ import {
   ShieldCheck,
   ArrowRight,
   Sparkles,
+  Briefcase,
+  Building2,
+  GraduationCap,
+  Coffee,
+  HelpCircle,
 } from 'lucide-react';
+import { normalizeProfile, getProfileLabel, type CandidateProfile } from './CandidateDossier';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -65,6 +71,53 @@ function computeInitials(prenom: string, nom: string): string {
   const a = (prenom || '?').trim()[0] || '?';
   const b = (nom || '').trim()[0] || '';
   return `${a}${b}`.toUpperCase();
+}
+
+/** Style + icône du profil candidat — pour mise en évidence sur la carte */
+function getProfileStyle(profile: CandidateProfile): {
+  icon: React.ElementType;
+  bg: string;
+  text: string;
+  ring: string;
+} {
+  switch (profile) {
+    case 'SALARIE':
+      return {
+        icon: Building2,
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-800',
+        ring: 'ring-emerald-200',
+      };
+    case 'INDEPENDANT':
+      return {
+        icon: Briefcase,
+        bg: 'bg-amber-50',
+        text: 'text-amber-800',
+        ring: 'ring-amber-200',
+      };
+    case 'ETUDIANT':
+      return {
+        icon: GraduationCap,
+        bg: 'bg-blue-50',
+        text: 'text-blue-800',
+        ring: 'ring-blue-200',
+      };
+    case 'RETRAITE':
+      return {
+        icon: Coffee,
+        bg: 'bg-slate-100',
+        text: 'text-slate-700',
+        ring: 'ring-slate-200',
+      };
+    case 'AUTRE':
+    default:
+      return {
+        icon: HelpCircle,
+        bg: 'bg-slate-100',
+        text: 'text-slate-700',
+        ring: 'ring-slate-200',
+      };
+  }
 }
 
 function pickGradeStyle(score: number): {
@@ -174,6 +227,15 @@ export function TenantCard({
   const gradeStyle = pickGradeStyle(candidat.score);
   const GradeIcon = gradeStyle.icon;
 
+  // V5.8 — Profil candidat mis en évidence (icône + label + couleur)
+  const profile = React.useMemo(
+    () => normalizeProfile(candidat.profession),
+    [candidat.profession],
+  );
+  const profileStyle = getProfileStyle(profile);
+  const ProfileIcon = profileStyle.icon;
+  const profileLabel = getProfileLabel(profile);
+
   return (
     <article
       className={`relative flex w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60 transition-shadow hover:shadow-md hover:ring-slate-200 ${className}`}
@@ -189,12 +251,30 @@ export function TenantCard({
           {initials}
         </div>
 
-        {/* Nom + profession */}
+        {/* Nom + profile badge (mis en évidence) */}
         <div className="min-w-0 flex-1 pt-0.5">
-          <h3 className="truncate font-serif text-lg font-semibold leading-tight text-emerald-900">
+          <h3
+            className="truncate font-serif text-lg font-semibold leading-tight text-emerald-900"
+            title={fullName}
+          >
             {fullName}
           </h3>
-          <p className="mt-0.5 truncate text-sm text-slate-500">{candidat.profession}</p>
+          {/* V5.8 — Badge profil mis en évidence (icône + label coloré) */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ring-1 ${profileStyle.bg} ${profileStyle.text} ${profileStyle.ring}`}
+              aria-label={`Profil : ${profileLabel}`}
+            >
+              <ProfileIcon className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+              {profileLabel}
+            </span>
+            <span
+              className="truncate text-xs text-slate-500"
+              title={candidat.profession}
+            >
+              · {candidat.profession}
+            </span>
+          </div>
         </div>
 
         {/* Badge grade en top-right */}
@@ -202,7 +282,7 @@ export function TenantCard({
           className={`inline-flex shrink-0 items-center gap-1 rounded-full ${gradeStyle.bg} px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ring-1 ${gradeStyle.ring} ${gradeStyle.text}`}
           aria-label={candidat.grade}
         >
-          <GradeIcon className="h-3 w-3" aria-hidden="true" />
+          <GradeIcon className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
           {candidat.grade}
         </span>
       </header>
