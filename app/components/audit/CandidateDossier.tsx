@@ -132,6 +132,83 @@ function getDocumentIcon(type: DocumentType): React.ElementType {
   }
 }
 
+// ─── Catégories requises (V5.7) ──────────────────────────────────────────────
+
+interface CategorySpec {
+  type: DocumentType;
+  label: string;
+  /** Description courte affichée sous le titre de catégorie */
+  hint: string;
+  /** Nombre de pièces attendues (sera utilisé pour calculer les manquants) */
+  expectedCount: number;
+  /** Libellé exact de chaque pièce attendue (slot manquant) */
+  expectedItems: string[];
+}
+
+export const REQUIRED_CATEGORIES: CategorySpec[] = [
+  {
+    type: 'ID',
+    label: 'Identité',
+    hint: 'Vérification eIDAS + biométrie',
+    expectedCount: 1,
+    expectedItems: ["Pièce d'identité (recto/verso)"],
+  },
+  {
+    type: 'FINANCE',
+    label: 'Revenus & Solvabilité',
+    hint: 'Cohérence fiches de paie / avis fiscal',
+    expectedCount: 4,
+    expectedItems: [
+      'Fiche de paie M-1',
+      'Fiche de paie M-2',
+      'Fiche de paie M-3',
+      "Avis d'imposition (année N-1)",
+    ],
+  },
+  {
+    type: 'PRO',
+    label: 'Activité professionnelle',
+    hint: 'Confirmation poste et ancienneté',
+    expectedCount: 1,
+    expectedItems: ['Attestation employeur ou contrat de travail'],
+  },
+  {
+    type: 'ADDRESS',
+    label: 'Domicile',
+    hint: 'Justificatif de moins de 3 mois',
+    expectedCount: 1,
+    expectedItems: ['Justificatif de domicile (facture / quittance)'],
+  },
+];
+
+interface CategoryGroup {
+  spec: CategorySpec;
+  received: DossierDocument[];
+  missingCount: number;
+  /** Labels des pièces manquantes (slots à remplir) */
+  missingLabels: string[];
+}
+
+/**
+ * Regroupe les documents reçus par catégorie + calcule les manquants
+ * à partir des `expectedItems` configurés.
+ */
+function groupByCategory(documents: DossierDocument[]): CategoryGroup[] {
+  return REQUIRED_CATEGORIES.map((spec) => {
+    const received = documents.filter(
+      (d) => d.type === spec.type && d.transmissionStatus === 'received',
+    );
+    const missingCount = Math.max(0, spec.expectedCount - received.length);
+    // Slots manquants : on prend les expectedItems non couverts
+    // (logique simplifiée : on affiche les N derniers items expectés)
+    const missingLabels =
+      missingCount > 0
+        ? spec.expectedItems.slice(-missingCount)
+        : [];
+    return { spec, received, missingCount, missingLabels };
+  });
+}
+
 function getAuditBadge(status: DocumentAuditStatus): {
   bg: string;
   text: string;
@@ -226,6 +303,80 @@ function ScoringColumn({
 
 // ─── Sub-component : Document row ────────────────────────────────────────────
 
+function MissingSlot({ label, Icon }: { label: string; Icon: React.ElementType }): React.ReactElement {
+  return (
+    <li className="flex flex-col gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100 ring-1 ring-amber-200">
+        <Icon className="h-5 w-5 flex-shrink-0 text-amber-700" aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-serif text-sm font-semibold text-amber-900" title={label}>
+          {label}
+        </p>
+        <p className="mt-0.5 text-xs text-amber-700">
+          Pièce manquante — non transmise par le candidat
+        </p>
+      </div>
+      <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-800 ring-1 ring-amber-300">
+        <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+        À fournir
+      </span>
+    </li>
+  );
+}
+
+function CategorySectionHeader({
+  group,
+}: {
+  group: CategoryGroup;
+}): React.ReactElement {
+  const Icon = getDocumentIcon(group.spec.type);
+  const total = group.spec.expectedCount;
+  const got = group.received.length;
+  const complete = group.missingCount === 0;
+
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-3 sm:gap-4">
+      <div
+        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ring-1 ${
+          complete
+            ? 'bg-emerald-50 ring-emerald-200'
+            : 'bg-amber-50 ring-amber-200'
+        }`}
+      >
+        <Icon
+          className={`h-5 w-5 flex-shrink-0 ${
+            complete ? 'text-emerald-700' : 'text-amber-700'
+          }`}
+          aria-hidden="true"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-serif text-base font-bold leading-tight text-emerald-900 sm:text-lg">
+          {group.spec.label}
+        </h3>
+        <p className="mt-0.5 truncate text-xs text-slate-500" title={group.spec.hint}>
+          {group.spec.hint}
+        </p>
+      </div>
+      <span
+        className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ring-1 ${
+          complete
+            ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+            : 'bg-amber-50 text-amber-800 ring-amber-200'
+        }`}
+      >
+        {complete ? (
+          <ShieldCheck className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+        ) : (
+          <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+        )}
+        {got}/{total} {complete ? 'complet' : 'reçus'}
+      </span>
+    </div>
+  );
+}
+
 function DocumentRow({
   doc,
   onConsult,
@@ -319,6 +470,15 @@ export function CandidateDossier({
   const receivedCount = documents.filter((d) => d.transmissionStatus === 'received').length;
   const verifiedCount = documents.filter((d) => d.auditStatus === 'verified').length;
   const alteredCount = documents.filter((d) => d.auditStatus === 'altered').length;
+  // V5.7 — Total attendu = somme des expectedCount par catégorie
+  const totalExpected = React.useMemo(
+    () => REQUIRED_CATEGORIES.reduce((sum, cat) => sum + cat.expectedCount, 0),
+    [],
+  );
+  const totalMissing = React.useMemo(
+    () => groupByCategory(documents).reduce((sum, g) => sum + g.missingCount, 0),
+    [documents],
+  );
 
   return (
     <div className={`mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 ${className}`}>
@@ -426,34 +586,97 @@ export function CandidateDossier({
             </h2>
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {receivedCount}/{documents.length} reçus · {verifiedCount} vérifiés
+            {receivedCount}/{totalExpected} reçus · {verifiedCount} vérifiés
+            {totalMissing > 0 && ` · ${totalMissing} manquant${totalMissing > 1 ? 's' : ''}`}
             {alteredCount > 0 && ` · ${alteredCount} altéré${alteredCount > 1 ? 's' : ''}`}
           </p>
         </div>
 
-        {documents.length === 0 ? (
-          <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <div className="mb-3 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
-              <Inbox className="h-6 w-6 flex-shrink-0 text-slate-400" aria-hidden="true" />
+        {/* V5.7 — Groupement par catégorie + slots manquants ──────────────── */}
+        {(() => {
+          const groups = groupByCategory(documents);
+          // Documents reçus mais hors catégories standard (OTHER)
+          const orphanDocs = documents.filter(
+            (d) =>
+              d.transmissionStatus === 'received' &&
+              !REQUIRED_CATEGORIES.some((cat) => cat.type === d.type),
+          );
+          const allEmpty =
+            documents.length === 0 &&
+            groups.every((g) => g.received.length === 0);
+
+          if (allEmpty && !loading) {
+            return (
+              <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                <div className="mb-3 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
+                  <Inbox className="h-6 w-6 flex-shrink-0 text-slate-400" aria-hidden="true" />
+                </div>
+                <p className="font-serif text-lg font-semibold text-emerald-900">
+                  Aucune pièce transmise pour le moment
+                </p>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">
+                  Le candidat n'a pas encore commencé à compléter son dossier.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-8">
+              {groups.map((group) => {
+                const CategoryIcon = getDocumentIcon(group.spec.type);
+                return (
+                  <section
+                    key={group.spec.type}
+                    aria-label={`Catégorie ${group.spec.label}`}
+                  >
+                    <CategorySectionHeader group={group} />
+                    <ul className="flex flex-col gap-3">
+                      {group.received.map((doc) => (
+                        <DocumentRow
+                          key={doc.id}
+                          doc={doc}
+                          onConsult={() => setActiveDoc(doc)}
+                        />
+                      ))}
+                      {group.missingLabels.map((label, idx) => (
+                        <MissingSlot
+                          key={`${group.spec.type}-missing-${idx}`}
+                          label={label}
+                          Icon={CategoryIcon}
+                        />
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+
+              {/* Documents hors catégories standard (ex: documents garant
+                  reçus avec subjectType garant — affichés à part) */}
+              {orphanDocs.length > 0 && (
+                <section aria-label="Pièces complémentaires">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+                      <FileText className="h-5 w-5 flex-shrink-0 text-slate-600" aria-hidden="true" />
+                    </div>
+                    <h3 className="font-serif text-base font-bold leading-tight text-emerald-900 sm:text-lg">
+                      Pièces complémentaires
+                    </h3>
+                  </div>
+                  <ul className="flex flex-col gap-3">
+                    {orphanDocs.map((doc) => (
+                      <DocumentRow
+                        key={doc.id}
+                        doc={doc}
+                        onConsult={() => setActiveDoc(doc)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
-            <p className="font-serif text-lg font-semibold text-emerald-900">
-              Aucune pièce transmise pour le moment
-            </p>
-            <p className="mt-1 max-w-sm text-sm text-slate-500">
-              Le candidat n'a pas encore commencé à compléter son dossier.
-            </p>
-          </div>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {documents.map((doc) => (
-              <DocumentRow
-                key={doc.id}
-                doc={doc}
-                onConsult={() => setActiveDoc(doc)}
-              />
-            ))}
-          </ul>
-        )}
+          );
+        })()}
       </section>
 
       {/* ─── SecureDocumentViewer (modale) ─────────────────────────────────── */}

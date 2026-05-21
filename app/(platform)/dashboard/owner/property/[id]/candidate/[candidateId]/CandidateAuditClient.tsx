@@ -44,6 +44,8 @@ import {
   deriveCriteriaFromDossier,
   PayslipsBreakdown,
   ReanalyzeButton,
+  CandidateDossier,
+  type DossierDocument,
 } from '@/app/components/audit';
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
@@ -255,6 +257,40 @@ export default function CandidateAuditClient({
   const [selectionBusy, setSelectionBusy] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  // V5.7 — Dossier documentaire (Trust-List) fetch
+  const [dossierDocs, setDossierDocs] = useState<DossierDocument[]>([]);
+  const [dossierLoading, setDossierLoading] = useState(false);
+  const [dossierError, setDossierError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!candidateId) return;
+    let cancelled = false;
+    setDossierLoading(true);
+    setDossierError(null);
+    setDossierDocs([]);
+    fetch(`/api/owner/applications/${candidateId}/documents`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || `Erreur ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data: { documents: DossierDocument[] }) => {
+        if (cancelled) return;
+        setDossierDocs(Array.isArray(data.documents) ? data.documents : []);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setDossierError(err.message || 'Erreur réseau');
+      })
+      .finally(() => {
+        if (!cancelled) setDossierLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateId]);
 
   const handleChoose = async () => {
     if (!candidate) return;
@@ -828,6 +864,23 @@ export default function CandidateAuditClient({
             </PremiumSurface>
           )}
         </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/*  V5.7 — DOSSIER DOCUMENTAIRE (Trust-List forensic)         */}
+      {/* ══════════════════════════════════════════════════════════ */}
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+        <CandidateDossier
+          candidateName={`${candidate.profile?.firstName || ''} ${candidate.profile?.lastName || ''}`.trim()}
+          candidateJob="Profil candidat"
+          score={Number(candidate.patrimometer?.score || 0)}
+          documents={dossierDocs}
+          loading={dossierLoading}
+          error={dossierError}
+          showScoring={false}
+          showHeader={false}
+          viewerIdentity={`Propriétaire · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`}
+        />
       </div>
 
       {/* ══════════════════════════════════════════════════════════ */}
