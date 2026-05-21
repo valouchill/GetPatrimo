@@ -73,3 +73,19 @@ export type {
   PortfolioAsset,
   AssetStatus,
 } from "./PropertiesPortfolio";
+
+export { CandidateDossier, CandidateDossierDemo } from "./CandidateDossier";
+export type {
+  CandidateDossierProps,
+  DossierDocument,
+  DocumentTransmissionStatus,
+  DocumentType,
+  ScoringBreakdown,
+} from "./CandidateDossier";
+
+export { SecureDocumentViewer } from "./SecureDocumentViewer";
+export type {
+  SecureDocumentViewerProps,
+  SecureDocument,
+  DocumentAuditStatus,
+} from "./SecureDocumentViewer";
