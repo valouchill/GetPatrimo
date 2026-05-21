@@ -36,6 +36,7 @@ import { PropertyFilters, type PropertyStatusFilter, type PropertySort, type Pro
 import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { OwnerCandidatesStack } from './components/OwnerCandidatesStack';
+import { PropertiesPortfolio, type PortfolioAsset, type AssetStatus } from '@/app/components/audit';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -442,192 +443,46 @@ export default function OwnerDashboardClient() {
         {/* ─ MES BIENS ─ */}
         {page === 'biens' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Mes biens</h1>
-                <p className="mt-1 text-sm text-slate-500">{biens.length} bien{biens.length !== 1 ? 's' : ''} en portefeuille</p>
-              </div>
-              <button onClick={() => go('depot')} className="hidden items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-colors md:flex"><Plus className="h-4 w-4" /> Ajouter un bien</button>
-            </div>
-
-            {/* FAB mobile — Ajouter un bien */}
-            <button
-              onClick={() => go('depot')}
-              className="fixed bottom-28 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg hover:bg-amber-600 active:scale-95 transition-all md:hidden"
-              aria-label="Ajouter un bien"
-            >
-              <Plus className="h-6 w-6" />
-            </button>
-
-            <PropertyFilters
-              search={biensSearch}
-              onSearchChange={setBiensSearch}
-              statusFilter={biensStatusFilter}
-              onStatusChange={setBiensStatusFilter}
-              sort={biensSort}
-              onSortChange={setBiensSort}
-              view={biensView}
-              onViewChange={setBiensView}
+            {/* V5.5 — Vue "Portefeuille d'Actifs" Banque Privée.
+                Remplace l'ancien design tableau + grille mixte par un seul
+                composant <PropertiesPortfolio> cohérent avec le reste de l'UI
+                Trust Premium (PR #41). */}
+            <PropertiesPortfolio
+              assets={biens.map((b): PortfolioAsset => {
+                const pending = allDossiers.filter(
+                  (d) => d.bien_id === b.id && !d.isSealed,
+                ).length;
+                const status: AssetStatus = b.isRented
+                  ? 'sealed'
+                  : b.status === 'VACANT'
+                  ? 'vacant'
+                  : b.status === 'CANDIDATE_SELECTION' || pending > 0
+                  ? 'searching'
+                  : 'searching';
+                const statusLabel: Record<AssetStatus, string> = {
+                  sealed: 'Sous scellé (Loué)',
+                  searching: 'En recherche',
+                  vacant: 'Vacant',
+                  pending: 'En attente',
+                };
+                const sesameLink = b.applyToken
+                  ? `${typeof window !== 'undefined' ? window.location.origin : 'https://doc2loc.com'}/apply/${b.applyToken}`
+                  : '';
+                return {
+                  id: b.id,
+                  title: b.label,
+                  address: b.adresse,
+                  rent: b.loyer,
+                  status,
+                  statusLabel: b.leaseStatusLabel || statusLabel[status],
+                  pendingApplications: pending,
+                  sesameLink,
+                };
+              })}
+              onAdd={() => go('depot')}
+              onManage={(id) => setPropertyModalId(id)}
             />
 
-            {filteredBiens.length === 0 && biens.length > 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Search className="h-6 w-6 text-slate-400" /></div>
-                <p className="mb-2 text-slate-500">Aucun bien ne correspond à vos filtres.</p>
-                <button type="button" onClick={() => { setBiensSearch(''); setBiensStatusFilter('all'); }} className="text-sm font-semibold text-amber-500 hover:underline">Réinitialiser les filtres</button>
-              </div>
-            ) : biens.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
-                <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100"><Building2 className="h-6 w-6 text-slate-400" /></div>
-                <p className="mb-4 text-slate-500">Aucun bien enregistré.</p>
-                <Btn variant="amber" onClick={() => go('depot')}><Plus className="h-4 w-4" /> Créer votre premier bien</Btn>
-              </div>
-            ) : biensView === 'list' ? (
-              <PropertyTable
-                biens={filteredBiens}
-                onViewProperty={(id) => setPropertyModalId(id)}
-                onEditProperty={(id) => setEditBienId(id)}
-                onDeleteProperty={(id) => setDeleteBienId(id)}
-              />
-            ) : (
-              <div className="grid gap-5 xl:grid-cols-2">
-                {filteredBiens.map((b) => {
-                  const selTenant = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
-                  const candCount = allDossiers.filter((d) => d.bien_id === b.id).length;
-                  const statusLabel: Record<string, string> = {
-                    OCCUPIED: 'Occupé', VACANT: 'Vacant', AVAILABLE: 'Disponible',
-                    CANDIDATE_SELECTION: 'En recherche', LEASE_IN_PROGRESS: 'Bail en cours',
-                  };
-                  const statusColor: Record<string, string> = {
-                    OCCUPIED: 'text-emerald-600', VACANT: 'text-red-500', AVAILABLE: 'text-blue-500',
-                    CANDIDATE_SELECTION: 'text-amber-600', LEASE_IN_PROGRESS: 'text-amber-500',
-                  };
-                  return (
-                    <div key={b.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:shadow-md active:scale-[0.98] cursor-pointer" onClick={() => setPropertyModalId(b.id)} role="button" tabIndex={0}>
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50"><Building2 className="h-5 w-5 text-amber-500" /></div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`h-2 w-2 rounded-full ${b.status === 'OCCUPIED' ? 'bg-emerald-500' : b.status === 'VACANT' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                            <span className={`text-xs font-semibold ${statusColor[b.status || ''] || 'text-slate-500'}`}>
-                              {statusLabel[b.status || ''] || b.flowStageLabel || '—'}
-                            </span>
-                          </div>
-                          <PropertyCardMenu
-                            bienId={b.id}
-                            bienLabel={b.label}
-                            onEdit={() => setEditBienId(b.id)}
-                            onDelete={() => setDeleteBienId(b.id)}
-                          />
-                        </div>
-                      </div>
-                      <div className="font-bold text-slate-950">{b.label}</div>
-                      <div className="mt-0.5 mb-3 flex items-center gap-1 text-sm text-slate-500 line-clamp-1">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />{b.adresse}
-                      </div>
-
-                      {/* Property details */}
-                      <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Loyer</span>
-                          <span className="font-semibold text-slate-900">{b.loyer.toLocaleString('fr-FR')} €</span>
-                        </div>
-                        {b.surface > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Surface</span>
-                            <span className="font-semibold text-slate-900">{b.surface} m²</span>
-                          </div>
-                        )}
-                        {b.rooms && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Pièces</span>
-                            <span className="font-semibold text-slate-900">{b.rooms}</span>
-                          </div>
-                        )}
-                        {b.floor !== null && b.floor !== undefined && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Étage</span>
-                            <span className="font-semibold text-slate-900">{b.floor === 0 ? 'RDC' : `${b.floor}e`}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Tenant or vacancy info */}
-                      {selTenant || b.tenantLabel ? (
-                        <div className="mb-3 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm">
-                          <span className="text-slate-500">Locataire · </span>
-                          <b className="text-slate-900">{selTenant ? `${selTenant.prenom} ${selTenant.nom}` : b.tenantLabel}</b>
-                        </div>
-                      ) : b.status === 'VACANT' && b.vacantSince ? (
-                        <div className="mb-3 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                          Vacant depuis le {new Date(b.vacantSince).toLocaleDateString('fr-FR')}
-                        </div>
-                      ) : null}
-
-                      {/* Yield if available */}
-                      {b.grossYield && (
-                        <div className="mb-3 flex items-center gap-1.5 text-sm">
-                          <TrendingUp className="h-4 w-4 text-emerald-500" />
-                          <span className="text-slate-500">Rentabilité brute :</span>
-                          <span className="font-bold text-emerald-600">{b.grossYield}%</span>
-                        </div>
-                      )}
-
-                      {/* Tags */}
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        <Tag>{candCount} candidature{candCount !== 1 ? 's' : ''}</Tag>
-                      </div>
-
-                      {b.flowSummary && (
-                        <p className="mb-3 text-xs leading-5 text-slate-500 line-clamp-2">{b.flowSummary}</p>
-                      )}
-                      {typeof b.flowProgress === 'number' && (
-                        <div className="mb-4">
-                          <div className="mb-1 flex justify-between text-xs text-slate-400">
-                            <span>Progression</span><span>{b.flowProgress}%</span>
-                          </div>
-                          <Bar value={b.flowProgress} />
-                        </div>
-                      )}
-                      <div className="mt-auto flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Btn variant="secondary" className="flex-1 py-2 text-xs" onClick={() => setPropertyModalId(b.id)}>
-                          <ExternalLink className="h-3.5 w-3.5" /> Voir la fiche
-                        </Btn>
-                        {!b.isRented && (() => {
-                          const selTenantForBtn = allDossiers.find(d => d.bien_id === b.id && d.statut === 'selectionne');
-                          if (selTenantForBtn && isEnabled('LEASES')) {
-                            return (
-                              <Btn variant="primary" className="flex-1 py-2 text-xs" onClick={() => goToContract(b.id, selTenantForBtn.id)}>
-                                <FileSignature className="h-3.5 w-3.5" /> Rédiger le bail
-                              </Btn>
-                            );
-                          }
-                          const hasUnlocked = allDossiers.filter(d => d.bien_id === b.id && !d.isSealed).length > 0;
-                          if (hasUnlocked) {
-                            return (
-                              <Btn variant="amber" className="flex-1 py-2 text-xs" onClick={() => setSelBienId(b.id)}>
-                                Sélectionner →
-                              </Btn>
-                            );
-                          }
-                          return null;
-                        })()}
-                        {b.applyToken && !b.isRented && (
-                          <button type="button" onClick={() => copyLink(b.applyToken!, b.id)} title="Copier le lien Sésame" aria-label="Copier le lien Sésame"
-                            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
-                              copiedId === b.id
-                                ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
-                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                            }`}>
-                            {copiedId === b.id ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </motion.div>
         )}
 

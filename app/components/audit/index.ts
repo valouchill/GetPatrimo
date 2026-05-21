@@ -61,3 +61,15 @@ export type {
   CandidaturesStackViewProps,
   StackCandidate,
 } from "./CandidaturesStackView";
+
+export {
+  PropertiesPortfolio,
+  PropertyAssetCard,
+  PropertiesPortfolioDemo,
+} from "./PropertiesPortfolio";
+export type {
+  PropertiesPortfolioProps,
+  PropertyAssetCardProps,
+  PortfolioAsset,
+  AssetStatus,
+} from "./PropertiesPortfolio";
