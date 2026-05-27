@@ -16,6 +16,7 @@ import {
 } from '@/app/components/audit';
 import { PRODUCT, formatPrice, getGrade, GRADE_SHORT } from '@/lib/product-lexicon';
 import { resolveVerdict } from '@/lib/verdict-system';
+import { AnalysisV2Panel } from './AnalysisV2Panel';
 
 export interface CandidateAuditModalProps {
   open: boolean;
@@ -385,6 +386,11 @@ export function CandidateAuditModal({
                 onValidate={() => setConfirmOpen(true)}
                 onReject={onClose}
               />
+
+              {/* V6.2 — Panneau d'analyse neuro-symbolique (Indice de Résilience
+                  V2, Grades Institutionnels, Trust-List anti-fraude).
+                  Lazy (button-driven) : 1 appel OpenAI = 1 click propriétaire. */}
+              <AnalysisV2Panel applicationId={c.id} />
 
               {/* V5.8 — Section "Pièces du dossier" (Trust-List adaptée
                   au profil + Didit). Si l'identité est vérifiée par Didit,
