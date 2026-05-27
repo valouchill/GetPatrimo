@@ -30,32 +30,42 @@ export interface ScoringFlags {
   isDossierComplete: boolean;
 }
 
-/** Grade institutionnel (4 niveaux) */
-export type Grade = 'GRADE S' | 'GRADE A' | 'GRADE B' | 'ALERTE';
+/**
+ * Niveaux institutionnels inspirés des cartes bancaires haut de gamme :
+ *   PLATINUM > GOLD > SILVER > ALERTE
+ */
+export type Level = 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
 /** Statut UI haut niveau */
-export type GradeStatus = 'SUCCESS' | 'WARNING' | 'DANGER';
+export type LevelStatus = 'SUCCESS' | 'WARNING' | 'DANGER';
 /** Décision normalisée recommandée au propriétaire */
-export type GradeAdvice = 'GO_FAST' | 'MANUAL_CHECK' | 'REJECT';
+export type LevelAdvice = 'GO_FAST' | 'MANUAL_CHECK' | 'REJECT';
 
-export interface GradeInfo {
-  grade: Grade;
-  status: GradeStatus;
-  /** Token Tailwind (sans préfixe : "emerald-600", "amber-500", …) */
+export interface LevelInfo {
+  level: Level;
+  status: LevelStatus;
+  /**
+   * Chaîne de classes Tailwind prête à appliquer sur un badge / chip
+   * (bg + text + ring). Exemples :
+   *   PLATINUM : "bg-slate-900 text-amber-500 ring-slate-800"
+   *   GOLD     : "bg-amber-100 text-amber-800 ring-amber-200"
+   *   SILVER   : "bg-slate-100 text-slate-700 ring-slate-200"
+   *   ALERTE   : "bg-red-50 text-red-700 ring-red-200"
+   */
   color: string;
-  advice: GradeAdvice;
+  advice: LevelAdvice;
 }
 
 export interface ResilienceResult {
   /** Indice de Résilience final 0-100 (entier) */
   score: number;
-  /** Grade institutionnel (GRADE S / A / B / ALERTE) */
-  grade: Grade;
+  /** Niveau institutionnel (PLATINUM / GOLD / SILVER / ALERTE) */
+  level: Level;
   /** Statut UI (SUCCESS / WARNING / DANGER) */
-  status: GradeStatus;
-  /** Couleur Tailwind associée */
+  status: LevelStatus;
+  /** Chaîne de classes Tailwind (bg + text + ring) pour le badge */
   color: string;
-  /** Décision normalisée — dérivée du grade uniquement */
-  decision: GradeAdvice;
+  /** Décision normalisée — dérivée du niveau uniquement */
+  decision: LevelAdvice;
   /** Verdict frontend (recommended / review / risky) */
   finalVerdict: 'recommended' | 'review' | 'risky';
   /** Détail par pilier (points pondérés) + raw avant plafonnement */
@@ -68,6 +78,16 @@ export interface ResilienceResult {
   /** Hard gates appliqués (raisons humainement lisibles) */
   hardGates: string[];
 }
+
+// ─── Alias rétrocompat (à supprimer si plus jamais consommés) ──────────────
+/** @deprecated Utiliser `Level`. */
+export type Grade = Level;
+/** @deprecated Utiliser `LevelStatus`. */
+export type GradeStatus = LevelStatus;
+/** @deprecated Utiliser `LevelAdvice`. */
+export type GradeAdvice = LevelAdvice;
+/** @deprecated Utiliser `LevelInfo`. */
+export type GradeInfo = LevelInfo;
 
 // ─── Algorithmes purs (les briques exportées) ────────────────────────────────
 
@@ -100,49 +120,52 @@ export function calculateFinalScore(
 
   // Règle 2 : Plafond de dossier incomplet
   if (!flags.isDossierComplete && baseScore > 65) {
-    return 65; // Plafonné au maximum du GRADE B tant qu'il manque des pièces
+    return 65; // Plafonné au maximum du palier SILVER tant qu'il manque des pièces
   }
 
   return baseScore;
 }
 
 /**
- * Mapping déterministe score → grade institutionnel.
+ * Mapping déterministe score → niveau institutionnel "carte privée".
  *
- *   90-100 : GRADE S — SUCCESS, emerald-600, GO_FAST
- *   75-89  : GRADE A — SUCCESS, emerald-500, MANUAL_CHECK
- *   50-74  : GRADE B — WARNING, amber-500,   MANUAL_CHECK
- *   0-49   : ALERTE  — DANGER,  red-500,     REJECT
+ *   90-100 : PLATINUM — SUCCESS, badge noir/or,   GO_FAST
+ *   75-89  : GOLD     — SUCCESS, badge ambre,     MANUAL_CHECK
+ *   50-74  : SILVER   — WARNING, badge gris,      MANUAL_CHECK
+ *   0-49   : ALERTE   — DANGER,  badge rouge,     REJECT
+ *
+ * La chaîne `color` est directement applicable sur un badge Tailwind
+ * (bg + text + ring en une seule classe composite).
  */
-export function getGradeFromScore(score: number): GradeInfo {
+export function getGradeFromScore(score: number): LevelInfo {
   if (score >= 90) {
     return {
-      grade: 'GRADE S',
+      level: 'PLATINUM',
       status: 'SUCCESS',
-      color: 'emerald-600',
+      color: 'bg-slate-900 text-amber-500 ring-slate-800',
       advice: 'GO_FAST',
     };
   }
   if (score >= 75) {
     return {
-      grade: 'GRADE A',
+      level: 'GOLD',
       status: 'SUCCESS',
-      color: 'emerald-500',
+      color: 'bg-amber-100 text-amber-800 ring-amber-200',
       advice: 'MANUAL_CHECK',
     };
   }
   if (score >= 50) {
     return {
-      grade: 'GRADE B',
+      level: 'SILVER',
       status: 'WARNING',
-      color: 'amber-500',
+      color: 'bg-slate-100 text-slate-700 ring-slate-200',
       advice: 'MANUAL_CHECK',
     };
   }
   return {
-    grade: 'ALERTE',
+    level: 'ALERTE',
     status: 'DANGER',
-    color: 'red-500',
+    color: 'bg-red-50 text-red-700 ring-red-200',
     advice: 'REJECT',
   };
 }
@@ -175,7 +198,7 @@ export function computeResilienceIndex(analysis: AIAnalysisType): ResilienceResu
 
   // Score final via les règles défensives
   const score = calculateFinalScore(subScores, scoringFlags);
-  const gradeInfo = getGradeFromScore(score);
+  const levelInfo = getGradeFromScore(score);
 
   // Hard gates appliqués (audit humain)
   const hardGates: string[] = [];
@@ -184,23 +207,23 @@ export function computeResilienceIndex(analysis: AIAnalysisType): ResilienceResu
   }
   if (!flags.isDossierComplete && rawScore > 65 && !flags.isFraudDetected) {
     hardGates.push(
-      'Dossier incomplet — score plafonné à 65 (haut de GRADE B)',
+      'Dossier incomplet — score plafonné à 65 (haut de palier SILVER)',
     );
   }
 
   const finalVerdict: ResilienceResult['finalVerdict'] =
-    gradeInfo.advice === 'GO_FAST'
+    levelInfo.advice === 'GO_FAST'
       ? 'recommended'
-      : gradeInfo.advice === 'REJECT'
+      : levelInfo.advice === 'REJECT'
       ? 'risky'
       : 'review';
 
   return {
     score,
-    grade: gradeInfo.grade,
-    status: gradeInfo.status,
-    color: gradeInfo.color,
-    decision: gradeInfo.advice,
+    level: levelInfo.level,
+    status: levelInfo.status,
+    color: levelInfo.color,
+    decision: levelInfo.advice,
     finalVerdict,
     breakdown: {
       financialStability: financialPts,

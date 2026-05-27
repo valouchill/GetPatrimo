@@ -252,7 +252,7 @@ export async function POST(
     logger.info('analyze-v2 success', {
       applicationId: id,
       score: result.resilience.score,
-      grade: result.resilience.grade,
+      level: result.resilience.level,
       decision: result.resilience.decision,
       hardGates: result.resilience.hardGates.length,
     });
