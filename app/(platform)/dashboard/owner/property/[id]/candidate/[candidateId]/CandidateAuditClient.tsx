@@ -474,7 +474,9 @@ export default function CandidateAuditClient({
             {isEnabled('LEASES') && !isSealed && isOwnerSelected && (
               <button
                 type="button"
-                onClick={() => router.push(`/dashboard/owner/property/${propertyId}?tab=selected&applicationId=${candidate.id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/owner/lease/${candidate.id}`)
+                }
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
               >
                 <ScrollText className="h-4 w-4" />

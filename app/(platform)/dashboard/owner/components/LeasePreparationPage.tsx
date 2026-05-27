@@ -54,7 +54,8 @@ export interface LeaseGuarantorData {
 export interface LeasePreparationData {
   asset: LeaseAssetData;
   tenant: LeaseTenantData;
-  guarantor: LeaseGuarantorData;
+  /** Garant optionnel : null si pas de garant physique sur le dossier. */
+  guarantor: LeaseGuarantorData | null;
 }
 
 /**
@@ -196,13 +197,21 @@ export interface LeasePreparationPageProps {
   pdfTemplateHref?: string;
   /** Chemin du modèle DOCX (à uploader dans /public/templates/) */
   docxTemplateHref?: string;
+  /**
+   * Indique si les données proviennent d'une candidature réelle (true)
+   * ou des données de démo (false par défaut). Affiche un sous-titre
+   * contextuel + un badge "Données réelles".
+   */
+  applicationLabel?: string | null;
 }
 
 export function LeasePreparationPage({
   data = DEMO_LEASE_DATA,
   pdfTemplateHref = '/templates/bail-alur.pdf',
   docxTemplateHref = '/templates/bail-alur.docx',
+  applicationLabel = null,
 }: LeasePreparationPageProps): React.ReactElement {
+  const isRealData = !!applicationLabel;
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
@@ -210,11 +219,18 @@ export function LeasePreparationPage({
         <header className="mb-10">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-800">
             <FileSignature className="h-3 w-3" aria-hidden="true" />
-            Module de contractualisation · V1
+            {isRealData
+              ? 'Module de contractualisation · V1'
+              : 'Aperçu démo · Module de contractualisation'}
           </div>
           <h1 className="font-serif text-3xl leading-tight text-emerald-900 sm:text-4xl">
             Préparation de votre Contrat de Bail
           </h1>
+          {applicationLabel && (
+            <p className="mt-2 text-sm font-semibold text-emerald-800">
+              {applicationLabel}
+            </p>
+          )}
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
             Téléchargez le modèle ALUR officiel puis utilisez le registre
             ci-dessous pour reporter chaque information du dossier en un clic.
@@ -317,27 +333,41 @@ export function LeasePreparationPage({
               />
             </SectionCard>
 
-            {/* Bloc 3 — Caution / Garant */}
+            {/* Bloc 3 — Caution / Garant (optionnel) */}
             <SectionCard
               icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
               title="La Caution / Le Garant"
-              subtitle="Personne physique se portant garante du locataire."
+              subtitle={
+                data.guarantor
+                  ? 'Personne physique se portant garante du locataire.'
+                  : 'Aucun garant physique sur ce dossier.'
+              }
             >
-              <CopyableField
-                label="Nom complet du garant"
-                value={data.guarantor.fullName}
-                toastLabel="Nom"
-              />
-              <CopyableField
-                label="Adresse du garant"
-                value={data.guarantor.address}
-                toastLabel="Adresse"
-              />
-              <CopyableField
-                label="Revenus certifiés du garant"
-                value={data.guarantor.certifiedIncome}
-                toastLabel="Revenu"
-              />
+              {data.guarantor ? (
+                <>
+                  <CopyableField
+                    label="Nom complet du garant"
+                    value={data.guarantor.fullName}
+                    toastLabel="Nom"
+                  />
+                  <CopyableField
+                    label="Adresse du garant"
+                    value={data.guarantor.address}
+                    toastLabel="Adresse"
+                  />
+                  <CopyableField
+                    label="Revenus certifiés du garant"
+                    value={data.guarantor.certifiedIncome}
+                    toastLabel="Revenu"
+                  />
+                </>
+              ) : (
+                <p className="py-4 text-sm leading-relaxed text-slate-500">
+                  Le candidat n&rsquo;a pas déclaré de garant physique. Vérifiez
+                  si une garantie Visale couvre le dossier, ou demandez l&rsquo;ajout
+                  d&rsquo;un garant avant signature.
+                </p>
+              )}
             </SectionCard>
           </div>
         </section>
