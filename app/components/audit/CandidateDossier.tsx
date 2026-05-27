@@ -52,6 +52,18 @@ export interface DossierDocument {
   auditStatus: DocumentAuditStatus;
   auditMessage?: string;
   url: string | null;
+  // V5.12 — Données IA pour aperçu synthétique (transmises au viewer)
+  fileName?: string | null;
+  uploadedAt?: string | null;
+  dateEmission?: string | null;
+  aiInsights?: {
+    documentType?: string | null;
+    confidence?: number | null;
+    summary?: string | null;
+    fraudScore?: number | null;
+    flags?: string[];
+    extractedFields?: Record<string, unknown>;
+  };
 }
 
 export interface ScoringBreakdown {
@@ -942,6 +954,11 @@ export function CandidateDossier({
                 url: activeDoc.url,
                 auditStatus: activeDoc.auditStatus,
                 auditMessage: activeDoc.auditMessage,
+                // V5.12 — Passer les données IA au viewer pour aperçu synthétique
+                fileName: activeDoc.fileName,
+                uploadedAt: activeDoc.uploadedAt,
+                dateEmission: activeDoc.dateEmission,
+                aiInsights: activeDoc.aiInsights,
               } satisfies SecureDocument)
             : null
         }
@@ -964,6 +981,24 @@ const DEMO_DOCUMENTS: DossierDocument[] = [
     auditStatus: 'verified',
     auditMessage: 'Certifié eIDAS (Authenticité validée)',
     url: '/mock-cni.jpg',
+    fileName: 'cni_louna_bernasconi.jpg',
+    uploadedAt: '2026-05-12T09:32:00.000Z',
+    aiInsights: {
+      documentType: "Carte Nationale d'Identité",
+      confidence: 0.99,
+      summary:
+        'Pièce d\'identité française authentique. MRZ vérifié. Date d\'expiration valide. Identité biométrique alignée avec la session Didit.',
+      fraudScore: 0.02,
+      extractedFields: {
+        nom: 'Bernasconi',
+        prenom: 'Louna',
+        dateNaissance: '1994-03-18',
+        lieuNaissance: 'Paris',
+        nationalite: 'Française',
+        numeroPiece: '17AB12345',
+        dateExpiration: '2032-04-22',
+      },
+    },
   },
   {
     id: 'doc_2',
@@ -972,7 +1007,29 @@ const DEMO_DOCUMENTS: DossierDocument[] = [
     transmissionStatus: 'received',
     auditStatus: 'verified',
     auditMessage: 'Logiciel RH détecté (SILAE). Calcul URSSAF exact.',
-    url: '/mock-payslips.pdf',
+    url: null,
+    fileName: 'fiches_paie_T1_2026.pdf',
+    uploadedAt: '2026-05-12T09:34:11.000Z',
+    dateEmission: '2026-04-30',
+    aiInsights: {
+      documentType: 'Bulletins de salaire (mars, février, janvier 2026)',
+      confidence: 0.97,
+      summary:
+        'Bulletins authentiques générés par SILAE. Net à payer cohérent sur 3 mois. Cotisations sociales conformes aux taux URSSAF 2026. Aucune trace d\'édition manuelle.',
+      fraudScore: 0.04,
+      extractedFields: {
+        employeur: 'TechSolutions France SAS',
+        siret: '82345678900015',
+        poste: 'Cheffe de Projet Sénior',
+        contractType: 'CDI',
+        dateEmbauche: '2023-09-04',
+        netAPayer: 3450,
+        salaireBrut: 4520,
+        netImposable: 3680,
+        periode: 'Janvier-Mars 2026',
+      },
+      flags: [],
+    },
   },
   {
     id: 'doc_3',
@@ -990,7 +1047,25 @@ const DEMO_DOCUMENTS: DossierDocument[] = [
     transmissionStatus: 'received',
     auditStatus: 'manual_review',
     auditMessage: 'Document scanné, signature manuscrite à vérifier visuellement.',
-    url: '/mock-tax-notice.pdf',
+    url: null,
+    fileName: 'avis_impots_2025.pdf',
+    uploadedAt: '2026-05-12T09:36:42.000Z',
+    dateEmission: '2025-08-15',
+    aiInsights: {
+      documentType: "Avis d'imposition sur les revenus 2024",
+      confidence: 0.82,
+      summary:
+        "Avis d'imposition cohérent avec les fiches de paie déclarées. Signature manuscrite ajoutée — vérification visuelle recommandée pour confirmer l'authenticité de la signature.",
+      fraudScore: 0.12,
+      extractedFields: {
+        revenuFiscalReference: 39800,
+        nombreParts: 1,
+        situationFamiliale: 'Célibataire',
+        anneeRevenus: 2024,
+        impotNet: 3210,
+      },
+      flags: ['Signature manuscrite à confirmer'],
+    },
   },
   {
     id: 'doc_5',
@@ -999,7 +1074,24 @@ const DEMO_DOCUMENTS: DossierDocument[] = [
     transmissionStatus: 'received',
     auditStatus: 'verified',
     auditMessage: 'Facture EDF authentique (émise il y a 14 jours).',
-    url: '/mock-edf.pdf',
+    url: null,
+    fileName: 'edf_facture_avril_2026.pdf',
+    uploadedAt: '2026-05-12T09:38:05.000Z',
+    dateEmission: '2026-04-28',
+    aiInsights: {
+      documentType: "Facture d'électricité EDF",
+      confidence: 0.98,
+      summary:
+        'Facture EDF authentique. Référence client vérifiée. Adresse cohérente avec la déclaration du candidat. Émise il y a moins de 30 jours.',
+      fraudScore: 0.01,
+      extractedFields: {
+        fournisseur: 'EDF',
+        referenceClient: '5837192406',
+        adresse: '14 rue Oberkampf, 75011 Paris',
+        montantTotal: 87.45,
+        periode: '01/03/2026 - 31/03/2026',
+      },
+    },
   },
 ];
 
