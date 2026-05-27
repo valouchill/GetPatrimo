@@ -22,7 +22,6 @@
 
 import { spawn } from 'child_process';
 import path from 'path';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { buildPassportHtml } from './passport-html-template';
 import {
@@ -33,6 +32,16 @@ import {
   type PassportV2SmartLink,
 } from '@/app/components/pdf/PassportTemplateV2';
 import type { PassportViewModel } from '@/app/components/PassportPDF';
+
+// V5.13 — Import dynamique de react-dom/server pour éviter le warning Next.js
+// "importing a component that imports react-dom/server". L'import est résolu
+// au runtime (server-side uniquement) plutôt qu'au bundle webpack.
+async function renderTemplateToHtml(
+  props: PassportTemplateV2Props,
+): Promise<string> {
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  return renderToStaticMarkup(createElement(PassportTemplateV2, props));
+}
 
 export interface GeneratePassportPdfOptions {
   data: PassportViewModel;
@@ -221,9 +230,7 @@ export async function generatePassportPdf({
   // Fallback V1 disponible via useV2={false} pour rollback rapide.
   const html = useV2
     ? wrapAsHtmlDocument(
-        renderToStaticMarkup(
-          createElement(PassportTemplateV2, viewModelToV2Props(data, ownerSignupUrl)),
-        ),
+        await renderTemplateToHtml(viewModelToV2Props(data, ownerSignupUrl)),
       )
     : buildPassportHtml({ data, qrCodeDataUrl, ownerSignupUrl });
 
