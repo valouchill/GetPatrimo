@@ -1,159 +1,213 @@
 /**
- * resilience-index.ts — Algorithme déterministe pur (partie "Symbolique").
+ * resilience-index.ts — Indice de Résilience V2 (Grades Institutionnels).
  *
- * Extrait du tenant-analyzer pour permettre l'utilisation côté tests
- * (Node pur, sans Next.js server-only ni OpenAI SDK). Ce module ne fait
- * AUCUN appel réseau et n'importe AUCUNE dépendance serveur.
+ * Algorithme déterministe pur (sans server-only ni OpenAI). Extrait du
+ * tenant-analyzer pour permettre l'utilisation côté tests (Node nu).
  *
- * Garantit la cohérence absolue de l'Indice de Résilience : impossible
- * d'avoir 95/100 sans CNI (hard gates appliqués sur l'output du LLM).
+ * Architecture neuro-symbolique :
+ *   - Le LLM produit des observations factuelles (flags + sub-scores 0-10)
+ *   - CE module calcule un score déterministe 0-100 + mapping en grade
+ *
+ * Garantie : cohérence absolue (impossible 95/100 sans CNI, score
+ * critique forcé sur fraude détectée).
  */
 
 import type { AIAnalysisType } from './analysis-schema';
 
+// ─── Types publics ───────────────────────────────────────────────────────────
+
+export interface SubScores {
+  /** Note 0-10 de la stabilité financière */
+  financialStability: number;
+  /** Note 0-10 de l'authenticité documentaire */
+  documentAuthenticity: number;
+  /** Note 0-10 de la fiabilité professionnelle */
+  professionalReliability: number;
+}
+
+export interface ScoringFlags {
+  isFraudDetected: boolean;
+  isDossierComplete: boolean;
+}
+
+/** Grade institutionnel (4 niveaux) */
+export type Grade = 'GRADE S' | 'GRADE A' | 'GRADE B' | 'ALERTE';
+/** Statut UI haut niveau */
+export type GradeStatus = 'SUCCESS' | 'WARNING' | 'DANGER';
+/** Décision normalisée recommandée au propriétaire */
+export type GradeAdvice = 'GO_FAST' | 'MANUAL_CHECK' | 'REJECT';
+
+export interface GradeInfo {
+  grade: Grade;
+  status: GradeStatus;
+  /** Token Tailwind (sans préfixe : "emerald-600", "amber-500", …) */
+  color: string;
+  advice: GradeAdvice;
+}
+
 export interface ResilienceResult {
   /** Indice de Résilience final 0-100 (entier) */
   score: number;
-  /** Grade lettre S / A / B / C / D */
-  grade: 'S' | 'A' | 'B' | 'C' | 'D';
-  /** Label affichable (ex: "GRADE S — Souverain") */
-  gradeLabel: string;
-  /** Verdict final croisé LLM + score */
+  /** Grade institutionnel (GRADE S / A / B / ALERTE) */
+  grade: Grade;
+  /** Statut UI (SUCCESS / WARNING / DANGER) */
+  status: GradeStatus;
+  /** Couleur Tailwind associée */
+  color: string;
+  /** Décision normalisée — dérivée du grade uniquement */
+  decision: GradeAdvice;
+  /** Verdict frontend (recommended / review / risky) */
   finalVerdict: 'recommended' | 'review' | 'risky';
-  /** Décision normalisée (GO_FAST / MANUAL_CHECK / REJECT) */
-  decision: 'GO_FAST' | 'MANUAL_CHECK' | 'REJECT';
-  /** Détail par pilier (points pondérés) */
+  /** Détail par pilier (points pondérés) + raw avant plafonnement */
   breakdown: {
     financialStability: number; // 0-40
-    documentAuthenticity: number; // 0-30
-    professionalReliability: number; // 0-30
-    rawScore: number; // 0-100 avant plafonnement
+    documentAuthenticity: number; // 0-40
+    professionalReliability: number; // 0-20
+    rawScore: number; // 0-100 avant règles défensives
   };
   /** Hard gates appliqués (raisons humainement lisibles) */
   hardGates: string[];
-  /** Pénalités souples appliquées */
-  penalties: { label: string; points: number }[];
 }
 
-const GRADE_LABELS: Record<ResilienceResult['grade'], string> = {
-  S: 'GRADE S — Souverain',
-  A: 'GRADE A — Excellent',
-  B: 'GRADE B — Solide',
-  C: 'GRADE C — Vigilance',
-  D: 'ALERTE',
-};
+// ─── Algorithmes purs (les briques exportées) ────────────────────────────────
 
-function scoreToGrade(score: number): ResilienceResult['grade'] {
-  if (score >= 90) return 'S';
-  if (score >= 75) return 'A';
-  if (score >= 60) return 'B';
-  if (score >= 40) return 'C';
-  return 'D';
-}
+/**
+ * Calcule l'Indice de Résilience final 0-100 selon les règles métier
+ * PatrimoTrust V2 (algorithme défensif).
+ *
+ * Pondération : financialStability×4 + documentAuthenticity×4 + professionalReliability×2
+ *   Max théorique : 10×4 + 10×4 + 10×2 = 100
+ *
+ * Règles défensives (dans l'ordre) :
+ *   1. Tolérance zéro fraude  : isFraudDetected=true → return 15 (ALERTE)
+ *   2. Plafond dossier incomplet : !isDossierComplete && score>65 → return 65
+ */
+export function calculateFinalScore(
+  subScores: SubScores,
+  flags: ScoringFlags,
+): number {
+  // Règle 1 : Tolérance zéro fraude
+  if (flags.isFraudDetected) {
+    return 15; // Forcé en statut ALERTE critique
+  }
 
-function clamp(n: number, min: number, max: number): number {
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, n));
+  // Calcul de la moyenne pondérée de base (Total sur 100)
+  let baseScore =
+    subScores.financialStability * 4 +
+    subScores.documentAuthenticity * 4 +
+    subScores.professionalReliability * 2;
+  baseScore = Math.round(baseScore);
+
+  // Règle 2 : Plafond de dossier incomplet
+  if (!flags.isDossierComplete && baseScore > 65) {
+    return 65; // Plafonné au maximum du GRADE B tant qu'il manque des pièces
+  }
+
+  return baseScore;
 }
 
 /**
- * Calcule l'Indice de Résilience de manière déterministe.
+ * Mapping déterministe score → grade institutionnel.
  *
- * Pondération de base (rawScore 0-100) :
- *   - financialStability     × 4   (max 40 points)
- *   - documentAuthenticity   × 3   (max 30 points)
- *   - professionalReliability × 3  (max 30 points)
+ *   90-100 : GRADE S — SUCCESS, emerald-600, GO_FAST
+ *   75-89  : GRADE A — SUCCESS, emerald-500, MANUAL_CHECK
+ *   50-74  : GRADE B — WARNING, amber-500,   MANUAL_CHECK
+ *   0-49   : ALERTE  — DANGER,  red-500,     REJECT
+ */
+export function getGradeFromScore(score: number): GradeInfo {
+  if (score >= 90) {
+    return {
+      grade: 'GRADE S',
+      status: 'SUCCESS',
+      color: 'emerald-600',
+      advice: 'GO_FAST',
+    };
+  }
+  if (score >= 75) {
+    return {
+      grade: 'GRADE A',
+      status: 'SUCCESS',
+      color: 'emerald-500',
+      advice: 'MANUAL_CHECK',
+    };
+  }
+  if (score >= 50) {
+    return {
+      grade: 'GRADE B',
+      status: 'WARNING',
+      color: 'amber-500',
+      advice: 'MANUAL_CHECK',
+    };
+  }
+  return {
+    grade: 'ALERTE',
+    status: 'DANGER',
+    color: 'red-500',
+    advice: 'REJECT',
+  };
+}
+
+// ─── Orchestrateur (sortie riche pour API + UI) ─────────────────────────────
+
+/**
+ * Pipeline complet : applique calculateFinalScore + getGradeFromScore
+ * sur la sortie LLM et construit un ResilienceResult riche (breakdown,
+ * hardGates, verdict frontend).
  *
- * Hard gates (plafonnement strict — garantit la cohérence) :
- *   1. isFraudDetected = true                        → score ≤ 30
- *   2. documentAuthenticity = 0                      → score ≤ 30
- *   3. isDossierComplete = false                     → score ≤ 60
- *
- * Pénalités souples (cumulables) :
- *   - isIncomeSufficient = false → -20 points
- *
- * Décision finale (croisée LLM + score) :
- *   - REJECT  si LLM REJECT, score < 40, ou fraude détectée
- *   - GO_FAST si score ≥ 75, LLM GO_FAST, pas de hard gate, dossier complet
- *   - MANUAL_CHECK sinon (mode sécuritaire par défaut)
+ * Le LLM ne décide PAS — la décision provient exclusivement du grade.
+ * `ownerRecommendation.decisionAdvice` (LLM) reste disponible en lecture
+ * dans `analysis.ownerRecommendation` pour comparaison, mais n'altère
+ * jamais le résultat de cet algo (garantie déterministe).
  */
 export function computeResilienceIndex(analysis: AIAnalysisType): ResilienceResult {
-  const { flags, subScores, ownerRecommendation } = analysis;
+  const { flags, subScores } = analysis;
 
-  const financial = clamp(subScores.financialStability * 4, 0, 40);
-  const authenticity = clamp(subScores.documentAuthenticity * 3, 0, 30);
-  const professional = clamp(subScores.professionalReliability * 3, 0, 30);
-  let rawScore = financial + authenticity + professional;
+  const scoringFlags: ScoringFlags = {
+    isFraudDetected: flags.isFraudDetected,
+    isDossierComplete: flags.isDossierComplete,
+  };
 
+  // Pondérations effectives pour le breakdown (avant règles défensives)
+  const financialPts = Math.round(subScores.financialStability * 4);
+  const authenticityPts = Math.round(subScores.documentAuthenticity * 4);
+  const professionalPts = Math.round(subScores.professionalReliability * 2);
+  const rawScore = financialPts + authenticityPts + professionalPts;
+
+  // Score final via les règles défensives
+  const score = calculateFinalScore(subScores, scoringFlags);
+  const gradeInfo = getGradeFromScore(score);
+
+  // Hard gates appliqués (audit humain)
   const hardGates: string[] = [];
-  const penalties: { label: string; points: number }[] = [];
-
-  // Hard gates
   if (flags.isFraudDetected) {
-    rawScore = Math.min(rawScore, 30);
-    hardGates.push('Fraude détectée — score plafonné à 30');
+    hardGates.push('Fraude détectée — score forcé à 15 (ALERTE critique)');
   }
-  if (subScores.documentAuthenticity === 0) {
-    rawScore = Math.min(rawScore, 30);
-    hardGates.push("Authenticité documentaire nulle — score plafonné à 30");
-  }
-  if (!flags.isDossierComplete) {
-    rawScore = Math.min(rawScore, 60);
-    hardGates.push('Dossier incomplet (pièce majeure manquante) — score plafonné à 60');
-  }
-
-  // Pénalités souples
-  if (!flags.isIncomeSufficient) {
-    const penalty = 20;
-    rawScore = Math.max(0, rawScore - penalty);
-    penalties.push({
-      label: 'Revenus insuffisants au regard du loyer (taux d\'effort élevé)',
-      points: -penalty,
-    });
-  }
-
-  const finalScore = Math.round(clamp(rawScore, 0, 100));
-  const grade = scoreToGrade(finalScore);
-
-  // Décision finale (l'algo a la priorité — sécurité)
-  let decision: ResilienceResult['decision'];
-  if (
-    ownerRecommendation.decisionAdvice === 'REJECT' ||
-    finalScore < 40 ||
-    flags.isFraudDetected
-  ) {
-    decision = 'REJECT';
-  } else if (
-    finalScore >= 75 &&
-    ownerRecommendation.decisionAdvice === 'GO_FAST' &&
-    hardGates.length === 0 &&
-    flags.isDossierComplete
-  ) {
-    decision = 'GO_FAST';
-  } else {
-    decision = 'MANUAL_CHECK';
+  if (!flags.isDossierComplete && rawScore > 65 && !flags.isFraudDetected) {
+    hardGates.push(
+      'Dossier incomplet — score plafonné à 65 (haut de GRADE B)',
+    );
   }
 
   const finalVerdict: ResilienceResult['finalVerdict'] =
-    decision === 'GO_FAST'
+    gradeInfo.advice === 'GO_FAST'
       ? 'recommended'
-      : decision === 'REJECT'
+      : gradeInfo.advice === 'REJECT'
       ? 'risky'
       : 'review';
 
   return {
-    score: finalScore,
-    grade,
-    gradeLabel: GRADE_LABELS[grade],
+    score,
+    grade: gradeInfo.grade,
+    status: gradeInfo.status,
+    color: gradeInfo.color,
+    decision: gradeInfo.advice,
     finalVerdict,
-    decision,
     breakdown: {
-      financialStability: Math.round(financial),
-      documentAuthenticity: Math.round(authenticity),
-      professionalReliability: Math.round(professional),
-      rawScore: Math.round(financial + authenticity + professional),
+      financialStability: financialPts,
+      documentAuthenticity: authenticityPts,
+      professionalReliability: professionalPts,
+      rawScore,
     },
     hardGates,
-    penalties,
   };
 }
