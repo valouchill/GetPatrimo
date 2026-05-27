@@ -10,14 +10,21 @@
  * Conçu pour le contexte "Audit Forensic Banque Privée" — l'utilisateur
  * doit avoir l'impression de consulter un coffre-fort certifié.
  *
+ * V5.9 — Rendu via React Portal au niveau du document.body pour échapper
+ * au stacking context de la modale parente (CandidateAuditModal). Sans
+ * portal, le motion.div parent crée un nouveau contexte qui piège les
+ * enfants `fixed` et empêche le viewer de couvrir tout l'écran.
+ *
  * Respecte les règles de Design Défensif :
  *   - Toutes les icônes ont w-X h-X flex-shrink-0
  *   - Texte du document name avec truncate + title
- *   - z-index local (z-[201] modal panel, z-[210] watermark layer
- *     interne à la modal — toujours < z-50 global nav extérieure)
+ *   - z-index : backdrop z-[400] / panel z-[401] (au-dessus de toute
+ *     modale parente — l'app ne dépasse jamais z-[300] ailleurs)
+ *   - Watermark : z-10 relatif au panel (stacking context isolé)
  */
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -144,7 +151,7 @@ function WatermarkLayer({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-[210] overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
       aria-hidden="true"
     >
       <div
@@ -217,11 +224,19 @@ export function SecureDocumentViewer({
   const AuditIcon = audit?.icon ?? ShieldCheck;
   const TypeIcon = mimeType === 'pdf' ? FileText : ImageIcon;
 
-  return (
+  // V5.9 — Mount portal target uniquement côté client (évite hydration mismatch)
+  const [portalReady, setPortalReady] = React.useState(false);
+  React.useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  if (!portalReady || typeof window === 'undefined') return <></>;
+
+  const viewerNode = (
     <AnimatePresence>
       {open && document && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — click pour fermer */}
           <motion.div
             key="viewer-backdrop"
             initial={{ opacity: 0 }}
@@ -229,7 +244,7 @@ export function SecureDocumentViewer({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[400] bg-slate-950/80 backdrop-blur-sm"
             aria-hidden="true"
           />
 
@@ -243,7 +258,7 @@ export function SecureDocumentViewer({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className={`fixed inset-4 z-[201] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:inset-8 ${className}`}
+            className={`fixed inset-4 z-[401] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:inset-8 ${className}`}
           >
             {/* ─── A. Header ───────────────────────────────────────────── */}
             <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
@@ -354,6 +369,10 @@ export function SecureDocumentViewer({
       )}
     </AnimatePresence>
   );
+
+  // V5.9 — Rendu via portal au niveau du body pour échapper au stacking
+  // context de la modale parente (CandidateAuditModal).
+  return createPortal(viewerNode, window.document.body);
 }
 
 // ─── Placeholder (document absent ou type inconnu) ───────────────────────────
