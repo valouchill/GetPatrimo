@@ -26,6 +26,7 @@ import * as React from 'react';
 import {
   AlertOctagon,
   AlertTriangle,
+  Check,
   CheckCircle2,
   Clock,
   Gauge,
@@ -86,6 +87,8 @@ interface AnalyzeV2Response {
     hardGates: string[];
   };
   meta: { model: string; analyzedAt: string; applicationId?: string };
+  /** Présent quand l'objet a été persisté en cache Mongo (set par POST + GET). */
+  cachedAt?: string;
 }
 
 // ─── Maps statiques (Tailwind a besoin de classes en clair pour le purge) ─
@@ -244,8 +247,45 @@ export function AnalysisV2Panel({
   className = '',
 }: AnalysisV2PanelProps): React.ReactElement {
   const [loading, setLoading] = React.useState(false);
+  const [cacheLoading, setCacheLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<AnalyzeV2Response | null>(null);
+  const [isCached, setIsCached] = React.useState(false);
+
+  // ─── Auto-fetch du cache au montage (GET, pas d'appel OpenAI) ──────────
+  React.useEffect(() => {
+    let cancelled = false;
+    async function fetchCached(): Promise<void> {
+      try {
+        const res = await fetch(
+          `/api/owner/applications/${applicationId}/analyze-v2`,
+          { method: 'GET' },
+        );
+        if (cancelled) return;
+        if (res.status === 204) {
+          // Pas de cache — afficher l'état initial "Lancer l'analyse"
+          setIsCached(false);
+          return;
+        }
+        if (res.ok) {
+          const body = (await res.json()) as AnalyzeV2Response;
+          setResult(body);
+          setIsCached(true);
+          return;
+        }
+        // 401/403/404/500 sur GET ne sont pas bloquants : on tombe sur l'état
+        // initial avec bouton "Lancer l'analyse" qui retentera la POST.
+      } catch {
+        // Erreur réseau silencieuse — on laisse l'utilisateur cliquer.
+      } finally {
+        if (!cancelled) setCacheLoading(false);
+      }
+    }
+    fetchCached();
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId]);
 
   async function runAnalysis(): Promise<void> {
     setLoading(true);
@@ -267,6 +307,7 @@ export function AnalysisV2Panel({
         throw new Error(message);
       }
       setResult(body as AnalyzeV2Response);
+      setIsCached(false); // Fresh re-run → état "vient d'être analysé"
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
@@ -305,7 +346,7 @@ export function AnalysisV2Panel({
             </p>
           </div>
         </div>
-        {!result && (
+        {!result && !cacheLoading && (
           <button
             type="button"
             onClick={runAnalysis}
@@ -323,20 +364,38 @@ export function AnalysisV2Panel({
           </button>
         )}
         {result && (
-          <button
-            type="button"
-            onClick={runAnalysis}
-            disabled={loading}
-            className="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Re-analyse…' : 'Relancer'}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {isCached && (
+              <span
+                className="hidden items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:inline-flex"
+                title="Résultat issu du cache — pas d'appel OpenAI déclenché"
+              >
+                <Check className="h-3 w-3" aria-hidden="true" />
+                Cache
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={runAnalysis}
+              disabled={loading}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Re-analyse…' : 'Relancer'}
+            </button>
+          </div>
         )}
       </header>
 
       {/* Body */}
       <div className="px-4 py-4 sm:px-5 sm:py-5">
-        {!result && !error && !loading && (
+        {cacheLoading && (
+          <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            Vérification du cache d&rsquo;analyse…
+          </div>
+        )}
+
+        {!cacheLoading && !result && !error && !loading && (
           <p className="text-sm leading-relaxed text-slate-600">
             Lancez l&rsquo;analyse pour obtenir l&rsquo;Indice de Résilience
             déterministe, la décision recommandée et la Trust-List des
