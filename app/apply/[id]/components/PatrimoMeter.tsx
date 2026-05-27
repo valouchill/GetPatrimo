@@ -34,18 +34,23 @@ export function PatrimoMeter({
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTriggered, setCelebrationTriggered] = useState(false);
 
-  // Déterminer le grade - Nouveaux seuils harmonisés
-  const getGrade = (s: number): { grade: string; label: string; color: string } => {
-    if (s >= 90) return { grade: 'S', label: 'Souverain', color: 'text-amber-500' };
-    if (s >= 71) return { grade: 'A', label: 'Premium', color: 'text-emerald-500' };
-    if (s >= 41) return { grade: 'B', label: 'Standard', color: 'text-blue-500' };
-    return { grade: '—', label: 'Initial', color: 'text-slate-400' };
+  // V6.6 — Métal institutionnel (PLATINUM/GOLD/SILVER/ALERTE) à la place
+  // du legacy S/A/B. Seuils alignés sur lib/ai/resilience-index (≥90/75/50).
+  const getMetalDisplay = (
+    s: number,
+  ): { grade: string; label: string; color: string } => {
+    if (s >= 90) return { grade: 'PLATINUM', label: 'Souverain', color: 'text-amber-500' };
+    if (s >= 75) return { grade: 'GOLD', label: 'Premium', color: 'text-amber-600' };
+    if (s >= 50) return { grade: 'SILVER', label: 'Standard', color: 'text-slate-500' };
+    return { grade: 'ALERTE', label: 'À renforcer', color: 'text-red-500' };
   };
 
-  const rawGrade = getGrade(score);
-  const gradeInfo = hasExpirationMalus && rawGrade.grade === 'S'
-    ? { grade: 'A', label: 'Excellent (à rafraîchir)', color: 'text-emerald-500' }
-    : rawGrade;
+  const rawGrade = getMetalDisplay(score);
+  // Malus d'expiration : si PLATINUM avec doc périmé, dégradation à GOLD
+  const gradeInfo =
+    hasExpirationMalus && rawGrade.grade === 'PLATINUM'
+      ? { grade: 'GOLD', label: 'Premium (à rafraîchir)', color: 'text-amber-600' }
+      : rawGrade;
 
   // Animation du compteur (rolling number effect)
   useEffect(() => {
@@ -141,7 +146,7 @@ export function PatrimoMeter({
               animate={{ scale: 1, opacity: 1 }}
               className={`text-[10px] font-black uppercase tracking-widest ${gradeInfo.color}`}
             >
-              Grade {gradeInfo.grade}
+              {gradeInfo.grade}
             </motion.span>
           </div>
 
