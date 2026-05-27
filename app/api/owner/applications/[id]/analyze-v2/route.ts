@@ -249,15 +249,44 @@ export async function POST(
     cooldownRegistry.set(cooldownKey, now);
     const result = await runFullAnalysis(analysisInput);
 
+    // Persistance Mongo (cache + audit) — évite de rappeler OpenAI à chaque
+    // ouverture de la modale. La forme {ai, resilience, meta} est garantie
+    // par Zod côté serveur.
+    const cachedAt = new Date();
+    try {
+      await Application.updateOne(
+        { _id: id },
+        {
+          $set: {
+            aiAuditV2: {
+              ai: result.ai,
+              resilience: result.resilience,
+              meta: result.meta,
+              cachedAt,
+            },
+          },
+        },
+      );
+    } catch (persistErr) {
+      // Erreur de persistance non-bloquante : on log + on retourne quand
+      // même le résultat à l'utilisateur (qui voit l'analyse fraîche).
+      logger.warn('analyze-v2 persist failed', {
+        applicationId: id,
+        error:
+          persistErr instanceof Error ? persistErr.message : String(persistErr),
+      });
+    }
+
     logger.info('analyze-v2 success', {
       applicationId: id,
       score: result.resilience.score,
       level: result.resilience.level,
       decision: result.resilience.decision,
       hardGates: result.resilience.hardGates.length,
+      cachedAt: cachedAt.toISOString(),
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, cachedAt: cachedAt.toISOString() });
   } catch (error) {
     logger.error('POST /api/owner/applications/[id]/analyze-v2', {
       error: error instanceof Error ? error.message : error,
@@ -267,5 +296,77 @@ export async function POST(
         ? error.message
         : 'Erreur lors de l\'analyse';
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+/**
+ * GET /api/owner/applications/[id]/analyze-v2
+ *
+ * Lecture seule du cache aiAuditV2 — n'invoque PAS OpenAI.
+ *   200 : analyse cachée trouvée → retourne {ai, resilience, meta, cachedAt}
+ *   204 : pas de cache (analyse jamais lancée)
+ *   401 : non authentifié
+ *   403 : accès refusé (ownership)
+ *   404 : candidature introuvable
+ *
+ * Pattern client : appeler GET au montage de la modale d'audit pour afficher
+ * l'analyse en cache instantanément. Si 204, afficher l'état "Lancer l'analyse".
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    await connectDiditDb();
+
+    const session = await getServerSession(authOptions as any);
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const app = (await Application.findById(id)
+      .select('property aiAuditV2')
+      .lean()) as
+      | (MongoApplicationDoc & { aiAuditV2?: unknown })
+      | null;
+
+    if (!app) {
+      return NextResponse.json(
+        { error: 'Candidature introuvable' },
+        { status: 404 },
+      );
+    }
+
+    const property = await Property.findById((app as any).property as unknown)
+      .select('owner')
+      .lean();
+
+    if (!property) {
+      return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
+    }
+
+    const userId = (session as any)?.user?.id || (session as any)?.user?._id;
+    const propertyOwner = String((property as any).owner || '');
+    if (userId && propertyOwner && String(userId) !== propertyOwner) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
+    if (!app.aiAuditV2) {
+      // Pas de cache — 204 (No Content) pour que le client affiche
+      // l'état initial "Lancer l'analyse"
+      return new NextResponse(null, { status: 204 });
+    }
+
+    return NextResponse.json(app.aiAuditV2);
+  } catch (error) {
+    logger.error('GET /api/owner/applications/[id]/analyze-v2', {
+      error: error instanceof Error ? error.message : error,
+    });
+    return NextResponse.json(
+      { error: 'Erreur lors de la lecture du cache' },
+      { status: 500 },
+    );
   }
 }

@@ -144,6 +144,17 @@ const ApplicationSchema = new mongoose.Schema({
   // PatrimoMeter™ Score
   patrimometer: { type: ApplicantScoringSchema, default: () => ({}) },
 
+  // Audit IA V2 (neuro-symbolique) — cache de la sortie de
+  // POST /api/owner/applications/[id]/analyze-v2 pour éviter de
+  // rappeler OpenAI à chaque ouverture de la modale d'audit.
+  //
+  // Shape : { ai: AIAnalysisType, resilience: ResilienceResult,
+  //          meta: { model, analyzedAt, applicationId }, cachedAt: Date }
+  //
+  // Mixed car la forme est garantie par Zod côté serveur. Pas de query
+  // interne nécessaire — on lit/écrit toujours l'objet complet.
+  aiAuditV2: { type: mongoose.Schema.Types.Mixed, default: null },
+
   // Statut global
   status: {
     type: String,
