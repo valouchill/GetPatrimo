@@ -64,11 +64,33 @@ export interface PassportTemplateV2Props {
   /** Avis IA dynamique (généré selon le score) */
   aiCommentHtml: string;
 
-  /** Liste des checks forensic 2 colonnes */
+  /** Liste des checks forensic 2 colonnes (legacy V1) */
   forensicChecks: {
     left: string[];
     right: string[];
   };
+
+  /**
+   * V2 (optionnel) : Trust-List enrichie issue de l'analyse neuro-symbolique.
+   * Si fournie ET non vide, REMPLACE le rendu legacy `forensicChecks` par
+   * un tableau structuré avec statut (VERIFIED/WARNING/ALERT) + details.
+   *
+   * Source : Application.aiAuditV2.ai.forensicAudit
+   */
+  forensicAudit?: Array<{
+    checkName: string;
+    status: 'VERIFIED' | 'WARNING' | 'ALERT';
+    details: string;
+  }>;
+
+  /**
+   * V2 (optionnel) : niveau institutionnel "carte bancaire premium"
+   * affiché dans le hero, sous le score. Si fourni, REMPLACE le rendu
+   * `gradeLabel` legacy par un badge métal (PLATINUM/GOLD/SILVER/ALERTE).
+   *
+   * Source : Application.aiAuditV2.resilience.level
+   */
+  metalLevel?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
 
   /** URL d'inscription owner (UTM-taggée) */
   signupUrl: string;
@@ -115,6 +137,29 @@ h1, h2, h3 { font-family: Georgia, serif; color: #064e3b; margin-top: 0; }
 .score-box { background-color: #064e3b; color: #ffffff; padding: 15px 10px; border-radius: 8px; text-align: center; }
 .score-value { font-size: 32pt; font-weight: bold; font-family: Georgia, serif; color: #f59e0b; margin: 2px 0; line-height: 1; }
 .grade-badge { background-color: #f59e0b; color: #064e3b; font-weight: bold; font-size: 11pt; padding: 2px 12px; border-radius: 15px; display: inline-block; }
+
+/* ── Badge métal V2 (carte bancaire premium) ───────────────────────────── */
+.metal-badge { font-weight: bold; font-size: 11pt; padding: 3px 14px; border-radius: 15px; display: inline-block; letter-spacing: 2px; text-transform: uppercase; }
+.metal-platinum { background: #0f172a; color: #f59e0b; border: 1px solid #f59e0b; }
+.metal-gold { background-color: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
+.metal-silver { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+.metal-alerte { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* ── Trust-List forensic V2 (table structurée) ─────────────────────────── */
+.forensic-audit-table { width: 100%; border-collapse: collapse; }
+.forensic-audit-table tr.forensic-row { border-bottom: 1px solid #f1f5f9; }
+.forensic-audit-table tr.forensic-row:last-child { border-bottom: none; }
+.forensic-symbol { width: 24px; padding: 6px 4px 6px 0; vertical-align: top; font-weight: bold; font-size: 11pt; text-align: center; }
+.forensic-content { padding: 6px 8px; vertical-align: top; }
+.forensic-name { font-size: 8.5pt; font-weight: bold; color: #0f172a; margin-bottom: 1px; }
+.forensic-details { font-size: 7.5pt; color: #475569; line-height: 1.3; }
+.forensic-status { width: 60px; padding: 6px 0 6px 4px; vertical-align: middle; font-size: 6.5pt; font-weight: bold; text-align: right; letter-spacing: 1px; }
+.forensic-row.forensic-verified .forensic-symbol { color: #059669; }
+.forensic-row.forensic-verified .forensic-status { color: #059669; }
+.forensic-row.forensic-warning .forensic-symbol { color: #d97706; }
+.forensic-row.forensic-warning .forensic-status { color: #d97706; }
+.forensic-row.forensic-alert .forensic-symbol { color: #dc2626; }
+.forensic-row.forensic-alert .forensic-status { color: #dc2626; }
 .avatar-box {
   width: 50px;
   height: 50px;
@@ -223,10 +268,13 @@ export function PassportTemplateV2({
   smartLinks,
   aiCommentHtml,
   forensicChecks,
+  forensicAudit,
+  metalLevel,
   signupUrl,
   brandDomain,
 }: PassportTemplateV2Props): React.ReactElement {
   const safeScore = Math.max(0, Math.min(100, Math.round(score || 0)));
+  const useV2Audit = Array.isArray(forensicAudit) && forensicAudit.length > 0;
 
   return (
     <html lang="fr">
@@ -326,7 +374,14 @@ export function PassportTemplateV2({
                     {safeScore}
                     <span style={{ fontSize: '14pt', color: '#a7f3d0' }}>/100</span>
                   </div>
-                  <div className="grade-badge">{gradeLabel}</div>
+                  {metalLevel ? (
+                    <div className={`metal-badge metal-${metalLevel.toLowerCase()}`}>
+                      {metalLevel === 'PLATINUM' && '★ '}
+                      {metalLevel}
+                    </div>
+                  ) : (
+                    <div className="grade-badge">{gradeLabel}</div>
+                  )}
                 </div>
               </td>
             </tr>
@@ -413,32 +468,60 @@ export function PassportTemplateV2({
         {/* ─── Audit Technique & Forensic ────────────────────────────── */}
         <div className="section-title">Audit Technique &amp; Forensic (Anti-Fraude)</div>
         <div className="card">
-          <table className="w-full">
-            <tbody>
-              <tr>
-                <td
-                  style={{
-                    width: '50%',
-                    paddingRight: '10px',
-                    borderRight: '1px solid #e2e8f0',
-                  }}
-                >
-                  {forensicChecks.left.map((check, idx) => (
-                    <div className="check-item" key={`left-${idx}`}>
-                      <span className="check-icon">✓</span> {check}
-                    </div>
-                  ))}
-                </td>
-                <td style={{ width: '50%', paddingLeft: '10px' }}>
-                  {forensicChecks.right.map((check, idx) => (
-                    <div className="check-item" key={`right-${idx}`}>
-                      <span className="check-icon">✓</span> {check}
-                    </div>
-                  ))}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          {useV2Audit ? (
+            // V2 — Trust-List enrichie (issue de l'analyse neuro-symbolique)
+            <table className="forensic-audit-table">
+              <tbody>
+                {forensicAudit!.map((item, idx) => {
+                  const symbol =
+                    item.status === 'VERIFIED'
+                      ? '✓'
+                      : item.status === 'WARNING'
+                      ? '⚠'
+                      : '✕';
+                  const cls = `forensic-row forensic-${item.status.toLowerCase()}`;
+                  return (
+                    <tr key={`audit-${idx}`} className={cls}>
+                      <td className="forensic-symbol">{symbol}</td>
+                      <td className="forensic-content">
+                        <div className="forensic-name">{item.checkName}</div>
+                        <div className="forensic-details">{item.details}</div>
+                      </td>
+                      <td className="forensic-status">{item.status}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            // Legacy V1 — 2 colonnes de checks simples
+            <table className="w-full">
+              <tbody>
+                <tr>
+                  <td
+                    style={{
+                      width: '50%',
+                      paddingRight: '10px',
+                      borderRight: '1px solid #e2e8f0',
+                    }}
+                  >
+                    {forensicChecks.left.map((check, idx) => (
+                      <div className="check-item" key={`left-${idx}`}>
+                        <span className="check-icon">✓</span> {check}
+                      </div>
+                    ))}
+                  </td>
+                  <td style={{ width: '50%', paddingLeft: '10px' }}>
+                    {forensicChecks.right.map((check, idx) => (
+                      <div className="check-item" key={`right-${idx}`}>
+                        <span className="check-icon">✓</span> {check}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* ─── Marketing Banner (Bottom CTA) ─────────────────────────── */}
