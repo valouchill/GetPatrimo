@@ -152,6 +152,26 @@ export interface PassportViewModel {
     candidateFirstName: string | null;
     propertyName: string | null;
   };
+  /**
+   * V6.5 — Cache de l'analyse neuro-symbolique (cf. Application.aiAuditV2).
+   * Optionnel : présent uniquement si POST /analyze-v2 a déjà été lancé.
+   * Le PDF V2 consomme aiAuditV2.ai.forensicAudit pour la Trust-List enrichie
+   * et aiAuditV2.resilience.level pour le badge métal du hero.
+   */
+  aiAuditV2?: {
+    ai: {
+      forensicAudit?: Array<{
+        checkName: string;
+        status: 'VERIFIED' | 'WARNING' | 'ALERT';
+        details: string;
+      }>;
+    };
+    resilience: {
+      level?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+    };
+    meta?: { model: string; analyzedAt: string };
+    cachedAt?: string;
+  } | null;
 }
 
 // ============================================================================

@@ -706,6 +706,11 @@ function buildPassportViewModel({
       candidateFirstName: identity.firstName,
       propertyName: property.name || null,
     }),
+    // V6.5 — Audit neuro-symbolique persisté (cf. Application.aiAuditV2).
+    // Optionnel : présent seulement si l'analyse V2 a déjà été lancée.
+    // Le PDF utilise ces données pour la section anti-fraude enrichie et
+    // le badge métal du hero.
+    aiAuditV2: app.aiAuditV2 || null,
   };
 }
 

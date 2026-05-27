@@ -206,6 +206,11 @@ function viewModelToV2Props(
     smartLinks: buildSmartLinks(data, passportId, baseUrl),
     aiCommentHtml: buildAiComment(data.score || 0),
     forensicChecks: buildForensicChecks(data),
+    // V6.5 — Si l'analyse V2 est en cache, on enrichit le PDF :
+    //  - forensicAudit (Trust-List structurée) remplace les 2 colonnes legacy
+    //  - metalLevel (PLATINUM/GOLD/SILVER/ALERTE) remplace le grade label
+    forensicAudit: data.aiAuditV2?.ai?.forensicAudit,
+    metalLevel: data.aiAuditV2?.resilience?.level,
     signupUrl,
     brandDomain: getBrandDomain(),
   };
