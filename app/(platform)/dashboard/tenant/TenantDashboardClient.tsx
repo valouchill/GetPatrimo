@@ -100,14 +100,39 @@ interface Props {
   recentPayments?: PaymentInfo[];
 }
 
-const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  SOUVERAIN: { bg: 'bg-gradient-to-br from-amber-400 to-amber-600', text: 'text-amber-900', border: 'border-amber-400' },
-  A: { bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600', text: 'text-emerald-900', border: 'border-emerald-400' },
-  B: { bg: 'bg-gradient-to-br from-blue-400 to-blue-600', text: 'text-blue-900', border: 'border-blue-400' },
-  C: { bg: 'bg-gradient-to-br from-cyan-400 to-cyan-600', text: 'text-cyan-900', border: 'border-cyan-400' },
-  D: { bg: 'bg-gradient-to-br from-slate-400 to-slate-600', text: 'text-slate-900', border: 'border-slate-400' },
-  E: { bg: 'bg-gradient-to-br from-amber-400 to-amber-600', text: 'text-amber-900', border: 'border-amber-400' },
-  F: { bg: 'bg-gradient-to-br from-red-400 to-red-600', text: 'text-red-900', border: 'border-red-400' },
+// V6.6 — Migration vers le système métal (PLATINUM/GOLD/SILVER/ALERTE).
+// Source de vérité = getMetalLevel(score). Le legacy patrimometer.grade
+// (F..A..SOUVERAIN) reste en Mongo mais n'est plus consommé pour le rendu.
+import {
+  getMetalLevel,
+  METAL_LABELS,
+  type MetalLevel,
+} from '@/lib/product-lexicon';
+
+const METAL_STYLE: Record<
+  MetalLevel,
+  { bg: string; text: string; border: string }
+> = {
+  PLATINUM: {
+    bg: 'bg-gradient-to-br from-slate-900 to-slate-800',
+    text: 'text-amber-400',
+    border: 'border-amber-500',
+  },
+  GOLD: {
+    bg: 'bg-gradient-to-br from-amber-400 to-amber-600',
+    text: 'text-amber-900',
+    border: 'border-amber-400',
+  },
+  SILVER: {
+    bg: 'bg-gradient-to-br from-slate-300 to-slate-500',
+    text: 'text-slate-900',
+    border: 'border-slate-400',
+  },
+  ALERTE: {
+    bg: 'bg-gradient-to-br from-red-400 to-red-600',
+    text: 'text-red-900',
+    border: 'border-red-400',
+  },
 };
 
 const DOCUMENT_TYPES = [
@@ -129,9 +154,10 @@ export default function TenantDashboardClient({
 
   const app = latestApplication;
   const firstName = app?.profile?.firstName || userName?.split(' ')[0] || 'Locataire';
-  const grade = app?.patrimometer?.grade || 'F';
   const score = app?.patrimometer?.score || 0;
-  const gradeStyle = GRADE_COLORS[grade] || GRADE_COLORS.F;
+  const metalLevel = getMetalLevel(score);
+  const grade = METAL_LABELS[metalLevel]; // Affichage display (PLATINUM/GOLD/...)
+  const gradeStyle = METAL_STYLE[metalLevel];
 
   // Message de bienvenue personnalisé
   const getWelcomeMessage = () => {
@@ -226,11 +252,13 @@ export default function TenantDashboardClient({
                   transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
                   className={`w-32 h-32 ${gradeStyle.bg} rounded-3xl flex flex-col items-center justify-center shadow-2xl`}
                 >
-                  <span className="text-white/80 text-xs font-bold uppercase tracking-wider">Grade</span>
-                  {grade === 'SOUVERAIN' ? (
-                    <Crown className="h-12 w-12 text-white" aria-hidden="true" />
+                  <span className="text-white/80 text-xs font-bold uppercase tracking-wider">Niveau</span>
+                  {metalLevel === 'PLATINUM' ? (
+                    <Crown className="h-12 w-12 text-amber-400" aria-hidden="true" />
                   ) : (
-                    <span className="text-white text-5xl font-black">{grade}</span>
+                    <span className="text-white text-lg font-black tracking-[0.14em] mt-1">
+                      {grade}
+                    </span>
                   )}
                 </motion.div>
                 <div className="mt-4 text-center">
@@ -547,9 +575,22 @@ export default function TenantDashboardClient({
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl font-black text-white ${GRADE_COLORS[candidature.patrimometer?.grade]?.bg || 'bg-slate-400'}`}>
-                              {candidature.patrimometer?.grade || '—'}
-                            </span>
+                            {(() => {
+                              const lvl = getMetalLevel(
+                                candidature.patrimometer?.score || 0,
+                              );
+                              return (
+                                <span
+                                  className={`inline-flex items-center justify-center rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white ${METAL_STYLE[lvl].bg}`}
+                                  title={METAL_LABELS[lvl]}
+                                >
+                                  {lvl === 'PLATINUM' && (
+                                    <span aria-hidden="true" className="mr-1">★</span>
+                                  )}
+                                  {METAL_LABELS[lvl]}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4">
                             <CandidatureStatus
@@ -577,9 +618,22 @@ export default function TenantDashboardClient({
                   {applications.map((candidature) => (
                     <div key={candidature._id} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start gap-3">
-                        <span className={`inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-xl font-black text-white ${GRADE_COLORS[candidature.patrimometer?.grade]?.bg || 'bg-slate-400'}`}>
-                          {candidature.patrimometer?.grade || '—'}
-                        </span>
+                        {(() => {
+                          const lvl = getMetalLevel(
+                            candidature.patrimometer?.score || 0,
+                          );
+                          return (
+                            <span
+                              className={`inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white ${METAL_STYLE[lvl].bg}`}
+                              title={METAL_LABELS[lvl]}
+                            >
+                              {lvl === 'PLATINUM' && (
+                                <span aria-hidden="true" className="mr-1">★</span>
+                              )}
+                              {METAL_LABELS[lvl]}
+                            </span>
+                          );
+                        })()}
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-slate-900">{candidature.property?.name || 'Bien immobilier'}</p>
                           <p className="truncate text-xs text-slate-500">{candidature.property?.address || '-'}</p>
