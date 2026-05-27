@@ -20,7 +20,12 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { LocalDossier, LocalBien } from './ui';
-import { formatPrice, getGrade, GRADE_SHORT } from '@/lib/product-lexicon';
+import {
+  formatPrice,
+  getMetalLevel,
+  METAL_BADGE_CLASS,
+  METAL_LABELS,
+} from '@/lib/product-lexicon';
 import { labelForReason } from '@/lib/verdict-reasons';
 import { resolveVerdict, VERDICT_STYLES } from '@/lib/verdict-system';
 import { useReducedMotion } from '@/lib/motion';
@@ -175,8 +180,13 @@ export function TopCandidateCard({
   // Identité
   const initials = computeInitials(c.prenom, c.nom);
   const fullName = `${c.prenom || ''} ${c.nom || ''}`.trim() || 'Candidat';
-  const grade = getGrade(c.score);
-  const gradeLabel = c.score < 45 ? 'ALERTE' : `GRADE ${GRADE_SHORT[grade]}`;
+  // V6.6 — Métal institutionnel (PLATINUM/GOLD/SILVER/ALERTE) à la place
+  // du legacy lettrage S/A/B/C/D. Source de vérité : product-lexicon.
+  const metalLevel = getMetalLevel(c.score);
+  const metalBadgeClass = METAL_BADGE_CLASS[metalLevel];
+  const metalLabel = METAL_LABELS[metalLevel];
+  // Style auxiliaire pour l'icône — on conserve l'icône verdict-driven
+  // pour signaler la dimension "qualité du dossier" en complément du tier.
   const gradeStyle = pickGradeStyle(c.score, verdict);
   const GradeIcon = gradeStyle.icon;
 
@@ -245,11 +255,17 @@ export function TopCandidateCard({
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <RankBadge rank={rank} />
           <span
-            className={`inline-flex items-center gap-1 rounded-full ${gradeStyle.bg} px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ring-1 ${gradeStyle.ring} ${gradeStyle.text}`}
-            aria-label={gradeLabel}
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ring-1 ${metalBadgeClass}`}
+            aria-label={`Niveau ${metalLabel}`}
+            title={`Niveau institutionnel : ${metalLabel}`}
           >
-            <GradeIcon className="h-3 w-3" aria-hidden="true" />
-            {gradeLabel}
+            {metalLevel === 'PLATINUM' && (
+              <span aria-hidden="true">★</span>
+            )}
+            {metalLevel !== 'PLATINUM' && (
+              <GradeIcon className="h-3 w-3" aria-hidden="true" />
+            )}
+            {metalLabel}
           </span>
         </div>
       </header>

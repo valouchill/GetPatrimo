@@ -14,7 +14,12 @@ import {
   CandidateDossier,
   type DossierDocument,
 } from '@/app/components/audit';
-import { PRODUCT, formatPrice, getGrade, GRADE_SHORT } from '@/lib/product-lexicon';
+import {
+  PRODUCT,
+  formatPrice,
+  getMetalLevel,
+  METAL_LABELS,
+} from '@/lib/product-lexicon';
 import { resolveVerdict } from '@/lib/verdict-system';
 import { AnalysisV2Panel } from './AnalysisV2Panel';
 
@@ -183,9 +188,8 @@ function buildAiSynthesis(c: LocalDossier): string {
 }
 
 function dossierToAiReport(c: LocalDossier, bien: LocalBien): AiReportCandidate {
-  const grade = getGrade(c.score);
-  const gradeLabel =
-    c.score < 45 ? 'ALERTE' : `GRADE ${GRADE_SHORT[grade]}`;
+  // V6.6 — Métal institutionnel
+  const gradeLabel = METAL_LABELS[getMetalLevel(c.score)];
 
   // Taux d'effort en % (effortRate est stocké en 0-1 dans toDossier)
   const effortRatePct =
