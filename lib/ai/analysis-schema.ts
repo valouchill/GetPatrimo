@@ -71,6 +71,27 @@ export const AIAnalysisSchema = z.object({
         '1 à 3 actions concrètes (To-Do list) pour le propriétaire (ex: \'Validez ce dossier\', \'Réclamez l\'attestation employeur\').',
       ),
   }),
+  forensicAudit: z
+    .array(
+      z.object({
+        checkName: z
+          .string()
+          .describe(
+            "Nom court du contrôle technique (ex: 'Métadonnées PDF', 'Cohérence Mathématique URSSAF', 'Traces d'édition')",
+          ),
+        status: z
+          .enum(['VERIFIED', 'WARNING', 'ALERT'])
+          .describe('Le résultat de ce contrôle précis'),
+        details: z
+          .string()
+          .describe(
+            "L'explication technique courte et rassurante (ex: 'Aucune trace de Canva/Photoshop', 'Calculs inversés 100% exacts', 'Généré par logiciel certifié SILAE')",
+          ),
+      }),
+    )
+    .describe(
+      'Liste de 3 à 5 contrôles techniques anti-fraude pointus effectués sur les pièces du dossier.',
+    ),
 });
 
 export type AIAnalysisType = z.infer<typeof AIAnalysisSchema>;
@@ -151,7 +172,13 @@ export type AnalysisInputType = z.infer<typeof AnalysisInputSchema>;
 export const AI_ANALYSIS_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['flags', 'subScores', 'synthesis', 'ownerRecommendation'],
+  required: [
+    'flags',
+    'subScores',
+    'synthesis',
+    'ownerRecommendation',
+    'forensicAudit',
+  ],
   properties: {
     flags: {
       type: 'object',
@@ -236,6 +263,33 @@ export const AI_ANALYSIS_JSON_SCHEMA = {
           type: 'array',
           items: { type: 'string' },
           description: '1 à 3 actions concrètes (To-Do list) pour le propriétaire.',
+        },
+      },
+    },
+    forensicAudit: {
+      type: 'array',
+      description:
+        'Liste de 3 à 5 contrôles techniques anti-fraude pointus effectués sur les pièces du dossier.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['checkName', 'status', 'details'],
+        properties: {
+          checkName: {
+            type: 'string',
+            description:
+              "Nom court du contrôle technique (ex: 'Métadonnées PDF', 'Cohérence Mathématique URSSAF', 'Traces d'édition')",
+          },
+          status: {
+            type: 'string',
+            enum: ['VERIFIED', 'WARNING', 'ALERT'],
+            description: 'Le résultat de ce contrôle précis',
+          },
+          details: {
+            type: 'string',
+            description:
+              "L'explication technique courte et rassurante (ex: 'Aucune trace de Canva/Photoshop', 'Calculs inversés 100% exacts', 'Généré par logiciel certifié SILAE')",
+          },
         },
       },
     },

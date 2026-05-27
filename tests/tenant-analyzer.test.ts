@@ -9,7 +9,7 @@
 
 // Import direct de l'algo pur (sans server-only ni OpenAI SDK pour Node nu)
 import { computeResilienceIndex } from '../lib/ai/resilience-index';
-import type { AIAnalysisType } from '../lib/ai/analysis-schema';
+import { AIAnalysisSchema, type AIAnalysisType } from '../lib/ai/analysis-schema';
 
 function makeAnalysis(overrides: Partial<AIAnalysisType> = {}): AIAnalysisType {
   return {
@@ -36,6 +36,26 @@ function makeAnalysis(overrides: Partial<AIAnalysisType> = {}): AIAnalysisType {
       actionPlan: ['Validez ce dossier.'],
       ...(overrides.ownerRecommendation || {}),
     },
+    forensicAudit: overrides.forensicAudit ?? [
+      {
+        checkName: 'Métadonnées PDF',
+        status: 'VERIFIED',
+        details:
+          'Auteur et dates de création cohérents avec un éditeur certifié.',
+      },
+      {
+        checkName: "Traces d'édition",
+        status: 'VERIFIED',
+        details:
+          'Aucune trace de Canva, Photoshop, Illustrator ou GIMP détectée.',
+      },
+      {
+        checkName: 'Cohérence mathématique URSSAF',
+        status: 'VERIFIED',
+        details:
+          'Totaux brut/net/cotisations et cumuls annuels recalculés sans écart.',
+      },
+    ],
   };
 }
 
@@ -179,6 +199,71 @@ console.log('\n[T8] Score 90 + LLM GO_FAST mais dossier incomplet → MANUAL_CHE
     'decision MANUAL_CHECK (incomplet bloque GO_FAST)',
     result.decision === 'MANUAL_CHECK',
   );
+}
+
+console.log('\n[T9] Schéma forensicAudit : conformité Zod stricte');
+{
+  // Cas valide : 3 contrôles bien formés
+  const valid = AIAnalysisSchema.safeParse(
+    makeAnalysis({
+      forensicAudit: [
+        {
+          checkName: 'Métadonnées PDF',
+          status: 'VERIFIED',
+          details: 'Auteur cohérent.',
+        },
+        {
+          checkName: "Traces d'édition",
+          status: 'WARNING',
+          details: 'Photoshop 24 détecté dans metadata.',
+        },
+        {
+          checkName: 'Cohérence mathématique',
+          status: 'ALERT',
+          details: 'Cumul annuel ne matche pas la somme des paies.',
+        },
+      ],
+    }),
+  );
+  expect(
+    'safeParse OK avec 3 contrôles forensic valides',
+    valid.success,
+    valid.success ? undefined : valid.error.message,
+  );
+
+  // Cas invalide : status fantaisiste rejeté (cast pour bypass TS, runtime check)
+  const invalid = AIAnalysisSchema.safeParse({
+    ...makeAnalysis(),
+    forensicAudit: [
+      {
+        checkName: 'Test',
+        status: 'GREEN',
+        details: 'Ne doit pas valider.',
+      },
+    ],
+  } as unknown);
+  expect(
+    'safeParse rejette un status hors enum (GREEN)',
+    !invalid.success,
+    invalid.success ? 'a faussement validé' : undefined,
+  );
+
+  // Cas invalide : champ obligatoire manquant
+  const missingField = AIAnalysisSchema.safeParse({
+    ...makeAnalysis(),
+    forensicAudit: [{ checkName: 'Test', status: 'VERIFIED' }],
+  } as unknown);
+  expect(
+    'safeParse rejette un contrôle sans details',
+    !missingField.success,
+  );
+
+  // Cas valide : forensicAudit vide reste accepté (3-5 est une consigne LLM,
+  // pas une contrainte Zod min). On documente le comportement.
+  const emptyOk = AIAnalysisSchema.safeParse(
+    makeAnalysis({ forensicAudit: [] }),
+  );
+  expect('safeParse accepte un forensicAudit vide (consigne LLM uniquement)', emptyOk.success);
 }
 
 console.log(`\n══════════════════════════════════════`);

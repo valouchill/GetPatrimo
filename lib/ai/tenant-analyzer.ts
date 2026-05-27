@@ -78,6 +78,21 @@ RÈGLES STRICTES :
 8. Si flags.isFraudDetected = true → decisionAdvice = "REJECT".
 9. Si flags.isDossierComplete = false → decisionAdvice = "MANUAL_CHECK"
    minimum (jamais GO_FAST).
+10. forensicAudit : tu DOIS produire 3 à 5 contrôles techniques anti-fraude
+    pointus, exploitables dans une "Trust-List" et sur le Passeport PDF.
+    Chaque contrôle = { checkName, status (VERIFIED|WARNING|ALERT), details }.
+    Exemples de contrôles attendus (adapte aux pièces réellement présentes) :
+      - "Métadonnées PDF"           — auteur, éditeur, dates de création
+      - "Traces d'édition"          — détection Canva/Photoshop/Illustrator/GIMP
+      - "Cohérence mathématique"    — totaux URSSAF, brut/net, cumuls annuels
+      - "Provenance fiche de paie"  — logiciel d'édition (SILAE, ADP, Cegid…)
+      - "Authenticité CNI / titre"  — format, lisibilité, MRZ, hologrammes
+      - "Cohérence inter-pièces"    — nom, employeur, montants concordants
+      - "Avis d'imposition"         — référence fiscale plausible, format DGFiP
+    Le 'details' DOIT être court, technique, rassurant en cas de VERIFIED
+    ("Aucune trace de logiciel d'édition grand public détectée") et factuel
+    en cas de WARNING/ALERT ("Métadonnées indiquent Photoshop 24.0 — vérifier").
+    Si une catégorie de pièce manque, NE PAS inventer le contrôle correspondant.
 
 Ton output sera CONSOMMÉ PAR UN ALGORITHME — toute déviation au schéma
 casse le pipeline. Reste factuel, structuré, jamais bavard.`;
