@@ -1,0 +1,243 @@
+/**
+ * tenant-analyzer.ts — Moteur d'analyse neuro-symbolique des dossiers locataires.
+ *
+ * Architecture (V6.0) :
+ *
+ *   [LLM partie "Neuro"]
+ *   - OpenAI GPT-4o avec Structured Outputs (response_format json_schema strict)
+ *   - Sortie validée par Zod (AIAnalysisSchema)
+ *   - Le LLM produit des flags, sub-scores, synthesis et recommandation
+ *
+ *   [Code partie "Symbolique"]
+ *   - computeResilienceIndex() : algorithme déterministe
+ *   - Hard gates qui plafonnent le score si flags critiques
+ *   - Cohérence garantie : 95/100 impossible si CNI absente
+ *
+ * Avantages :
+ *   - ZÉRO hallucination de score
+ *   - Audit & reproductibilité du calcul (le LLM ne peut pas mentir
+ *     sur le résultat final, il ne fait qu'extraire des observations)
+ *   - Évolution du barème sans réentraîner / re-prompter le LLM
+ *
+ * Le scoring "patrimoCoreScore V3" (src/services/scoringService.js) reste
+ * disponible pour les calculs Mongo historiques. Ce nouveau service est
+ * complémentaire et destiné aux analyses à la demande.
+ */
+
+import 'server-only';
+import OpenAI from 'openai';
+import {
+  AIAnalysisSchema,
+  AI_ANALYSIS_JSON_SCHEMA,
+  AnalysisInputSchema,
+  type AIAnalysisType,
+  type AnalysisInputType,
+} from './analysis-schema';
+import {
+  computeResilienceIndex,
+  type ResilienceResult,
+} from './resilience-index';
+
+// Re-export pour rétrocompat
+export { computeResilienceIndex };
+export type { ResilienceResult };
+
+// ─── Configuration ───────────────────────────────────────────────────────────
+
+const DEFAULT_MODEL = process.env.OPENAI_ANALYSIS_MODEL || 'gpt-4o-2024-08-06';
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY manquant dans l\'environnement.');
+  }
+  return new OpenAI({ apiKey, timeout: DEFAULT_TIMEOUT_MS });
+}
+
+// ─── Prompt builder ──────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `Tu es un auditeur forensic de dossiers locatifs pour PatrimoTrust,
+plateforme haut de gamme façon banque privée. Ton rôle : analyser le dossier
+fourni et produire une analyse structurée OBJECTIVE et FACTUELLE.
+
+RÈGLES STRICTES :
+1. Tu produis EXCLUSIVEMENT du JSON conforme au schéma fourni — pas de texte libre.
+2. Tu ne calcules JAMAIS de score global agrégé. Tu fournis uniquement les
+   3 sub-scores sur 10 + les 3 flags booléens. L'algorithme déterministe
+   calculera l'Indice de Résilience final à partir de tes observations.
+3. Si une pièce majeure manque (CNI, fiches de paie, avis d'imposition),
+   isDossierComplete=false ET tu listes la pièce dans anomaliesFound.
+4. Si tu détectes la moindre incohérence mathématique ou trace d'édition
+   logicielle suspecte, isFraudDetected=true ET documentAuthenticity ≤ 2.
+5. Le ratio loyer/revenus > 35% sans garant solide → isIncomeSufficient=false.
+6. Ton synthesis.executiveSummary doit faire 3 phrases MAXIMUM, ton "banque
+   privée" — rassurant, factuel, jamais alarmiste. Pas d'émojis.
+7. ownerRecommendation.actionPlan : 1 à 3 actions concrètes formulées à
+   l'impératif (ex: "Validez ce dossier", "Réclamez l'attestation employeur").
+8. Si flags.isFraudDetected = true → decisionAdvice = "REJECT".
+9. Si flags.isDossierComplete = false → decisionAdvice = "MANUAL_CHECK"
+   minimum (jamais GO_FAST).
+
+Ton output sera CONSOMMÉ PAR UN ALGORITHME — toute déviation au schéma
+casse le pipeline. Reste factuel, structuré, jamais bavard.`;
+
+function buildUserPrompt(input: AnalysisInputType): string {
+  const c = input.candidate;
+  const f = input.financial;
+  const d = input.documents;
+  const g = input.guarantee;
+  const forensic = input.forensic;
+
+  const lines: string[] = [];
+  lines.push('=== DOSSIER À ANALYSER ===');
+  lines.push('');
+  lines.push('## Candidat');
+  lines.push(`- Nom : ${c.firstName || '?'} ${c.lastName || '?'}`);
+  lines.push(`- Profession / situation : ${c.profession || 'non renseigné'}`);
+  lines.push(`- Type de contrat : ${c.contractType || 'non renseigné'}`);
+  lines.push(`- Employeur : ${c.employer || 'non renseigné'}`);
+  lines.push(`- Ancienneté : ${c.seniorityMonths ?? 'non renseignée'} mois`);
+  lines.push('');
+  lines.push('## Financier');
+  lines.push(`- Revenus nets mensuels : ${f.monthlyIncomeNet ?? 'non renseigné'} €`);
+  lines.push(`- Loyer cible (charges comprises) : ${f.targetRent ?? 'non renseigné'} €`);
+  lines.push(`- Taux d'effort calculé : ${f.effortRatePercent ?? 'non calculable'} %`);
+  lines.push(`- Stabilité des revenus : ${f.incomeStabilityMonths ?? 'inconnue'} mois`);
+  lines.push(`- Revenu fiscal annuel (N-1) : ${f.taxIncomeAnnual ?? 'non renseigné'} €`);
+  lines.push(`- Source des revenus : ${f.incomeSource || 'inconnue'}`);
+  lines.push('');
+  lines.push('## Identité');
+  lines.push(`- Identité vérifiée Didit (eIDAS) : ${input.identity.diditVerified ? 'OUI' : 'NON'}`);
+  lines.push(`- CNI fournie comme pièce : ${input.identity.cniPresent ? 'OUI' : 'NON'}`);
+  lines.push('');
+  lines.push('## Garantie');
+  lines.push(`- Mode : ${g.mode || 'NONE'}`);
+  if (g.guarantorIncomeNet) {
+    lines.push(`- Revenus du garant : ${g.guarantorIncomeNet} € / mois`);
+  }
+  if (g.coverage) lines.push(`- Couverture : ${g.coverage}`);
+  lines.push('');
+  lines.push('## Couverture documentaire');
+  lines.push(`- CNI fournie : ${d.identityProvided ? 'OUI' : 'NON'}`);
+  lines.push(`- Fiches de paie : ${d.payslipsCount} pièce(s)`);
+  lines.push(`- Avis d'imposition : ${d.taxNoticeProvided ? 'OUI' : 'NON'}`);
+  lines.push(`- Justificatif de domicile : ${d.addressProofProvided ? 'OUI' : 'NON'}`);
+  lines.push(`- Attestation / contrat employeur : ${d.employerCertificateProvided ? 'OUI' : 'NON'}`);
+  lines.push(`- Pièces rejetées par audit : ${d.rejectedCount}`);
+  lines.push(`- Alertes forensic : ${d.forensicAlertCount}`);
+  lines.push('');
+  lines.push('## Audit forensic global');
+  lines.push(`- Statut : ${forensic.globalStatus}`);
+  if (forensic.suspiciousSoftwareDetected) {
+    lines.push('- ⚠ Logiciel d\'édition suspect détecté');
+  }
+  if (forensic.mathematicalInconsistencies) {
+    lines.push('- ⚠ Incohérences mathématiques détectées');
+  }
+
+  return lines.join('\n');
+}
+
+// ─── Partie "Neuro" : appel LLM avec Structured Outputs ──────────────────────
+
+/**
+ * Appelle OpenAI avec Structured Outputs pour obtenir une analyse JSON
+ * strictement conforme au schéma. Validation Zod côté serveur en filet.
+ *
+ * @throws Error si l'API échoue ou si la réponse ne valide pas le schéma.
+ */
+export async function analyzeApplication(
+  input: AnalysisInputType,
+  options: { model?: string; timeoutMs?: number } = {},
+): Promise<AIAnalysisType> {
+  // Validation des entrées (filet anti-bug code appelant)
+  const parsedInput = AnalysisInputSchema.parse(input);
+
+  const client = getOpenAIClient();
+  const model = options.model || DEFAULT_MODEL;
+
+  const completion = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: buildUserPrompt(parsedInput) },
+    ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: {
+        name: 'tenant_analysis',
+        strict: true,
+        // Structured Outputs OpenAI : schéma compatible JSON Schema draft-7
+        schema: AI_ANALYSIS_JSON_SCHEMA as unknown as Record<string, unknown>,
+      },
+    },
+    temperature: 0, // Determinisme maximum
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) {
+    throw new Error('[tenant-analyzer] OpenAI a renvoyé un contenu vide.');
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(
+      `[tenant-analyzer] JSON invalide retourné par OpenAI : ${(err as Error).message}`,
+    );
+  }
+
+  // Validation Zod — filet de sécurité même si OpenAI respecte le schéma
+  const validated = AIAnalysisSchema.safeParse(parsedJson);
+  if (!validated.success) {
+    throw new Error(
+      `[tenant-analyzer] Réponse OpenAI ne valide pas le schéma Zod : ${validated.error.message}`,
+    );
+  }
+
+  return validated.data;
+}
+
+// ─── Pipeline complet : analyse + scoring ────────────────────────────────────
+// Note : computeResilienceIndex est désormais dans lib/ai/resilience-index.ts
+// pour pouvoir être testé en Node pur (sans server-only ni OpenAI SDK).
+
+export interface FullAnalysisResult {
+  /** Sortie brute du LLM (structuré, validé Zod) */
+  ai: AIAnalysisType;
+  /** Indice de Résilience calculé par l'algo déterministe */
+  resilience: ResilienceResult;
+  /** Métadonnées d'audit (traçabilité) */
+  meta: {
+    model: string;
+    analyzedAt: string;
+    applicationId?: string;
+  };
+}
+
+/**
+ * Pipeline complet "neuro-symbolique" : appelle le LLM puis calcule
+ * déterministiquement l'Indice de Résilience.
+ *
+ * Recommandé pour usage en route API.
+ */
+export async function runFullAnalysis(
+  input: AnalysisInputType,
+  options: { model?: string; timeoutMs?: number } = {},
+): Promise<FullAnalysisResult> {
+  const ai = await analyzeApplication(input, options);
+  const resilience = computeResilienceIndex(ai);
+  return {
+    ai,
+    resilience,
+    meta: {
+      model: options.model || DEFAULT_MODEL,
+      analyzedAt: new Date().toISOString(),
+      applicationId: input.applicationId,
+    },
+  };
+}
+
+// (helpers déplacés dans resilience-index.ts pour la testabilité)
