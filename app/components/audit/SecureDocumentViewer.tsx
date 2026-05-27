@@ -40,6 +40,21 @@ import {
 
 export type DocumentAuditStatus = 'verified' | 'manual_review' | 'altered' | 'pending';
 
+export interface DocumentAiInsights {
+  /** Type de document détecté par l'IA (ex: "Fiche de paie", "CNI") */
+  documentType?: string | null;
+  /** Confiance de l'IA (0–1) */
+  confidence?: number | null;
+  /** Synthèse rédigée par l'IA */
+  summary?: string | null;
+  /** Score de fraude (0–1, 0 = aucun risque) */
+  fraudScore?: number | null;
+  /** Flags / alertes détectées */
+  flags?: string[];
+  /** Champs extraits (clé → valeur) — ex: { netAPayer: 2850, employeur: "..." } */
+  extractedFields?: Record<string, unknown>;
+}
+
 export interface SecureDocument {
   id: string;
   name: string;
@@ -50,6 +65,14 @@ export interface SecureDocument {
   auditStatus: DocumentAuditStatus;
   /** Message court à afficher dans le badge */
   auditMessage?: string;
+  /** V5.12 — Nom du fichier original */
+  fileName?: string | null;
+  /** V5.12 — Date d'upload (ISO) */
+  uploadedAt?: string | null;
+  /** V5.12 — Date d'émission du document (si extraite) */
+  dateEmission?: string | null;
+  /** V5.12 — Données extraites par l'IA pour aperçu synthétique */
+  aiInsights?: DocumentAiInsights;
 }
 
 export interface SecureDocumentViewerProps {
@@ -385,14 +408,127 @@ export function SecureDocumentViewer({
   return createPortal(viewerNode, window.document.body);
 }
 
-// ─── Placeholder (document avec aperçu non disponible) ───────────────────────
+// ─── Aperçu synthétique IA (document sans URL ou format non prévisualisable) ──
 
 /**
- * V5.11 — Le placeholder n'est affiché QUE pour les documents reçus
- * (le bouton "Consulter" est désactivé pour les pièces manquantes).
- * Message contextuel selon la raison de l'absence d'aperçu.
+ * V5.12 — Rapport d'aperçu synthétique généré depuis les données extraites
+ * par l'IA. Affiché à la place du PDF/image quand l'URL n'est pas exposée
+ * ou que le format n'est pas prévisualisable.
+ *
+ * Le propriétaire voit :
+ *  - Métadonnées (nom, date, type détecté)
+ *  - Synthèse IA (summary)
+ *  - Champs extraits clé/valeur (montant, employeur, etc.)
+ *  - Confiance IA + score de fraude
+ *  - Statut audit
  */
 type PlaceholderReason = 'no-preview' | 'format-unknown';
+
+/** Formatage humain d'une clé "snake_case" ou "camelCase" en label lisible */
+function formatFieldKey(key: string): string {
+  // Mapping commun (priorité aux libellés métier explicites)
+  const known: Record<string, string> = {
+    netAPayer: 'Net à payer',
+    netImposable: 'Net imposable',
+    salaireBrut: 'Salaire brut',
+    employeur: 'Employeur',
+    employer: 'Employeur',
+    societe: 'Société',
+    nomSociete: 'Société',
+    poste: 'Poste',
+    contractType: 'Type de contrat',
+    dateEmbauche: "Date d'embauche",
+    periode: 'Période',
+    mois: 'Mois',
+    annee: 'Année',
+    revenuFiscalReference: 'Revenu fiscal de référence',
+    revenuFiscal: 'Revenu fiscal',
+    nom: 'Nom',
+    prenom: 'Prénom',
+    dateNaissance: 'Date de naissance',
+    lieuNaissance: 'Lieu de naissance',
+    numeroPiece: 'N° de pièce',
+    dateExpiration: "Date d'expiration",
+    nationalite: 'Nationalité',
+    adresse: 'Adresse',
+    codePostal: 'Code postal',
+    ville: 'Ville',
+    fournisseur: 'Fournisseur',
+    referenceClient: 'Référence client',
+    montantTotal: 'Montant total',
+    siren: 'SIREN',
+    siret: 'SIRET',
+  };
+  if (known[key]) return known[key];
+  // Conversion automatique : snake_case → "Snake Case", camelCase → "Camel Case"
+  return key
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+/** Formatage humain d'une valeur extraite (number, string, date, object…) */
+function formatFieldValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'number') {
+    // Heuristique : si nombre > 100, on suppose un montant euro
+    if (Number.isFinite(value) && value > 100 && value < 1_000_000_000) {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(value);
+    }
+    return new Intl.NumberFormat('fr-FR').format(value);
+  }
+  if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+  if (typeof value === 'string') {
+    // Détection date ISO
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+      try {
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) {
+          return d.toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => formatFieldValue(v)).join(', ');
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, null, 0).slice(0, 80);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+/** Affiche une date ISO sous forme lisible française */
+function formatDateLong(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
 
 function SecureDocumentPlaceholder({
   document,
@@ -403,41 +539,201 @@ function SecureDocumentPlaceholder({
 }): React.ReactElement {
   const auditStyle = getAuditBadge(document.auditStatus);
   const AuditIcon = auditStyle.icon;
+  const ai = document.aiInsights;
+
+  // Filtre les champs extraits significatifs (non vides) — max 12 pour rester lisible
+  const extractedEntries = React.useMemo(() => {
+    const fields = ai?.extractedFields || {};
+    return Object.entries(fields)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .slice(0, 12);
+  }, [ai?.extractedFields]);
+
+  const confidencePct =
+    typeof ai?.confidence === 'number' ? Math.round(ai.confidence * 100) : null;
+  const fraudPct =
+    typeof ai?.fraudScore === 'number' ? Math.round(ai.fraudScore * 100) : null;
+  const uploadedLabel = formatDateLong(document.uploadedAt);
+  const emissionLabel = formatDateLong(document.dateEmission);
+  const hasRichData =
+    !!(ai?.summary || extractedEntries.length > 0 || ai?.documentType);
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-50 p-8">
-      <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl ring-1 ring-slate-200 sm:p-10">
-        <div className="mx-auto mb-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-emerald-200">
-          <FileText className="h-7 w-7 flex-shrink-0 text-emerald-700" aria-hidden="true" />
+    <div className="h-full w-full overflow-auto bg-gradient-to-br from-slate-100 via-white to-slate-50 p-4 sm:p-8">
+      <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200 sm:p-8">
+        {/* Header : eyebrow + titre + raison */}
+        <div className="mb-6 flex items-start gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+            <FileText
+              className="h-6 w-6 flex-shrink-0 text-emerald-700"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+              Aperçu synthétique IA
+            </p>
+            <h3
+              className="font-serif text-xl font-semibold leading-tight text-emerald-900"
+              title={document.name}
+            >
+              {ai?.documentType || document.name}
+            </h3>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              {reason === 'format-unknown'
+                ? 'Format non prévisualisable — extraction IA ci-dessous'
+                : 'Aperçu du fichier non exposé — extraction IA ci-dessous'}
+            </p>
+          </div>
         </div>
-        <h3 className="font-serif text-xl font-semibold text-emerald-900">
-          Aperçu non disponible
-        </h3>
-        <p className="mt-2 text-sm text-slate-500">
-          {reason === 'format-unknown'
-            ? `Le format de "${document.name}" ne permet pas un affichage direct dans le navigateur (DOCX, XLSX, ZIP, etc.).`
-            : `L'aperçu de "${document.name}" n'a pas été exposé par le serveur (document chiffré ou stocké en privé).`}
-        </p>
 
-        {/* Bloc rassurant : la pièce A bien été reçue et analysée par l'IA,
-            les métadonnées d'audit sont consultables ci-dessous */}
-        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
-          <p className="mb-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
-            <AuditIcon className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
-            Audit Forensic
-          </p>
-          <p className="font-serif text-sm font-semibold text-emerald-900">
-            {auditStyle.label}
-          </p>
+        {/* Bloc Audit Forensic */}
+        <div className={`mb-4 rounded-xl border ${auditStyle.ring} ${auditStyle.bg} p-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2">
+              <AuditIcon
+                className={`h-4 w-4 flex-shrink-0 ${auditStyle.text}`}
+                aria-hidden="true"
+              />
+              <span className={`text-xs font-bold uppercase tracking-[0.14em] ${auditStyle.text}`}>
+                {auditStyle.label}
+              </span>
+            </div>
+            {confidencePct !== null && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold text-slate-700 ring-1 ring-slate-200">
+                Confiance {confidencePct}%
+              </span>
+            )}
+          </div>
           {document.auditMessage && (
-            <p className="mt-1.5 text-xs leading-relaxed text-emerald-800">
+            <p className={`mt-2 text-xs leading-relaxed ${auditStyle.text}`}>
               {document.auditMessage}
             </p>
           )}
-          <p className="mt-3 border-t border-emerald-200/70 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-            ✓ Pièce transmise · Analyse IA complète
-          </p>
         </div>
+
+        {/* Synthèse IA (si disponible) */}
+        {ai?.summary && (
+          <div className="mb-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
+            <p className="mb-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+              <ShieldCheck className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+              Synthèse de l'IA
+            </p>
+            <p className="font-serif text-sm italic leading-relaxed text-slate-800">
+              {ai.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Champs extraits */}
+        {extractedEntries.length > 0 && (
+          <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+              Données extraites par l'IA
+            </p>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+              {extractedEntries.map(([key, value]) => (
+                <div key={key} className="min-w-0">
+                  <dt className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    {formatFieldKey(key)}
+                  </dt>
+                  <dd className="mt-0.5 truncate font-medium text-sm text-emerald-900" title={String(value)}>
+                    {formatFieldValue(value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {/* Métadonnées (filename, dates) */}
+        {(document.fileName || uploadedLabel || emissionLabel || fraudPct !== null) && (
+          <div className="mb-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+            {document.fileName && (
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Fichier
+                </p>
+                <p className="mt-0.5 truncate font-medium text-slate-700" title={document.fileName}>
+                  {document.fileName}
+                </p>
+              </div>
+            )}
+            {uploadedLabel && (
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Transmis le
+                </p>
+                <p className="mt-0.5 font-medium text-slate-700">{uploadedLabel}</p>
+              </div>
+            )}
+            {emissionLabel && (
+              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Émis le
+                </p>
+                <p className="mt-0.5 font-medium text-slate-700">{emissionLabel}</p>
+              </div>
+            )}
+            {fraudPct !== null && (
+              <div
+                className={`rounded-lg px-3 py-2 ${
+                  fraudPct < 15
+                    ? 'bg-emerald-50'
+                    : fraudPct < 40
+                    ? 'bg-amber-50'
+                    : 'bg-red-50'
+                }`}
+              >
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Score de fraude
+                </p>
+                <p
+                  className={`mt-0.5 font-bold ${
+                    fraudPct < 15
+                      ? 'text-emerald-700'
+                      : fraudPct < 40
+                      ? 'text-amber-700'
+                      : 'text-red-700'
+                  }`}
+                >
+                  {fraudPct}% {fraudPct < 15 ? '· Aucun risque' : fraudPct < 40 ? '· À surveiller' : '· Élevé'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Flags / alertes IA */}
+        {ai?.flags && ai.flags.length > 0 && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+            <p className="mb-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-800">
+              <AlertCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+              Points de vigilance détectés
+            </p>
+            <ul className="space-y-1.5">
+              {ai.flags.map((flag, i) => (
+                <li
+                  key={`${flag}-${i}`}
+                  className="flex items-start gap-2 text-xs text-amber-900"
+                >
+                  <span
+                    className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-amber-600"
+                    aria-hidden="true"
+                  />
+                  <span>{flag}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Footer rassurant */}
+        <p className="mt-4 border-t border-slate-100 pt-4 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          {hasRichData
+            ? '✓ Pièce transmise · Données extraites par l\'IA'
+            : "✓ Pièce transmise · Aperçu visuel non disponible"}
+        </p>
       </div>
     </div>
   );

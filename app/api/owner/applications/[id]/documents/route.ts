@@ -42,11 +42,17 @@ interface AppDocument {
   status?: string;
   flagged?: boolean;
   aiAnalysis?: Record<string, unknown> & {
+    documentType?: string;
+    confidence?: number;
+    summary?: string;
+    fraudScore?: number;
+    flags?: string[];
+    extractedFields?: Record<string, unknown> | Map<string, unknown>;
     detectedSoftware?: string;
     auditSummary?: string;
-    confidence?: number;
   };
-  uploadedAt?: string;
+  uploadedAt?: string | Date;
+  dateEmission?: string;
 }
 
 function mapCategoryToType(category?: string): DocType {
@@ -154,6 +160,28 @@ export async function GET(
 
     const documents = rawDocuments.map((doc) => {
       const auditStatus = mapStatusToAudit(doc.status, doc.flagged);
+      const ai = doc.aiAnalysis || {};
+
+      // V5.12 — Extraction des champs IA pour aperçu synthétique côté UI.
+      // Permet d'afficher un rapport quand fileUrl est absent ou format non
+      // prévisualisable. Mongo Map → object plain pour la sérialisation JSON.
+      let extractedFields: Record<string, unknown> = {};
+      const raw = ai.extractedFields as unknown;
+      if (raw && typeof raw === 'object') {
+        if (raw instanceof Map) {
+          extractedFields = Object.fromEntries(raw);
+        } else {
+          extractedFields = raw as Record<string, unknown>;
+        }
+      }
+
+      const uploadedAt =
+        doc.uploadedAt instanceof Date
+          ? doc.uploadedAt.toISOString()
+          : typeof doc.uploadedAt === 'string'
+          ? doc.uploadedAt
+          : null;
+
       return {
         id: String(doc.id || doc._id || ''),
         name: deriveDocumentName(doc),
@@ -163,6 +191,18 @@ export async function GET(
         auditStatus,
         auditMessage: deriveAuditMessage(doc, auditStatus),
         url: doc.fileUrl || null,
+        // V5.12 — Données IA pour aperçu synthétique
+        fileName: doc.fileName || null,
+        uploadedAt,
+        dateEmission: doc.dateEmission || null,
+        aiInsights: {
+          documentType: typeof ai.documentType === 'string' ? ai.documentType : null,
+          confidence: typeof ai.confidence === 'number' ? ai.confidence : null,
+          summary: typeof ai.summary === 'string' ? ai.summary : null,
+          fraudScore: typeof ai.fraudScore === 'number' ? ai.fraudScore : null,
+          flags: Array.isArray(ai.flags) ? ai.flags.filter((f: unknown) => typeof f === 'string') : [],
+          extractedFields,
+        },
       };
     });
 
