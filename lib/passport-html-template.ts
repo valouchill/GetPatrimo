@@ -13,7 +13,7 @@
  * serif Georgia. Cohérent avec le hero PDF V1.8 mais en HTML/CSS pur.
  */
 
-import type { PassportViewModel } from '@/app/components/PassportPDF';
+import type { PassportViewModel } from '@/lib/passport-viewmodel-types';
 import { MARKETING } from './passport-marketing-copy';
 
 // ─── Helpers d'échappement HTML ──────────────────────────────────────────────

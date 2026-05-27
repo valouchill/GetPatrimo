@@ -31,7 +31,7 @@ import {
   type PassportTemplateV2Props,
   type PassportV2SmartLink,
 } from '@/app/components/pdf/PassportTemplateV2';
-import type { PassportViewModel } from '@/app/components/PassportPDF';
+import type { PassportViewModel } from '@/lib/passport-viewmodel-types';
 
 // V5.13 — Import dynamique de react-dom/server pour éviter le warning Next.js
 // "importing a component that imports react-dom/server". L'import est résolu
