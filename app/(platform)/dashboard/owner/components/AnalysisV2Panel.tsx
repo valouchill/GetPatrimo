@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * AnalysisV2Panel — Carte d'analyse IA neuro-symbolique (V6.2).
+ * AnalysisV2Panel — Carte d'analyse IA neuro-symbolique (V6.3).
  *
  * Appelle POST /api/owner/applications/[id]/analyze-v2 et affiche :
- *   - Indice de Résilience 0-100 + grade institutionnel (S/A/B/ALERTE)
+ *   - Indice de Résilience 0-100 + niveau Banque Privée
+ *     (PLATINUM / GOLD / SILVER / ALERTE)
  *   - Décision recommandée (GO_FAST / MANUAL_CHECK / REJECT)
  *   - Breakdown par pilier (financier / authenticité / professionnel)
  *   - Hard gates appliqués (si pertinent)
@@ -13,6 +14,12 @@
  *
  * Architecture : button-driven (pas d'auto-analyse). L'analyse coûte
  * 1 appel OpenAI ⇒ le propriétaire la lance explicitement.
+ *
+ * Visuels par niveau (inspiration cartes Banque Privée) :
+ *   - PLATINUM : carte noire mate + accent or
+ *   - GOLD     : crème ambre haut de gamme
+ *   - SILVER   : gris perle sobre
+ *   - ALERTE   : rouge mat alerte
  */
 
 import * as React from 'react';
@@ -32,8 +39,8 @@ import {
 
 type ForensicStatus = 'VERIFIED' | 'WARNING' | 'ALERT';
 type DecisionAdvice = 'GO_FAST' | 'MANUAL_CHECK' | 'REJECT';
-type Grade = 'GRADE S' | 'GRADE A' | 'GRADE B' | 'ALERTE';
-type GradeStatus = 'SUCCESS' | 'WARNING' | 'DANGER';
+type Level = 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+type LevelStatus = 'SUCCESS' | 'WARNING' | 'DANGER';
 type FinalVerdict = 'recommended' | 'review' | 'risky';
 
 interface AnalyzeV2Response {
@@ -65,8 +72,8 @@ interface AnalyzeV2Response {
   };
   resilience: {
     score: number;
-    grade: Grade;
-    status: GradeStatus;
+    level: Level;
+    status: LevelStatus;
     color: string;
     decision: DecisionAdvice;
     finalVerdict: FinalVerdict;
@@ -83,37 +90,45 @@ interface AnalyzeV2Response {
 
 // ─── Maps statiques (Tailwind a besoin de classes en clair pour le purge) ─
 
-const GRADE_STYLE: Record<
-  Grade,
-  { text: string; bg: string; ring: string; barFill: string; chip: string }
+/**
+ * Style auxiliaire par niveau pour la carte conteneur et la barre de
+ * pondération. Le badge lui-même utilise la chaîne `color` renvoyée par
+ * l'API directement (pré-composée bg + text + ring).
+ *
+ * Inspiration : cartes Banque Privée — PLATINUM en noir & or, GOLD ambre,
+ * SILVER gris sobre, ALERTE rouge mat.
+ */
+const LEVEL_STYLE: Record<
+  Level,
+  { containerBg: string; containerRing: string; scoreText: string; barFill: string; tagline: string }
 > = {
-  'GRADE S': {
-    text: 'text-emerald-700',
-    bg: 'bg-emerald-50',
-    ring: 'ring-emerald-200',
-    barFill: 'bg-emerald-500',
-    chip: 'bg-emerald-600 text-white',
-  },
-  'GRADE A': {
-    text: 'text-emerald-600',
-    bg: 'bg-emerald-50',
-    ring: 'ring-emerald-200',
-    barFill: 'bg-emerald-400',
-    chip: 'bg-emerald-500 text-white',
-  },
-  'GRADE B': {
-    text: 'text-amber-700',
-    bg: 'bg-amber-50',
-    ring: 'ring-amber-200',
+  PLATINUM: {
+    containerBg: 'bg-gradient-to-br from-slate-900 to-slate-800',
+    containerRing: 'ring-amber-500/40',
+    scoreText: 'text-amber-400',
     barFill: 'bg-amber-500',
-    chip: 'bg-amber-500 text-white',
+    tagline: 'Dossier d’exception — validation rapide possible.',
+  },
+  GOLD: {
+    containerBg: 'bg-amber-50',
+    containerRing: 'ring-amber-200',
+    scoreText: 'text-amber-800',
+    barFill: 'bg-amber-400',
+    tagline: 'Dossier solide — revue manuelle recommandée.',
+  },
+  SILVER: {
+    containerBg: 'bg-slate-50',
+    containerRing: 'ring-slate-200',
+    scoreText: 'text-slate-800',
+    barFill: 'bg-slate-400',
+    tagline: 'Dossier acceptable — vérifications complémentaires.',
   },
   ALERTE: {
-    text: 'text-red-700',
-    bg: 'bg-red-50',
-    ring: 'ring-red-200',
+    containerBg: 'bg-red-50',
+    containerRing: 'ring-red-200',
+    scoreText: 'text-red-700',
     barFill: 'bg-red-500',
-    chip: 'bg-red-600 text-white',
+    tagline: 'Dossier à écarter — alertes critiques détectées.',
   },
 };
 
@@ -259,8 +274,12 @@ export function AnalysisV2Panel({
     }
   }
 
-  const grade = result?.resilience.grade;
-  const gradeStyle = grade ? GRADE_STYLE[grade] : null;
+  const level = result?.resilience.level;
+  const levelStyle = level ? LEVEL_STYLE[level] : null;
+  // Sur PLATINUM, le score est sur fond sombre → secondaires en blanc cassé.
+  const isPlatinum = level === 'PLATINUM';
+  const secondaryText = isPlatinum ? 'text-slate-300' : 'text-slate-700';
+  const mutedText = isPlatinum ? 'text-slate-400' : 'text-slate-500';
 
   return (
     <section
@@ -349,35 +368,35 @@ export function AnalysisV2Panel({
           </div>
         )}
 
-        {result && grade && gradeStyle && (
+        {result && level && levelStyle && (
           <div className="space-y-5">
-            {/* Score + grade + decision */}
+            {/* Score + niveau (carte métal) + décision */}
             <div
-              className={`flex flex-col gap-4 rounded-xl ${gradeStyle.bg} px-4 py-4 ring-1 ${gradeStyle.ring} sm:flex-row sm:items-center sm:justify-between`}
+              className={`flex flex-col gap-4 rounded-xl px-4 py-4 ring-1 ${levelStyle.containerBg} ${levelStyle.containerRing} sm:flex-row sm:items-center sm:justify-between`}
             >
               <div className="flex items-center gap-4">
                 <div className="flex items-baseline gap-1">
                   <span
-                    className={`tabular-nums text-4xl font-bold leading-none ${gradeStyle.text}`}
+                    className={`tabular-nums text-4xl font-bold leading-none ${levelStyle.scoreText}`}
                   >
                     {result.resilience.score}
                   </span>
-                  <span className={`text-sm font-semibold ${gradeStyle.text}`}>
+                  <span className={`text-sm font-semibold ${levelStyle.scoreText}`}>
                     /100
                   </span>
                 </div>
                 <div>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${gradeStyle.chip}`}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ${result.resilience.color}`}
                   >
-                    {grade}
+                    {level}
                   </span>
-                  <p className="mt-1 text-xs font-medium text-slate-700">
+                  <p className={`mt-1 text-xs font-medium ${secondaryText}`}>
                     {DECISION_LABEL[result.resilience.decision]}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className={`flex items-center gap-2 text-xs ${mutedText}`}>
                 <Gauge className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
                   Brut : {result.resilience.breakdown.rawScore} (avant règles
@@ -413,19 +432,19 @@ export function AnalysisV2Panel({
                   label="Stabilité financière"
                   points={result.resilience.breakdown.financialStability}
                   max={40}
-                  fillCls={gradeStyle.barFill}
+                  fillCls={levelStyle.barFill}
                 />
                 <PillarBar
                   label="Authenticité"
                   points={result.resilience.breakdown.documentAuthenticity}
                   max={40}
-                  fillCls={gradeStyle.barFill}
+                  fillCls={levelStyle.barFill}
                 />
                 <PillarBar
                   label="Fiabilité pro"
                   points={result.resilience.breakdown.professionalReliability}
                   max={20}
-                  fillCls={gradeStyle.barFill}
+                  fillCls={levelStyle.barFill}
                 />
               </div>
             </div>
