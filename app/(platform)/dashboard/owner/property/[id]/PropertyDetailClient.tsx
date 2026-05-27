@@ -494,9 +494,13 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
 
   const launchContractDesk = () => {
     if (!ownerSelected) return;
-    if (ownerSelected.isSealed) { openUnlockModal(); return; }
-    const returnUrl = encodeURIComponent("/dashboard/owner");
-    router.push(`/properties/${propertyId}/contract?applicationId=${encodeURIComponent(ownerSelected.id)}&returnUrl=${returnUrl}`);
+    if (ownerSelected.isSealed) {
+      openUnlockModal();
+      return;
+    }
+    // V7.1 — Nouveau module de contractualisation (Plan de travail bail ALUR).
+    // Remplace l'ancien `/properties/[id]/contract?…` qui n'existe pas en prod.
+    router.push(`/dashboard/owner/lease/${ownerSelected.id}`);
   };
 
   if (loading) return <Skeleton />;
