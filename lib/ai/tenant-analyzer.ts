@@ -34,13 +34,33 @@ import {
   type AnalysisInputType,
 } from './analysis-schema';
 import {
+  calculateFinalScore,
   computeResilienceIndex,
+  getGradeFromScore,
+  type Grade,
+  type GradeAdvice,
+  type GradeInfo,
+  type GradeStatus,
   type ResilienceResult,
+  type ScoringFlags,
+  type SubScores,
 } from './resilience-index';
 
-// Re-export pour rétrocompat
-export { computeResilienceIndex };
-export type { ResilienceResult };
+// Re-export pour usage côté API + UI
+export {
+  calculateFinalScore,
+  computeResilienceIndex,
+  getGradeFromScore,
+};
+export type {
+  Grade,
+  GradeAdvice,
+  GradeInfo,
+  GradeStatus,
+  ResilienceResult,
+  ScoringFlags,
+  SubScores,
+};
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
