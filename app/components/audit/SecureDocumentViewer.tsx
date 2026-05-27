@@ -343,10 +343,20 @@ export function SecureDocumentViewer({
                       />
                     </div>
                   ) : (
-                    <SecureDocumentPlaceholder document={document} />
+                    <SecureDocumentPlaceholder
+                      document={document}
+                      reason="format-unknown"
+                    />
                   )
                 ) : (
-                  <SecureDocumentPlaceholder document={document} missing />
+                  /* V5.11 — Le bouton "Consulter" n'est cliquable que pour les
+                     pièces reçues. Donc si on arrive ici sans URL, c'est que
+                     l'URL n'a pas été exposée par l'API (pas que la pièce est
+                     manquante). Message corrigé pour éviter l'incohérence. */
+                  <SecureDocumentPlaceholder
+                    document={document}
+                    reason="no-preview"
+                  />
                 )}
               </div>
 
@@ -375,33 +385,59 @@ export function SecureDocumentViewer({
   return createPortal(viewerNode, window.document.body);
 }
 
-// ─── Placeholder (document absent ou type inconnu) ───────────────────────────
+// ─── Placeholder (document avec aperçu non disponible) ───────────────────────
+
+/**
+ * V5.11 — Le placeholder n'est affiché QUE pour les documents reçus
+ * (le bouton "Consulter" est désactivé pour les pièces manquantes).
+ * Message contextuel selon la raison de l'absence d'aperçu.
+ */
+type PlaceholderReason = 'no-preview' | 'format-unknown';
 
 function SecureDocumentPlaceholder({
   document,
-  missing = false,
+  reason,
 }: {
   document: SecureDocument;
-  missing?: boolean;
+  reason: PlaceholderReason;
 }): React.ReactElement {
+  const auditStyle = getAuditBadge(document.auditStatus);
+  const AuditIcon = auditStyle.icon;
+
   return (
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-50 p-8">
-      <div className="max-w-md rounded-2xl bg-white p-10 text-center shadow-xl ring-1 ring-slate-200">
+      <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl ring-1 ring-slate-200 sm:p-10">
         <div className="mx-auto mb-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-emerald-200">
-          {missing ? (
-            <AlertCircle className="h-7 w-7 flex-shrink-0 text-amber-600" aria-hidden="true" />
-          ) : (
-            <FileText className="h-7 w-7 flex-shrink-0 text-emerald-700" aria-hidden="true" />
-          )}
+          <FileText className="h-7 w-7 flex-shrink-0 text-emerald-700" aria-hidden="true" />
         </div>
         <h3 className="font-serif text-xl font-semibold text-emerald-900">
-          {missing ? 'Document non transmis' : 'Aperçu indisponible'}
+          Aperçu non disponible
         </h3>
         <p className="mt-2 text-sm text-slate-500">
-          {missing
-            ? `Le candidat n'a pas encore transmis "${document.name}". Une relance peut être envoyée depuis le tableau de bord.`
-            : `Le format du document ne permet pas un affichage direct. Téléchargez le fichier pour le consulter.`}
+          {reason === 'format-unknown'
+            ? `Le format de "${document.name}" ne permet pas un affichage direct dans le navigateur (DOCX, XLSX, ZIP, etc.).`
+            : `L'aperçu de "${document.name}" n'a pas été exposé par le serveur (document chiffré ou stocké en privé).`}
         </p>
+
+        {/* Bloc rassurant : la pièce A bien été reçue et analysée par l'IA,
+            les métadonnées d'audit sont consultables ci-dessous */}
+        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-left">
+          <p className="mb-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
+            <AuditIcon className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+            Audit Forensic
+          </p>
+          <p className="font-serif text-sm font-semibold text-emerald-900">
+            {auditStyle.label}
+          </p>
+          {document.auditMessage && (
+            <p className="mt-1.5 text-xs leading-relaxed text-emerald-800">
+              {document.auditMessage}
+            </p>
+          )}
+          <p className="mt-3 border-t border-emerald-200/70 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+            ✓ Pièce transmise · Analyse IA complète
+          </p>
+        </div>
       </div>
     </div>
   );
