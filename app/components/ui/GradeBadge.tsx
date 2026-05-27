@@ -1,14 +1,19 @@
 'use client';
 
 /**
- * <GradeBadge> — Badge grade lettre (S/A/B/C/D) selon score résilience.
+ * <GradeBadge> — Badge niveau institutionnel (PLATINUM/GOLD/SILVER/ALERTE).
  *
- * Promu depuis dashboard/owner/components/ui.tsx pour usage partagé.
- * Consomme GRADE_COLORS de lib/product-lexicon.ts.
+ * V6.6 — Migration depuis le legacy lettrage S/A/B/C/D vers les métaux
+ * précieux inspirés des cartes bancaires Banque Privée. Consomme
+ * METAL_BADGE_CLASS + METAL_LABELS de lib/product-lexicon.ts.
  */
 
 import * as React from 'react';
-import { getGrade, GRADE_SHORT, GRADE_COLORS } from '@/lib/product-lexicon';
+import {
+  getMetalLevel,
+  METAL_BADGE_CLASS,
+  METAL_LABELS,
+} from '@/lib/product-lexicon';
 
 export interface GradeBadgeProps {
   score: number;
@@ -27,15 +32,19 @@ export function GradeBadge({
   size = 'md',
   className = '',
 }: GradeBadgeProps): React.ReactElement {
-  const grade = getGrade(score);
-  const { bg, text, ring } = GRADE_COLORS[grade];
+  const level = getMetalLevel(score);
+  const badgeCls = METAL_BADGE_CLASS[level];
+  const label = METAL_LABELS[level];
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-pill font-bold uppercase tracking-wide ring-1 ${bg} ${text} ${ring} ${SIZE_CLS[size]} ${className}`}
-      aria-label={`Grade ${GRADE_SHORT[grade]}`}
+      className={`inline-flex items-center gap-1 rounded-pill font-bold uppercase tracking-[0.14em] ring-1 ${badgeCls} ${SIZE_CLS[size]} ${className}`}
+      aria-label={`Niveau ${label}`}
     >
-      {GRADE_SHORT[grade]}
+      {level === 'PLATINUM' && (
+        <span aria-hidden="true">★</span>
+      )}
+      {label}
     </span>
   );
 }

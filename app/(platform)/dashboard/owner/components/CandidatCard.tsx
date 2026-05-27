@@ -17,7 +17,7 @@ import React from 'react';
 import { Lock, Check } from 'lucide-react';
 import { ScorePill, GuaranteeBadge, Avatar, Tag } from './ui';
 import type { LocalDossier, LocalBien } from './ui';
-import { formatPrice, GRADE_SHORT, getGrade } from '@/lib/product-lexicon';
+import { formatPrice, getMetalLevel, METAL_LABELS } from '@/lib/product-lexicon';
 import { resolveVerdict } from '@/lib/verdict-system';
 import { TenantCard, type TenantCardData } from '@/app/components/audit/TenantCard';
 
@@ -47,7 +47,8 @@ function buildAlerte(c: LocalDossier): string | undefined {
 }
 
 function mapDossierToTenantCard(c: LocalDossier, bien: LocalBien): TenantCardData {
-  const grade = getGrade(c.score);
+  // V6.6 — Métal institutionnel (PLATINUM/GOLD/SILVER/ALERTE)
+  const metalLevel = getMetalLevel(c.score);
   // Effort rate déjà stocké en 0-1 dans toDossier ; sinon dérivé
   const effortPct =
     typeof c.effortRate === 'number' && c.effortRate > 0
@@ -61,7 +62,7 @@ function mapDossierToTenantCard(c: LocalDossier, bien: LocalBien): TenantCardDat
     nom: c.nom || '',
     profession: c.contrat || 'Profil',
     score: Math.max(0, Math.min(100, Math.round(c.score || 0))),
-    grade: c.score < 45 ? 'ALERTE' : `GRADE ${GRADE_SHORT[grade]}`,
+    grade: METAL_LABELS[metalLevel],
     revenus: formatPrice(c.revenus || 0),
     loyer: formatPrice(bien.loyer || 0),
     effort: `${effortPct}%`,

@@ -17,7 +17,15 @@ import {
   Avatar,
 } from './ui';
 import type { TagType, LocalDossier, LocalBien } from './ui';
-import { AUDIT_LABELS, PRODUCT, formatResilience, formatPrice, GRADE_LABELS, getGrade } from '@/lib/product-lexicon';
+import {
+  AUDIT_LABELS,
+  PRODUCT,
+  formatResilience,
+  formatPrice,
+  getMetalLevel,
+  METAL_LABELS,
+  METAL_DESCRIPTIONS,
+} from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
 import {
   DecisionVerdict,
@@ -98,11 +106,15 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe md:px-6 md:py-5 space-y-4">
 
-          {/* Verdict d'audit en hero */}
+          {/* Verdict d'audit en hero (V6.6 : niveau institutionnel métal) */}
           <DecisionVerdict
             verdict={resolveVerdict(c)}
-            headline={GRADE_LABELS[getGrade(c.score)]}
-            summary={c.decisionHeadline || c.auditSummary}
+            headline={`Niveau ${METAL_LABELS[getMetalLevel(c.score)]}`}
+            summary={
+              c.decisionHeadline ||
+              c.auditSummary ||
+              METAL_DESCRIPTIONS[getMetalLevel(c.score)]
+            }
             reasonCodes={c.reasonCodes}
           />
 
@@ -169,7 +181,7 @@ export function CandidateDetailDrawer({ c, bien, onClose, onSelect }: {
               ['Revenus nets', formatPrice(c.revenus)],
               ['Ratio loyer', `${ratio.toFixed(1)}× (${(c.effortRate ? (c.effortRate * 100).toFixed(0) : (1 / ratio * 100).toFixed(0))}%)`],
               ['Contrat', c.contrat],
-              ['Grade', GRADE_LABELS[getGrade(c.score)]],
+              ['Niveau', METAL_LABELS[getMetalLevel(c.score)]],
               ['Qualité dossier', c.qualityScore ? `${c.qualityScore}/100` : '—'],
               ['Prêt à signer', c.contractReady ? '✓ Oui' : 'Non'],
             ] as [string, string][]).map(([k, v]) => (

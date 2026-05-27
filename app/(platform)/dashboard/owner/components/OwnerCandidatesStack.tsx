@@ -26,7 +26,7 @@ import {
 } from '@/app/components/audit';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import type { LocalDossier, LocalBien } from './ui';
-import { formatPrice, getGrade, GRADE_SHORT } from '@/lib/product-lexicon';
+import { formatPrice, getMetalLevel, METAL_LABELS } from '@/lib/product-lexicon';
 import { resolveVerdict, labelForReason } from '@/lib/verdict-system';
 
 // ─── Mapping LocalDossier → StackCandidate ───────────────────────────────────
@@ -195,7 +195,8 @@ function buildGuarantorChecks(c: LocalDossier): AiReportCheck[] {
 }
 
 function mapDossierToStackCandidate(c: LocalDossier, bien: LocalBien): StackCandidate {
-  const grade = getGrade(c.score);
+  // V6.6 — Migration vers le niveau institutionnel métal
+  const metalLevel = getMetalLevel(c.score);
   const effortPct =
     typeof c.effortRate === 'number' && c.effortRate > 0
       ? Math.round(c.effortRate * 100)
@@ -226,7 +227,7 @@ function mapDossierToStackCandidate(c: LocalDossier, bien: LocalBien): StackCand
     nom: c.nom || '',
     profession: c.contrat || 'Profil',
     score: Math.max(0, Math.min(100, Math.round(c.score || 0))),
-    grade: c.score < 45 ? 'ALERTE' : `GRADE ${GRADE_SHORT[grade]}`,
+    grade: METAL_LABELS[metalLevel],
     revenus: formatPrice(c.revenus || 0),
     loyer: formatPrice(bien.loyer || 0),
     effort: `${effortPct}%`,

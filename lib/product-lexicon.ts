@@ -50,6 +50,76 @@ export const GRADE_COLORS: Record<Grade, { bg: string; text: string; ring: strin
   D: { bg: 'bg-red-50',      text: 'text-red-700',     ring: 'ring-red-200' },
 };
 
+// ── Métaux précieux (V6.4) ──────────────────────────────────────────────────
+// Source de vérité unique pour le rendu UI du niveau institutionnel.
+// Aligné sur lib/ai/resilience-index.ts (getGradeFromScore) mais utilisable
+// sans dépendre du module AI (pas de Zod / OpenAI / server-only).
+export type MetalLevel = 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+
+/** Mapping déterministe score → niveau métal (mêmes seuils que V2 algo). */
+export function getMetalLevel(score: number): MetalLevel {
+  if (score >= 90) return 'PLATINUM';
+  if (score >= 75) return 'GOLD';
+  if (score >= 50) return 'SILVER';
+  return 'ALERTE';
+}
+
+export const METAL_LABELS: Record<MetalLevel, string> = {
+  PLATINUM: 'PLATINUM',
+  GOLD: 'GOLD',
+  SILVER: 'SILVER',
+  ALERTE: 'ALERTE',
+};
+
+export const METAL_DESCRIPTIONS: Record<MetalLevel, string> = {
+  PLATINUM: 'Dossier d\'exception — validation rapide possible.',
+  GOLD: 'Dossier solide — revue manuelle recommandée.',
+  SILVER: 'Dossier acceptable — vérifications complémentaires.',
+  ALERTE: 'Dossier à écarter — alertes critiques détectées.',
+};
+
+/**
+ * Classes Tailwind structurées par niveau (utilisables avec ring-1, etc.).
+ * Pour un badge complet pré-composé, voir METAL_BADGE_CLASS ci-dessous.
+ */
+export const METAL_COLORS: Record<
+  MetalLevel,
+  { bg: string; text: string; ring: string; barFill: string }
+> = {
+  PLATINUM: {
+    bg: 'bg-slate-900',
+    text: 'text-amber-500',
+    ring: 'ring-slate-800',
+    barFill: 'bg-amber-500',
+  },
+  GOLD: {
+    bg: 'bg-amber-100',
+    text: 'text-amber-800',
+    ring: 'ring-amber-200',
+    barFill: 'bg-amber-400',
+  },
+  SILVER: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    ring: 'ring-slate-200',
+    barFill: 'bg-slate-400',
+  },
+  ALERTE: {
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    ring: 'ring-red-200',
+    barFill: 'bg-red-500',
+  },
+};
+
+/** Chaîne pré-composée prête à coller sur un badge (bg + text + ring). */
+export const METAL_BADGE_CLASS: Record<MetalLevel, string> = {
+  PLATINUM: 'bg-slate-900 text-amber-500 ring-slate-800',
+  GOLD: 'bg-amber-100 text-amber-800 ring-amber-200',
+  SILVER: 'bg-slate-100 text-slate-700 ring-slate-200',
+  ALERTE: 'bg-red-50 text-red-700 ring-red-200',
+};
+
 // ── Audit Forensic ──────────────────────────────────────────────────────────
 export type AuditStatus = 'CLEAR' | 'REVIEW' | 'ALERT' | 'PENDING';
 
