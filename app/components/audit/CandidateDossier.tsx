@@ -611,7 +611,13 @@ function DocumentRow({
   const audit = getAuditBadge(doc.auditStatus);
   const AuditIcon = audit.icon;
   const transmission = getTransmissionBadge(doc.transmissionStatus);
-  const canConsult = doc.transmissionStatus === 'received' && !!doc.url;
+  // V5.10 — Fix bouton "Consulter" : on autorise le clic dès que la pièce
+  // est reçue, même si l'URL est manquante. Le SecureDocumentViewer affiche
+  // alors un placeholder "Aperçu indisponible" plutôt que de bloquer l'action.
+  // Avant : `received && !!doc.url` → bouton grisé pour les pièces sans URL
+  // exposée par l'API (cas fréquent quand fileUrl est interne /uploads/).
+  const canConsult = doc.transmissionStatus === 'received';
+  const hasUrl = !!doc.url;
 
   return (
     <li className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:gap-6">
