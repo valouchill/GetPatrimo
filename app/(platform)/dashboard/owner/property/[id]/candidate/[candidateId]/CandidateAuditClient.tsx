@@ -304,7 +304,10 @@ export default function CandidateAuditClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
-      router.push(`/dashboard/owner/property/${propertyId}?tab=selected&applicationId=${candidate.id}`);
+      // V7.2 — Après sélection, redirection directe vers le module bail
+      // (au lieu de revenir sur la page bien). Le propriétaire enchaîne
+      // immédiatement sur la contractualisation.
+      router.push(`/dashboard/owner/lease/${candidate.id}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur de sélection.');
     } finally {

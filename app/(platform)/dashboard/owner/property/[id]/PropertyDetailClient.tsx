@@ -482,9 +482,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
+      const selectedId = pendingSelectionId;
       setPendingSelectionId(null);
-      await loadData();
-      goToTab('selection', pendingSelectionId);
+      // V7.2 — Redirection immédiate vers le module bail après sélection
+      // (au lieu de rester sur la page bien avec onglet 'selection').
+      router.push(`/dashboard/owner/lease/${selectedId}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur.');
     } finally {
