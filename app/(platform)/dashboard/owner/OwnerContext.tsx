@@ -303,7 +303,9 @@ export function OwnerProvider({ userEmail, children }: { userEmail: string; chil
   const fetchData = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const r = await fetch('/api/owner/properties');
+      // V7.6 — cache: 'no-store' garantit que le browser bypass son
+      // propre cache HTTP (ceinture-bretelles avec le no-cache server-side).
+      const r = await fetch('/api/owner/properties', { cache: 'no-store' });
       const d: PropertyWithCandidatures[] = r.ok ? await r.json() : [];
       const list = Array.isArray(d) ? d : [];
       setData(list);

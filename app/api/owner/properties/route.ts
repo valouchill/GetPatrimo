@@ -226,9 +226,18 @@ export async function GET() {
       })
     );
 
+    // V7.6 — Pas de cache HTTP sur cet endpoint critique :
+    //   - Données frequemment mutees (selection candidat, ajout de bien, etc.)
+    //   - L'ancien cache max-age=10 + stale-while-revalidate=30 etait responsable
+    //     d'un bug majeur de state sync : apres un PUT /selection, le re-fetch
+    //     /api/owner/properties retournait la reponse cachee (sans la nouvelle
+    //     selection). Effet visible apres logout/login : la selection
+    //     "disparaissait" pour ~30s.
+    //   - Le gain de perf etait marginal vu la frequence des mutations.
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
       },
     });
   } catch (e) {
