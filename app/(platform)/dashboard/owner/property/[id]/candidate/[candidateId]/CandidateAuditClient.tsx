@@ -50,6 +50,7 @@ import {
 import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
 import { isEnabled } from '@/lib/features';
+import { useOwner } from '@/app/(platform)/dashboard/owner/OwnerContext';
 
 /* ------------------------------------------------------------------ */
 /*  Types (aligned with PropertyDetailClient / API response)           */
@@ -243,6 +244,7 @@ export default function CandidateAuditClient({
   candidateId: string;
 }) {
   const router = useRouter();
+  const { refresh: refreshOwnerData } = useOwner();
   const { data: property, loading: propLoading } = useFetch<PropertyMeta>(
     `/api/owner/properties/${propertyId}`
   );
@@ -304,9 +306,11 @@ export default function CandidateAuditClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
-      // V7.2 — Après sélection, redirection directe vers le module bail
-      // (au lieu de revenir sur la page bien). Le propriétaire enchaîne
-      // immédiatement sur la contractualisation.
+      // V7.3 — Sync OwnerProvider state (la liste de candidats du dashboard
+      // reflète immédiatement la sélection) + invalide les server components
+      // en amont, puis redirige vers le module bail.
+      refreshOwnerData();
+      router.refresh();
       router.push(`/dashboard/owner/lease/${candidate.id}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur de sélection.');
