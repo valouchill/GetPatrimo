@@ -336,13 +336,17 @@ export function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: 
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
-export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil';
+export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'contrats' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil';
 import type { FeatureKey } from '@/lib/features';
 export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean; href?: string; feature?: FeatureKey }[] = [
   { id: 'dashboard',    label: "Vue d'ensemble",     Icon: LayoutDashboard,  group: 'Mon patrimoine' },
   { id: 'biens',        label: 'Mes biens',          Icon: Building2,        group: 'Mon patrimoine' },
   { id: 'candidatures', label: 'Candidatures',       Icon: Users,            group: 'Location', badge: true },
-  { id: 'baux',         label: 'Baux & Signatures',  Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
+  // V7.4 — Baux & Contrats : hub de preparation (route reelle, pas SPA).
+  // Page intelligente : empty state si aucun candidat retenu, sinon affiche
+  // le plan de travail bail pour le(s) candidat(s) selectionne(s).
+  { id: 'contrats',     label: 'Baux & Contrats',    Icon: FileSignature,    group: 'Location',    href: '/dashboard/owner/contracts' },
+  { id: 'baux',         label: 'Baux signés',        Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
   { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location',    feature: 'EDL' },
   { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances',    feature: 'RECEIPTS' },
   { id: 'profil',       label: 'Mon profil',         Icon: UserCog,          group: 'Compte' },
