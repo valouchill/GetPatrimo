@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useOwner } from '@/app/(platform)/dashboard/owner/OwnerContext';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -339,6 +340,7 @@ const TABS = [
 
 export default function PropertyDetailClient({ propertyId }: { propertyId: string }) {
   const router = useRouter();
+  const { refresh: refreshOwnerData } = useOwner();
   const searchParams = useSearchParams();
   const checkoutSuccess = searchParams.get('checkout') === 'success';
 
@@ -484,8 +486,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
       const selectedId = pendingSelectionId;
       setPendingSelectionId(null);
-      // V7.2 — Redirection immédiate vers le module bail après sélection
-      // (au lieu de rester sur la page bien avec onglet 'selection').
+      // V7.3 — Sync state global (OwnerProvider) + invalide server components
+      // en amont, puis redirige vers le module bail. Sans refresh, le
+      // dashboard restait figé sur la liste pré-sélection.
+      refreshOwnerData();
+      router.refresh();
       router.push(`/dashboard/owner/lease/${selectedId}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur.');

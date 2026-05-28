@@ -28,7 +28,13 @@ export interface CandidateAuditModalProps {
   candidate: LocalDossier;
   bien: LocalBien;
   onClose: () => void;
-  onSelect: (c: LocalDossier) => void;
+  /**
+   * Handler de confirmation de sélection. Peut retourner une Promise :
+   * pendant qu'elle est en cours, la modale de confirmation affiche un
+   * spinner + bouton désactivé et ne se ferme qu'au succès (le rejet
+   * laisse la modale ouverte pour retry).
+   */
+  onSelect: (c: LocalDossier) => void | Promise<void>;
   onOpenAudit?: (c: LocalDossier) => void;
 }
 
@@ -245,6 +251,7 @@ export function CandidateAuditModal({
 }: CandidateAuditModalProps) {
   const titleId = React.useId();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [confirmLoading, setConfirmLoading] = React.useState(false);
 
   // V5.6 — État des pièces du dossier (fetch on open)
   const [docs, setDocs] = React.useState<DossierDocument[]>([]);
@@ -418,17 +425,33 @@ export function CandidateAuditModal({
         </>
       )}
 
-      {/* Modale de confirmation déclenchée par "Valider" */}
+      {/* Modale de confirmation déclenchée par "Valider".
+          La modale reste ouverte pendant l'appel API (onSelect peut être
+          async) ; on affiche le spinner via le prop `loading`. Au succès,
+          on ferme. À l'échec, on garde la modale pour permettre le retry. */}
       <SelectionConfirmModal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
+        onClose={() => {
+          if (confirmLoading) return; // bloque la fermeture pendant l'API
           setConfirmOpen(false);
-          onSelect(c);
+        }}
+        onConfirm={async () => {
+          if (confirmLoading) return;
+          setConfirmLoading(true);
+          try {
+            await Promise.resolve(onSelect(c));
+            setConfirmOpen(false);
+          } catch {
+            // L'erreur est gérée côté parent (toast / alert).
+            // On garde juste la modale ouverte pour retry.
+          } finally {
+            setConfirmLoading(false);
+          }
         }}
         candidateName={`${c.prenom} ${c.nom}`}
         verdict={resolveVerdict(c)}
         reasonCodes={c.reasonCodes}
+        loading={confirmLoading}
       />
     </AnimatePresence>
   );

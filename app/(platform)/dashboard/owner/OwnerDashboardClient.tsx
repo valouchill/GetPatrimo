@@ -669,37 +669,38 @@ export default function OwnerDashboardClient() {
             bien={b}
             onClose={() => setCandidateDrawerId(null)}
             onSelect={async (cd) => {
-              // V7.2 — Sélection persistée + redirection vers le module bail.
-              // Avant : juste un changement d'état UI sans appel API → la
-              // sélection n'était pas sauvegardée côté serveur (bug).
-              try {
-                const res = await fetch(
-                  `/api/owner/properties/${cd.bien_id}/selection`,
-                  {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ applicationId: cd.id }),
-                  },
-                );
-                if (!res.ok) {
-                  const data = await res.json().catch(() => ({}));
-                  throw new Error(
-                    data.error || 'Impossible de sélectionner ce dossier.',
-                  );
-                }
-                setCandidateDrawerId(null);
-                router.push(`/dashboard/owner/lease/${cd.id}`);
-              } catch (err) {
-                // Erreur affichée dans la modale parent (toast système global
-                // via NotificationProvider). On garde la modale ouverte pour
-                // que l'utilisateur puisse retenter.
-                console.error('[OwnerDashboardClient] selection failed', err);
-                alert(
-                  err instanceof Error
-                    ? err.message
-                    : 'Erreur lors de la sélection. Réessayez.',
+              // V7.3 — Sélection persistée + état dashboard synchronisé +
+              // redirection vers le module bail.
+              //
+              // Étapes (toute exception est repropagée pour que la
+              // SelectionConfirmModal puisse garder son spinner et
+              // permettre un retry sans fermer la modale) :
+              //   1. PUT /api/owner/properties/[bien]/selection
+              //   2. refresh() du contexte OwnerProvider → la liste de
+              //      candidats sera fraîche au prochain retour sur le
+              //      dashboard
+              //   3. router.push vers /lease/[id]
+              const res = await fetch(
+                `/api/owner/properties/${cd.bien_id}/selection`,
+                {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ applicationId: cd.id }),
+                },
+              );
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(
+                  data.error || 'Impossible de sélectionner ce dossier.',
                 );
               }
+              // Sync : le dashboard reflète la nouvelle sélection au
+              // prochain affichage. Le router.refresh() invalide aussi
+              // les server components en amont (layout, etc.).
+              refresh();
+              router.refresh();
+              setCandidateDrawerId(null);
+              router.push(`/dashboard/owner/lease/${cd.id}`);
             }}
             onOpenAudit={(cd) => {
               setCandidateDrawerId(null);
