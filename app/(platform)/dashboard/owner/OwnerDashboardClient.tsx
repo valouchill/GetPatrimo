@@ -133,11 +133,16 @@ export default function OwnerDashboardClient() {
     setSidebarOpen(false);
   };
   const goToContract = (propertyId: string, applicationId?: string) => {
-    const returnUrl = encodeURIComponent("/dashboard/owner");
-    const url = applicationId
-      ? `/properties/${propertyId}/contract?applicationId=${encodeURIComponent(applicationId)}&returnUrl=${returnUrl}`
-      : `/properties/${propertyId}/contract?returnUrl=${returnUrl}`;
-    router.push(url);
+    // V7.2 — Le module de contractualisation est maintenant la page
+    // /dashboard/owner/lease/[applicationId] (cf. PR #62). L'ancienne
+    // route /properties/[id]/contract n'existe plus en prod.
+    // Si applicationId absent (cas hypothétique), on retombe sur la page
+    // bien (l'owner pourra cliquer "Préparer le bail" depuis là).
+    if (applicationId) {
+      router.push(`/dashboard/owner/lease/${applicationId}`);
+    } else {
+      router.push(`/dashboard/owner/property/${propertyId}?tab=selected`);
+    }
   };
 
   const copyLink = async (token: string, id: string) => {
