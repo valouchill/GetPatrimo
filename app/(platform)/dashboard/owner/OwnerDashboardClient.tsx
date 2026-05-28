@@ -702,10 +702,11 @@ export default function OwnerDashboardClient() {
                   data.error || 'Impossible de sélectionner ce dossier.',
                 );
               }
-              // Sync : le dashboard reflète la nouvelle sélection au
-              // prochain affichage. Le router.refresh() invalide aussi
-              // les server components en amont (layout, etc.).
-              refresh();
+              // V7.5 — On AWAIT le refresh pour que le dashboard ait les
+              // données fraîches AVANT de naviguer. Sans cet await, l'utilisateur
+              // pouvait revenir sur /dashboard/owner avant que le fetch
+              // ne se termine -> état figé sur l'ancienne liste.
+              await refresh();
               router.refresh();
               setCandidateDrawerId(null);
               router.push(`/dashboard/owner/lease/${cd.id}`);

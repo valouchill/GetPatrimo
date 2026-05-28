@@ -77,11 +77,23 @@ export async function PUT(
       return NextResponse.json({ error: 'Dossier introuvable pour ce bien.' }, { status: 404 });
     }
 
+    // V7.5 — Persistance complète de la sélection :
+    //   1. Property.acceptedTenantId = application._id (source de vérité)
+    //   2. Property.status : passe de "AVAILABLE"/"VACANT"/"" à
+    //      "CANDIDATE_SELECTION" pour que le dashboard reflète l'état
+    //      (sans toucher les statuts en aval : LEASE_IN_PROGRESS, OCCUPIED)
+    const currentStatus = String(property.status || '').toUpperCase();
+    const statusUpdate =
+      ['', 'AVAILABLE', 'VACANT', 'DRAFT'].includes(currentStatus)
+        ? { status: 'CANDIDATE_SELECTION' }
+        : {};
+
     await Property.updateOne(
       { _id: property._id },
       {
         $set: {
           acceptedTenantId: application._id,
+          ...statusUpdate,
         },
       }
     );
@@ -108,6 +120,13 @@ export async function PUT(
         },
       }
     );
+
+    logger.info('selection saved', {
+      propertyId: String(property._id),
+      applicationId: String(application._id),
+      previousStatus: currentStatus,
+      newStatus: statusUpdate.status || currentStatus,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -149,12 +168,21 @@ export async function DELETE(
     }
 
     const previousSelectionId = property.acceptedTenantId ? String(property.acceptedTenantId) : null;
+    const currentStatus = String(property.status || '').toUpperCase();
+    // V7.5 — Symétrie avec PUT : si on retire la sélection ET que le bien
+    // était en CANDIDATE_SELECTION (résultat de la sélection précédente),
+    // on le repasse en AVAILABLE.
+    const statusRevert =
+      currentStatus === 'CANDIDATE_SELECTION'
+        ? { status: 'AVAILABLE' }
+        : {};
 
     await Property.updateOne(
       { _id: property._id },
       {
         $set: {
           acceptedTenantId: null,
+          ...statusRevert,
         },
       }
     );

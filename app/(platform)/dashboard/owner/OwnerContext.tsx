@@ -281,7 +281,7 @@ interface OwnerContextValue {
   setActivePropertyId: (id: string) => void;
   activeEntry: PropertyWithCandidatures | null;
   userEmail: string;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 }
 
 const OwnerContext = createContext<OwnerContextValue | null>(null);
@@ -297,30 +297,35 @@ export function OwnerProvider({ userEmail, children }: { userEmail: string; chil
   const [loading, setLoading] = useState(true);
   const [activePropertyId, setActivePropertyId] = useState<string | null>(null);
 
-  const fetchData = useCallback(() => {
+  // V7.5 — fetchData retourne maintenant une Promise pour que les callers
+  // puissent await la fin du fetch avant de continuer (ex: après PUT /selection,
+  // on attend le refresh avant de rediriger pour garantir un state à jour).
+  const fetchData = useCallback(async (): Promise<void> => {
     setLoading(true);
-    fetch('/api/owner/properties')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d: PropertyWithCandidatures[]) => {
-        const list = Array.isArray(d) ? d : [];
-        setData(list);
-        if (typeof window !== 'undefined') {
-          const stored = window.localStorage.getItem('owner:last-property-id');
-          const storedEntry = stored ? list.find((entry) => entry.property.id === stored) : null;
-          if (storedEntry) {
-            setActivePropertyId(storedEntry.property.id);
-            return;
-          }
+    try {
+      const r = await fetch('/api/owner/properties');
+      const d: PropertyWithCandidatures[] = r.ok ? await r.json() : [];
+      const list = Array.isArray(d) ? d : [];
+      setData(list);
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem('owner:last-property-id');
+        const storedEntry = stored ? list.find((entry) => entry.property.id === stored) : null;
+        if (storedEntry) {
+          setActivePropertyId(storedEntry.property.id);
+          return;
         }
-        if (!activePropertyId && list.length > 0) {
-          const first = list.find((e) => !e.property.archived && !e.property.isRented)
-            ?? list.find((e) => !e.property.archived)
-            ?? list[0];
-          setActivePropertyId(first.property.id);
-        }
-      })
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
+      }
+      if (!activePropertyId && list.length > 0) {
+        const first = list.find((e) => !e.property.archived && !e.property.isRented)
+          ?? list.find((e) => !e.property.archived)
+          ?? list[0];
+        setActivePropertyId(first.property.id);
+      }
+    } catch {
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
   }, [activePropertyId]);
 
   useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
