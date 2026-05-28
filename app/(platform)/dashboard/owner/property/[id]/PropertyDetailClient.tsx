@@ -486,10 +486,9 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
       const selectedId = pendingSelectionId;
       setPendingSelectionId(null);
-      // V7.3 — Sync state global (OwnerProvider) + invalide server components
-      // en amont, puis redirige vers le module bail. Sans refresh, le
-      // dashboard restait figé sur la liste pré-sélection.
-      refreshOwnerData();
+      // V7.5 — Await le refresh : garantit que le dashboard a les données
+      // fraîches AVANT le redirect (utile si l'utilisateur revient via la nav).
+      await refreshOwnerData();
       router.refresh();
       router.push(`/dashboard/owner/lease/${selectedId}`);
     } catch (err) {

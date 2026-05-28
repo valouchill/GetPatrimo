@@ -306,10 +306,9 @@ export default function CandidateAuditClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Impossible de sélectionner ce dossier.');
-      // V7.3 — Sync OwnerProvider state (la liste de candidats du dashboard
-      // reflète immédiatement la sélection) + invalide les server components
-      // en amont, puis redirige vers le module bail.
-      refreshOwnerData();
+      // V7.5 — Await le refresh avant la redirection : le state OwnerProvider
+      // est garanti à jour quand l'utilisateur navigue (ex: retour dashboard).
+      await refreshOwnerData();
       router.refresh();
       router.push(`/dashboard/owner/lease/${candidate.id}`);
     } catch (err) {
