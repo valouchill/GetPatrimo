@@ -231,12 +231,20 @@ export default function OwnerDashboardClient() {
           {[...new Set(NAV.filter(isNavVisible).map((n) => n.group))].map((grp) => (
             <div key={grp} className="mb-5">
               <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
-              {NAV.filter((n) => n.group === grp && isNavVisible(n)).map(({ id, label, Icon, badge }) => {
+              {NAV.filter((n) => n.group === grp && isNavVisible(n)).map(({ id, label, Icon, badge, href }) => {
                 const active = page === id;
-                if (id === 'profil') {
+                // V7.4 — Entrées avec href (route réelle Next.js) rendues
+                // comme <Link>, distinctes du dispatcher SPA `go(id)`.
+                // 'profil' a son href hardcodé pour rétrocompat (avant V7.4).
+                const resolvedHref = href ?? (id === 'profil' ? '/dashboard/owner/profile' : null);
+                if (resolvedHref) {
                   return (
-                    <Link key={id} href="/dashboard/owner/profile" onClick={() => setSidebarOpen(false)}
-                      className="mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all">
+                    <Link
+                      key={id}
+                      href={resolvedHref}
+                      onClick={() => setSidebarOpen(false)}
+                      className="mb-0.5 flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all"
+                    >
                       <Icon className="h-5 w-5 shrink-0" />
                       <span className="flex-1 text-left">{label}</span>
                     </Link>
