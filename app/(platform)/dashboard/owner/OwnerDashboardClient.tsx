@@ -663,7 +663,39 @@ export default function OwnerDashboardClient() {
             candidate={c}
             bien={b}
             onClose={() => setCandidateDrawerId(null)}
-            onSelect={(cd) => { setSelBienId(cd.bien_id); setCandidateDrawerId(null); }}
+            onSelect={async (cd) => {
+              // V7.2 — Sélection persistée + redirection vers le module bail.
+              // Avant : juste un changement d'état UI sans appel API → la
+              // sélection n'était pas sauvegardée côté serveur (bug).
+              try {
+                const res = await fetch(
+                  `/api/owner/properties/${cd.bien_id}/selection`,
+                  {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ applicationId: cd.id }),
+                  },
+                );
+                if (!res.ok) {
+                  const data = await res.json().catch(() => ({}));
+                  throw new Error(
+                    data.error || 'Impossible de sélectionner ce dossier.',
+                  );
+                }
+                setCandidateDrawerId(null);
+                router.push(`/dashboard/owner/lease/${cd.id}`);
+              } catch (err) {
+                // Erreur affichée dans la modale parent (toast système global
+                // via NotificationProvider). On garde la modale ouverte pour
+                // que l'utilisateur puisse retenter.
+                console.error('[OwnerDashboardClient] selection failed', err);
+                alert(
+                  err instanceof Error
+                    ? err.message
+                    : 'Erreur lors de la sélection. Réessayez.',
+                );
+              }
+            }}
             onOpenAudit={(cd) => {
               setCandidateDrawerId(null);
               router.push(`/dashboard/owner/property/${cd.bien_id}/candidate/${cd.id}`);
