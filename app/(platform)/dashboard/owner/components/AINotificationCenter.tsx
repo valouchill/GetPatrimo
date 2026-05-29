@@ -26,6 +26,7 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react';
+import { useNotifications } from '../NotificationsContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -91,7 +92,16 @@ export const MOCK_NOTIFICATIONS: AINotification[] = [
 // ─── Composant ───────────────────────────────────────────────────────────
 
 export interface AINotificationCenterProps {
+  /**
+   * Si fourni, override le context (utile pour Storybook / mock isole).
+   * En production : laisser undefined pour que le composant consomme
+   * useNotifications() (live + polling 60s + read state persiste).
+   */
   notifications?: AINotification[];
+  /** Override du compteur non lus (sinon calcule depuis notifications) */
+  unreadCount?: number;
+  /** Callback "marquer tout comme lu" (sinon no-op) */
+  onMarkAllRead?: () => void;
   /**
    * Position du popover par rapport au bouton.
    *   - 'right' (défaut) : panneau ouvre à DROITE du bouton (sidebar à gauche)
@@ -103,19 +113,36 @@ export interface AINotificationCenterProps {
 }
 
 export function AINotificationCenter({
-  notifications = MOCK_NOTIFICATIONS,
+  notifications: notificationsProp,
+  unreadCount: unreadCountProp,
+  onMarkAllRead,
   popoverAnchor = 'right',
   size = 'md',
 }: AINotificationCenterProps): React.ReactElement {
+  // V7.9 — Branchement context (avec fallback vers props pour rétrocompat).
+  // useNotifications() retourne des valeurs no-op si pas de Provider.
+  const ctx = useNotifications();
+  const notifications = notificationsProp ?? ctx.notifications;
+  const unreadCount = unreadCountProp ?? ctx.unreadCount;
+  const markAllReadCb = onMarkAllRead ?? ctx.markAllRead;
+
   const [open, setOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const popoverRef = React.useRef<HTMLDivElement>(null);
 
-  const unreadCount = React.useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications],
-  );
   const hasUnread = unreadCount > 0;
+
+  // Marquer tout comme lu quand le popover s'ouvre (apres un petit delay
+  // pour laisser l'utilisateur voir le badge "non lu" visuellement)
+  const prevOpenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (open && !prevOpenRef.current && unreadCount > 0) {
+      const timer = window.setTimeout(() => markAllReadCb(), 1200);
+      return () => window.clearTimeout(timer);
+    }
+    prevOpenRef.current = open;
+    return undefined;
+  }, [open, unreadCount, markAllReadCb]);
 
   // Click outside / Escape ferment
   React.useEffect(() => {

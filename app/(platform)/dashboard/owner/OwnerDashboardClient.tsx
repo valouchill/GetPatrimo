@@ -26,6 +26,7 @@ import { CandidateAuditModal } from './components/CandidateAuditModal';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
 import { PropertyCardMenu } from './components/PropertyCardMenu';
 import { AINotificationCenter } from './components/AINotificationCenter';
+import { useNotifications } from './NotificationsContext';
 import { PropertyEditModal } from './components/PropertyEditModal';
 import { PropertyDeleteDialog } from './components/PropertyDeleteDialog';
 import { AddManagementModal } from './components/AddManagementModal';
@@ -49,6 +50,8 @@ import { SectionHeader } from '@/app/components/ui';
 export default function OwnerDashboardClient() {
   const router = useRouter();
   const { data, loading, userEmail, refresh } = useOwner();
+  // V7.9 — Alerte forensic non lue -> badge NAV rouge (priorite sur pending)
+  const { hasUnreadAlert } = useNotifications();
   // V7.7 — Lit `?tab=` pour determiner l'onglet initial (declenche par
   // les Liens du OwnerShell qui navigue /dashboard/owner?tab={id}).
   const searchParams = useSearchParams();
@@ -266,8 +269,22 @@ export default function OwnerDashboardClient() {
                     }`}>
                     <Icon className="h-5 w-5 shrink-0" />
                     <span className="flex-1 text-left">{label}</span>
-                    {badge && pending > 0 && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-600">{pending}</span>
+                    {/* V7.9 — Rouge si alerte forensic non lue */}
+                    {badge && (pending > 0 || hasUnreadAlert) && (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          hasUnreadAlert
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-amber-100 text-amber-600'
+                        }`}
+                        title={
+                          hasUnreadAlert
+                            ? 'Alertes Forensic en attente'
+                            : `${pending} candidature${pending > 1 ? 's' : ''} en attente`
+                        }
+                      >
+                        {hasUnreadAlert ? '!' : pending}
+                      </span>
                     )}
                   </button>
                 );
