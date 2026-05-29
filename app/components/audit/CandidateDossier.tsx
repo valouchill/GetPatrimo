@@ -720,13 +720,23 @@ export function CandidateDossier({
   );
 
   // Statistiques globales
-  const receivedCount = documents.filter((d) => d.transmissionStatus === 'received').length;
+  // V7.12 — Compteur "X / Y reçus" comptait les FICHIERS (19) contre les
+  // CATEGORIES attendues (4), affichant "19/4 reçus" qui est un bug visuel.
+  // Le bon ratio est : categories couvertes / categories requises.
+  // On expose aussi totalFiles pour le "X fichiers analysés" complementaire.
+  const totalFiles = documents.length;
   const verifiedCount = documents.filter((d) => d.auditStatus === 'verified').length;
   const alteredCount = documents.filter((d) => d.auditStatus === 'altered').length;
-  const totalExpected = React.useMemo(
-    () => categories.reduce((sum, cat) => sum + cat.expectedCount, 0),
-    [categories],
-  );
+  const totalExpected = categories.length;
+  const categoriesCovered = React.useMemo(() => {
+    const distinctTypesReceived = new Set(
+      documents
+        .filter((d) => d.transmissionStatus === 'received')
+        .map((d) => d.type),
+    );
+    return categories.filter((cat) => distinctTypesReceived.has(cat.type))
+      .length;
+  }, [documents, categories]);
   const totalMissing = React.useMemo(
     () =>
       groupByCategory(documents, categories).reduce(
@@ -842,7 +852,9 @@ export function CandidateDossier({
             </h2>
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {receivedCount}/{totalExpected} reçus · {verifiedCount} vérifiés
+            {categoriesCovered}/{totalExpected} requis
+            {totalFiles > 0 && ` · ${totalFiles} fichier${totalFiles > 1 ? 's' : ''} analysé${totalFiles > 1 ? 's' : ''}`}
+            {verifiedCount > 0 && ` · ${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}`}
             {totalMissing > 0 && ` · ${totalMissing} manquant${totalMissing > 1 ? 's' : ''}`}
             {alteredCount > 0 && ` · ${alteredCount} altéré${alteredCount > 1 ? 's' : ''}`}
           </p>

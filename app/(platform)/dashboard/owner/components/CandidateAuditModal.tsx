@@ -2,9 +2,19 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, RotateCcw } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileText,
+  ShieldCheck,
+  Sparkles,
+  Folder,
+  X,
+  XCircle,
+} from 'lucide-react';
 import type { LocalDossier, LocalBien } from './ui';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
+import { Button } from '@/app/components/ui/Button';
 import {
   CandidateAiReport,
   type AiReportCandidate,
@@ -18,6 +28,7 @@ import {
   PRODUCT,
   formatPrice,
   getMetalLevel,
+  METAL_BADGE_CLASS,
   METAL_LABELS,
 } from '@/lib/product-lexicon';
 import { resolveVerdict } from '@/lib/verdict-system';
@@ -351,75 +362,176 @@ export function CandidateAuditModal({
               <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
             </div>
 
-            {/* Floating actions top-right (close + PDF + reanalyze) */}
-            <div className="pointer-events-none absolute right-3 top-3 z-30 flex items-center gap-2 md:right-5 md:top-5">
-              {c.passportDownloadUrl && (
-                <a
-                  href={c.passportDownloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50/95 px-3 py-1.5 text-[11px] font-bold text-amber-800 shadow-sm backdrop-blur transition-colors hover:bg-amber-100"
-                  title={`Télécharger le ${PRODUCT.PASSEPORT} PDF`}
+            {/* ─── V7.12 — STICKY HEADER (identite + score V2 + actions) ──── */}
+            <header
+              className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white/95 px-5 py-5 backdrop-blur-xl md:px-6"
+              id={titleId}
+            >
+              {/* Ligne 1 : identite + score + close */}
+              <div className="flex items-start gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+                    Dossier Candidat
+                  </p>
+                  <h2 className="mt-0.5 truncate font-serif text-2xl font-bold leading-tight text-emerald-900 sm:text-3xl">
+                    {(c.prenom || '').trim()} {(c.nom || '').trim()}
+                  </h2>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">
+                    {c.contrat || 'Profil'}
+                    {bien?.label ? ` · ${bien.label}` : ''}
+                  </p>
+                </div>
+
+                {/* Score + niveau metal (source unique de verite) */}
+                {(() => {
+                  const score = Math.max(0, Math.min(100, Math.round(c.score || 0)));
+                  const level = getMetalLevel(score);
+                  return (
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex items-baseline gap-1">
+                        <span className="tabular-nums font-serif text-3xl font-bold leading-none text-emerald-900 sm:text-4xl">
+                          {score}
+                        </span>
+                        <span className="text-sm font-semibold text-slate-500">
+                          /100
+                        </span>
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ring-1 ${METAL_BADGE_CLASS[level]}`}
+                        aria-label={`Niveau ${METAL_LABELS[level]}`}
+                      >
+                        {level === 'PLATINUM' && (
+                          <span aria-hidden="true" className="mr-1">★</span>
+                        )}
+                        {METAL_LABELS[level]}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* PDF + Re-analyze + Close (compact top-right) */}
+                <div className="ml-2 flex shrink-0 items-center gap-1.5">
+                  {c.passportDownloadUrl && (
+                    <a
+                      href={c.passportDownloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                      title={`Télécharger le ${PRODUCT.PASSEPORT} PDF`}
+                    >
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="hidden sm:inline">PDF</span>
+                    </a>
+                  )}
+                  <ReanalyzeButton
+                    applicationId={c.id}
+                    documentsCount={
+                      (c.certifiedDocuments || 0) +
+                      (c.reviewDocuments || 0) +
+                      (c.rejectedDocuments || 0)
+                    }
+                    variant="ghost"
+                    size="sm"
+                    onSuccess={() => {
+                      if (typeof window !== 'undefined')
+                        window.location.reload();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Fermer le dossier candidat"
+                    className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Ligne 2 : actions principales (toujours visibles) */}
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={onClose}
+                  iconLeft={<XCircle className="h-4 w-4" />}
+                  className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 sm:flex-none"
                 >
-                  <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="hidden sm:inline">PDF</span>
-                </a>
-              )}
-              <div className="pointer-events-auto">
-                <ReanalyzeButton
-                  applicationId={c.id}
-                  documentsCount={
-                    (c.certifiedDocuments || 0) +
-                    (c.reviewDocuments || 0) +
-                    (c.rejectedDocuments || 0)
-                  }
-                  variant="ghost"
-                  size="sm"
-                  onSuccess={() => {
-                    if (typeof window !== 'undefined') window.location.reload();
-                  }}
-                />
+                  Écarter
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setConfirmOpen(true)}
+                  iconRight={<CheckCircle2 className="h-4 w-4" />}
+                  className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber sm:flex-1"
+                >
+                  Retenir ce locataire
+                </Button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Fermer le dossier candidat"
-                className="pointer-events-auto rounded-full border border-slate-200 bg-white/95 p-2 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900"
+            </header>
+
+            {/* ─── TABS (Synthese / Forensic / Coffre-fort) ──────────────── */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <Tabs
+                defaultValue="synthesis"
+                className="flex flex-1 flex-col overflow-hidden"
               >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
+                <div className="shrink-0 px-5 pt-4 pb-2 md:px-6">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="synthesis">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                        Synthèse &amp; IA
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="forensic">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                        Audit Forensic
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="documents">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Folder className="h-3.5 w-3.5" aria-hidden="true" />
+                        Coffre-fort
+                      </span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-            {/* Body scrollable contenant <CandidateAiReport> + <CandidateDossier> */}
-            <div id={titleId} className="flex-1 overflow-y-auto">
-              <CandidateAiReport
-                candidate={reportCandidate}
-                onValidate={() => setConfirmOpen(true)}
-                onReject={onClose}
-              />
+                {/* Zone scroll independante (le header reste fixe) */}
+                <div className="flex-1 overflow-y-auto bg-slate-50">
+                  <TabsContent value="synthesis">
+                    {/* CandidateAiReport sans son footer d'actions :
+                        Onclick onValidate/onReject = undefined -> footer masqué.
+                        Les actions sont dans notre sticky header. */}
+                    <CandidateAiReport candidate={reportCandidate} />
+                  </TabsContent>
 
-              {/* V6.2 — Panneau d'analyse neuro-symbolique (Indice de Résilience
-                  V2, Grades Institutionnels, Trust-List anti-fraude).
-                  Lazy (button-driven) : 1 appel OpenAI = 1 click propriétaire. */}
-              <AnalysisV2Panel applicationId={c.id} />
+                  <TabsContent value="forensic">
+                    {/* V2 algo neuro-symbolique : score V2 + breakdown par
+                        pilier + Trust-List forensicAudit + hard gates */}
+                    <AnalysisV2Panel applicationId={c.id} />
+                  </TabsContent>
 
-              {/* V5.8 — Section "Pièces du dossier" (Trust-List adaptée
-                  au profil + Didit). Si l'identité est vérifiée par Didit,
-                  la catégorie Identité est auto-validée. */}
-              <div className="border-t border-slate-200 bg-slate-50">
-                <CandidateDossier
-                  candidateName={`${c.prenom} ${c.nom}`.trim()}
-                  candidateJob={c.contrat}
-                  diditVerified={c.identityVerified === true}
-                  score={c.score}
-                  documents={docs}
-                  loading={docsLoading}
-                  error={docsError}
-                  showScoring={false}
-                  showHeader={false}
-                  viewerIdentity={`Propriétaire · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`}
-                />
-              </div>
+                  <TabsContent value="documents">
+                    {/* V5.8 — Trust-List documentaire adaptee au profil + Didit */}
+                    <CandidateDossier
+                      candidateName={`${c.prenom} ${c.nom}`.trim()}
+                      candidateJob={c.contrat}
+                      diditVerified={c.identityVerified === true}
+                      score={c.score}
+                      documents={docs}
+                      loading={docsLoading}
+                      error={docsError}
+                      showScoring={false}
+                      showHeader={false}
+                      viewerIdentity={`Propriétaire · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
           </motion.div>
         </>

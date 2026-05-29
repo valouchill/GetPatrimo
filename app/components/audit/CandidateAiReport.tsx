@@ -423,36 +423,42 @@ export function CandidateAiReport({
       </section>
 
       {/* ─── E. Boutons sticky bottom ──────────────────────────────────────── */}
-      {/* Règle défensive : z-10 (local) — ne passera jamais au-dessus de la nav
-          globale (z-50). Le scroll parent doit déjà avoir pb-24+ pour qu'on
-          puisse scroller au-dessus de ce footer. */}
-      <footer
-        className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur sm:px-10 sm:py-5"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}
-      >
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onReject}
-            disabled={busy}
-            iconLeft={<XCircle className="h-4 w-4 flex-shrink-0" />}
-            className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
-          >
-            Écarter ce candidat
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onValidate}
-            disabled={busy}
-            iconRight={<CheckCircle2 className="h-4 w-4 flex-shrink-0" />}
-            className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber"
-          >
-            Valider ce dossier et passer au bail
-          </Button>
-        </div>
-      </footer>
+      {/* V7.12 — Masqué si onValidate ET onReject sont undefined (cas où
+          le parent gère les actions dans son propre sticky header, ex:
+          CandidateAuditModal refactor par onglets). */}
+      {(onValidate || onReject) && (
+        <footer
+          className="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur sm:px-10 sm:py-5"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}
+        >
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {onReject && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onReject}
+                disabled={busy}
+                iconLeft={<XCircle className="h-4 w-4 flex-shrink-0" />}
+                className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+              >
+                Écarter ce candidat
+              </Button>
+            )}
+            {onValidate && (
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={onValidate}
+                disabled={busy}
+                iconRight={<CheckCircle2 className="h-4 w-4 flex-shrink-0" />}
+                className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber"
+              >
+                Valider ce dossier et passer au bail
+              </Button>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
