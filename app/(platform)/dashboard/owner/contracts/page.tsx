@@ -18,6 +18,7 @@ import Application from '@/models/Application';
 import Property from '@/models/Property';
 import { logger } from '@/lib/server-logger';
 import { LeasePreparationPage } from '../components/LeasePreparationPage';
+import { OwnerShell } from '../components/OwnerShell';
 import {
   buildAddress,
   buildFullName,
@@ -106,7 +107,11 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
 
   // ─── État 1 : aucune contractualisation en cours ──────────────────────
   if (activeContracts.length === 0) {
-    return <ContractsEmptyState />;
+    return (
+      <OwnerShell>
+        <ContractsEmptyState />
+      </OwnerShell>
+    );
   }
 
   // ─── État 2 : exactement 1 sélection → LeasePreparationPage inline ───
@@ -123,7 +128,11 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
         .lean()) as MongoProperty | null;
 
       if (!app || !property) {
-        return <ContractsEmptyState />;
+        return (
+          <OwnerShell>
+            <ContractsEmptyState />
+          </OwnerShell>
+        );
       }
 
       let guarantor: MongoGuarantor | null = null;
@@ -142,17 +151,30 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
       const applicationLabel = `Bail pour ${contract.candidateName} · ${contract.propertyAddress}`;
 
       return (
-        <LeasePreparationPage data={data} applicationLabel={applicationLabel} />
+        <OwnerShell>
+          <LeasePreparationPage
+            data={data}
+            applicationLabel={applicationLabel}
+          />
+        </OwnerShell>
       );
     } catch (err) {
       logger.error('contracts page: mapping failed', {
         applicationId: contract.applicationId,
         error: err instanceof Error ? err.message : String(err),
       });
-      return <ContractsEmptyState />;
+      return (
+        <OwnerShell>
+          <ContractsEmptyState />
+        </OwnerShell>
+      );
     }
   }
 
   // ─── État 3 : 2+ sélections → liste de sélecteur ──────────────────────
-  return <ContractsSelector contracts={activeContracts} />;
+  return (
+    <OwnerShell>
+      <ContractsSelector contracts={activeContracts} />
+    </OwnerShell>
+  );
 }

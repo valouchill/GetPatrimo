@@ -213,10 +213,13 @@ export function LeasePreparationPage({
 }: LeasePreparationPageProps): React.ReactElement {
   const isRealData = !!applicationLabel;
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    // V7.7 — Conteneur adapte au layout OwnerShell (sidebar a gauche).
+    // max-w-5xl + mx-auto + w-full pour eviter l'etirement excessif sur grands ecrans.
+    // p-6 lg:p-8 pour un padding genereux respectant la charte banque privee.
+    // space-y-8 espace les <section> internes uniformement.
+    <div className="max-w-5xl mx-auto w-full p-6 lg:p-8 space-y-8">
         {/* ─── Header ───────────────────────────────────────────────── */}
-        <header className="mb-10">
+        <header>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-800">
             <FileSignature className="h-3 w-3" aria-hidden="true" />
             {isRealData
@@ -240,7 +243,7 @@ export function LeasePreparationPage({
         </header>
 
         {/* ─── Zone de téléchargement ───────────────────────────────── */}
-        <section className="mb-12">
+        <section>
           <h2 className="mb-4 font-serif text-xl text-emerald-900">
             Modèle officiel de bail (Loi ALUR)
           </h2>
@@ -373,13 +376,12 @@ export function LeasePreparationPage({
         </section>
 
         {/* ─── Footer informatif ────────────────────────────────────── */}
-        <footer className="mt-12 rounded-xl border border-slate-200 bg-white px-6 py-4 text-xs leading-relaxed text-slate-500">
+        <footer className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-xs leading-relaxed text-slate-500">
           <span className="font-semibold text-emerald-900">À venir.</span>{' '}
           La génération automatique du bail pré-rempli depuis le dossier sélectionné
           arrivera dans une prochaine version. Cette page V1 vous offre un plan
           de travail pour gagner du temps lors de la rédaction manuelle.
         </footer>
-      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import Application from '@/models/Application';
 import Property from '@/models/Property';
 import { logger } from '@/lib/server-logger';
 import { LeasePreparationPage } from '../../components/LeasePreparationPage';
+import { OwnerShell } from '../../components/OwnerShell';
 import {
   buildAddress,
   buildFullName,
@@ -100,10 +101,12 @@ export default async function OwnerLeasePreparationPage({
     const applicationLabel = `Bail pour ${candidateName} · ${propertyName}`;
 
     return (
-      <LeasePreparationPage
-        data={data}
-        applicationLabel={applicationLabel}
-      />
+      <OwnerShell>
+        <LeasePreparationPage
+          data={data}
+          applicationLabel={applicationLabel}
+        />
+      </OwnerShell>
     );
   } catch (err) {
     logger.error('GET /dashboard/owner/lease/[applicationId]', {
