@@ -26,6 +26,7 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useNotifications } from '../NotificationsContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -34,7 +35,8 @@ export type NotificationType = 'ALERT' | 'SUCCESS' | 'INFO';
 export type NotificationIcon = 'ShieldAlert' | 'FileCheck' | 'Star';
 
 export interface AINotification {
-  id: number | string;
+  /** ID opaque string (ex: "alert-69aed9da", "lease-69ae88bd") */
+  id: string;
   type: NotificationType;
   title: string;
   message: string;
@@ -55,7 +57,7 @@ const ICON_MAP: Record<NotificationIcon, LucideIcon> = {
 
 export const MOCK_NOTIFICATIONS: AINotification[] = [
   {
-    id: 1,
+    id: 'mock-1',
     type: 'ALERT',
     title: 'Alerte Sécurité (Forensic)',
     message:
@@ -66,7 +68,7 @@ export const MOCK_NOTIFICATIONS: AINotification[] = [
     color: 'text-red-600 bg-red-50',
   },
   {
-    id: 2,
+    id: 'mock-2',
     type: 'SUCCESS',
     title: 'Bail disponible',
     message:
@@ -77,7 +79,7 @@ export const MOCK_NOTIFICATIONS: AINotification[] = [
     color: 'text-emerald-700 bg-emerald-50',
   },
   {
-    id: 3,
+    id: 'mock-3',
     type: 'INFO',
     title: 'Nouveau candidat PLATINUM',
     message:
@@ -280,12 +282,47 @@ export function AINotificationCenter({
             )}
           </ul>
 
-          {/* Footer informatif */}
-          <footer className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-[11px] text-slate-500">
-            Powered by{' '}
-            <span className="font-semibold text-emerald-900">
-              Auditeur IA neuro-symbolique
-            </span>
+          {/* Footer : mute toggles + lien archive */}
+          <footer className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 space-y-2">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-slate-500">
+              <span>Filtres :</span>
+              {(['ALERT', 'SUCCESS', 'INFO'] as const).map((type) => {
+                const muted = ctx.mutedTypes.has(type);
+                const label =
+                  type === 'ALERT' ? 'Alertes' : type === 'SUCCESS' ? 'Baux' : 'Infos';
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => ctx.toggleMute(type)}
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                      muted
+                        ? 'bg-slate-200 text-slate-400 line-through'
+                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                    }`}
+                    aria-pressed={!muted}
+                    title={muted ? `Activer les ${label}` : `Couper les ${label}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <Link
+                href="/dashboard/owner/notifications"
+                onClick={() => setOpen(false)}
+                className="font-semibold text-emerald-900 hover:underline"
+              >
+                Voir l&rsquo;historique complet →
+              </Link>
+              <span>
+                Auditeur IA{' '}
+                <span className="font-semibold text-emerald-900">
+                  neuro-symbolique
+                </span>
+              </span>
+            </div>
           </footer>
         </div>
       )}

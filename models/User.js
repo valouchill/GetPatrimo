@@ -72,6 +72,12 @@ const UserSchema = new mongoose.Schema({
   signatureUrl: { type: String, default: '' },
   signatureUploadedAt: { type: Date },
 
+  // V7.10 — Centre de notifications IA :
+  // IDs des notifications marquees "lues" cote serveur (cross-device sync).
+  // Plafond logique : 500 entrees max, FIFO eviction cote serveur si depasse.
+  readNotificationIds: [{ type: String }],
+  notificationsReadAt: { type: Date },
+
 }, { timestamps: true });
 
 UserSchema.index({ email: 1 });

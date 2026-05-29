@@ -44,6 +44,8 @@ interface NotificationDTO {
   occurredAt: string;
   icon: NotificationIcon;
   color: string;
+  /** V7.10 — etat lu/non-lu agrege depuis User.readNotificationIds */
+  read: boolean;
 }
 
 async function resolveUserId(session: any): Promise<string | null> {
@@ -90,6 +92,12 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     if (!userId) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
     }
+
+    // V7.10 — read state cote serveur (cross-device)
+    const userDoc = (await User.findById(userId)
+      .select('readNotificationIds')
+      .lean()) as { readNotificationIds?: string[] } | null;
+    const readSet = new Set<string>(userDoc?.readNotificationIds || []);
 
     // 1) Properties de l'owner (non archivées)
     const properties = (await Property.find({
@@ -157,6 +165,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
           occurredAt: ts.toISOString(),
           icon: 'ShieldAlert',
           color: 'text-red-600 bg-red-50',
+          read: false, // override applique apres
         });
       } else if (Array.isArray(audit?.ai?.forensicAudit)) {
         // Sub-cas : au moins un controle forensicAudit en ALERT mais level != ALERTE
@@ -174,6 +183,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
             occurredAt: ts.toISOString(),
             icon: 'ShieldAlert',
             color: 'text-red-600 bg-red-50',
+            read: false,
           });
         }
       }
@@ -193,6 +203,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
           occurredAt: submittedAt.toISOString(),
           icon: 'Star',
           color: 'text-amber-700 bg-amber-50',
+          read: false,
         });
       }
     }
@@ -220,6 +231,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
           occurredAt: ts.toISOString(),
           icon: 'FileCheck',
           color: 'text-emerald-700 bg-emerald-50',
+          read: false,
         });
       }
     }
@@ -228,7 +240,13 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     notifications.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     const capped = notifications.slice(0, MAX_NOTIFICATIONS);
 
-    return NextResponse.json(capped, {
+    // V7.10 — Applique le read state cote serveur (depuis User.readNotificationIds)
+    const withReadState = capped.map((n) => ({
+      ...n,
+      read: readSet.has(n.id),
+    }));
+
+    return NextResponse.json(withReadState, {
       headers: {
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       },
