@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Menu, Plus, RefreshCw, ScrollText, Search, ShieldCheck, TrendingUp, Users, Wallet, X } from 'lucide-react';
@@ -48,7 +48,15 @@ import { SectionHeader } from '@/app/components/ui';
 export default function OwnerDashboardClient() {
   const router = useRouter();
   const { data, loading, userEmail, refresh } = useOwner();
-  const [page, setPage] = useState<NavId>('dashboard');
+  // V7.7 — Lit `?tab=` pour determiner l'onglet initial (declenche par
+  // les Liens du OwnerShell qui navigue /dashboard/owner?tab={id}).
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab') as NavId | null;
+  const [page, setPage] = useState<NavId>(tabParam || 'dashboard');
+  useEffect(() => {
+    if (tabParam && tabParam !== page) setPage(tabParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
   const [selBienId, setSelBienId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);

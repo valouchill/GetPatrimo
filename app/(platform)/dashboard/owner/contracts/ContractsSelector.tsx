@@ -25,10 +25,10 @@ export function ContractsSelector({
   contracts,
 }: ContractsSelectorProps): React.ReactElement {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    // V7.7 — Conteneur OwnerShell-friendly
+    <div className="max-w-5xl mx-auto w-full p-6 lg:p-8 space-y-8">
         {/* ─── Header ─────────────────────────────────────────────── */}
-        <header className="mb-10">
+        <header>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-800">
             <ScrollText className="h-3 w-3" aria-hidden="true" />
             Module de contractualisation
@@ -82,7 +82,6 @@ export function ContractsSelector({
             </Link>
           ))}
         </div>
-      </div>
     </div>
   );
 }
