@@ -33,6 +33,7 @@ import { isEnabled } from '@/lib/features';
 import { NAV, type NavId } from './ui';
 import { MobileBottomNav } from './MobileBottomNav';
 import { useOwner } from '../OwnerContext';
+import { useNotifications } from '../NotificationsContext';
 import { AINotificationCenter } from './AINotificationCenter';
 
 interface OwnerShellProps {
@@ -44,6 +45,8 @@ export function OwnerShell({ children }: OwnerShellProps): React.ReactElement {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data, userEmail, refresh } = useOwner();
+  // V7.9 — Lit hasUnreadAlert pour colorer le badge NAV (rouge si alertes)
+  const { hasUnreadAlert } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   // Compteur de candidatures en attente (pour le badge 'candidatures')
@@ -160,9 +163,22 @@ export function OwnerShell({ children }: OwnerShellProps): React.ReactElement {
                     >
                       <Icon className="h-5 w-5 shrink-0" />
                       <span className="flex-1 text-left">{label}</span>
-                      {badge && pending > 0 && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-600">
-                          {pending}
+                      {/* V7.9 — Badge rouge si alerte non lue (priorite),
+                          sinon amber pour le compteur pending classique */}
+                      {badge && (pending > 0 || hasUnreadAlert) && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            hasUnreadAlert
+                              ? 'bg-red-100 text-red-600'
+                              : 'bg-amber-100 text-amber-600'
+                          }`}
+                          title={
+                            hasUnreadAlert
+                              ? 'Alertes Forensic en attente — consultez le centre de notifications'
+                              : `${pending} candidature${pending > 1 ? 's' : ''} en attente`
+                          }
+                        >
+                          {hasUnreadAlert ? '!' : pending}
                         </span>
                       )}
                     </Link>
