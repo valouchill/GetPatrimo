@@ -25,6 +25,7 @@ import { NouvelActifForm } from './components/NouvelActifForm';
 import { CandidateAuditModal } from './components/CandidateAuditModal';
 import { PropertyDetailModal } from './components/PropertyDetailModal';
 import { PropertyCardMenu } from './components/PropertyCardMenu';
+import { AINotificationCenter } from './components/AINotificationCenter';
 import { PropertyEditModal } from './components/PropertyEditModal';
 import { PropertyDeleteDialog } from './components/PropertyDeleteDialog';
 import { AddManagementModal } from './components/AddManagementModal';
@@ -291,9 +292,13 @@ export default function OwnerDashboardClient() {
               <Link href="/dashboard/owner/profile" className="block truncate text-xs font-semibold text-slate-900 hover:text-amber-600 transition-colors">{userEmail || 'Propriétaire'}</Link>
               <div className="text-[11px] text-slate-400">Espace sécurisé</div>
             </div>
-            <button type="button" onClick={refresh} aria-label="Actualiser" className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
+            {/* V7.8 — Centre de notifications IA (Bell + popover) */}
+            <div className="ml-auto flex items-center gap-1">
+              <AINotificationCenter popoverAnchor="right" size="sm" />
+              <button type="button" onClick={refresh} aria-label="Actualiser" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
