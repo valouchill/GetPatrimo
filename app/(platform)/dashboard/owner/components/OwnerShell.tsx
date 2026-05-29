@@ -33,6 +33,7 @@ import { isEnabled } from '@/lib/features';
 import { NAV, type NavId } from './ui';
 import { MobileBottomNav } from './MobileBottomNav';
 import { useOwner } from '../OwnerContext';
+import { AINotificationCenter } from './AINotificationCenter';
 
 interface OwnerShellProps {
   children: React.ReactNode;
@@ -199,16 +200,20 @@ export function OwnerShell({ children }: OwnerShellProps): React.ReactElement {
               </Link>
               <div className="text-[11px] text-slate-400">Espace sécurisé</div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                void refresh();
-              }}
-              aria-label="Actualiser"
-              className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
+            {/* V7.8 — Centre de notifications IA (Bell + popover) */}
+            <div className="ml-auto flex items-center gap-1">
+              <AINotificationCenter popoverAnchor="right" size="sm" />
+              <button
+                type="button"
+                onClick={() => {
+                  void refresh();
+                }}
+                aria-label="Actualiser"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
