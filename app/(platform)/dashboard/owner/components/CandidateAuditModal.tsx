@@ -46,6 +46,17 @@ export interface CandidateAuditModalProps {
    * laisse la modale ouverte pour retry).
    */
   onSelect: (c: LocalDossier) => void | Promise<void>;
+  /**
+   * V7.12.1 — Si le candidat est deja selectionne et qu'on veut permettre
+   * a l'owner de RETIRER la selection (toggle off).
+   * Si non fournie, le bouton "Ecarter" ferme juste la modale.
+   */
+  onUnselect?: (c: LocalDossier) => void | Promise<void>;
+  /**
+   * V7.12.1 — Si fourni ET candidat selectionne, le bouton primaire
+   * devient "Reprendre la preparation du bail" -> redirige vers /lease.
+   */
+  onResumeLease?: (c: LocalDossier) => void;
   onOpenAudit?: (c: LocalDossier) => void;
 }
 
@@ -259,10 +270,15 @@ export function CandidateAuditModal({
   bien,
   onClose,
   onSelect,
+  onUnselect,
+  onResumeLease,
 }: CandidateAuditModalProps) {
   const titleId = React.useId();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = React.useState(false);
+  // V7.12.1 — Etat dedie a l'action "retirer la selection"
+  const [actionLoading, setActionLoading] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   // V5.6 — État des pièces du dossier (fetch on open)
   const [docs, setDocs] = React.useState<DossierDocument[]>([]);
@@ -315,13 +331,41 @@ export function CandidateAuditModal({
     };
   }, [open, c?.id]);
 
-  if (!c || !bien) return null;
-
-  // Mapping vers la structure attendue par <CandidateAiReport>
+  // V7.12.1 — useMemo defensif (null-safe) avant le early return
   const reportCandidate = React.useMemo(
-    () => dossierToAiReport(c, bien),
+    () => (c && bien ? dossierToAiReport(c, bien) : null),
     [c, bien],
   );
+
+  if (!c || !bien || !reportCandidate) return null;
+
+  // V7.12.1 — Etat metier de la selection
+  const isSelected = c.statut === 'selectionne';
+  const canChangeSelection = !['LEASE_IN_PROGRESS', 'OCCUPIED'].includes(
+    String(bien.status || '').toUpperCase(),
+  );
+  const canRenderUnselect = isSelected && Boolean(onUnselect);
+  const isBusy = confirmLoading || actionLoading;
+
+  const handleUnselect = async (): Promise<void> => {
+    if (!onUnselect) return;
+    if (!canChangeSelection) {
+      setActionError('Le bail est engagé, la sélection ne peut plus être modifiée.');
+      return;
+    }
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await Promise.resolve(onUnselect(c));
+      onClose();
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Impossible de retirer la sélection.',
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -448,28 +492,54 @@ export function CandidateAuditModal({
                 </div>
               </div>
 
-              {/* Ligne 2 : actions principales (toujours visibles) */}
+              {/* Ligne 2 : actions principales (state-aware, toujours visibles).
+                  V7.12.1 — Si candidat selectionne ET onResumeLease fourni,
+                  bascule en "Reprendre la preparation du bail" + bouton
+                  rouge devient "Retirer la selection" si onUnselect dispo. */}
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Button
                   variant="outline"
                   size="md"
-                  onClick={onClose}
+                  onClick={canRenderUnselect ? handleUnselect : onClose}
+                  disabled={isBusy}
+                  loading={canRenderUnselect && actionLoading}
                   iconLeft={<XCircle className="h-4 w-4" />}
                   className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 sm:flex-none"
                 >
-                  Écarter
+                  {canRenderUnselect ? 'Retirer la sélection' : 'Écarter'}
                 </Button>
                 <Button
                   variant="primary"
                   size="md"
-                  onClick={() => setConfirmOpen(true)}
+                  onClick={
+                    isSelected
+                      ? () => onResumeLease?.(c)
+                      : () => setConfirmOpen(true)
+                  }
+                  disabled={isBusy || (isSelected && !onResumeLease)}
                   iconRight={<CheckCircle2 className="h-4 w-4" />}
                   className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber sm:flex-1"
                 >
-                  Retenir ce locataire
+                  {isSelected ? 'Reprendre le bail' : 'Retenir ce locataire'}
                 </Button>
               </div>
             </header>
+
+            {/* V7.12.1 — Banners metier (erreur + info "deja selectionne") */}
+            {actionError && (
+              <div
+                role="alert"
+                className="shrink-0 border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 md:px-6"
+              >
+                {actionError}
+              </div>
+            )}
+            {isSelected && !actionError && (
+              <div className="shrink-0 border-b border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 md:px-6">
+                Locataire retenu pour ce bien. Vous pouvez reprendre le bail
+                ou retirer la sélection tant que le bail n&apos;est pas engagé.
+              </div>
+            )}
 
             {/* ─── TABS (Synthese / Forensic / Coffre-fort) ──────────────── */}
             <div className="flex flex-1 flex-col overflow-hidden">
