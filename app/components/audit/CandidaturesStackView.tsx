@@ -87,6 +87,13 @@ export interface CandidaturesStackViewProps {
   /** Activer le click sur la carte → drawer (par défaut true) */
   enableDrawer?: boolean;
   /**
+   * V8.2 (Mission 3) — Si fourni, le click sur une carte appelle ce callback
+   * (pour ouvrir la MODALE CENTRALE <CandidateAuditModal> à onglets) au lieu
+   * du Sheet latéral interne. Garantit une lecture de dossier identique
+   * partout. Si absent, fallback sur le Sheet interne (rétrocompat / démo).
+   */
+  onOpenDetail?: (candidateId: string) => void;
+  /**
    * Clé de persistance localStorage (V5.4). Si fournie, l'historique des
    * décisions est sauvegardé localement et les candidats déjà décidés
    * (acceptés OU refusés) sont filtrés du stack au chargement.
@@ -719,6 +726,7 @@ export function CandidaturesStackView({
   enableSwipe = true,
   enableHistory = true,
   enableDrawer = true,
+  onOpenDetail,
   persistKey,
   className = '',
 }: CandidaturesStackViewProps): React.ReactElement {
@@ -906,7 +914,11 @@ export function CandidaturesStackView({
                   candidate={current}
                   onAccept={() => handleDecision(current.id, 'accepted')}
                   onReject={() => handleDecision(current.id, 'rejected')}
-                  onClickDetails={() => setDrawerCandidateId(current.id)}
+                  onClickDetails={() =>
+                    onOpenDetail
+                      ? onOpenDetail(current.id)
+                      : setDrawerCandidateId(current.id)
+                  }
                   enableSwipe={enableSwipe}
                   enableDrawer={enableDrawer}
                 />

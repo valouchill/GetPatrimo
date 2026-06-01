@@ -257,6 +257,11 @@ export interface OwnerCandidatesStackProps {
   onAccept: (c: LocalDossier) => void;
   /** Callback quand l'utilisateur refuse (par défaut : skip silencieux local) */
   onReject?: (c: LocalDossier) => void;
+  /**
+   * V8.2 (Mission 3) — Si fourni, ouvre la modale centrale d'audit
+   * (CandidateAuditModal) au clic sur une carte au lieu du Sheet latéral.
+   */
+  onOpenDetail?: (candidateId: string) => void;
   /** Affiche le header avec bouton fermer (mode overlay) */
   showCloseButton?: boolean;
   onClose?: () => void;
@@ -271,6 +276,7 @@ export function OwnerCandidatesStack({
   candidats,
   onAccept,
   onReject,
+  onOpenDetail,
   showCloseButton = false,
   onClose,
   className = '',
@@ -412,6 +418,7 @@ export function OwnerCandidatesStack({
           candidates={stackCandidates}
           onAccept={handleStackAccept}
           onReject={handleStackReject}
+          onOpenDetail={onOpenDetail}
           persistKey={`patrimo:stack:${activeBien.id}`}
         />
       ) : (
