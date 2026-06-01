@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { getMetalLevel, METAL_LABELS, METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const PassportShare = require('@/models/PassportShare');
@@ -66,8 +67,12 @@ export async function sharePassportByEmail(
     
     // Préparer les données pour l'email
     const tenantName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Le candidat';
-    const grade = patrimometer.grade || 'EN COURS';
-    const gradeLabel = getGradeLabel(grade);
+    // V8.3 (audit L2) — niveau métal dérivé du score (single source of truth),
+    // au lieu du grade legacy patrimometer.grade (F/E/D/C/B/A/SOUVERAIN).
+    const score = Number(patrimometer.score || 0);
+    const level = getMetalLevel(score);
+    const grade = METAL_LABELS[level];
+    const gradeLabel = METAL_DESCRIPTIONS[level];
     
     const identityVerified = didit.status === 'VERIFIED';
     const incomeVerified = appData.financialSummary?.certifiedIncome || false;
@@ -113,19 +118,6 @@ export async function sharePassportByEmail(
   }
 }
 
-function getGradeLabel(grade: string): string {
-  const labels: Record<string, string> = {
-    'SOUVERAIN': 'SOUVERAIN',
-    'A': 'EXCELLENCE',
-    'B': 'CONFIANCE',
-    'C': 'SOLIDE',
-    'D': 'STANDARD',
-    'E': 'À COMPLÉTER',
-    'F': 'EN COURS',
-  };
-  return labels[grade] || grade;
-}
-
 interface EmailData {
   recipientEmail: string;
   recipientName?: string;
@@ -164,17 +156,14 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
       ? `Bonjour ${data.recipientName},`
       : 'Bonjour,';
     
-    // Couleurs selon le grade
+    // V8.3 (audit L2) — couleurs par niveau métal (PLATINUM/GOLD/SILVER/ALERTE)
     const gradeColors: Record<string, { bg: string; text: string }> = {
-      'SOUVERAIN': { bg: '#D4AF37', text: '#1A1A2E' },
-      'A': { bg: '#059669', text: '#FFFFFF' },
-      'B': { bg: '#3B82F6', text: '#FFFFFF' },
-      'C': { bg: '#8B5CF6', text: '#FFFFFF' },
-      'D': { bg: '#F59E0B', text: '#1A1A2E' },
-      'E': { bg: '#F97316', text: '#FFFFFF' },
-      'F': { bg: '#9CA3AF', text: '#1A1A2E' },
+      'PLATINUM': { bg: '#0F172A', text: '#F59E0B' },
+      'GOLD': { bg: '#D4AF37', text: '#1A1A2E' },
+      'SILVER': { bg: '#CBD5E1', text: '#1A1A2E' },
+      'ALERTE': { bg: '#DC2626', text: '#FFFFFF' },
     };
-    const gradeColor = gradeColors[data.grade] || gradeColors['F'];
+    const gradeColor = gradeColors[data.grade] || gradeColors['SILVER'];
     
     const emailHtml = `
 <!DOCTYPE html>
@@ -208,7 +197,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
               <table cellpadding="0" cellspacing="0" style="margin: -25px auto 0;">
                 <tr>
                   <td style="background-color: ${gradeColor.bg}; color: ${gradeColor.text}; padding: 12px 32px; border-radius: 50px; font-weight: 800; font-size: 14px; letter-spacing: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                    🛡️ GRADE ${data.grade} — ${data.gradeLabel}
+                    🛡️ ${data.grade} — ${data.gradeLabel}
                   </td>
                 </tr>
               </table>
@@ -363,7 +352,7 @@ La technologie au service de votre patrimoine
     await transporter.sendMail({
       from: `"PatrimoTrust™" <${process.env.BREVO_FROM_EMAIL || 'noreply@doc2loc.com'}>`,
       to: data.recipientEmail,
-      subject: `🛡️ Dossier de candidature certifié : ${data.tenantName} — Grade ${data.grade}`,
+      subject: `🛡️ Dossier de candidature certifié : ${data.tenantName} — Niveau ${data.grade}`,
       text: emailText,
       html: emailHtml,
     });
