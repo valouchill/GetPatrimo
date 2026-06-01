@@ -28,6 +28,11 @@ export interface ReanalyzeButtonProps {
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   onSuccess?: (result: ReanalyzeResult) => void;
+  /**
+   * V7.13 — Ré-analyse déjà effectuée pour ce dossier (limite : 1 fois).
+   * Si true, le bouton est rendu désactivé avec le libellé "Déjà ré-analysé".
+   */
+  alreadyReanalyzed?: boolean;
   className?: string;
 }
 
@@ -48,12 +53,17 @@ export function ReanalyzeButton({
   size = "sm",
   fullWidth = false,
   onSuccess,
+  alreadyReanalyzed = false,
   className = "",
 }: ReanalyzeButtonProps) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [state, setState] = React.useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<ReanalyzeResult | null>(null);
+  // V7.13 — La ré-analyse est limitée à 1 fois. `done` devient true soit
+  // depuis la prop serveur (alreadyReanalyzed), soit après un succès local.
+  const [doneLocally, setDoneLocally] = React.useState(false);
+  const isDone = alreadyReanalyzed || doneLocally;
 
   const docsLabel = documentsCount > 0
     ? `${documentsCount} document${documentsCount > 1 ? "s" : ""}`
@@ -69,10 +79,18 @@ export function ReanalyzeButton({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // V7.13 — Déjà ré-analysé côté serveur : on bascule en état "done"
+        // au lieu d'afficher une erreur bloquante.
+        if (res.status === 409 && data?.code === "ALREADY_REANALYZED") {
+          setDoneLocally(true);
+          setConfirmOpen(false);
+          return;
+        }
         throw new Error(data?.error || `Erreur ${res.status}`);
       }
       setResult(data as ReanalyzeResult);
       setState("success");
+      setDoneLocally(true); // limite atteinte après ce succès
       onSuccess?.(data as ReanalyzeResult);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur inconnue";
@@ -99,9 +117,10 @@ export function ReanalyzeButton({
         onClick={() => setConfirmOpen(true)}
         iconLeft={<RefreshCw className="h-3.5 w-3.5" />}
         className={className}
-        disabled={state === "loading"}
+        disabled={state === "loading" || isDone}
+        title={isDone ? "La ré-analyse est limitée à une fois par dossier." : undefined}
       >
-        Ré-analyser
+        {isDone ? "Déjà ré-analysé" : "Ré-analyser"}
       </Button>
 
       <Modal
@@ -137,14 +156,14 @@ export function ReanalyzeButton({
                 <dd className="font-semibold text-slate-900">30 à 60 secondes</dd>
               </div>
               <div className="flex justify-between px-4 py-2.5 text-sm">
-                <dt className="text-slate-500">Coût estimé</dt>
-                <dd className="font-semibold text-slate-900">~ 0,05 €</dd>
-              </div>
-              <div className="flex justify-between px-4 py-2.5 text-sm">
                 <dt className="text-slate-500">Documents concernés</dt>
                 <dd className="font-semibold text-slate-900">{docsLabel}</dd>
               </div>
             </dl>
+            {/* V7.13 — Rappel : la ré-analyse n'est possible qu'une seule fois */}
+            <p className="text-xs text-slate-400">
+              Cette action n&apos;est disponible qu&apos;une seule fois par dossier.
+            </p>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="md" onClick={handleClose}>
                 Annuler

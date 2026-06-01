@@ -187,6 +187,13 @@ const ApplicationSchema = new mongoose.Schema({
   passportShareCount: { type: Number, default: 0 },
   passportLastViewedAt: { type: Date },
 
+  // V7.13 — Ré-analyse IA des documents (limitée à 1 fois par dossier).
+  // Note : avant V7.13, lastReanalyzedAt etait ecrit par la route reanalyze
+  // mais SILENCIEUSEMENT droppe (schema strict + champ absent) → cooldown
+  // inoperant. On declare maintenant les 2 champs proprement.
+  reanalyzeCount: { type: Number, default: 0 },
+  lastReanalyzedAt: { type: Date },
+
 }, { timestamps: true });
 
 // Index pour recherche rapide

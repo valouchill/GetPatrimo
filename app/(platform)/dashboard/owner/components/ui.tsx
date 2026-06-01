@@ -190,6 +190,8 @@ export type LocalDossier = {
   monthlyIncomeMethod?: 'mean' | 'median' | 'none' | null;
   varianceRatio?: number | null;
   varianceHigh?: boolean;
+  // V7.13 — Ré-analyse IA déjà effectuée (limite 1 fois)
+  reanalyzed?: boolean;
 };
 
 export function toBien(e: PropertyWithCandidatures): LocalBien {
@@ -318,6 +320,8 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     monthlyIncomeMethod: ins?.financial?.monthlyIncomeMethod ?? null,
     varianceRatio: ins?.financial?.varianceRatio ?? null,
     varianceHigh: ins?.financial?.varianceHigh,
+    // V7.13 — Ré-analyse déjà effectuée (limite 1 fois)
+    reanalyzed: c.reanalyzed === true,
   };
 }
 

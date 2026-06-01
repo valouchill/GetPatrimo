@@ -82,7 +82,7 @@ export async function GET() {
       property: { $in: propertyIds },
       status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
     })
-      .select('property applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount pipelineStage ownerDecision createdAt updatedAt')
+      .select('property applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount pipelineStage ownerDecision createdAt updatedAt reanalyzeCount')
       .lean();
 
     // Indexer les applications par property ID
@@ -160,6 +160,7 @@ export async function GET() {
               status: app.status,
               submittedAt: app.submittedAt,
               pipelineStage: app.pipelineStage || 'received',
+              reanalyzed: Number(app.reanalyzeCount || 0) > 0,
             };
           }
 
@@ -181,6 +182,8 @@ export async function GET() {
               : 0,
             status: app.status,
             submittedAt: app.submittedAt,
+            // V7.13 — Limite ré-analyse à 1 fois
+            reanalyzed: Number(app.reanalyzeCount || 0) > 0,
           };
         });
 
