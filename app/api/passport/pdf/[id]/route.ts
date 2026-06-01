@@ -7,6 +7,7 @@ import Application from '@/models/Application';
 import '@/models/Property';
 import QRCode from 'qrcode';
 import { generatePassportPdf } from '@/lib/passport-pdf-service';
+import { userCanAccessApplicationPassport } from '@/lib/passport-access';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildPassportViewModel, ensurePassportSlug } = require('@/src/utils/passportViewModel');
 
@@ -31,11 +32,18 @@ export async function GET(
     const app = await Application.findById(id)
       .populate('property', 'name address rentAmount')
       .lean();
-    
+
     if (!app) {
       return NextResponse.json({ error: 'Candidature introuvable' }, { status: 404 });
     }
-    
+
+    // V8.3 — Anti-IDOR : seul le locataire propriétaire du dossier OU le
+    // propriétaire du bien lié peut télécharger ce passeport (PII financières).
+    const authorized = await userCanAccessApplicationPassport(app as any, session as any);
+    if (!authorized) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     const host = request.headers.get('host') || '';
     const proto = request.headers.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL ||
