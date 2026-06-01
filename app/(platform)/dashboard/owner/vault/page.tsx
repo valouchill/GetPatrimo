@@ -7,6 +7,7 @@ import {
   AlertCircle, CheckCircle2,
 } from 'lucide-react';
 import { useOwner } from '../OwnerContext';
+import { OwnerShell } from '../components/OwnerShell';
 
 interface VaultDocument {
   key: string;
@@ -132,15 +133,19 @@ export default function VaultPage() {
   const { activeEntry, loading } = useOwner();
 
   if (loading) {
+    // V8.3 (audit C2) — Sidebar via OwnerShell (n'était plus orpheline)
     return (
-      <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <OwnerShell>
+        <div className="flex items-center justify-center py-32">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </OwnerShell>
     );
   }
 
   return (
-    <div>
+    <OwnerShell>
+    <div className="mx-auto w-full max-w-5xl p-6 lg:p-8">
       <div className="mb-8">
         <h1
           className="font-serif text-3xl font-bold text-slate-900 mb-2"
@@ -170,5 +175,6 @@ export default function VaultPage() {
         </p>
       </div>
     </div>
+    </OwnerShell>
   );
 }
