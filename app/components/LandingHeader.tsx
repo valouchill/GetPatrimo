@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Menu, X } from 'lucide-react';
+import { ShieldCheck, Menu, X, Key } from 'lucide-react';
 
 const NAV_LINKS = [
   { label: 'Fonctionnalités', href: '#features' },
@@ -40,7 +40,14 @@ export default function LandingHeader() {
         </nav>
 
         {/* CTA (desktop) */}
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/locataire"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:text-emerald-900"
+          >
+            <Key className="h-4 w-4 text-amber-500" aria-hidden="true" />
+            Espace locataire
+          </Link>
           <Link
             href="/auth/login"
             className="text-sm font-medium text-slate-600 transition-colors hover:text-emerald-900"
@@ -83,6 +90,14 @@ export default function LandingHeader() {
             ))}
           </nav>
           <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4">
+            <Link
+              href="/locataire"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:text-emerald-900"
+            >
+              <Key className="h-4 w-4 text-amber-500" aria-hidden="true" />
+              Espace locataire
+            </Link>
             <Link
               href="/auth/login"
               onClick={() => setOpen(false)}
