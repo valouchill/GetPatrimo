@@ -477,6 +477,9 @@ export default function OwnerDashboardClient() {
                   biens={biens}
                   candidats={allDossiers}
                   onAccept={(d) => setSelBienId(d.bien_id)}
+                  /* V8.2 (Mission 3) — clic carte → modale centrale à onglets
+                     (CandidateAuditModal via candidateDrawerId), pas le Sheet */
+                  onOpenDetail={(id) => setCandidateDrawerId(id)}
                 />
               </div>
             )}
