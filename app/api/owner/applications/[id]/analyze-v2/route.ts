@@ -30,6 +30,7 @@ import {
   consumeAnalysisQuota,
   type QuotaProperty,
 } from '@/lib/billing/quota-service';
+import { isEnabled } from '@/lib/features';
 
 const COOLDOWN_MS = 30_000;
 
@@ -252,9 +253,11 @@ export async function POST(
     // ─── V8.0 — Garde-fou Pay-per-Listing ──────────────────────────────
     // Vérifie l'offre du bien AVANT de lancer l'analyse (économise un
     // appel OpenAI si FREE / non autorisé).
+    // V8.0 — enforcement piloté par le flag BILLING_ENFORCED (soft par défaut)
     const quotaCheck = checkAnalysisAllowed(
       property as unknown as QuotaProperty,
       id,
+      { enforced: isEnabled('BILLING_ENFORCED') },
     );
     if (!quotaCheck.allowed) {
       // FREE → 402 Payment Required : il faut souscrire une offre.

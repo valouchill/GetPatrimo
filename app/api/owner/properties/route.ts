@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { validateRequest } from '@/lib/validate-request';
+import { effectiveTier, effectiveQuota } from '@/lib/billing/tiers';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
@@ -216,9 +217,9 @@ export async function GET() {
             archived: prop.archived || false,
             managed: isManaged,
             isRented: prop.status === 'OCCUPIED',
-            // V8.0 — Pay-per-Listing : offre + quota du bien
-            tier: prop.tier || 'FREE',
-            dossiersQuota: Number(prop.dossiersQuota || 0),
+            // V8.0 — Pay-per-Listing : offre EFFECTIVE (grandfather managed)
+            tier: effectiveTier(prop),
+            dossiersQuota: effectiveQuota(prop),
             dossiersAnalyzedCount: Number(prop.dossiersAnalyzedCount || 0),
             propertyType: prop.propertyType || 'APPARTEMENT',
             floor: prop.floor ?? null,

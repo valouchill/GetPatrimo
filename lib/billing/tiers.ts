@@ -139,3 +139,31 @@ export function formatTierPrice(priceEur: number): string {
   if (priceEur === 0) return 'Gratuit';
   return `${priceEur.toFixed(2).replace('.', ',')} €`;
 }
+
+/** Objet porteur d'une offre (Property allégée). */
+export interface TierBearing {
+  tier?: string;
+  /** Legacy : bien déjà "premium" via l'ancien flux Stripe (managed). */
+  managed?: boolean;
+  dossiersQuota?: number;
+}
+
+/**
+ * Offre EFFECTIVE d'un bien (grandfathering).
+ * Les biens déjà `managed` (clients payants de l'ancien système, sans champ
+ * `tier`) sont considérés PREMIUM pour ne pas casser leur accès le temps de
+ * migrer vers les vraies offres Stripe.
+ */
+export function effectiveTier(p: TierBearing): PropertyTier {
+  const t = normalizeTier(p.tier);
+  if (t !== 'FREE') return t;
+  if (p.managed === true) return 'PREMIUM'; // grandfather legacy payant
+  return 'FREE';
+}
+
+/** Quota effectif : valeur DB si > 0, sinon dérivé de l'offre effective. */
+export function effectiveQuota(p: TierBearing): number {
+  const q = Number(p.dossiersQuota || 0);
+  if (q > 0) return q;
+  return quotaForTier(effectiveTier(p));
+}
