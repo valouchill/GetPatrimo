@@ -27,12 +27,19 @@ function TunnelSelection({
   onClose,
   onConfirmed,
   onGoToContract,
+  onOpenDetail,
 }: {
   bien: LocalBien;
   candidats: LocalDossier[];
   onClose: () => void;
-  onConfirmed: () => void;
+  /** Peut être async (ex: refresh()) — awaité avant navigation. */
+  onConfirmed: () => void | Promise<void>;
   onGoToContract: (propertyId: string, applicationId: string) => void;
+  /**
+   * V8.3 (audit M1) — clic carte → modale centrale d'audit (onglets) au lieu
+   * du Sheet latéral legacy. Garantit une lecture identique partout.
+   */
+  onOpenDetail?: (candidateId: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +58,13 @@ function TunnelSelection({
         setError(j.error || 'Erreur lors de la sélection.');
         return;
       }
-      onConfirmed();
+      // V8.3 (audit M3) — on AWAIT le refresh parent avant de naviguer pour
+      // que la liste soit à jour (évite un état périmé sans F5).
+      await Promise.resolve(onConfirmed());
       onClose();
       onGoToContract(bien.id, c.id);
     } catch {
-      setError('Erreur réseau lors de la sélection.');
+      setError('Erreur réseau lors de la sélection. Vous pouvez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -107,6 +116,7 @@ function TunnelSelection({
           bien={bien}
           candidats={candidats}
           onAccept={handleAccept}
+          onOpenDetail={onOpenDetail}
         />
       </div>
     </div>

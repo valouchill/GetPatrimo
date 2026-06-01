@@ -692,6 +692,8 @@ export default function OwnerDashboardClient() {
               onClose={() => setSelBienId(null)}
               onConfirmed={() => refresh()}
               onGoToContract={goToContract}
+              /* V8.3 (audit M1) — clic carte dans le tunnel → modale centrale */
+              onOpenDetail={(id) => setCandidateDrawerId(id)}
             />
           </motion.div>
         )}
