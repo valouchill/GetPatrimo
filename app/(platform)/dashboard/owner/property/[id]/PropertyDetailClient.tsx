@@ -20,6 +20,7 @@ import {
   ScrollText,
   Shield,
   User,
+  XCircle,
 } from 'lucide-react';
 import { PropertyEditModal } from '../../components/PropertyEditModal';
 import { PropertyQuotaGauge } from '../../components/PropertyQuotaGauge';
@@ -359,6 +360,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const [selectionBusyId, setSelectionBusyId] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [pendingSelectionId, setPendingSelectionId] = useState<string | null>(null);
+  const [unselectBusy, setUnselectBusy] = useState(false);
   const [unlockPolling, setUnlockPolling] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -434,6 +436,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const otherCandidates = sorted.slice(3);
   const showManagement = property?.flow?.stage === 'management' || property?.isRented;
   const selectionState = property?.flow?.selectionState;
+  const canChangeSelection = !['LEASE_IN_PROGRESS', 'OCCUPIED'].includes(String(property?.status || '').toUpperCase());
 
   const requestedTab = searchParams.get('tab');
   const currentTab = useMemo((): Tab => {
@@ -495,11 +498,38 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       // fraîches AVANT le redirect (utile si l'utilisateur revient via la nav).
       await refreshOwnerData();
       router.refresh();
-      router.push(`/dashboard/owner/lease/${selectedId}`);
+      router.push(data.leaseHref || `/dashboard/owner/lease/${selectedId}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur.');
     } finally {
       setSelectionBusyId(null);
+    }
+  };
+
+  const handleUnselectCandidate = async () => {
+    if (!ownerSelected) return;
+    if (!canChangeSelection) {
+      setSelectionError('Le bail est engagé, la sélection ne peut plus être modifiée.');
+      return;
+    }
+
+    setUnselectBusy(true);
+    setSelectionError(null);
+    try {
+      const res = await fetch(`/api/owner/properties/${propertyId}/selection`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Impossible de retirer la sélection.');
+      setPendingSelectionId(null);
+      await loadData();
+      await refreshOwnerData();
+      router.refresh();
+      goToTab('compare');
+    } catch (err) {
+      setSelectionError(err instanceof Error ? err.message : 'Erreur lors du retrait de la sélection.');
+    } finally {
+      setUnselectBusy(false);
     }
   };
 
@@ -803,7 +833,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                           <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[11px] font-semibold" />
                         )}
                         {candidate.isOwnerSelected && (
-                          <StatusBadge tone="success" label="Retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
+                          <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
                         )}
                         {grade && !candidate.isSealed && gradeBg && (
                           <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white ${gradeBg}`}>
@@ -866,11 +896,13 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
               selectedCandidateId={ownerSelected?.id || null}
               pendingCandidateId={pendingSelectionId}
               selectionBusyId={selectionBusyId}
-              canChangeSelection={!['LEASE_IN_PROGRESS', 'OCCUPIED'].includes(String(property.status || '').toUpperCase())}
+              canChangeSelection={canChangeSelection}
               onRequestChoose={handleRequestChoose}
               onConfirmChoose={handleConfirmChoose}
               onCancelChoose={() => setPendingSelectionId(null)}
+              onUnselectCandidate={handleUnselectCandidate}
               onUnlock={openUnlockModal}
+              unselectBusy={unselectBusy}
             />
           )}
         </motion.div>
@@ -929,7 +961,17 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                     onClick={launchContractDesk}
                     className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
                   >
-                    <ScrollText className="h-4 w-4" /> Préparer le bail
+                    <ScrollText className="h-4 w-4" /> Reprendre la préparation du bail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUnselectCandidate}
+                    disabled={unselectBusy || !canChangeSelection}
+                    title={!canChangeSelection ? 'Le bail est engagé, la sélection ne peut plus être modifiée.' : undefined}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {unselectBusy ? 'Retrait...' : 'Retirer la sélection'}
                   </button>
                   <button
                     type="button"

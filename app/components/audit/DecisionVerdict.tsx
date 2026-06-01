@@ -72,7 +72,7 @@ export function DecisionVerdict({
   headline,
   summary,
   reasonCodes,
-  primaryActionLabel = "Choisir ce candidat",
+  primaryActionLabel = "Retenir ce locataire",
   onPrimary,
   secondaryActionLabel,
   onSecondary,

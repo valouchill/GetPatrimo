@@ -62,10 +62,10 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
 
   try {
     const properties = (await Property.find({
-      owner: userId,
+      $or: [{ user: userId }, { owner: userId }],
       acceptedTenantId: { $ne: null },
     })
-      .select('_id name address addressLine zipCode city acceptedTenantId')
+      .select('_id user owner name address addressLine zipCode city acceptedTenantId')
       .lean()) as MongoProperty[];
 
     if (properties.length > 0) {
@@ -123,7 +123,7 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
         .lean()) as MongoApplication | null;
       const property = (await Property.findById(contract.propertyId)
         .select(
-          'owner name address addressLine zipCode city rentAmount chargesAmount surfaceM2 propertyType',
+          'user owner name address addressLine zipCode city rentAmount chargesAmount surfaceM2 propertyType',
         )
         .lean()) as MongoProperty | null;
 

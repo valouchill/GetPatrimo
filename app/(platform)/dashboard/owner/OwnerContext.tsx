@@ -252,6 +252,8 @@ export interface OwnerPrimaryCandidate {
 
 export interface Property {
   id: string;
+  acceptedTenantId?: string | null;
+  selectedCandidateId?: string | null;
   title: string;
   address: string;
   rent?: number;

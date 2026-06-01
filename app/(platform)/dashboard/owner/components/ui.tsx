@@ -127,6 +127,7 @@ export type LocalBien = {
   id: string; label: string; adresse: string; loyer: number; surface: number;
   applyToken?: string; isRented?: boolean; flowStage?: string; flowStageLabel?: string;
   flowProgress?: number; flowSummary?: string; totalCandidates?: number;
+  acceptedTenantId?: string | null; selectedCandidateId?: string | null;
   tenantLabel?: string; leaseStatusLabel?: string; nextMilestone?: string;
   nextActionLabel?: string; nextActionHref?: string;
   // Enriched fields
@@ -204,6 +205,8 @@ export function toBien(e: PropertyWithCandidatures): LocalBien {
   const ms = flow?.managementSummary;
   return {
     id: p.id,
+    acceptedTenantId: p.acceptedTenantId ?? null,
+    selectedCandidateId: p.selectedCandidateId ?? p.acceptedTenantId ?? flow?.selectedCandidateId ?? null,
     label: p.title || p.address?.split(',')[0]?.trim() || 'Bien',
     adresse: p.address || '',
     loyer: p.rent || 0,

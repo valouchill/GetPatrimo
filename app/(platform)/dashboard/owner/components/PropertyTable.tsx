@@ -6,7 +6,7 @@ import { PropertyCardMenu } from './PropertyCardMenu';
 
 const STATUS_LABEL: Record<string, string> = {
   AVAILABLE: 'Disponible',
-  CANDIDATE_SELECTION: 'En recherche',
+  CANDIDATE_SELECTION: 'Sélection en cours',
   LEASE_IN_PROGRESS: 'Bail en cours',
   OCCUPIED: 'Occupé',
   VACANT: 'Vacant',
@@ -60,7 +60,15 @@ export function PropertyTable({
               </tr>
             </thead>
             <tbody>
-              {biens.map((b) => (
+              {biens.map((b) => {
+                const hasSelectedTenant = Boolean(b.tenantLabel || b.selectedCandidateId || b.acceptedTenantId) || b.flowStage === 'contract';
+                const statusLabel = hasSelectedTenant
+                  ? 'Locataire retenu'
+                  : STATUS_LABEL[b.status || ''] || b.flowStageLabel || '—';
+                const statusClass = hasSelectedTenant
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : STATUS_COLOR[b.status || ''] || 'bg-slate-50 text-slate-600 border-slate-200';
+                return (
                 <tr
                   key={b.id}
                   className="border-t border-slate-100 hover:bg-slate-50/50 transition-colors cursor-pointer"
@@ -91,9 +99,9 @@ export function PropertyTable({
                     <span className="text-xs text-slate-500">/mois</span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[b.status || ''] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass}`}>
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {STATUS_LABEL[b.status || ''] || b.flowStageLabel || '—'}
+                      {statusLabel}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-sm text-slate-600">
@@ -120,7 +128,7 @@ export function PropertyTable({
                     ) : null}
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
@@ -128,7 +136,15 @@ export function PropertyTable({
 
       {/* ── Mobile cards ──────────────────────────────────────── */}
       <div className="space-y-3 md:hidden">
-        {biens.map((b) => (
+        {biens.map((b) => {
+          const hasSelectedTenant = Boolean(b.tenantLabel || b.selectedCandidateId || b.acceptedTenantId) || b.flowStage === 'contract';
+          const statusLabel = hasSelectedTenant
+            ? 'Locataire retenu'
+            : STATUS_LABEL[b.status || ''] || b.flowStageLabel || '—';
+          const statusClass = hasSelectedTenant
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            : STATUS_COLOR[b.status || ''] || 'bg-slate-50 text-slate-600 border-slate-200';
+          return (
           <div
             key={b.id}
             className="rounded-2xl border border-slate-200 bg-white p-4 active:scale-[0.98] transition-transform cursor-pointer"
@@ -176,9 +192,9 @@ export function PropertyTable({
             </div>
 
             <div className="mt-2.5 flex items-center justify-between gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[b.status || ''] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass}`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                {STATUS_LABEL[b.status || ''] || b.flowStageLabel || '—'}
+                {statusLabel}
               </span>
               {b.tenantLabel && (
                 <span className="truncate text-xs text-slate-500">{b.tenantLabel}</span>
@@ -191,7 +207,7 @@ export function PropertyTable({
               )}
             </div>
           </div>
-        ))}
+        );})}
       </div>
     </>
   );

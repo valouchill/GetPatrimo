@@ -32,8 +32,11 @@ function TunnelSelection({
   bien: LocalBien;
   candidats: LocalDossier[];
   onClose: () => void;
-  /** Peut être async (ex: refresh()) — awaité avant navigation. */
-  onConfirmed: () => void | Promise<void>;
+  /**
+   * Reçoit le candidat retenu. Peut être async (ex: refresh()) — awaité
+   * avant navigation pour que la liste parente soit à jour (audit M3).
+   */
+  onConfirmed: (candidate: LocalDossier) => void | Promise<void>;
   onGoToContract: (propertyId: string, applicationId: string) => void;
   /**
    * V8.3 (audit M1) — clic carte → modale centrale d'audit (onglets) au lieu
@@ -59,8 +62,9 @@ function TunnelSelection({
         return;
       }
       // V8.3 (audit M3) — on AWAIT le refresh parent avant de naviguer pour
-      // que la liste soit à jour (évite un état périmé sans F5).
-      await Promise.resolve(onConfirmed());
+      // que la liste soit à jour (évite un état périmé sans F5). Le candidat
+      // retenu est transmis au parent (syncSelectionMemory).
+      await Promise.resolve(onConfirmed(c));
       onClose();
       onGoToContract(bien.id, c.id);
     } catch {

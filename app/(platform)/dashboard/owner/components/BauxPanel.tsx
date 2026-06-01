@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock, FileSignature, FileText, PenLine, Plus, RefreshCw, UserX, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, Clock, FileSignature, FileText, PenLine, Plus, RefreshCw, UserCheck, UserX, X } from 'lucide-react';
 import { Btn, Tag, Avatar, StatCard } from './ui';
 import type { TagType } from './ui';
 
@@ -68,6 +68,7 @@ interface PropertyOption {
   name?: string;
   address?: string;
   selectedApplicationId?: string;
+  selectedCandidateName?: string;
 }
 
 export function BauxPanel({
@@ -126,6 +127,8 @@ export function BauxPanel({
   const totalRent = leases
     .filter((l) => ['ACTIVE', 'EXPIRING'].includes(deriveStatus(l)))
     .reduce((s, l) => s + l.rentAmount, 0);
+  const contractsToPrepare = properties.filter((p) => Boolean(p.selectedApplicationId));
+  const pickerProperties = contractsToPrepare.length > 0 ? contractsToPrepare : properties;
 
   if (loading) {
     return (
@@ -146,23 +149,71 @@ export function BauxPanel({
       {/* Action button */}
       <div className="mb-5 flex justify-end">
         <Btn variant="amber" onClick={() => {
-          if (properties.length === 1) {
-            onNavigate('contract', properties[0]._id, properties[0].selectedApplicationId);
+          if (pickerProperties.length === 1) {
+            onNavigate('contract', pickerProperties[0]._id, pickerProperties[0].selectedApplicationId);
           } else {
             setShowPropertyPicker(true);
           }
         }}>
-          <Plus className="h-4 w-4" /> Nouveau bail
+          <Plus className="h-4 w-4" /> {contractsToPrepare.length > 0 ? 'Reprendre un bail' : 'Nouveau bail'}
         </Btn>
       </div>
+
+      {contractsToPrepare.length > 0 && (
+        <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+                Contrats à préparer
+              </p>
+              <h2 className="mt-1 font-serif text-xl font-semibold text-emerald-950">
+                Locataires retenus
+              </h2>
+              <p className="mt-1 text-sm text-emerald-900/75">
+                Ces dossiers restent accessibles ici tant que le bail n&apos;est pas finalisé.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {contractsToPrepare.map((property) => (
+              <button
+                key={`${property._id}-${property.selectedApplicationId}`}
+                type="button"
+                onClick={() => onNavigate('contract', property._id, property.selectedApplicationId)}
+                className="group flex min-w-0 items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-900 text-amber-300">
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-slate-950">
+                    {property.selectedCandidateName || 'Locataire retenu'}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {property.name || property.address || 'Bien sélectionné'}
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700">
+                  Reprendre
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {leases.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
             <FileText className="h-6 w-6 text-slate-400" />
           </div>
-          <p className="mb-2 text-slate-500">Aucun bail enregistré.</p>
-          <p className="text-xs text-slate-400">Sélectionnez un locataire depuis vos candidatures pour créer un bail.</p>
+          <p className="mb-2 text-slate-500">Aucun bail généré pour le moment.</p>
+          <p className="text-xs text-slate-400">
+            {contractsToPrepare.length > 0
+              ? 'Reprenez un contrat à préparer ci-dessus pour lancer la génération.'
+              : 'Sélectionnez un locataire depuis vos candidatures pour créer un bail.'}
+          </p>
         </div>
       ) : (
         <>
@@ -420,11 +471,11 @@ export function BauxPanel({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            {properties.length === 0 ? (
+            {pickerProperties.length === 0 ? (
               <p className="py-4 text-center text-sm text-slate-500">Aucun bien disponible. Ajoutez un bien d&apos;abord.</p>
             ) : (
               <div className="max-h-80 space-y-2 overflow-y-auto">
-                {properties.map((p) => (
+                {pickerProperties.map((p) => (
                   <button
                     key={p._id}
                     type="button"

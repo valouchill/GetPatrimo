@@ -11,6 +11,7 @@ import type { LeasePreparationData } from '../components/LeasePreparationPage';
 
 export interface MongoProperty {
   _id?: unknown;
+  user?: unknown;
   owner?: unknown;
   name?: string;
   address?: string;

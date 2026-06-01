@@ -306,7 +306,7 @@ export function CompareView({
                   onClick={() => onSelect(c)}
                   className="w-full rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-white hover:bg-amber-600"
                 >
-                  Choisir {c.prenom} →
+                  Retenir {c.prenom} →
                 </button>
               </td>
             ))}

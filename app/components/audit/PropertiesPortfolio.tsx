@@ -177,6 +177,7 @@ export function PropertyAssetCard({
   const statusStyle = pickStatusStyle(asset.status);
   const StatusIcon = statusStyle.icon;
   const hasPending = asset.pendingApplications > 0;
+  const hasSelectedTenant = asset.statusLabel.toLowerCase().includes('locataire retenu');
 
   const handleCopy = React.useCallback(async () => {
     try {
@@ -263,16 +264,18 @@ export function PropertyAssetCard({
           <div className="flex min-w-0 items-center gap-2.5">
             <Inbox
               className={`h-5 w-5 flex-shrink-0 ${
-                hasPending ? 'text-amber-600' : 'text-slate-400'
+                hasSelectedTenant ? 'text-emerald-600' : hasPending ? 'text-amber-600' : 'text-slate-400'
               }`}
               aria-hidden="true"
             />
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Candidatures
+                {hasSelectedTenant ? 'Bail' : 'Candidatures'}
               </p>
               <p className="mt-0.5 truncate text-xs font-medium text-slate-700">
-                {hasPending
+                {hasSelectedTenant
+                  ? 'Locataire retenu'
+                  : hasPending
                   ? `${asset.pendingApplications} en attente`
                   : 'Aucune candidature reçue'}
               </p>

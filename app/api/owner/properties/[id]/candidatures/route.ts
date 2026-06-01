@@ -15,6 +15,11 @@ const { decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+  Pragma: 'no-cache',
+};
+
 async function resolveUserId(session: any): Promise<string | null> {
   let userId = session?.user?.id;
   if (!userId && session?.user?.email) {
@@ -160,15 +165,22 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
-      candidatures: decorateCandidatesForOwner(
-        candidates,
-        String(property.acceptedTenantId || ''),
-        isManaged
-      ),
-      selectedCandidateId: property.acceptedTenantId ? String(property.acceptedTenantId) : null,
-      unlocked: isManaged,
-    });
+    const selectedCandidateId = property.acceptedTenantId ? String(property.acceptedTenantId) : null;
+    const decorated = decorateCandidatesForOwner(
+      candidates,
+      String(property.acceptedTenantId || ''),
+      isManaged
+    );
+
+    return NextResponse.json(
+      {
+        candidatures: decorated,
+        selectedCandidateId,
+        selectionRequired: decorated.length > 0 && !selectedCandidateId,
+        unlocked: isManaged,
+      },
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (error) {
     logger.error('GET /api/owner/properties/[id]/candidatures', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

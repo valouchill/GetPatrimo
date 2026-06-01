@@ -207,6 +207,8 @@ export async function GET() {
         return {
           property: {
             id: prop._id.toString(),
+            acceptedTenantId: prop.acceptedTenantId ? String(prop.acceptedTenantId) : null,
+            selectedCandidateId: flow.selectedCandidateId || null,
             title: prop.name,
             address: prop.address,
             rent: prop.rentAmount,
