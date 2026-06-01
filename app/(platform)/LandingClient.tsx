@@ -33,6 +33,7 @@ import {
   Building2,
   Eye,
 } from 'lucide-react';
+import IdealTenantSimulator from '@/app/components/marketing/IdealTenantSimulator';
 
 /* ──────────────────────────────────────────────────────────────
  * Animation helper : fade-in-up au scroll (sobre, élégant)
@@ -506,6 +507,9 @@ export default function LandingClient() {
           <DashboardMockup />
         </Reveal>
       </section>
+
+      {/* ============ SIMULATEUR LOCATAIRE IDÉAL (lead magnet) ============ */}
+      <IdealTenantSimulator />
 
       {/* ===================== RÉASSURANCE / TRUST ===================== */}
       <section id="securite" className="border-y border-slate-200 bg-white py-12">
