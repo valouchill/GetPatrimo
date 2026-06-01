@@ -22,12 +22,15 @@
 import 'server-only';
 import { getStripeClient } from '@/lib/admin-stripe';
 import { logger } from '@/lib/server-logger';
-import { normalizeTier, type PropertyTier } from './tiers';
+import { effectiveQuota, effectiveTier, type PropertyTier } from './tiers';
 
 export type QuotaMode =
   | 'WITHIN_QUOTA'
   | 'OVERAGE'
-  | 'ALREADY_COUNTED';
+  | 'ALREADY_COUNTED'
+  // V8.0 — mode SOFT : offre FREE autorisée car enforcement désactivé.
+  // Ne consomme PAS de quota, ne facture rien (suivi visuel uniquement).
+  | 'SOFT_FREE';
 
 export interface QuotaCheck {
   allowed: boolean;
@@ -58,18 +61,29 @@ export interface QuotaProperty {
 /**
  * Vérifie si une analyse IA est autorisée pour ce bien + ce dossier.
  * NE MUTE RIEN — c'est consumeAnalysisQuota qui persiste.
+ *
+ * @param opts.enforced  Si false (soft-launch), une offre FREE n'est PAS
+ *   bloquée (mode SOFT_FREE) — utile tant que Stripe n'est pas configuré.
+ *   Piloté par le flag BILLING_ENFORCED côté route.
  */
 export function checkAnalysisAllowed(
   property: QuotaProperty,
   applicationId: string,
+  opts: { enforced?: boolean } = {},
 ): QuotaCheck {
-  const tier = normalizeTier(property.tier);
-  const quota = Number(property.dossiersQuota || 0);
+  // V8.0 — offre EFFECTIVE (grandfather les biens `managed` legacy en PREMIUM)
+  const tier = effectiveTier(property);
+  const quota = effectiveQuota(property);
   const used = Number(property.dossiersAnalyzedCount || 0);
 
-  // FREE — l'analyse IA n'est pas incluse : il faut souscrire une offre.
+  // FREE — l'analyse IA n'est pas incluse.
   if (tier === 'FREE') {
-    return { allowed: false, reason: 'FREE', tier, quota, used };
+    if (opts.enforced) {
+      // HARD : il faut souscrire une offre.
+      return { allowed: false, reason: 'FREE', tier, quota, used };
+    }
+    // SOFT : autorisé (pas de blocage, pas de consommation).
+    return { allowed: true, mode: 'SOFT_FREE', tier, quota, used };
   }
 
   // Dossier déjà analysé/comptabilisé → pas de re-décompte (re-analyse libre)
@@ -146,9 +160,10 @@ export async function consumeAnalysisQuota(
   applicationId: string,
   mode: QuotaMode,
 ): Promise<QuotaConsumption> {
-  const quota = Number(property.dossiersQuota || 0);
+  const quota = effectiveQuota(property);
 
-  if (mode === 'ALREADY_COUNTED') {
+  // SOFT_FREE (enforcement off) ou ALREADY_COUNTED → aucune consommation.
+  if (mode === 'ALREADY_COUNTED' || mode === 'SOFT_FREE') {
     return {
       mode,
       used: Number(property.dossiersAnalyzedCount || 0),

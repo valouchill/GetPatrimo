@@ -348,7 +348,7 @@ export function StagePill({ stage, stageLabel }: { stage?: string; stageLabel?: 
 
 // ── Sidebar nav ───────────────────────────────────────────────────────────────
 
-export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'contrats' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil';
+export type NavId = 'dashboard' | 'candidatures' | 'biens' | 'depot' | 'contrats' | 'baux' | 'gestion' | 'loyers' | 'edl' | 'profil' | 'tarifs';
 import type { FeatureKey } from '@/lib/features';
 export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: string; badge?: boolean; hidden?: boolean; href?: string; feature?: FeatureKey }[] = [
   { id: 'dashboard',    label: "Vue d'ensemble",     Icon: LayoutDashboard,  group: 'Mon patrimoine' },
@@ -361,6 +361,8 @@ export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: st
   { id: 'baux',         label: 'Baux signés',        Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
   { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location',    feature: 'EDL' },
   { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances',    feature: 'RECEIPTS' },
+  // V8.0 — Pay-per-Listing : page tarifaire publique (route réelle)
+  { id: 'tarifs',       label: 'Tarifs & Offres',    Icon: CreditCard,       group: 'Compte',      href: '/pricing' },
   { id: 'profil',       label: 'Mon profil',         Icon: UserCog,          group: 'Compte' },
   { id: 'depot',        label: 'Nouvel actif',       Icon: Plus,             group: '_hidden', hidden: true },
   { id: 'gestion',      label: 'Gestion locative',   Icon: ScrollText,       group: '_hidden', hidden: true, feature: 'MANAGEMENT' },

@@ -17,6 +17,14 @@ export const FEATURES_V1_DEFAULTS = {
   OWNER_PAYWALL: false,  // abonnement 4,99€/mois propriétaire
   PASSPORT_PDF: true,    // Passeport Locatif PDF partageable (nouveau V1)
   LANDING_V1: true,      // landing commerciale V1
+  // V8.0 — Pay-per-Listing : enforcement STRICT du quota d'analyses IA.
+  //  - false (défaut) : SOFT — /pricing, jauge et suivi d'usage actifs, mais
+  //    une offre FREE n'est PAS bloquée (pas de 402). Idéal pendant la config
+  //    Stripe.
+  //  - true : HARD — FREE → 402 Payment Required. À activer une fois les
+  //    Price IDs Stripe configurés.
+  //    Override prod : NEXT_PUBLIC_FEATURES_V1='{"BILLING_ENFORCED":true}'
+  BILLING_ENFORCED: false,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES_V1_DEFAULTS;
