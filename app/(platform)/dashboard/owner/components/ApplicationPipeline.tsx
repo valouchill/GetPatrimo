@@ -12,7 +12,7 @@ const STAGES: { id: PipelineStage; label: string; color: string; bgColor: string
   { id: 'received', label: 'Reçus', color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
   { id: 'reviewing', label: 'En revue', color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
   { id: 'shortlisted', label: 'Shortlist', color: 'text-violet-700', bgColor: 'bg-violet-50', borderColor: 'border-violet-200' },
-  { id: 'selected', label: 'Retenu', color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
+  { id: 'selected', label: 'Locataire retenu', color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
 ];
 
 function getStageForCandidate(d: LocalDossier): PipelineStage {

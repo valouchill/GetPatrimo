@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, ArrowRight, CheckCircle2, Crown, ExternalLink, Lock, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Crown, ExternalLink, Lock, ShieldCheck, XCircle } from 'lucide-react';
 
 import { ActionBar, cx, InfoRow, PremiumSurface, StatusBadge } from '@/app/components/ui/premium';
 
@@ -78,7 +78,9 @@ export default function CandidateComparisonMatrix({
   onRequestChoose,
   onConfirmChoose,
   onCancelChoose,
+  onUnselectCandidate,
   onUnlock,
+  unselectBusy = false,
 }: {
   propertyId: string;
   candidates: CandidateRecord[];
@@ -90,7 +92,9 @@ export default function CandidateComparisonMatrix({
   onRequestChoose: (candidateId: string) => void;
   onConfirmChoose: () => void;
   onCancelChoose: () => void;
+  onUnselectCandidate?: () => void | Promise<void>;
   onUnlock: () => void;
+  unselectBusy?: boolean;
 }) {
   const hasMasked = candidates.some((candidate) => candidate.isSealed);
   const pendingCandidate = candidates.find((candidate) => candidate.id === pendingCandidateId) || null;
@@ -136,7 +140,7 @@ export default function CandidateComparisonMatrix({
                 Confirmation
               </div>
               <h3 className="mt-2 font-serif text-2xl tracking-tight text-emerald-950">
-                Sélectionner {candidateName(pendingCandidate)} ?
+                Retenir {candidateName(pendingCandidate)} ?
               </h3>
               <p className="mt-2 text-sm leading-6 text-emerald-900/85">
                 {pendingCandidate.ownerInsights?.decisionSummary?.headline || 'Ce choix déclenchera la suite du tunnel propriétaire.'}
@@ -157,7 +161,7 @@ export default function CandidateComparisonMatrix({
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-55"
               >
                 <Crown className="h-4 w-4 text-amber-300" />
-                {selectionBusyId === pendingCandidate.id ? 'Sélection...' : 'Confirmer la sélection'}
+                {selectionBusyId === pendingCandidate.id ? 'Préparation...' : 'Confirmer et préparer le bail'}
               </button>
             </ActionBar>
           </div>
@@ -178,7 +182,7 @@ export default function CandidateComparisonMatrix({
                       <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[10px] font-semibold" />
                     ) : null}
                     {selected ? (
-                      <StatusBadge tone="dark" label="Retenu" className="normal-case tracking-normal text-[10px] font-semibold" />
+                      <StatusBadge tone="dark" label="Locataire retenu" className="normal-case tracking-normal text-[10px] font-semibold" />
                     ) : null}
                     {comparison?.identityVerified ? (
                       <StatusBadge tone="success" label="Identité OK" className="normal-case tracking-normal text-[10px] font-semibold" />
@@ -208,10 +212,27 @@ export default function CandidateComparisonMatrix({
                         Déverrouiller
                       </button>
                     ) : selected ? (
+                      <>
                       <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                         <CheckCircle2 className="h-4 w-4" />
-                        Choisi
+                        Locataire retenu
                       </span>
+                      {onUnselectCandidate && canChangeSelection ? (
+                        <button
+                          type="button"
+                          onClick={() => onUnselectCandidate()}
+                          disabled={unselectBusy}
+                          className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-55"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          {unselectBusy ? 'Retrait...' : 'Retirer la sélection'}
+                        </button>
+                      ) : !canChangeSelection ? (
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500">
+                          Bail engagé
+                        </span>
+                      ) : null}
+                      </>
                     ) : canChangeSelection ? (
                       <button
                         type="button"
@@ -219,7 +240,7 @@ export default function CandidateComparisonMatrix({
                         className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900"
                       >
                         <Crown className="h-4 w-4 text-amber-300" />
-                        Sélectionner
+                        Retenir ce locataire
                       </button>
                     ) : null}
                   </ActionBar>
@@ -252,7 +273,7 @@ export default function CandidateComparisonMatrix({
                     <StatusBadge tone="neutral" label={`#${candidate.rank}`} className="normal-case tracking-normal text-[10px] font-semibold" />
                   ) : null}
                   {selected ? (
-                    <StatusBadge tone="dark" label="Retenu" className="normal-case tracking-normal text-[10px] font-semibold" />
+                    <StatusBadge tone="dark" label="Locataire retenu" className="normal-case tracking-normal text-[10px] font-semibold" />
                   ) : null}
                 </ActionBar>
                 <div className="mt-3 font-serif text-2xl tracking-tight text-slate-950">
@@ -284,10 +305,27 @@ export default function CandidateComparisonMatrix({
                       Déverrouiller
                     </button>
                   ) : selected ? (
+                    <>
                     <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                       <CheckCircle2 className="h-4 w-4" />
-                      Choisi
+                      Locataire retenu
                     </span>
+                    {onUnselectCandidate && canChangeSelection ? (
+                      <button
+                        type="button"
+                        onClick={() => onUnselectCandidate()}
+                        disabled={unselectBusy}
+                        className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-55"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        {unselectBusy ? 'Retrait...' : 'Retirer la sélection'}
+                      </button>
+                    ) : !canChangeSelection ? (
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-500">
+                        Bail engagé
+                      </span>
+                    ) : null}
+                    </>
                   ) : canChangeSelection ? (
                     <button
                       type="button"
@@ -295,7 +333,7 @@ export default function CandidateComparisonMatrix({
                       className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900"
                     >
                       <Crown className="h-4 w-4 text-amber-300" />
-                      Sélectionner
+                      Retenir ce locataire
                     </button>
                   ) : null}
                 </ActionBar>
@@ -321,11 +359,20 @@ export default function CandidateComparisonMatrix({
             </div>
           </div>
           <div className="mt-5 space-y-3">
-            {otherCandidates.map((candidate) => (
+            {otherCandidates.map((candidate) => {
+              const selected = selectedCandidateId && selectedCandidateId === candidate.id;
+              return (
               <div key={`other-${candidate.id}`} className="flex flex-col gap-3 rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-slate-900">{candidateName(candidate)}</span>
+                    {selected ? (
+                      <StatusBadge
+                        tone="success"
+                        label="Locataire retenu"
+                        className="normal-case tracking-normal text-[10px] font-semibold"
+                      />
+                    ) : null}
                     <StatusBadge
                       tone={candidate.isSealed ? 'warning' : 'neutral'}
                       label={candidate.isSealed ? 'Masqué' : candidate.ownerInsights?.comparison?.scoreLabel || 'Dossier'}
@@ -353,10 +400,20 @@ export default function CandidateComparisonMatrix({
                       <Lock className="h-4 w-4 text-amber-300" />
                       Déverrouiller
                     </button>
+                  ) : selected && onUnselectCandidate && canChangeSelection ? (
+                    <button
+                      type="button"
+                      onClick={() => onUnselectCandidate()}
+                      disabled={unselectBusy}
+                      className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-55"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      {unselectBusy ? 'Retrait...' : 'Retirer la sélection'}
+                    </button>
                   ) : null}
                 </ActionBar>
               </div>
-            ))}
+            );})}
           </div>
         </PremiumSurface>
       ) : null}

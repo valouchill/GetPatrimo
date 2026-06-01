@@ -254,7 +254,7 @@ export interface OwnerCandidatesStackProps {
   /** Tous les candidats (non-scellés). Filtrés ici selon le bien sélectionné. */
   candidats: LocalDossier[];
   /** Callback quand l'utilisateur retient un candidat (après confirmation modale) */
-  onAccept: (c: LocalDossier) => void;
+  onAccept: (c: LocalDossier) => void | Promise<void>;
   /** Callback quand l'utilisateur refuse (par défaut : skip silencieux local) */
   onReject?: (c: LocalDossier) => void;
   /**
@@ -287,7 +287,9 @@ export function OwnerCandidatesStack({
     if (!biens) return [];
     const counts = new Map<string, number>();
     candidats.forEach((c) => {
-      if (!c.isSealed) counts.set(c.bien_id, (counts.get(c.bien_id) || 0) + 1);
+      if (!c.isSealed && c.statut === 'en_attente') {
+        counts.set(c.bien_id, (counts.get(c.bien_id) || 0) + 1);
+      }
     });
     return biens.filter((b) => (counts.get(b.id) || 0) > 0);
   }, [bien, biens, candidats]);
@@ -305,7 +307,7 @@ export function OwnerCandidatesStack({
   const filteredCandidats = React.useMemo(() => {
     if (!activeBien) return [];
     return candidats.filter(
-      (c) => c.bien_id === activeBien.id && !c.isSealed,
+      (c) => c.bien_id === activeBien.id && !c.isSealed && c.statut === 'en_attente',
     );
   }, [candidats, activeBien]);
 
@@ -317,11 +319,16 @@ export function OwnerCandidatesStack({
 
   // État de la modale de confirmation
   const [pendingAccept, setPendingAccept] = React.useState<LocalDossier | null>(null);
+  const [acceptLoading, setAcceptLoading] = React.useState(false);
+  const [acceptError, setAcceptError] = React.useState<string | null>(null);
 
   const handleStackAccept = React.useCallback(
     (stack: StackCandidate) => {
       const real = filteredCandidats.find((c) => c.id === stack.id);
-      if (real) setPendingAccept(real);
+      if (real) {
+        setAcceptError(null);
+        setPendingAccept(real);
+      }
     },
     [filteredCandidats],
   );
@@ -379,7 +386,7 @@ export function OwnerCandidatesStack({
           <div className="flex flex-wrap gap-2">
             {biensWithCandidates.map((b) => {
               const count = candidats.filter(
-                (c) => c.bien_id === b.id && !c.isSealed,
+                (c) => c.bien_id === b.id && !c.isSealed && c.statut === 'en_attente',
               ).length;
               const active = b.id === activeBien?.id;
               return (
@@ -420,6 +427,7 @@ export function OwnerCandidatesStack({
           onReject={handleStackReject}
           onOpenDetail={onOpenDetail}
           persistKey={`patrimo:stack:${activeBien.id}`}
+          deferAcceptDecision
         />
       ) : (
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12">
@@ -436,14 +444,29 @@ export function OwnerCandidatesStack({
       {pendingAccept && (
         <SelectionConfirmModal
           open={!!pendingAccept}
-          onClose={() => setPendingAccept(null)}
-          onConfirm={() => {
-            onAccept(pendingAccept);
+          onClose={() => {
+            if (acceptLoading) return;
             setPendingAccept(null);
+            setAcceptError(null);
+          }}
+          onConfirm={async () => {
+            if (acceptLoading) return;
+            setAcceptLoading(true);
+            setAcceptError(null);
+            try {
+              await Promise.resolve(onAccept(pendingAccept));
+              setPendingAccept(null);
+            } catch (error) {
+              setAcceptError(error instanceof Error ? error.message : 'Impossible de retenir ce dossier.');
+            } finally {
+              setAcceptLoading(false);
+            }
           }}
           candidateName={`${pendingAccept.prenom} ${pendingAccept.nom}`}
           verdict={resolveVerdict(pendingAccept)}
           reasonCodes={pendingAccept.reasonCodes}
+          loading={acceptLoading}
+          error={acceptError}
         />
       )}
     </div>

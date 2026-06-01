@@ -13,6 +13,21 @@ import Application from '@/models/Application';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const User = require('@/models/User');
 
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+  Pragma: 'no-cache',
+};
+
+function selectionPayload(propertyId: string, applicationId: string | null) {
+  return {
+    ok: true,
+    selectedCandidateId: applicationId,
+    propertyId,
+    leaseHref: applicationId ? `/dashboard/owner/lease/${applicationId}` : null,
+    contractHubHref: '/dashboard/owner/contracts',
+  };
+}
+
 async function resolveUserId(session: any): Promise<string | null> {
   let userId = session?.user?.id;
   if (!userId && session?.user?.email) {
@@ -107,6 +122,7 @@ export async function PUT(
       {
         $set: {
           ownerDecision: 'PENDING',
+          status: 'SUBMITTED',
         },
       }
     );
@@ -115,6 +131,7 @@ export async function PUT(
       { _id: application._id },
       {
         $set: {
+          status: 'ACCEPTED',
           ownerDecision: 'ACCEPTED',
           viewedByOwnerAt: new Date(),
         },
@@ -128,10 +145,10 @@ export async function PUT(
       newStatus: statusUpdate.status || currentStatus,
     });
 
-    return NextResponse.json({
-      ok: true,
-      selectedCandidateId: String(application._id),
-    });
+    return NextResponse.json(
+      selectionPayload(String(property._id), String(application._id)),
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (error) {
     logger.error('PUT /api/owner/properties/[id]/selection', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
@@ -192,16 +209,17 @@ export async function DELETE(
         { _id: previousSelectionId },
         {
           $set: {
+            status: 'SUBMITTED',
             ownerDecision: 'PENDING',
           },
         }
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      selectedCandidateId: null,
-    });
+    return NextResponse.json(
+      selectionPayload(String(property._id), null),
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (error) {
     logger.error('DELETE /api/owner/properties/[id]/selection', { error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

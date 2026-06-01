@@ -60,9 +60,8 @@ function propertyTabHref(propertyId, tab = 'overview', applicationId) {
 }
 
 function contractHref(propertyId, applicationId) {
-  const url = new URL(`https://doc2loc.local/properties/${propertyId}/contract`);
-  if (applicationId) url.searchParams.set('applicationId', applicationId);
-  return `${url.pathname}${url.search}`;
+  if (applicationId) return `/dashboard/owner/lease/${applicationId}`;
+  return propertyTabHref(propertyId, 'selected');
 }
 
 function getCandidatePriority(candidate, acceptedTenantId) {

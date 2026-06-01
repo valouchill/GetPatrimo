@@ -35,6 +35,13 @@ export const metadata = {
     'Téléchargez le modèle ALUR et reportez les informations du dossier en un clic.',
 };
 
+function isNextNavigationError(error: unknown): boolean {
+  const digest = typeof (error as { digest?: unknown })?.digest === 'string'
+    ? String((error as { digest: string }).digest)
+    : '';
+  return digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_HTTP_ERROR_FALLBACK');
+}
+
 export default async function OwnerLeasePreparationPage({
   params,
 }: {
@@ -62,7 +69,7 @@ export default async function OwnerLeasePreparationPage({
 
     const property = (await Property.findById(app.property as unknown)
       .select(
-        'owner name address addressLine zipCode city rentAmount chargesAmount surfaceM2 propertyType',
+        'user owner name address addressLine zipCode city rentAmount chargesAmount surfaceM2 propertyType',
       )
       .lean()) as MongoProperty | null;
 
@@ -73,7 +80,7 @@ export default async function OwnerLeasePreparationPage({
     // Ownership : la Property doit appartenir à l'owner connecté
     const userId =
       (session as any)?.user?.id || (session as any)?.user?._id;
-    const propertyOwner = String((property as any).owner || '');
+    const propertyOwner = String((property as any).user || (property as any).owner || '');
     if (userId && propertyOwner && String(userId) !== propertyOwner) {
       // 404 plutôt que 403 pour ne pas révéler l'existence de la ressource
       notFound();
@@ -109,12 +116,11 @@ export default async function OwnerLeasePreparationPage({
       </OwnerShell>
     );
   } catch (err) {
+    if (isNextNavigationError(err)) throw err;
     logger.error('GET /dashboard/owner/lease/[applicationId]', {
       applicationId,
       error: err instanceof Error ? err.message : String(err),
     });
-    // En cas d'erreur Mongo / DB : redirige vers la page démo plutôt
-    // que d'afficher un écran d'erreur (gracieux côté propriétaire).
-    redirect('/dashboard/owner/lease');
+    redirect('/dashboard/owner/contracts');
   }
 }

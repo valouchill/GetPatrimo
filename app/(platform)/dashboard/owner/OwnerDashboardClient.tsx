@@ -71,6 +71,7 @@ export default function OwnerDashboardClient() {
   const [deleteBienId, setDeleteBienId] = useState<string | null>(null);
   const [showAddManagement, setShowAddManagement] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectionOverrides, setSelectionOverrides] = useState<Record<string, string>>({});
 
   // Biens page filters
   const [biensSearch, setBiensSearch] = useState('');
@@ -102,7 +103,15 @@ export default function OwnerDashboardClient() {
   const biens = data.map(toBien);
   const bienById = new Map(biens.map((b) => [b.id, b]));
   const allDossiers: LocalDossier[] = data.flatMap((e) =>
-    e.candidatures.map((c) => toDossier(c, e.property.id, e.property.rent || 0))
+    e.candidatures.map((c) => {
+      const dossier = toDossier(c, e.property.id, e.property.rent || 0);
+      const selectedId = selectionOverrides[e.property.id];
+      if (!selectedId) return dossier;
+      return {
+        ...dossier,
+        statut: dossier.id === selectedId ? 'selectionne' : 'en_attente',
+      };
+    })
   );
   const pending = allDossiers.filter((d) => !d.isSealed && d.statut === 'en_attente').length;
   const selectionnes = biens.filter((b) => b.isRented || b.flowStage === 'management').length;
@@ -149,13 +158,87 @@ export default function OwnerDashboardClient() {
     // /dashboard/owner/lease/[applicationId] (cf. PR #62). L'ancienne
     // route /properties/[id]/contract n'existe plus en prod.
     // Si applicationId absent (cas hypothétique), on retombe sur la page
-    // bien (l'owner pourra cliquer "Préparer le bail" depuis là).
+    // bien (l'owner pourra cliquer "Reprendre la préparation du bail" depuis là).
     if (applicationId) {
       router.push(`/dashboard/owner/lease/${applicationId}`);
     } else {
       router.push(`/dashboard/owner/property/${propertyId}?tab=selected`);
     }
   };
+
+  const syncSelectionMemory = useCallback((propertyId: string, applicationId: string) => {
+    setSelectionOverrides((prev) => ({
+      ...prev,
+      [propertyId]: applicationId,
+    }));
+  }, []);
+
+  const acceptCandidate = useCallback(
+    async (candidate: LocalDossier, options: { goToLease?: boolean } = {}) => {
+      const previousSelection = selectionOverrides[candidate.bien_id];
+      syncSelectionMemory(candidate.bien_id, candidate.id);
+
+      try {
+        const res = await fetch(`/api/owner/properties/${candidate.bien_id}/selection`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId: candidate.id }),
+        });
+        const selectionData = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(selectionData.error || 'Impossible de sélectionner ce dossier.');
+        }
+        await refresh();
+        router.refresh();
+        if (options.goToLease) {
+          if (selectionData.leaseHref) {
+            router.push(selectionData.leaseHref);
+          } else {
+            goToContract(candidate.bien_id, candidate.id);
+          }
+        }
+      } catch (error) {
+        setSelectionOverrides((prev) => {
+          const next = { ...prev };
+          if (previousSelection) next[candidate.bien_id] = previousSelection;
+          else delete next[candidate.bien_id];
+          return next;
+        });
+        throw error;
+      }
+    },
+    [goToContract, refresh, router, selectionOverrides, syncSelectionMemory],
+  );
+
+  const unselectCandidate = useCallback(
+    async (candidate: LocalDossier) => {
+      const previousSelection = selectionOverrides[candidate.bien_id] || candidate.id;
+      setSelectionOverrides((prev) => {
+        const next = { ...prev };
+        delete next[candidate.bien_id];
+        return next;
+      });
+
+      try {
+        const res = await fetch(`/api/owner/properties/${candidate.bien_id}/selection`, {
+          method: 'DELETE',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Impossible de retirer la sélection.');
+        }
+        await refresh();
+        router.refresh();
+      } catch (error) {
+        setSelectionOverrides((prev) => ({
+          ...prev,
+          [candidate.bien_id]: previousSelection,
+        }));
+        throw error;
+      }
+    },
+    [refresh, router, selectionOverrides],
+  );
 
   const copyLink = async (token: string, id: string) => {
     const url = `${window.location.origin}/apply/${token}`;
@@ -476,7 +559,7 @@ export default function OwnerDashboardClient() {
                 <OwnerCandidatesStack
                   biens={biens}
                   candidats={allDossiers}
-                  onAccept={(d) => setSelBienId(d.bien_id)}
+                  onAccept={(d) => acceptCandidate(d, { goToLease: true })}
                   /* V8.2 (Mission 3) — clic carte → modale centrale à onglets
                      (CandidateAuditModal via candidateDrawerId), pas le Sheet */
                   onOpenDetail={(id) => setCandidateDrawerId(id)}
@@ -496,10 +579,14 @@ export default function OwnerDashboardClient() {
             <PropertiesPortfolio
               assets={biens.map((b): PortfolioAsset => {
                 const pending = allDossiers.filter(
-                  (d) => d.bien_id === b.id && !d.isSealed,
+                  (d) => d.bien_id === b.id && !d.isSealed && d.statut === 'en_attente',
                 ).length;
+                const selected = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
+                const hasSelection = Boolean(selected || b.selectedCandidateId || b.acceptedTenantId);
                 const status: AssetStatus = b.isRented
                   ? 'sealed'
+                  : hasSelection
+                  ? 'pending'
                   : b.status === 'VACANT'
                   ? 'vacant'
                   : b.status === 'CANDIDATE_SELECTION' || pending > 0
@@ -520,7 +607,7 @@ export default function OwnerDashboardClient() {
                   address: b.adresse,
                   rent: b.loyer,
                   status,
-                  statusLabel: b.leaseStatusLabel || statusLabel[status],
+                  statusLabel: hasSelection ? 'Locataire retenu' : b.leaseStatusLabel || statusLabel[status],
                   pendingApplications: pending,
                   sesameLink,
                 };
@@ -553,7 +640,13 @@ export default function OwnerDashboardClient() {
             <BauxPanel
               properties={biens.map((b) => {
                 const selApp = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
-                return { _id: b.id, name: b.label, address: b.adresse, selectedApplicationId: selApp?.id };
+                return {
+                  _id: b.id,
+                  name: b.label,
+                  address: b.adresse,
+                  selectedApplicationId: selApp?.id || b.selectedCandidateId || b.acceptedTenantId || undefined,
+                  selectedCandidateName: selApp ? `${selApp.prenom} ${selApp.nom}`.trim() : undefined,
+                };
               })}
               onNavigate={(target, id, applicationId) => {
                 if (target === 'contract' && id) {
@@ -690,7 +783,11 @@ export default function OwnerDashboardClient() {
               bien={selBien}
               candidats={selCands}
               onClose={() => setSelBienId(null)}
-              onConfirmed={() => refresh()}
+              onConfirmed={async (candidate) => {
+                syncSelectionMemory(candidate.bien_id, candidate.id);
+                await refresh();
+                router.refresh();
+              }}
               onGoToContract={goToContract}
               /* V8.3 (audit M1) — clic carte dans le tunnel → modale centrale */
               onOpenDetail={(id) => setCandidateDrawerId(id)}
@@ -712,39 +809,16 @@ export default function OwnerDashboardClient() {
             bien={b}
             onClose={() => setCandidateDrawerId(null)}
             onSelect={async (cd) => {
-              // V7.3 — Sélection persistée + état dashboard synchronisé +
-              // redirection vers le module bail.
-              //
-              // Étapes (toute exception est repropagée pour que la
-              // SelectionConfirmModal puisse garder son spinner et
-              // permettre un retry sans fermer la modale) :
-              //   1. PUT /api/owner/properties/[bien]/selection
-              //   2. refresh() du contexte OwnerProvider → la liste de
-              //      candidats sera fraîche au prochain retour sur le
-              //      dashboard
-              //   3. router.push vers /lease/[id]
-              const res = await fetch(
-                `/api/owner/properties/${cd.bien_id}/selection`,
-                {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ applicationId: cd.id }),
-                },
-              );
-              if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(
-                  data.error || 'Impossible de sélectionner ce dossier.',
-                );
-              }
-              // V7.5 — On AWAIT le refresh pour que le dashboard ait les
-              // données fraîches AVANT de naviguer. Sans cet await, l'utilisateur
-              // pouvait revenir sur /dashboard/owner avant que le fetch
-              // ne se termine -> état figé sur l'ancienne liste.
-              await refresh();
-              router.refresh();
+              await acceptCandidate(cd, { goToLease: true });
               setCandidateDrawerId(null);
-              router.push(`/dashboard/owner/lease/${cd.id}`);
+            }}
+            onUnselect={async (cd) => {
+              await unselectCandidate(cd);
+              setCandidateDrawerId(null);
+            }}
+            onResumeLease={(cd) => {
+              setCandidateDrawerId(null);
+              goToContract(cd.bien_id, cd.id);
             }}
             onOpenAudit={(cd) => {
               setCandidateDrawerId(null);

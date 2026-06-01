@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   ArrowRight,
+  CheckCircle2,
   Crown,
   ShieldCheck,
   Sparkles,
@@ -180,6 +181,7 @@ export function TopCandidateCard({
   // Identité
   const initials = computeInitials(c.prenom, c.nom);
   const fullName = `${c.prenom || ''} ${c.nom || ''}`.trim() || 'Candidat';
+  const isSelected = c.statut === 'selectionne';
   // V6.6 — Métal institutionnel (PLATINUM/GOLD/SILVER/ALERTE) à la place
   // du legacy lettrage S/A/B/C/D. Source de vérité : product-lexicon.
   const metalLevel = getMetalLevel(c.score);
@@ -207,7 +209,9 @@ export function TopCandidateCard({
 
   // Border emphase rank #1
   const borderClass =
-    rank === 1 && verdict === 'recommended'
+    isSelected
+      ? 'ring-emerald-300'
+      : rank === 1 && verdict === 'recommended'
       ? 'ring-amber-200/80'
       : 'ring-slate-200/60';
 
@@ -253,6 +257,12 @@ export function TopCandidateCard({
 
         {/* Stack de badges top-right : rank + grade */}
         <div className="flex shrink-0 flex-col items-end gap-1.5">
+          {isSelected && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-800 ring-1 ring-emerald-200">
+              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+              Locataire retenu
+            </span>
+          )}
           <RankBadge rank={rank} />
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ring-1 ${metalBadgeClass}`}

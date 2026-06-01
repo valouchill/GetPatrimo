@@ -16,6 +16,7 @@ import {
   ScrollText,
   Shield,
   Sparkles,
+  XCircle,
 } from 'lucide-react';
 
 import CheckoutModal from '@/app/components/CheckoutModal';
@@ -260,6 +261,7 @@ export default function CandidateAuditClient({
     [candData, candidateId]
   );
   const [selectionBusy, setSelectionBusy] = useState(false);
+  const [unselectBusy, setUnselectBusy] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
@@ -313,11 +315,35 @@ export default function CandidateAuditClient({
       // est garanti à jour quand l'utilisateur navigue (ex: retour dashboard).
       await refreshOwnerData();
       router.refresh();
-      router.push(`/dashboard/owner/lease/${candidate.id}`);
+      router.push(data.leaseHref || `/dashboard/owner/lease/${candidate.id}`);
     } catch (err) {
       setSelectionError(err instanceof Error ? err.message : 'Erreur de sélection.');
     } finally {
       setSelectionBusy(false);
+    }
+  };
+
+  const handleUnselect = async () => {
+    if (!candidate) return;
+    if (!canChangeSelection) {
+      setSelectionError('Le bail est engagé, la sélection ne peut plus être modifiée.');
+      return;
+    }
+    setUnselectBusy(true);
+    setSelectionError(null);
+    try {
+      const res = await fetch(`/api/owner/properties/${propertyId}/selection`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Impossible de retirer la sélection.');
+      await refreshOwnerData();
+      router.refresh();
+      router.push(`/dashboard/owner/property/${propertyId}?tab=compare`);
+    } catch (err) {
+      setSelectionError(err instanceof Error ? err.message : 'Erreur lors du retrait de la sélection.');
+    } finally {
+      setUnselectBusy(false);
     }
   };
 
@@ -447,7 +473,7 @@ export default function CandidateAuditClient({
                 />
               )}
               {isOwnerSelected && (
-                <StatusBadge tone="dark" label="Choisi par le propriétaire" className="normal-case tracking-normal text-[11px] font-semibold" />
+                <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
               )}
               {candidate.isTop3 && (
                 <StatusBadge tone="neutral" label={`#${candidate.rank} recommandé IA`} className="normal-case tracking-normal text-[11px] font-semibold" />
@@ -489,7 +515,19 @@ export default function CandidateAuditClient({
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
               >
                 <ScrollText className="h-4 w-4" />
-                Préparer le bail
+                Reprendre la préparation du bail
+              </button>
+            )}
+            {!isSealed && isOwnerSelected && (
+              <button
+                type="button"
+                disabled={unselectBusy || !canChangeSelection}
+                onClick={handleUnselect}
+                title={!canChangeSelection ? 'Le bail est engagé, la sélection ne peut plus être modifiée.' : undefined}
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <XCircle className="h-4 w-4" />
+                {unselectBusy ? 'Retrait...' : 'Retirer la sélection'}
               </button>
             )}
             {!isSealed && !isOwnerSelected && canChangeSelection && (
@@ -500,7 +538,7 @@ export default function CandidateAuditClient({
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-55"
               >
                 <Crown className="h-4 w-4 text-amber-300" />
-                {selectionBusy ? 'Sélection...' : 'Choisir ce dossier'}
+                {selectionBusy ? 'Sélection...' : 'Retenir ce locataire'}
               </button>
             )}
             {isEnabled('OWNER_PAYWALL') && isSealed && (
@@ -546,8 +584,8 @@ export default function CandidateAuditClient({
                 candidate.ownerInsights?.aiAudit?.summary ||
                 'Analyse complète disponible ci-dessous.'
               }
-              primaryActionLabel="Choisir ce candidat"
-              onPrimary={!isOwnerSelected && canChangeSelection ? handleChoose : undefined}
+              primaryActionLabel={isOwnerSelected ? 'Reprendre la préparation du bail' : 'Retenir ce locataire'}
+              onPrimary={isOwnerSelected ? () => router.push(`/dashboard/owner/lease/${candidate.id}`) : !isOwnerSelected && canChangeSelection ? handleChoose : undefined}
               primaryLoading={selectionBusy}
               secondaryActionLabel={candidate.passport?.downloadUrl ? 'Télécharger le Passeport Locatif (PDF)' : undefined}
               onSecondary={
@@ -930,17 +968,29 @@ export default function CandidateAuditClient({
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
                 <Crown className="h-4 w-4 text-amber-300" />
-                {selectionBusy ? 'Sélection...' : 'Choisir ce dossier'}
+                {selectionBusy ? 'Sélection...' : 'Retenir ce locataire'}
               </button>
             )}
             {isEnabled('LEASES') && !isSealed && isOwnerSelected && (
               <button
                 type="button"
-                onClick={() => router.push(`/dashboard/owner/property/${propertyId}?tab=selected&applicationId=${candidate.id}`)}
+                onClick={() => router.push(`/dashboard/owner/lease/${candidate.id}`)}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
                 <ScrollText className="h-4 w-4" />
-                Module contrat
+                Reprendre le bail
+              </button>
+            )}
+            {!isSealed && isOwnerSelected && (
+              <button
+                type="button"
+                disabled={unselectBusy || !canChangeSelection}
+                onClick={handleUnselect}
+                title={!canChangeSelection ? 'Le bail est engagé, la sélection ne peut plus être modifiée.' : undefined}
+                className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <XCircle className="h-4 w-4" />
+                {unselectBusy ? 'Retrait...' : 'Retirer'}
               </button>
             )}
             {isSealed && (

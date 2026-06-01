@@ -15,6 +15,7 @@ export interface SelectionConfirmModalProps {
   verdict: Verdict;
   reasonCodes?: string[];
   loading?: boolean;
+  error?: string | null;
 }
 
 const COPY: Record<
@@ -35,7 +36,7 @@ const COPY: Record<
     title: 'Dossier recommandé',
     iconColor: 'text-emerald-700',
     Icon: ShieldCheck,
-    intro: 'Tous les critères d\'évaluation sont validés. Vous pouvez confirmer la sélection en toute confiance.',
+    intro: 'Tous les critères d\'évaluation sont validés. Vous pouvez retenir ce locataire en toute confiance.',
     buttonVariant: 'primary',
   },
   review: {
@@ -70,6 +71,7 @@ export function SelectionConfirmModal({
   verdict,
   reasonCodes,
   loading = false,
+  error = null,
 }: SelectionConfirmModalProps) {
   const copy = COPY[verdict];
   const Icon = copy.Icon;
@@ -79,8 +81,8 @@ export function SelectionConfirmModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Confirmer la sélection"
-      description={`Sélection de ${candidateName}`}
+      title="Retenir ce locataire"
+      description={`Préparation du bail pour ${candidateName}`}
       size="md"
       footer={
         <>
@@ -93,7 +95,7 @@ export function SelectionConfirmModal({
             loading={loading}
             iconLeft={<Icon className="h-4 w-4" />}
           >
-            Confirmer la sélection
+            Confirmer et préparer le bail
           </Button>
         </>
       }
@@ -129,9 +131,15 @@ export function SelectionConfirmModal({
         </div>
       )}
 
+      {error && (
+        <div className="mt-4 rounded-card border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {error}
+        </div>
+      )}
+
       <p className="mt-4 text-xs text-slate-500">
-        Cette confirmation enregistre votre choix. Vous pourrez toujours revenir sur cette décision
-        depuis le tableau de bord.
+        Cette confirmation enregistre votre choix et ouvre la préparation du bail.
+        Vous pourrez retirer la sélection tant que le bail n&apos;est pas engagé.
       </p>
     </Modal>
   );

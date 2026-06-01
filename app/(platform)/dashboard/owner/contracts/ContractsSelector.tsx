@@ -73,7 +73,7 @@ export function ContractsSelector({
               </div>
 
               <div className="flex items-center justify-end gap-1.5 text-xs font-semibold text-emerald-700 transition-colors group-hover:text-emerald-900">
-                Préparer le bail
+                Reprendre la préparation du bail
                 <ArrowRight
                   className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
                   aria-hidden="true"

@@ -106,6 +106,11 @@ export interface CandidaturesStackViewProps {
    * propriétaire après un reload / navigation.
    */
   persistKey?: string;
+  /**
+   * Si true, l'acceptation est déléguée au parent avant toute mutation locale.
+   * Utile quand une confirmation API doit réussir avant de retirer la carte.
+   */
+  deferAcceptDecision?: boolean;
   className?: string;
 }
 
@@ -327,7 +332,7 @@ function TopCard({
         className="pointer-events-none absolute right-6 top-6 z-20 rotate-12 rounded-xl border-4 border-emerald-500 px-4 py-2"
       >
         <span className="font-serif text-xl font-bold uppercase tracking-wider text-emerald-600">
-          Retenu
+          Locataire retenu
         </span>
       </motion.div>
       <motion.div
@@ -728,6 +733,7 @@ export function CandidaturesStackView({
   enableDrawer = true,
   onOpenDetail,
   persistKey,
+  deferAcceptDecision = false,
   className = '',
 }: CandidaturesStackViewProps): React.ReactElement {
   // ─── Initialisation depuis localStorage (V5.4) ─────────────────────────
@@ -788,6 +794,12 @@ export function CandidaturesStackView({
       const candidate = candidatesStack.find((c) => c.id === candidateId);
       if (!candidate) return;
 
+      if (decision === 'accepted' && deferAcceptDecision) {
+        setDrawerCandidateId(null);
+        onAccept?.(candidate);
+        return;
+      }
+
       const entry: HistoryEntry = {
         id: candidate.id,
         name: getShortName(candidate),
@@ -809,7 +821,7 @@ export function CandidaturesStackView({
       if (decision === 'accepted') onAccept?.(candidate);
       else onReject?.(candidate);
     },
-    [candidatesStack, onAccept, onReject],
+    [candidatesStack, deferAcceptDecision, onAccept, onReject],
   );
 
   // ─── handleUndo : remove history + unshift stack ───────────────────────
@@ -970,7 +982,7 @@ export function CandidaturesStackView({
       {/* Indication swipe */}
       {current && enableSwipe && (
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Glissez la fiche · ← Refuser · Retenir →
+          Glissez la fiche · ← Refuser · Retenir ce locataire →
         </p>
       )}
 

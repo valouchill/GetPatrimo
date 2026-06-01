@@ -11,7 +11,7 @@ const STATUS_OPTIONS: { value: PropertyStatusFilter; label: string }[] = [
   { value: 'OCCUPIED', label: 'Occupé' },
   { value: 'VACANT', label: 'Vacant' },
   { value: 'AVAILABLE', label: 'Disponible' },
-  { value: 'CANDIDATE_SELECTION', label: 'En recherche' },
+  { value: 'CANDIDATE_SELECTION', label: 'Sélection / bail' },
   { value: 'LEASE_IN_PROGRESS', label: 'Bail en cours' },
 ];
 

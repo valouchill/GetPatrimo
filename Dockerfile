@@ -43,6 +43,11 @@ FROM node:20-alpine AS production
 
 WORKDIR /opt/doc2loc
 
+# Le serveur custom choisit le mode Next.js via NODE_ENV. Sans cette variable
+# dans l'image runtime, Next démarre en mode dev et recompilie à la volée.
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
+
 # Runtime-only system deps (no compiler toolchain)
 # - libreoffice-writer : DOCX → PDF conversion for lease contracts
 # - python3 + py3-pip + weasyprint deps : HTML/CSS → PDF (Passeport Locatif)
