@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Building2, User, ArrowLeft, ArrowRight, Shield, CheckCircle2, MapPin, Eye, EyeOff } from 'lucide-react';
+import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
 type Role = 'owner' | 'tenant';
 type Step = 'role' | 'ownerForm' | 'tenantCode' | 'tenantForm' | 'unlocking';
@@ -136,7 +137,13 @@ export default function RegisterPage() {
         if (data.role === 'tenant' && data.propertyId) {
           window.location.href = `/apply/${data.propertyId}`;
         } else {
-          window.location.href = '/dashboard/owner';
+          // V8.3 (audit M2) — honore un callbackUrl interne sûr si présent,
+          // sinon accueil bailleur. Garde anti open-redirect centralisée.
+          const cb =
+            typeof window !== 'undefined'
+              ? safeCallbackUrl(window.location.search, data.role)
+              : null;
+          window.location.href = cb ?? '/dashboard/owner';
         }
       } else {
         setError("Connexion impossible. Veuillez réessayer.");

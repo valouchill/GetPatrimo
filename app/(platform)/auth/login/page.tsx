@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Shield, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import OtpInput from '@/app/components/OtpInput';
+import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
 type Mode = 'password' | 'otp';
 type OtpStep = 'email' | 'otp' | 'unlocking';
@@ -30,7 +31,18 @@ export default function LoginPage() {
     : '';
 
   // ── Helper: redirect after signIn ──
+  // V8.3 (audit M2) — honore un callbackUrl interne sûr (garde anti
+  // open-redirect centralisée dans lib/safe-callback-url) plutôt que de
+  // toujours retomber sur l'accueil du rôle.
   const redirectByRole = (role: string | undefined) => {
+    const callbackUrl =
+      typeof window !== 'undefined'
+        ? safeCallbackUrl(window.location.search, role)
+        : null;
+    if (callbackUrl) {
+      window.location.href = callbackUrl;
+      return;
+    }
     if (role === 'tenant') {
       window.location.href = '/dashboard/tenant';
     } else {
@@ -146,8 +158,9 @@ export default function LoginPage() {
         });
 
         if (result?.ok) {
-          // verify-otp ne renvoie pas le role — fallback owner
-          window.location.href = '/dashboard/owner';
+          // verify-otp ne renvoie pas le role — fallback owner, mais on
+          // honore tout de même un callbackUrl interne sûr (audit M2).
+          redirectByRole(undefined);
         } else {
           setError("Erreur d'authentification. Veuillez réessayer.");
           setOtpStep('otp');
