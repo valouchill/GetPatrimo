@@ -92,6 +92,19 @@ export async function POST(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
+    // V7.13 — Limite stricte : 1 ré-analyse réussie par dossier.
+    // La ré-analyse est une opération coûteuse (appels IA sur chaque pièce) ;
+    // une fois le dossier ré-analysé, le résultat fait foi.
+    if ((application.reanalyzeCount || 0) >= 1) {
+      return NextResponse.json(
+        {
+          error: 'Ce dossier a déjà été ré-analysé. La ré-analyse est limitée à une fois.',
+          code: 'ALREADY_REANALYZED',
+        },
+        { status: 409 },
+      );
+    }
+
     // Rate-limit / anti-double-clic
     const lastReanalyzedAt = application.lastReanalyzedAt
       ? new Date(application.lastReanalyzedAt).getTime()
@@ -203,6 +216,8 @@ export async function POST(
     };
 
     application.lastReanalyzedAt = new Date();
+    // V7.13 — Incrémente le compteur (limite 1 ré-analyse / dossier)
+    application.reanalyzeCount = (application.reanalyzeCount || 0) + 1;
     application.markModified('documents');
     application.markModified('financialSummary');
     await application.save();
@@ -212,6 +227,7 @@ export async function POST(
       analyzed: analyzedCount,
       skipped: skippedReasons.length,
       totalIncome: profile.totalMonthlyIncome,
+      reanalyzeCount: application.reanalyzeCount,
     });
 
     return NextResponse.json({

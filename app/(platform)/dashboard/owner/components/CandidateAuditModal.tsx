@@ -285,6 +285,14 @@ export function CandidateAuditModal({
   const [docsLoading, setDocsLoading] = React.useState(false);
   const [docsError, setDocsError] = React.useState<string | null>(null);
 
+  // V7.13 — Indice de Résilience V2 (source de vérité du header).
+  // Fetché depuis le cache aiAuditV2 au montage ; mis à jour live par
+  // <AnalysisV2Panel> (onResult) si l'owner relance l'analyse.
+  const [v2Resilience, setV2Resilience] = React.useState<{
+    score: number;
+    level: string;
+  } | null>(null);
+
   // ESC ferme la modale
   React.useEffect(() => {
     if (!open) return;
@@ -325,6 +333,37 @@ export function CandidateAuditModal({
       })
       .finally(() => {
         if (!cancelled) setDocsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, c?.id]);
+
+  // V7.13 — Fetch du cache aiAuditV2 au montage (GET, pas d'appel OpenAI)
+  // pour afficher l'Indice de Résilience V2 dans le header dès l'ouverture.
+  React.useEffect(() => {
+    if (!open || !c?.id) return;
+    let cancelled = false;
+    setV2Resilience(null);
+    fetch(`/api/owner/applications/${c.id}/analyze-v2`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (res.status !== 200) return null;
+        return res.json();
+      })
+      .then((data: { resilience?: { score?: number; level?: string } } | null) => {
+        if (cancelled || !data?.resilience) return;
+        if (
+          typeof data.resilience.score === 'number' &&
+          typeof data.resilience.level === 'string'
+        ) {
+          setV2Resilience({
+            score: data.resilience.score,
+            level: data.resilience.level,
+          });
+        }
+      })
+      .catch(() => {
+        /* pas de cache V2 ou erreur réseau → fallback score legacy */
       });
     return () => {
       cancelled = true;
@@ -426,12 +465,23 @@ export function CandidateAuditModal({
                   </p>
                 </div>
 
-                {/* Score + niveau metal (source unique de verite) */}
+                {/* Score + niveau (SOURCE UNIQUE DE VÉRITÉ = Indice de
+                    Résilience V2 si disponible, sinon fallback score legacy).
+                    V7.13 — le header reflète exactement le score de l'onglet
+                    "Audit Forensic" (computeResilienceIndex). */}
                 {(() => {
-                  const score = Math.max(0, Math.min(100, Math.round(c.score || 0)));
-                  const level = getMetalLevel(score);
+                  // V2 prioritaire ; le `level` V2 est déjà PLATINUM/GOLD/…
+                  const score = v2Resilience
+                    ? Math.max(0, Math.min(100, Math.round(v2Resilience.score)))
+                    : Math.max(0, Math.min(100, Math.round(c.score || 0)));
+                  const level = (v2Resilience?.level ||
+                    getMetalLevel(score)) as keyof typeof METAL_BADGE_CLASS;
+                  const isV2 = !!v2Resilience;
                   return (
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+                        Indice de Résilience
+                      </p>
                       <div className="flex items-baseline gap-1">
                         <span className="tabular-nums font-serif text-3xl font-bold leading-none text-emerald-900 sm:text-4xl">
                           {score}
@@ -443,6 +493,11 @@ export function CandidateAuditModal({
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ring-1 ${METAL_BADGE_CLASS[level]}`}
                         aria-label={`Niveau ${METAL_LABELS[level]}`}
+                        title={
+                          isV2
+                            ? 'Indice de Résilience V2 (analyse neuro-symbolique)'
+                            : "Score legacy — lancez l'analyse V2 dans l'onglet Audit Forensic"
+                        }
                       >
                         {level === 'PLATINUM' && (
                           <span aria-hidden="true" className="mr-1">★</span>
@@ -474,6 +529,7 @@ export function CandidateAuditModal({
                       (c.reviewDocuments || 0) +
                       (c.rejectedDocuments || 0)
                     }
+                    alreadyReanalyzed={c.reanalyzed === true}
                     variant="ghost"
                     size="sm"
                     onSuccess={() => {
@@ -582,7 +638,10 @@ export function CandidateAuditModal({
                   <TabsContent value="forensic">
                     {/* V2 algo neuro-symbolique : score V2 + breakdown par
                         pilier + Trust-List forensicAudit + hard gates */}
-                    <AnalysisV2Panel applicationId={c.id} />
+                    <AnalysisV2Panel
+                      applicationId={c.id}
+                      onResult={(r) => setV2Resilience(r)}
+                    />
                   </TabsContent>
 
                   <TabsContent value="documents">

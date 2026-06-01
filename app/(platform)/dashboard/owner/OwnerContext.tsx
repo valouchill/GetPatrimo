@@ -152,6 +152,8 @@ export interface Candidature {
   integrityScore?: { score: number; category: string; label: string };
   documentsCount?: number;
   certifiedDocumentsCount?: number;
+  // V7.13 — Ré-analyse IA déjà effectuée (limite 1 fois)
+  reanalyzed?: boolean;
 }
 
 export interface OwnerPropertyFlow {

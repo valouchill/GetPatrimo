@@ -240,17 +240,36 @@ function ForensicItem({
 export interface AnalysisV2PanelProps {
   applicationId: string;
   className?: string;
+  /**
+   * V7.13 — Notifie le parent (header de la modale) du score/niveau V2
+   * dès qu'un résultat est disponible (cache au montage OU re-run).
+   * Permet d'afficher l'Indice de Résilience V2 comme source de vérité.
+   */
+  onResult?: (r: { score: number; level: string }) => void;
 }
 
 export function AnalysisV2Panel({
   applicationId,
   className = '',
+  onResult,
 }: AnalysisV2PanelProps): React.ReactElement {
   const [loading, setLoading] = React.useState(false);
   const [cacheLoading, setCacheLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<AnalyzeV2Response | null>(null);
   const [isCached, setIsCached] = React.useState(false);
+
+  // V7.13 — Ref stable pour notifier le parent sans re-déclencher l'effet
+  const onResultRef = React.useRef(onResult);
+  React.useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  const notifyResult = React.useCallback((body: AnalyzeV2Response): void => {
+    onResultRef.current?.({
+      score: body.resilience.score,
+      level: body.resilience.level,
+    });
+  }, []);
 
   // ─── Auto-fetch du cache au montage (GET, pas d'appel OpenAI) ──────────
   React.useEffect(() => {
@@ -271,6 +290,7 @@ export function AnalysisV2Panel({
           const body = (await res.json()) as AnalyzeV2Response;
           setResult(body);
           setIsCached(true);
+          notifyResult(body);
           return;
         }
         // 401/403/404/500 sur GET ne sont pas bloquants : on tombe sur l'état
@@ -285,7 +305,7 @@ export function AnalysisV2Panel({
     return () => {
       cancelled = true;
     };
-  }, [applicationId]);
+  }, [applicationId, notifyResult]);
 
   async function runAnalysis(): Promise<void> {
     setLoading(true);
@@ -308,6 +328,7 @@ export function AnalysisV2Panel({
       }
       setResult(body as AnalyzeV2Response);
       setIsCached(false); // Fresh re-run → état "vient d'être analysé"
+      notifyResult(body as AnalyzeV2Response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
