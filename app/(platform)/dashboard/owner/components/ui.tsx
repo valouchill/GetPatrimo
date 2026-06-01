@@ -134,6 +134,10 @@ export type LocalBien = {
   purchasePrice?: number | null; charges?: number;
   status?: string; vacantSince?: string | null;
   grossYield?: number | null;
+  // V8.0 — Pay-per-Listing : quota d'analyses IA du bien
+  tier?: 'FREE' | 'ESSENTIAL' | 'PREMIUM' | 'MAX';
+  dossiersQuota?: number;
+  dossiersAnalyzedCount?: number;
 };
 
 export type LocalDossier = {
@@ -225,6 +229,10 @@ export function toBien(e: PropertyWithCandidatures): LocalBien {
     status: p.status || 'AVAILABLE',
     vacantSince: p.vacantSince || null,
     grossYield: (p.purchasePrice && p.rent) ? Math.round(((p.rent * 12) / p.purchasePrice) * 1000) / 10 : null,
+    // V8.0 — Pay-per-Listing
+    tier: p.tier || 'FREE',
+    dossiersQuota: p.dossiersQuota ?? 0,
+    dossiersAnalyzedCount: p.dossiersAnalyzedCount ?? 0,
   };
 }
 

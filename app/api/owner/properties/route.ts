@@ -216,6 +216,10 @@ export async function GET() {
             archived: prop.archived || false,
             managed: isManaged,
             isRented: prop.status === 'OCCUPIED',
+            // V8.0 — Pay-per-Listing : offre + quota du bien
+            tier: prop.tier || 'FREE',
+            dossiersQuota: Number(prop.dossiersQuota || 0),
+            dossiersAnalyzedCount: Number(prop.dossiersAnalyzedCount || 0),
             propertyType: prop.propertyType || 'APPARTEMENT',
             floor: prop.floor ?? null,
             rooms: prop.rooms ?? null,

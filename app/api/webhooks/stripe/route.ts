@@ -29,18 +29,54 @@ async function markEventProcessed(eventId: string, eventType: string) {
 // ── Handlers ────────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { propertyId, userId } = session.metadata || {};
+  const { propertyId, userId, tier, quota } = session.metadata || {};
 
   if (!propertyId) {
     logger.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
     return;
   }
 
-  await Property.findByIdAndUpdate(propertyId, {
+  const update: Record<string, unknown> = {
     managed: true,
     stripeCustomerId: session.customer as string,
     stripeSubscriptionId: session.subscription as string,
-  });
+  };
+
+  // V8.0 — Pay-per-Listing : applique l'offre + le quota inclus.
+  if (tier) {
+    update.tier = tier;
+    update.dossiersQuota = Number(quota || 0);
+    // Nouvelle souscription → on repart sur un compteur propre.
+    update.dossiersAnalyzedCount = 0;
+    update.analyzedApplicationIds = [];
+    update.overageReportedCount = 0;
+
+    // Récupère le subscription item "metered" (Price usage_type=metered)
+    // pour cibler les futurs createUsageRecord (dépassements).
+    try {
+      const stripe = getStripe();
+      const sub = await stripe.subscriptions.retrieve(
+        session.subscription as string,
+      );
+      const meteredItem = sub.items.data.find(
+        (it) => it.price?.recurring?.usage_type === 'metered',
+      );
+      if (meteredItem) {
+        update.stripeUsageItemId = meteredItem.id;
+      } else {
+        logger.warn('[stripe-webhook] Aucun item metered trouvé sur la souscription', {
+          subscriptionId: session.subscription,
+        });
+      }
+    } catch (err) {
+      logger.error('[stripe-webhook] Échec récupération item metered', {
+        subscriptionId: session.subscription,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  await Property.findByIdAndUpdate(propertyId, update);
 
   if (userId && session.customer) {
     await User.findByIdAndUpdate(userId, {
@@ -48,7 +84,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
   }
 
-  logger.info(`[stripe-webhook] Bien ${propertyId} activé (managed), user ${userId} → cus ${session.customer}.`);
+  logger.info(
+    `[stripe-webhook] Bien ${propertyId} activé (managed${tier ? `, tier ${tier}` : ''}), user ${userId} → cus ${session.customer}.`,
+  );
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -63,9 +101,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await Property.findByIdAndUpdate(property._id, {
     managed: false,
     stripeSubscriptionId: null,
+    // V8.0 — Retour à l'offre Gratuite (plus d'analyses IA incluses)
+    tier: 'FREE',
+    dossiersQuota: 0,
+    stripeUsageItemId: '',
   });
 
-  logger.info(`[stripe-webhook] Bien ${property._id} désactivé (subscription annulée).`);
+  logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription annulée).`);
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {

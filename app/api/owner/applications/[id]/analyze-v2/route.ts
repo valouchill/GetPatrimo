@@ -25,6 +25,11 @@ import Application from '@/models/Application';
 import Property from '@/models/Property';
 import { runFullAnalysis } from '@/lib/ai/tenant-analyzer';
 import type { AnalysisInputType } from '@/lib/ai/analysis-schema';
+import {
+  checkAnalysisAllowed,
+  consumeAnalysisQuota,
+  type QuotaProperty,
+} from '@/lib/billing/quota-service';
 
 const COOLDOWN_MS = 30_000;
 
@@ -226,9 +231,13 @@ export async function POST(
       );
     }
 
-    const property = await Property.findById((app as any).property as unknown)
-      .select('owner rentAmount')
-      .lean();
+    // V8.0 — Doc MUTABLE (pas .lean()) : on doit pouvoir incrémenter le
+    // quota et sauvegarder après une analyse réussie.
+    const property = await Property.findById(
+      (app as any).property as unknown,
+    ).select(
+      'owner rentAmount tier dossiersQuota dossiersAnalyzedCount analyzedApplicationIds overageReportedCount stripeUsageItemId stripeSubscriptionId managed',
+    );
 
     if (!property) {
       return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
@@ -240,6 +249,29 @@ export async function POST(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
+    // ─── V8.0 — Garde-fou Pay-per-Listing ──────────────────────────────
+    // Vérifie l'offre du bien AVANT de lancer l'analyse (économise un
+    // appel OpenAI si FREE / non autorisé).
+    const quotaCheck = checkAnalysisAllowed(
+      property as unknown as QuotaProperty,
+      id,
+    );
+    if (!quotaCheck.allowed) {
+      // FREE → 402 Payment Required : il faut souscrire une offre.
+      return NextResponse.json(
+        {
+          error:
+            "L'analyse IA n'est pas incluse dans l'offre Gratuite. Souscrivez une offre pour analyser ce dossier.",
+          code: 'PAYMENT_REQUIRED',
+          tier: quotaCheck.tier,
+          quota: quotaCheck.quota,
+          used: quotaCheck.used,
+          pricingUrl: '/pricing',
+        },
+        { status: 402 },
+      );
+    }
+
     const rentAmount = Number((property as any).rentAmount || 0);
 
     // Mapping Mongo → AnalysisInputType
@@ -248,6 +280,24 @@ export async function POST(
     // Pipeline neuro-symbolique
     cooldownRegistry.set(cooldownKey, now);
     const result = await runFullAnalysis(analysisInput);
+
+    // ─── V8.0 — Consommation du quota APRÈS succès ─────────────────────
+    // (jamais avant : on ne facture pas un dossier dont l'analyse a échoué)
+    let quotaConsumption: Awaited<ReturnType<typeof consumeAnalysisQuota>> | null =
+      null;
+    try {
+      quotaConsumption = await consumeAnalysisQuota(
+        property as unknown as QuotaProperty,
+        id,
+        quotaCheck.mode || 'WITHIN_QUOTA',
+      );
+    } catch (quotaErr) {
+      logger.error('analyze-v2 quota consume failed', {
+        applicationId: id,
+        error:
+          quotaErr instanceof Error ? quotaErr.message : String(quotaErr),
+      });
+    }
 
     // Persistance Mongo (cache + audit) — évite de rappeler OpenAI à chaque
     // ouverture de la modale. La forme {ai, resilience, meta} est garantie
@@ -284,9 +334,25 @@ export async function POST(
       decision: result.resilience.decision,
       hardGates: result.resilience.hardGates.length,
       cachedAt: cachedAt.toISOString(),
+      quotaMode: quotaConsumption?.mode,
+      quotaUsed: quotaConsumption?.used,
+      overageBilled: quotaConsumption?.overageBilled,
     });
 
-    return NextResponse.json({ ...result, cachedAt: cachedAt.toISOString() });
+    return NextResponse.json({
+      ...result,
+      cachedAt: cachedAt.toISOString(),
+      // V8.0 — état du quota après cette analyse (pour la jauge front)
+      quota: quotaConsumption
+        ? {
+            tier: quotaCheck.tier,
+            used: quotaConsumption.used,
+            quota: quotaConsumption.quota,
+            mode: quotaConsumption.mode,
+            overageBilled: quotaConsumption.overageBilled,
+          }
+        : null,
+    });
   } catch (error) {
     logger.error('POST /api/owner/applications/[id]/analyze-v2', {
       error: error instanceof Error ? error.message : error,

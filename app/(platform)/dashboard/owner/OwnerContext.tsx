@@ -267,6 +267,10 @@ export interface Property {
   rooms?: number | null;
   purchasePrice?: number | null;
   vacantSince?: string | null;
+  // V8.0 — Pay-per-Listing
+  tier?: 'FREE' | 'ESSENTIAL' | 'PREMIUM' | 'MAX';
+  dossiersQuota?: number;
+  dossiersAnalyzedCount?: number;
 }
 
 export interface PropertyWithCandidatures {
