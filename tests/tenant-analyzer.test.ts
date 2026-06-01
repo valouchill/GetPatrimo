@@ -385,6 +385,54 @@ console.log('\n[T13] Schéma forensicAudit : conformité Zod stricte');
     emptyOk.success);
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// V8.2 — Exception biométrique Didit (eIDAS)
+// ═════════════════════════════════════════════════════════════════════════════
+
+console.log('\n[T14] Biométrie Didit + dossier incomplet → PAS de plafond 65');
+{
+  // 10/10/10 = 100, incomplet, MAIS biométrie validée → pas de cap (reste 100)
+  const score = calculateFinalScore(
+    { financialStability: 10, documentAuthenticity: 10, professionalReliability: 10 },
+    { isFraudDetected: false, isDossierComplete: false, isBiometricVerified: true },
+  );
+  expect('biométrie + incomplet → 100 (plafond CNI levé)', score === 100, `got ${score}`);
+
+  const result = computeResilienceIndex(
+    makeAnalysis({
+      flags: { isFraudDetected: false, isDossierComplete: false, isIncomeSufficient: true },
+      subScores: { financialStability: 10, documentAuthenticity: 10, professionalReliability: 10 },
+    }),
+    { isBiometricVerified: true },
+  );
+  expect('computeResilienceIndex biométrie → 100', result.score === 100, `got ${result.score}`);
+  expect('level PLATINUM (pas SILVER)', result.level === 'PLATINUM');
+  expect('hard gate biométrie présent',
+    result.hardGates.some((g) => g.toLowerCase().includes('biométrique') || g.toLowerCase().includes('eidas')));
+  expect('pas de hard gate "incomplet"',
+    !result.hardGates.some((g) => g.toLowerCase().includes('incomplet')));
+}
+
+console.log('\n[T15] SANS biométrie + dossier incomplet → plafond 65 (régression)');
+{
+  // Même dossier mais SANS biométrie → le cap 65 s'applique toujours
+  const score = calculateFinalScore(
+    { financialStability: 10, documentAuthenticity: 10, professionalReliability: 10 },
+    { isFraudDetected: false, isDossierComplete: false, isBiometricVerified: false },
+  );
+  expect('sans biométrie + incomplet → 65 (cap maintenu)', score === 65, `got ${score}`);
+}
+
+console.log('\n[T16] Biométrie NE COUVRE PAS la fraude (paie falsifiée) → 15');
+{
+  // Biométrie validée MAIS fraude détectée sur fiche de paie → toujours ALERTE
+  const score = calculateFinalScore(
+    { financialStability: 10, documentAuthenticity: 0, professionalReliability: 10 },
+    { isFraudDetected: true, isDossierComplete: true, isBiometricVerified: true },
+  );
+  expect('biométrie + fraude → 15 (la biométrie n\'excuse pas la fraude)', score === 15, `got ${score}`);
+}
+
 console.log(`\n══════════════════════════════════════`);
 console.log(`Tests passés : ${passed}`);
 console.log(`Tests échoués : ${failed}`);

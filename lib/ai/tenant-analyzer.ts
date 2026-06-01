@@ -88,6 +88,15 @@ RÈGLES STRICTES :
    calculera l'Indice de Résilience final à partir de tes observations.
 3. Si une pièce majeure manque (CNI, fiches de paie, avis d'imposition),
    isDossierComplete=false ET tu listes la pièce dans anomaliesFound.
+   EXCEPTION BIOMÉTRIE (eIDAS Didit) : si "Identité vérifiée Didit (eIDAS) = OUI",
+   alors la CNI est considérée PRÉSENTE et AUTHENTIQUE à 100% (la biométrie
+   eIDAS vaut plus qu'un scan PDF). Dans ce cas :
+     - NE marque PAS isDossierComplete=false pour absence de CNI ;
+       isDossierComplete=false UNIQUEMENT si une pièce NON-identité manque
+       (fiches de paie, avis d'imposition).
+     - documentAuthenticity ne doit PAS être pénalisé pour l'identité.
+     - Valorise-le dans actionPlan, ex: "Identité biométrique certifiée
+       eIDAS, sécurité maximale.".
 4. Si tu détectes la moindre incohérence mathématique ou trace d'édition
    logicielle suspecte, isFraudDetected=true ET documentAuthenticity ≤ 2.
 5. Le ratio loyer/revenus > 35% sans garant solide → isIncomeSufficient=false.
@@ -263,7 +272,11 @@ export async function runFullAnalysis(
   options: { model?: string; timeoutMs?: number } = {},
 ): Promise<FullAnalysisResult> {
   const ai = await analyzeApplication(input, options);
-  const resilience = computeResilienceIndex(ai);
+  // V8.2 — Exception biométrique : l'identité vérifiée eIDAS (Didit) est un
+  // fait DÉTERMINISTE (pas une supposition du LLM) → on le passe à l'algo.
+  const resilience = computeResilienceIndex(ai, {
+    isBiometricVerified: input.identity?.diditVerified === true,
+  });
   return {
     ai,
     resilience,
