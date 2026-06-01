@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { getGrade, GRADE_SHORT, formatDate } from "@/lib/product-lexicon";
+import { getMetalLevel, METAL_LABELS, formatDate } from "@/lib/product-lexicon";
 
 export interface SealCertificateProps {
   score: number;
@@ -22,7 +22,8 @@ export function SealCertificate({
   spinning = true,
   className = "",
 }: SealCertificateProps) {
-  const grade = getGrade(score);
+  // V8.2 — niveau métal (single source of truth)
+  const level = getMetalLevel(score);
   const dateStr = sealedAt ? formatDate(sealedAt) : null;
 
   const cx = size / 2;
@@ -49,7 +50,7 @@ export function SealCertificate({
         viewBox={`0 0 ${size} ${size}`}
         className={spinning ? "animate-[spin_28s_linear_infinite]" : ""}
         role="img"
-        aria-label={`Cachet de certification PatrimoTrust ${GRADE_SHORT[grade]}`}
+        aria-label={`Cachet de certification PatrimoTrust ${METAL_LABELS[level]}`}
       >
         <defs>
           <path
@@ -91,11 +92,12 @@ export function SealCertificate({
         <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-emerald-900/70">
           Patrimo·Trust
         </div>
+        {/* V8.2 — score en héro + niveau métal (le mot ne tient pas en 5xl) */}
         <div className="font-serif text-5xl font-black leading-none text-emerald-900">
-          {grade}
+          {Math.round(score)}
         </div>
-        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-700">
-          Indice {Math.round(score)}%
+        <div className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+          {METAL_LABELS[level]}
         </div>
         {dateStr && (
           <div className="mt-1 text-[9px] text-slate-500">Scellé le {dateStr}</div>

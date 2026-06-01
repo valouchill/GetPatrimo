@@ -47,7 +47,7 @@ import {
   CandidateDossier,
   type DossierDocument,
 } from '@/app/components/audit';
-import { getGrade, GRADE_SHORT, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
+import { getMetalLevel, METAL_LABELS, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
 import { isEnabled } from '@/lib/features';
 import { useOwner } from '@/app/(platform)/dashboard/owner/OwnerContext';
@@ -195,10 +195,13 @@ function candidateName(c?: CandidateRecord | null) {
 
 function auditPresentation(c?: CandidateRecord | null) {
   const status = String(c?.ownerInsights?.aiAudit?.status || '');
-  const grade = c?.patrimometer?.grade;
   if (status === 'ALERT') return { tone: 'danger' as const, label: 'Alerte critique' };
   if (status === 'REVIEW') return { tone: 'warning' as const, label: 'Vérification requise' };
-  if (grade) return { tone: 'success' as const, label: `Grade ${grade}` };
+  // V8.2 — niveau métal dérivé du score (single source of truth)
+  const score = Number(c?.patrimometer?.score || 0);
+  if (score > 0) {
+    return { tone: 'success' as const, label: METAL_LABELS[getMetalLevel(score)] };
+  }
   return { tone: 'success' as const, label: 'Dossier fluide' };
 }
 
@@ -457,7 +460,7 @@ export default function CandidateAuditClient({
 
             <p className="mt-3 text-sm leading-7 text-slate-600">
               {PRODUCT.INDICE} : <span className="font-semibold text-slate-900">{formatResilience(Number(candidate.patrimometer?.score || 0))}</span>
-              <span className="ml-2 font-semibold text-emerald-700">· {GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}</span>
+              <span className="ml-2 font-semibold text-emerald-700">· {METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}</span>
               {candidate.ownerInsights?.aiAudit?.status && (
                 <span className="ml-2 text-slate-500">· {AUDIT_LABELS[(candidate.ownerInsights.aiAudit.status as AuditStatus)] || PRODUCT.AUDIT}</span>
               )}
@@ -538,7 +541,7 @@ export default function CandidateAuditClient({
                 auditStatus: candidate.ownerInsights?.aiAudit?.status,
               })}
               reasonCodes={(candidate.ownerInsights?.decisionSummary as { reasonCodes?: string[] } | undefined)?.reasonCodes}
-              headline={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
+              headline={METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}
               summary={
                 candidate.ownerInsights?.aiAudit?.summary ||
                 'Analyse complète disponible ci-dessous.'
@@ -723,7 +726,7 @@ export default function CandidateAuditClient({
         <MetricTile
           label={PRODUCT.INDICE}
           value={formatResilience(Number(candidate.patrimometer?.score || 0))}
-          caption={GRADE_SHORT[getGrade(Number(candidate.patrimometer?.score || 0))]}
+          caption={METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}
         />
         <MetricTile
           label="Solvabilité"

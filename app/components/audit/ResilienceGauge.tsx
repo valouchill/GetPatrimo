@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import { getGrade, GRADE_SHORT, GRADE_COLORS, formatResilience } from "@/lib/product-lexicon";
+import {
+  getMetalLevel,
+  METAL_LABELS,
+  METAL_BADGE_CLASS,
+  formatResilience,
+} from "@/lib/product-lexicon";
 
 const PatrimoTrustGauge = dynamic(() => import("@/app/components/PatrimoTrustGauge"), { ssr: false });
 
@@ -14,8 +19,8 @@ export interface ResilienceGaugeProps {
 }
 
 /**
- * Wrapper de PatrimoTrustGauge avec lexique produit V1 (Grade S, Indice de Résilience).
- * Affiche la jauge semi-circulaire + label Grade en dessous.
+ * Wrapper de PatrimoTrustGauge — jauge V2 (niveau métal : PLATINUM/GOLD/
+ * SILVER/ALERTE). Affiche la jauge semi-circulaire + badge niveau en dessous.
  */
 export function ResilienceGauge({
   score,
@@ -23,8 +28,8 @@ export function ResilienceGauge({
   showLabel = true,
   className = "",
 }: ResilienceGaugeProps) {
-  const grade = getGrade(score);
-  const colors = GRADE_COLORS[grade];
+  // V8.2 — Single source of truth : niveau métal dérivé du score (≥90/75/50)
+  const level = getMetalLevel(score);
   const scale = size === "sm" ? "scale-75" : size === "lg" ? "scale-110" : "scale-100";
 
   return (
@@ -33,8 +38,9 @@ export function ResilienceGauge({
         <PatrimoTrustGauge score={Math.round(score)} />
       </div>
       {showLabel && (
-        <div className={`-mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 ring-1 ${colors.bg} ${colors.text} ${colors.ring}`}>
-          <span className="font-serif text-sm font-bold tracking-tight">{GRADE_SHORT[grade]}</span>
+        <div className={`-mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 ring-1 ${METAL_BADGE_CLASS[level]}`}>
+          {level === "PLATINUM" && <span aria-hidden="true">★</span>}
+          <span className="font-serif text-sm font-bold tracking-tight">{METAL_LABELS[level]}</span>
           <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">
             {formatResilience(score)}
           </span>

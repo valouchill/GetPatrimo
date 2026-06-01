@@ -1,21 +1,26 @@
 'use client';
 
 /**
- * <ScorePill> — Pill score résilience (0-100) coloré selon la grade.
+ * <ScorePill> — Pill Indice de Résilience (0-100) coloré selon le niveau
+ * métal (V2 : PLATINUM/GOLD/SILVER/ALERTE).
  *
  * Promu depuis dashboard/owner/components/ui.tsx pour usage partagé
  * (côté locataire dans TenantDashboardClient, côté apply tunnel pour
  * la gauge PatrimoMeter, etc.).
  *
- * Consomme GRADE_COLORS de lib/product-lexicon.ts.
+ * V8.2 — Single source of truth : consomme METAL_* de product-lexicon.
  */
 
 import * as React from 'react';
-import { getGrade, GRADE_SHORT, GRADE_COLORS } from '@/lib/product-lexicon';
+import {
+  getMetalLevel,
+  METAL_LABELS,
+  METAL_COLORS,
+} from '@/lib/product-lexicon';
 
 export interface ScorePillProps {
   score: number;
-  /** Affiche le grade en plus du score (ex: "S · 92%") */
+  /** Affiche le niveau en plus du score (ex: "PLATINUM · 92%") */
   showGrade?: boolean;
   /** Classes additionnelles */
   className?: string;
@@ -26,22 +31,16 @@ export function ScorePill({
   showGrade = false,
   className = '',
 }: ScorePillProps): React.ReactElement {
-  const grade = getGrade(score);
-  const { bg, text, ring } = GRADE_COLORS[grade];
-  const dot =
-    grade === 'S' || grade === 'A'
-      ? 'bg-emerald-500'
-      : grade === 'B' || grade === 'C'
-      ? 'bg-amber-500'
-      : 'bg-red-500';
+  const level = getMetalLevel(score);
+  const { bg, text, ring, barFill } = METAL_COLORS[level];
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-bold ring-1 ${bg} ${text} ${ring} ${className}`}
-      aria-label={`Score résilience : ${score} sur 100`}
+      aria-label={`Indice de Résilience : ${score} sur 100 (${METAL_LABELS[level]})`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
-      {showGrade ? `${GRADE_SHORT[grade]} · ${score}%` : `${score}/100`}
+      <span className={`h-1.5 w-1.5 rounded-full ${barFill}`} aria-hidden="true" />
+      {showGrade ? `${METAL_LABELS[level]} · ${score}%` : `${score}/100`}
     </span>
   );
 }
