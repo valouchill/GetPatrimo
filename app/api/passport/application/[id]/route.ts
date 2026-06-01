@@ -5,6 +5,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
+import { userCanAccessApplicationPassport } from '@/lib/passport-access';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { buildPassportViewModel, ensurePassportSlug } = require('@/src/utils/passportViewModel');
 
@@ -31,6 +32,14 @@ export async function GET(
     if (!app) {
       return NextResponse.json({ error: 'Candidature introuvable' }, { status: 404 });
     }
+
+    // V8.3 — Anti-IDOR : locataire propriétaire du dossier OU propriétaire
+    // du bien lié uniquement.
+    const authorized = await userCanAccessApplicationPassport(app as any, session as any);
+    if (!authorized) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     let slug = (app as any).passportSlug;
     if (!slug) {
       slug = ensurePassportSlug(app);
