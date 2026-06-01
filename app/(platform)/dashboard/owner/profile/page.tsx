@@ -1,17 +1,30 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import {
-  User, Mail, Phone, MapPin, Save, Check, Shield, Zap,
-  Crown, ExternalLink, Receipt, Lock, LogOut, Eye, EyeOff,
-  AlertTriangle, Loader2, Download, Trash2, ChevronRight,
+  User, Mail, Phone, MapPin, Save, Check, Shield,
+  Crown, ExternalLink, Lock, LogOut, Eye, EyeOff,
+  AlertTriangle, Loader2, Download, Trash2, ChevronRight, Sparkles,
 } from 'lucide-react';
 import { useOwner } from '../OwnerContext';
-import { isEnabled } from '@/lib/features';
+import { OwnerShell } from '../components/OwnerShell';
+import {
+  TIERS,
+  normalizeTier,
+  formatTierPrice,
+  type PropertyTier,
+} from '@/lib/billing/tiers';
 
-const FREE_AUDIT_LIMIT = 3;
+// V8.2 — Ordre des offres pour déterminer la "meilleure" + la prochaine.
+const TIER_RANK: Record<PropertyTier, number> = {
+  FREE: 0,
+  ESSENTIAL: 1,
+  PREMIUM: 2,
+  MAX: 3,
+};
 
 // ─── Input component ────────────────────────────────────────────
 function FormInput({
@@ -298,9 +311,28 @@ export default function ProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const totalAudits = data.reduce((sum, e) => sum + e.candidatures.length, 0);
-  const usagePercent = Math.min((totalAudits / FREE_AUDIT_LIMIT) * 100, 100);
-  const hasActiveSubscription = data.some((e) => e.property.managed === true);
+  // V8.2 — Agrégat Pay-per-Listing au niveau du compte (somme sur les biens).
+  const props = data.map((e) => e.property);
+  const bestTier: PropertyTier = props.reduce<PropertyTier>((best, p) => {
+    const t = normalizeTier(p.tier);
+    return TIER_RANK[t] > TIER_RANK[best] ? t : best;
+  }, 'FREE');
+  const totalQuota = props.reduce((s, p) => s + Number(p.dossiersQuota || 0), 0);
+  const totalUsed = props.reduce(
+    (s, p) => s + Number(p.dossiersAnalyzedCount || 0),
+    0,
+  );
+  const usagePercent =
+    totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
+  // Offre supérieure à proposer (upsell). MAX → on reste sur MAX.
+  const nextTier: PropertyTier =
+    bestTier === 'MAX'
+      ? 'MAX'
+      : bestTier === 'PREMIUM'
+      ? 'MAX'
+      : bestTier === 'ESSENTIAL'
+      ? 'PREMIUM'
+      : 'ESSENTIAL';
 
   // ── Load profile ──
   const loadProfile = useCallback(async () => {
@@ -434,19 +466,23 @@ export default function ProfilePage() {
   const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
   if (profileLoading) {
+    // V8.2 (Mission 2) — la page hérite désormais de la Sidebar via OwnerShell
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
-      </div>
+      <OwnerShell>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+        </div>
+      </OwnerShell>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <OwnerShell>
+    <div className="max-w-5xl mx-auto w-full p-6 lg:p-8">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Mon Profil</h1>
-        <p className="text-sm text-slate-500 mt-1">Gérez vos informations personnelles et votre compte.</p>
+        <h1 className="font-serif text-2xl font-bold text-emerald-900 sm:text-3xl">Mon Profil</h1>
+        <p className="text-sm text-slate-500 mt-1">Gérez vos informations personnelles, votre sécurité et votre abonnement.</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -596,162 +632,127 @@ export default function ProfilePage() {
           </motion.div>
         </div>
 
-        {/* ── Right column: status card ── */}
+        {/* ── Right column: Carte Abonnement & Quotas (V8.2 Pay-per-Listing) ── */}
         <div className="lg:col-span-5">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="lg:sticky lg:top-28"
+            className="lg:sticky lg:top-28 space-y-4"
           >
             <div className="bg-slate-950 text-white rounded-2xl p-7 shadow-2xl shadow-slate-950/30">
-              {!isEnabled('OWNER_PAYWALL') ? (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                      <Crown className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm flex items-center gap-2">
-                        Accès Souverain
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      </h3>
-                      <p className="text-xs text-slate-400">Lancement V1 · Toutes les fonctionnalités débloquées</p>
-                    </div>
-                  </div>
-                  <div className="space-y-3 mb-2">
-                    {[
-                      { icon: Check, label: 'Audit Forensic illimité' },
-                      { icon: Shield, label: 'Indice de Résilience pour chaque candidat' },
-                      { icon: Zap, label: 'Passeport Locatif PDF partageable' },
-                    ].map(({ icon: Icon, label }) => (
-                      <div key={label} className="flex items-center gap-2.5">
-                        <Icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-sm text-slate-300">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-slate-500 text-center mt-5">
-                    Phase de lancement — accès complet gratuit
-                  </p>
-                </>
-              ) : hasActiveSubscription ? (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                      <Crown className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm flex items-center gap-2">
-                        Gestion Souveraine
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      </h3>
-                      <p className="text-xs text-slate-400">Abonnement actif · 9,99 €/mois</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mb-8">
-                    {[
-                      { icon: Check, label: 'Profils candidats déverrouillés' },
-                      { icon: Receipt, label: 'Génération de bail sécurisé' },
-                      { icon: Shield, label: 'Quittances automatiques' },
-                      { icon: Zap, label: 'Suivi de paiement & relances' },
-                    ].map(({ icon: Icon, label }) => (
-                      <div key={label} className="flex items-center gap-2.5">
-                        <Icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-sm text-slate-300">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={handlePortal}
-                    disabled={portalLoading}
-                    className="w-full py-3 bg-white/10 border border-white/20 text-white font-medium rounded-xl hover:bg-white/15 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {portalLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <><ExternalLink className="w-4 h-4" /> Gérer ma facturation</>
+              {/* En-tête offre actuelle */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm flex items-center gap-2">
+                    Offre {TIERS[bestTier].label}
+                    {bestTier !== 'FREE' && (
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                     )}
-                  </button>
-                  <p className="text-[11px] text-slate-500 text-center mt-3">
-                    Factures · Moyen de paiement · Résiliation — Portail sécurisé Stripe
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {props.length} bien{props.length > 1 ? 's' : ''} ·{' '}
+                    {bestTier === 'FREE'
+                      ? 'Aucune analyse IA incluse'
+                      : `${TIERS[bestTier].quota} analyses / bien`}
                   </p>
-                </>
+                </div>
+              </div>
+
+              {/* Jauge d'utilisation agrégée */}
+              {totalQuota > 0 ? (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-slate-400">Dossiers analysés</span>
+                    <span className="font-mono text-amber-400">
+                      {totalUsed} / {totalQuota}
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${usagePercent}%` }}
+                      transition={{ duration: 1, delay: 0.3 }}
+                      className={`h-full rounded-full ${
+                        usagePercent >= 100
+                          ? 'bg-gradient-to-r from-red-500 to-red-400'
+                          : usagePercent >= 90
+                            ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                            : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                      }`}
+                    />
+                  </div>
+                  {usagePercent >= 90 && (
+                    <p className="mt-2 text-[11px] text-amber-300">
+                      Quota presque atteint — les prochains dossiers seront
+                      facturés 0,49 € / unité.
+                    </p>
+                  )}
+                </div>
               ) : (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm">Compte Gratuit</h3>
-                      <p className="text-xs text-slate-400">Plan actuel</p>
-                    </div>
-                  </div>
-
-                  {/* Usage gauge */}
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-slate-400">Audits IA utilisés</span>
-                      <span className="font-mono text-amber-400">{totalAudits}/{FREE_AUDIT_LIMIT}</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${usagePercent}%` }}
-                        transition={{ duration: 1, delay: 0.3 }}
-                        className={`h-full rounded-full ${
-                          usagePercent >= 100
-                            ? 'bg-gradient-to-r from-red-500 to-red-400'
-                            : usagePercent >= 66
-                              ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                              : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Plans */}
-                  <div className="space-y-3 mb-5">
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Pack Mise en Location — 89 €
-                    </h4>
-                    {['Audit complet débloqué', 'Génération du Bail sécurisé', "Module État des lieux d'entrée"].map((f) => (
-                      <div key={f} className="flex items-center gap-2.5">
-                        <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-sm text-slate-300">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="border-t border-slate-800 mb-5" />
-
-                  <div className="space-y-3 mb-8">
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      Gestion Souveraine — 9,99 €/mois
-                    </h4>
-                    {['Quittances automatiques', 'Suivi de paiement', 'État des lieux de sortie'].map((f) => (
-                      <div key={f} className="flex items-center gap-2.5">
-                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="text-sm text-slate-300">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button className="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 font-medium rounded-xl hover:scale-[1.02] transition-transform shadow-lg shadow-amber-500/20 text-sm">
-                    Accepter un dossier pour activer
-                  </button>
-                  <p className="text-[11px] text-slate-500 text-center mt-3">
-                    89 € (une fois) + 9,99 €/mois sans engagement · 100% déductible
+                <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                  <p className="text-xs text-amber-200">
+                    Souscrivez une offre pour débloquer l&rsquo;analyse IA
+                    anti-fraude sur vos dossiers.
                   </p>
-                </>
+                </div>
               )}
+
+              {/* CTA Upsell (fond Or) */}
+              <Link
+                href="/pricing"
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 font-bold rounded-xl hover:scale-[1.02] transition-transform shadow-lg shadow-amber-500/20 text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                {bestTier === 'MAX'
+                  ? 'Gérer mon offre Max'
+                  : `Passer à l'${TIERS[nextTier].label} pour ${formatTierPrice(TIERS[nextTier].priceEur)}`}
+              </Link>
+
+              {/* Portail facturation Stripe (si abonnement actif) */}
+              {bestTier !== 'FREE' && (
+                <button
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                  className="mt-3 w-full py-2.5 bg-white/10 border border-white/20 text-white font-medium rounded-xl hover:bg-white/15 transition-all text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {portalLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <><ExternalLink className="w-3.5 h-3.5" /> Gérer ma facturation</>
+                  )}
+                </button>
+              )}
+
+              <p className="text-[11px] text-slate-500 text-center mt-4">
+                Paiement par logement · Dépassement 0,49 € / dossier ·
+                Résiliable à tout moment
+              </p>
             </div>
+
+            {/* Mini-récap des avantages de l'offre supérieure */}
+            {bestTier !== 'MAX' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                  Inclus dans {TIERS[nextTier].label}
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {TIERS[nextTier].features.slice(0, 3).map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-700">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
     </div>
+    </OwnerShell>
   );
 }
