@@ -22,6 +22,7 @@ import {
   User,
 } from 'lucide-react';
 import { PropertyEditModal } from '../../components/PropertyEditModal';
+import { PropertyQuotaGauge } from '../../components/PropertyQuotaGauge';
 import type { LocalBien } from '../../components/ui';
 
 import CheckoutModal from '@/app/components/CheckoutModal';
@@ -55,6 +56,10 @@ type PropertyRecord = {
   status?: string;
   acceptedTenantId?: string | null;
   isRented?: boolean;
+  // V8.0 — Pay-per-Listing
+  tier?: 'FREE' | 'ESSENTIAL' | 'PREMIUM' | 'MAX';
+  dossiersQuota?: number;
+  dossiersAnalyzedCount?: number;
   flow?: {
     stage: 'search' | 'analysis' | 'selection' | 'contract' | 'management';
     stageLabel: string;
@@ -628,6 +633,15 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
           <QuickStat label="Masqués" value={property.flow?.sealedCount || 0} />
           <QuickStat label="Prêts au bail" value={property.flow?.readyToContractCount || 0} />
         </div>
+
+        {/* V8.0 — Jauge quota d'analyses IA (Pay-per-Listing) */}
+        <PropertyQuotaGauge
+          propertyId={propertyId}
+          tier={property.tier}
+          used={property.dossiersAnalyzedCount}
+          quota={property.dossiersQuota}
+          className="mt-5"
+        />
 
         <div className="mt-5 flex flex-wrap gap-3">
           <button

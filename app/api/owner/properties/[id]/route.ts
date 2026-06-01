@@ -340,6 +340,10 @@ export async function GET(
       managed: isManaged,
       status: property.status,
       isRented: property.status === 'OCCUPIED',
+      // V8.0 — Pay-per-Listing : offre + quota d'analyses IA du bien
+      tier: property.tier || 'FREE',
+      dossiersQuota: Number(property.dossiersQuota || 0),
+      dossiersAnalyzedCount: Number(property.dossiersAnalyzedCount || 0),
       flow,
       primaryCandidate: flow.primaryCandidate,
       managementTools: {

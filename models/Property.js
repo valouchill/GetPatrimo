@@ -76,6 +76,26 @@ const PropertySchema = new mongoose.Schema({
   stripeSubscriptionId: { type: String, default: '' },
   acceptedTenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', default: null },
 
+  // V8.0 — Pay-per-Listing : suivi des quotas d'analyse IA par bien.
+  // Grille : FREE(0) · ESSENTIAL(25) · PREMIUM(100) · MAX(250).
+  // Dépassement facturé 0,49€/dossier via Stripe Metered Billing.
+  tier: {
+    type: String,
+    enum: ['FREE', 'ESSENTIAL', 'PREMIUM', 'MAX'],
+    default: 'FREE',
+  },
+  // Quota d'analyses IA inclus dans l'offre (0 / 25 / 100 / 250)
+  dossiersQuota: { type: Number, default: 0 },
+  // Nombre de dossiers DISTINCTS déjà analysés (incrémenté 1×/dossier)
+  dossiersAnalyzedCount: { type: Number, default: 0 },
+  // IDs des Applications déjà comptabilisées (évite de re-décompter une
+  // re-analyse du même dossier — facturation "par dossier", pas "par appel")
+  analyzedApplicationIds: [{ type: String }],
+  // Nombre de dépassements déjà reportés à Stripe (audit metered billing)
+  overageReportedCount: { type: Number, default: 0 },
+  // ID du subscription item Stripe "metered" (cible des createUsageRecord)
+  stripeUsageItemId: { type: String, default: '' },
+
 }, { timestamps: true });
 
 function generatePrivilegeCode(address) {

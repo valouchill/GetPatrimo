@@ -258,6 +258,11 @@ export function AnalysisV2Panel({
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<AnalyzeV2Response | null>(null);
   const [isCached, setIsCached] = React.useState(false);
+  // V8.0 — Blocage offre FREE (402 PAYMENT_REQUIRED) → upsell
+  const [paymentRequired, setPaymentRequired] = React.useState<{
+    message: string;
+    pricingUrl: string;
+  } | null>(null);
 
   // V7.13 — Ref stable pour notifier le parent sans re-déclencher l'effet
   const onResultRef = React.useRef(onResult);
@@ -310,6 +315,7 @@ export function AnalysisV2Panel({
   async function runAnalysis(): Promise<void> {
     setLoading(true);
     setError(null);
+    setPaymentRequired(null);
     try {
       const res = await fetch(
         `/api/owner/applications/${applicationId}/analyze-v2`,
@@ -320,8 +326,22 @@ export function AnalysisV2Panel({
       );
       const body = (await res.json().catch(() => ({}))) as
         | AnalyzeV2Response
-        | { error?: string };
+        | { error?: string; code?: string; pricingUrl?: string };
       if (!res.ok) {
+        // V8.0 — 402 : offre FREE → upsell au lieu d'une erreur brute
+        if (
+          res.status === 402 &&
+          (body as { code?: string }).code === 'PAYMENT_REQUIRED'
+        ) {
+          setPaymentRequired({
+            message:
+              (body as { error?: string }).error ||
+              "L'analyse IA nécessite une offre payante.",
+            pricingUrl:
+              (body as { pricingUrl?: string }).pricingUrl || '/pricing',
+          });
+          return;
+        }
         const message =
           (body as { error?: string }).error || `Erreur HTTP ${res.status}`;
         throw new Error(message);
@@ -432,7 +452,32 @@ export function AnalysisV2Panel({
           </div>
         )}
 
-        {error && (
+        {/* V8.0 — Offre FREE : upsell (au lieu d'une erreur) */}
+        {paymentRequired && (
+          <div className="rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-900 text-amber-400">
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-emerald-900">
+                  Activez l&rsquo;analyse IA
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                  {paymentRequired.message}
+                </p>
+                <a
+                  href={paymentRequired.pricingUrl}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-600"
+                >
+                  Voir les offres
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && !paymentRequired && (
           <div
             role="alert"
             className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
