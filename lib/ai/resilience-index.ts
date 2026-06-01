@@ -28,6 +28,13 @@ export interface SubScores {
 export interface ScoringFlags {
   isFraudDetected: boolean;
   isDossierComplete: boolean;
+  /**
+   * V8.2 — Identité vérifiée par biométrie Didit (eIDAS). Plus forte qu'un
+   * simple scan de CNI : si true, l'identité est certifiée présente ET
+   * authentique → on NE plafonne PAS le score pour "dossier incomplet"
+   * (la CNI est couverte par la biométrie).
+   */
+  isBiometricVerified?: boolean;
 }
 
 /**
@@ -101,12 +108,15 @@ export type GradeInfo = LevelInfo;
  * Règles défensives (dans l'ordre) :
  *   1. Tolérance zéro fraude  : isFraudDetected=true → return 15 (ALERTE)
  *   2. Plafond dossier incomplet : !isDossierComplete && score>65 → return 65
+ *      EXCEPTION V8.2 : levé si isBiometricVerified (eIDAS Didit) — l'identité
+ *      est certifiée, on ne pénalise plus l'absence de scan CNI.
  */
 export function calculateFinalScore(
   subScores: SubScores,
   flags: ScoringFlags,
 ): number {
-  // Règle 1 : Tolérance zéro fraude
+  // Règle 1 : Tolérance zéro fraude (la biométrie n'excuse JAMAIS une fraude
+  // détectée sur d'autres pièces — fiches de paie, avis d'imposition…)
   if (flags.isFraudDetected) {
     return 15; // Forcé en statut ALERTE critique
   }
@@ -118,8 +128,16 @@ export function calculateFinalScore(
     subScores.professionalReliability * 2;
   baseScore = Math.round(baseScore);
 
-  // Règle 2 : Plafond de dossier incomplet
-  if (!flags.isDossierComplete && baseScore > 65) {
+  // Règle 2 : Plafond de dossier incomplet.
+  // V8.2 — Exception biométrique : si l'identité est certifiée eIDAS (Didit),
+  // on ne plafonne PAS (la CNI est couverte). Le LLM est par ailleurs instruit
+  // de ne marquer isDossierComplete=false que pour des pièces NON-identité
+  // manquantes (paie, impôts) — auquel cas le cap reste pertinent.
+  if (
+    !flags.isDossierComplete &&
+    !flags.isBiometricVerified &&
+    baseScore > 65
+  ) {
     return 65; // Plafonné au maximum du palier SILVER tant qu'il manque des pièces
   }
 
@@ -182,12 +200,17 @@ export function getGradeFromScore(score: number): LevelInfo {
  * dans `analysis.ownerRecommendation` pour comparaison, mais n'altère
  * jamais le résultat de cet algo (garantie déterministe).
  */
-export function computeResilienceIndex(analysis: AIAnalysisType): ResilienceResult {
+export function computeResilienceIndex(
+  analysis: AIAnalysisType,
+  options: { isBiometricVerified?: boolean } = {},
+): ResilienceResult {
   const { flags, subScores } = analysis;
+  const isBiometricVerified = options.isBiometricVerified === true;
 
   const scoringFlags: ScoringFlags = {
     isFraudDetected: flags.isFraudDetected,
     isDossierComplete: flags.isDossierComplete,
+    isBiometricVerified,
   };
 
   // Pondérations effectives pour le breakdown (avant règles défensives)
@@ -205,9 +228,21 @@ export function computeResilienceIndex(analysis: AIAnalysisType): ResilienceResu
   if (flags.isFraudDetected) {
     hardGates.push('Fraude détectée — score forcé à 15 (ALERTE critique)');
   }
-  if (!flags.isDossierComplete && rawScore > 65 && !flags.isFraudDetected) {
+  // V8.2 — le plafond "dossier incomplet" ne s'applique PAS si la biométrie
+  // eIDAS est validée (identité certifiée).
+  if (
+    !flags.isDossierComplete &&
+    rawScore > 65 &&
+    !flags.isFraudDetected &&
+    !isBiometricVerified
+  ) {
     hardGates.push(
       'Dossier incomplet — score plafonné à 65 (haut de palier SILVER)',
+    );
+  }
+  if (isBiometricVerified) {
+    hardGates.push(
+      'Identité biométrique certifiée eIDAS (Didit) — sécurité maximale, plafond CNI levé',
     );
   }
 
