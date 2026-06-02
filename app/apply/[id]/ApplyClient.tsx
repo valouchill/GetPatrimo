@@ -223,6 +223,128 @@ function calculateSolvencyRatio(
 }
 
 // --- Main Component ---
+type CoTenantSlot = { slot: number; firstName?: string; lastName?: string; email?: string; status?: string; invitationSent?: boolean };
+
+/**
+ * Section additive « Colocation » (Phase 3b) : l'initiateur invite ses
+ * colocataires (slots 2-4) à certifier leur identité (sendCoTenantInvitation).
+ * Composant isolé : n'affecte pas la logique d'upload/scoring du tunnel.
+ */
+function ColocationSection({
+  token,
+  userEmail,
+  initiatorName,
+  coTenants,
+  setCoTenants,
+}: {
+  token: string;
+  userEmail: string;
+  initiatorName: { firstName?: string; lastName?: string; email?: string };
+  coTenants: CoTenantSlot[];
+  setCoTenants: (value: CoTenantSlot[] | ((prev: CoTenantSlot[]) => CoTenantSlot[])) => void;
+}) {
+  const [enabled, setEnabled] = useState(coTenants.length > 0);
+  const [draft, setDraft] = useState({ firstName: '', lastName: '', email: '' });
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const usedSlots = coTenants.map((c) => Number(c.slot));
+  let nextSlot: number | null = null;
+  for (let s = 2; s <= 4; s += 1) {
+    if (!usedSlots.includes(s)) { nextSlot = s; break; }
+  }
+
+  const invite = async () => {
+    const email = draft.email.trim().toLowerCase();
+    if (!email || nextSlot == null) return;
+    const slot = nextSlot;
+    setSending(true);
+    setMsg(null);
+    try {
+      const { sendCoTenantInvitation } = await import('@/app/actions/send-cotenant-invitation');
+      const res = await sendCoTenantInvitation({
+        applyToken: token,
+        coTenantEmail: email,
+        slot,
+        firstName: draft.firstName.trim(),
+        lastName: draft.lastName.trim(),
+        initiator: {
+          firstName: initiatorName.firstName,
+          lastName: initiatorName.lastName,
+          email: initiatorName.email || userEmail,
+        },
+      });
+      if (res.success) {
+        setCoTenants((prev) => [
+          ...prev.filter((c) => Number(c.slot) !== slot),
+          { slot, firstName: draft.firstName.trim(), lastName: draft.lastName.trim(), email, status: 'INVITED', invitationSent: true },
+        ]);
+        setDraft({ firstName: '', lastName: '', email: '' });
+        setMsg({ ok: true, text: `Invitation envoyée à ${email}.` });
+      } else {
+        setMsg({ ok: false, text: res.error || 'Erreur lors de l’invitation.' });
+      }
+    } catch {
+      setMsg({ ok: false, text: 'Erreur réseau. Veuillez réessayer.' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Colocation (optionnel)</p>
+          <h3 className="text-lg font-serif text-navy">Vous candidatez à plusieurs&nbsp;?</h3>
+          <p className="text-sm text-slate-500 mt-1">Invitez vos colocataires : chacun certifie son identité (eIDAS) et leurs revenus se cumulent au foyer.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEnabled((v) => !v)}
+          className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${enabled ? 'bg-emerald-900 text-white' : 'border border-slate-200 text-slate-600 hover:border-emerald-300'}`}
+        >
+          {enabled ? 'Activé' : 'Activer'}
+        </button>
+      </div>
+
+      {enabled && (
+        <div className="mt-5 space-y-3">
+          {[...coTenants].sort((a, b) => a.slot - b.slot).map((c) => (
+            <div key={c.slot} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-800">
+                  {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
+                </p>
+                <p className="truncate text-xs text-slate-400">{c.email}</p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${c.status === 'CERTIFIED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                {c.status === 'CERTIFIED' ? 'Certifié' : 'Invité'}
+              </span>
+            </div>
+          ))}
+
+          {nextSlot != null ? (
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <input value={draft.firstName} onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))} placeholder="Prénom" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400" />
+                <input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))} placeholder="Nom" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400" />
+                <input value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} placeholder="Email" type="email" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400" />
+              </div>
+              <button type="button" onClick={invite} disabled={sending || !draft.email.trim()} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
+                {sending ? 'Envoi…' : 'Inviter ce colocataire'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-slate-400">Maximum atteint (vous + 3 colocataires).</p>
+          )}
+          {msg && <p className={`text-xs font-medium ${msg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{msg.text}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ApplyClient({ token }: { token: string }) {
   const notify = useNotification();
   // Passeport Locatif universel (codeless) : self-token PT-SELF-*, aucun bien associé.
@@ -266,6 +388,9 @@ export default function ApplyClient({ token }: { token: string }) {
   const [guarantorFirstName, setGuarantorFirstName] = useState('');
   const [guarantorLastName, setGuarantorLastName] = useState('');
   const [guarantorInvitationSent, setGuarantorInvitationSent] = useState(false);
+  // Colocation (Phase 3b) — colocataires invités (slots 2-4). Additif : n'affecte
+  // pas la logique d'upload/scoring existante du tunnel.
+  const [coTenants, setCoTenants] = useState<Array<{ slot: number; firstName?: string; lastName?: string; email?: string; status?: string; invitationSent?: boolean }>>([]);
   const [guarantorDirectCertification, setGuarantorDirectCertification] = useState(false);
   const [guarantorDiditSessionId, setGuarantorDiditSessionId] = useState<string | null>(null);
   const [guarantorDiditVerificationUrl, setGuarantorDiditVerificationUrl] = useState<string | null>(null);
@@ -1361,6 +1486,19 @@ export default function ApplyClient({ token }: { token: string }) {
                 invitationSent: Boolean(slotTwo.invitationSent),
               });
             }
+          }
+
+          if (Array.isArray(application.coTenants) && application.coTenants.length > 0) {
+            setCoTenants(
+              application.coTenants.map((c: { slot?: number; firstName?: string; lastName?: string; email?: string; status?: string; invitationSent?: boolean }) => ({
+                slot: Number(c.slot),
+                firstName: c.firstName || '',
+                lastName: c.lastName || '',
+                email: c.email || '',
+                status: c.status || 'NONE',
+                invitationSent: Boolean(c.invitationSent),
+              })),
+            );
           }
           
           // Afficher un message de bienvenue personnalisé
@@ -3796,6 +3934,18 @@ export default function ApplyClient({ token }: { token: string }) {
                     <h1 className="text-5xl font-serif text-[#0F172A] leading-tight mb-4">Revenus & Statut</h1>
                     <p className="text-slate-400 text-lg italic">Structurez vos preuves d&apos;activité et vos revenus en toute conformité.</p>
                   </div>
+
+                <ColocationSection
+                  token={token}
+                  userEmail={userEmail || ''}
+                  initiatorName={{
+                    firstName: formData.firstName || diditIdentity?.firstName || undefined,
+                    lastName: formData.lastName || diditIdentity?.lastName || undefined,
+                    email: formData.email || userEmail || undefined,
+                  }}
+                  coTenants={coTenants}
+                  setCoTenants={setCoTenants}
+                />
 
                 {/* Profiling administratif */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
