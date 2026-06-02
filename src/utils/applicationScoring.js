@@ -581,32 +581,73 @@ function computeApplicationPatrimometer(input = {}) {
 
   const normalizedGuarantee = normalizeGuaranteeState(input.guarantee, input.legacyGuarantor);
 
-  const tenantIdentity = scoreIdentityBlock({
-    documents: grouped.tenant.filter(isCertifiedDocument),
-    maxScore: TENANT_WEIGHTS.identity,
-    verified: diditStatus === 'verified',
-    warnings,
-    label: 'Locataire',
+  // ── Colocation : sous-scores PAR SLOT locataire (slot 1 = principal ; 2-4 =
+  // colocataires, qui utilisent subjectType:'TENANT' + subjectSlot:2..4). Pour UN
+  // seul slot, l'agrégation ci-dessous se réduit EXACTEMENT au scoring mono. ──
+  const tenantSlotsInput = safeArray(input.coTenants);
+  const tenantDocsBySlot = new Map();
+  grouped.tenant.forEach((doc) => {
+    const slot = Number(doc.subjectSlot) || 1;
+    if (!tenantDocsBySlot.has(slot)) tenantDocsBySlot.set(slot, []);
+    tenantDocsBySlot.get(slot).push(doc);
   });
-  const tenantIncomeAndActivity = scoreIncomeAndActivity(
-    candidateStatus,
-    grouped.tenant.filter(isCertifiedDocument),
-    TENANT_WEIGHTS,
-    warnings,
-    'Locataire'
-  );
-  const tenantDomicile = scoreDomicileBlock({
-    documents: grouped.tenant.filter(isCertifiedDocument),
-    maxScore: TENANT_WEIGHTS.domicile,
-    warnings,
-    label: 'Locataire',
+  const activeSlots = new Set([1]);
+  tenantDocsBySlot.forEach((_docs, slot) => activeSlots.add(slot));
+  tenantSlotsInput.forEach((ct) => {
+    const s = Number(ct && ct.slot);
+    if (s >= 2 && s <= 4) activeSlots.add(s);
+  });
+  const orderedTenantSlots = [...activeSlots].sort((a, b) => a - b);
+
+  const isTenantSlotVerified = (slot) => {
+    if (slot === 1) return diditStatus === 'verified';
+    const ct = tenantSlotsInput.find((c) => Number(c && c.slot) === slot);
+    return Boolean(ct && (ct.status === 'CERTIFIED'
+      || String((ct.didit && ct.didit.status) || ct.diditStatus || '').toUpperCase() === 'VERIFIED'));
+  };
+  const tenantSlotProfile = (slot) => {
+    if (slot === 1) return candidateStatus;
+    const ct = tenantSlotsInput.find((c) => Number(c && c.slot) === slot);
+    return normalizeProfile(ct && ct.profile, candidateStatus);
+  };
+  const tenantSlotLabel = (slot) => (slot === 1 ? 'Locataire' : `Colocataire ${slot}`);
+
+  const tenantSlotScores = orderedTenantSlots.map((slot) => {
+    const docs = (tenantDocsBySlot.get(slot) || []).filter(isCertifiedDocument);
+    const identity = scoreIdentityBlock({
+      documents: docs,
+      maxScore: TENANT_WEIGHTS.identity,
+      verified: isTenantSlotVerified(slot),
+      warnings,
+      label: tenantSlotLabel(slot),
+    });
+    const incomeAndActivity = scoreIncomeAndActivity(
+      tenantSlotProfile(slot),
+      docs,
+      TENANT_WEIGHTS,
+      warnings,
+      tenantSlotLabel(slot),
+    );
+    const domicile = scoreDomicileBlock({
+      documents: docs,
+      maxScore: TENANT_WEIGHTS.domicile,
+      warnings,
+      label: tenantSlotLabel(slot),
+    });
+    return { slot, identity, income: incomeAndActivity.income, activity: incomeAndActivity.activity, domicile };
   });
 
+  // Agrégation foyer (règles tunables ; 1 slot ⇒ identique au mono) :
+  //   identité = MOYENNE → gate le passeport via tenantComplete (la moyenne
+  //              n'atteint 25 que si CHAQUE colocataire a son identité certifiée)
+  //   revenus  = SOMME plafonnée → un colocataire qui gagne assez couvre le foyer
+  //   activité = MAX → le foyer est stable si au moins un l'est (couple mono-revenu)
+  //   domicile = MAX → un justificatif de domicile partagé suffit
   const tenant = {
-    identity: tenantIdentity,
-    income: tenantIncomeAndActivity.income,
-    activity: tenantIncomeAndActivity.activity,
-    domicile: tenantDomicile,
+    identity: round(tenantSlotScores.reduce((s, x) => s + x.identity, 0) / tenantSlotScores.length),
+    income: clamp(tenantSlotScores.reduce((s, x) => s + x.income, 0), 0, TENANT_WEIGHTS.income),
+    activity: Math.max(...tenantSlotScores.map((x) => x.activity)),
+    domicile: Math.max(...tenantSlotScores.map((x) => x.domicile)),
   };
   tenant.total = tenant.identity + tenant.income + tenant.activity + tenant.domicile;
 
