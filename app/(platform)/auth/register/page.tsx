@@ -32,6 +32,22 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Pré-sélection du parcours via ?role= (depuis l'Espace Locataire) ──
+  // /auth/register?role=tenant saute le choix de rôle et ouvre directement le
+  // flux locataire ; ?role=owner ouvre le formulaire bailleur. Lu côté client
+  // (pas de Suspense requis) ; un léger flash du choix de rôle est acceptable.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const r = new URLSearchParams(window.location.search).get('role');
+    if (r === 'tenant') {
+      setRole('tenant');
+      setStep('tenantCode');
+    } else if (r === 'owner') {
+      setRole('owner');
+      setStep('ownerForm');
+    }
+  }, []);
+
   // ── Password strength (0-5) ──
   const passwordScore = useMemo(() => {
     let s = 0;
