@@ -67,13 +67,38 @@ const ApplicantDocumentSchema = new mongoose.Schema({
   id: { type: String },
   category: { type: String, enum: ['IDENTITY', 'INCOME', 'ADDRESS', 'GUARANTOR'] },
   subjectType: { type: String, enum: ['TENANT', 'GUARANTOR', 'VISALE'], default: 'TENANT' },
-  subjectSlot: { type: Number, enum: [1, 2] },
+  subjectSlot: { type: Number, enum: [1, 2, 3, 4] }, // 1 = locataire principal ; 2-4 = colocataires
   type: { type: String },
   fileName: { type: String },
   fileUrl: { type: String },
   status: { type: String, enum: ['PENDING', 'ANALYZING', 'CERTIFIED', 'FLAGGED', 'REJECTED', 'ILLEGIBLE', 'NEEDS_REVIEW'], default: 'PENDING' },
   uploadedAt: { type: Date, default: Date.now },
   aiAnalysis: { type: AiAnalysisSchema, default: null },
+}, { _id: false });
+
+// Miroir dénormalisé d'un colocataire (slots 2-4). Les données primaires
+// d'identité/invitation vivent dans la collection CoTenant ; ce miroir évite un
+// populate pour l'affichage bailleur/passeport et porte l'état recalculé.
+const CoTenantMirrorSchema = new mongoose.Schema({
+  slot: { type: Number, enum: [2, 3, 4] },
+  coTenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'CoTenant' },
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  email: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  profile: { type: String, default: 'Etudiant' },
+  status: { type: String, enum: ['NONE', 'INVITED', 'PENDING', 'CERTIFIED', 'AUDITED'], default: 'NONE' },
+  certificationMethod: { type: String, enum: ['DIDIT', 'AUDIT', null], default: null },
+  invitationSent: { type: Boolean, default: false },
+  didit: {
+    status: { type: String, default: 'PENDING' },
+    verifiedAt: { type: Date },
+    identityData: {
+      firstName: { type: String },
+      lastName: { type: String },
+      birthDate: { type: String },
+    },
+  },
 }, { _id: false });
 
 const ApplicantScoringSchema = new mongoose.Schema({
@@ -104,8 +129,13 @@ const ApplicationSchema = new mongoose.Schema({
   property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
   applyToken: { type: String, index: true },
 
-  // Informations personnelles
+  // Informations personnelles (locataire principal = slot 1)
   profile: { type: ApplicantProfileSchema, default: () => ({}) },
+
+  // Colocation — colocataires (slots 2-4). Mono-locataire : isColocation=false, coTenants=[].
+  isColocation: { type: Boolean, default: false },
+  coTenantCount: { type: Number, default: 1, min: 1, max: 4 },
+  coTenants: { type: [CoTenantMirrorSchema], default: [] },
 
   // État du tunnel
   tunnel: {
@@ -129,6 +159,12 @@ const ApplicationSchema = new mongoose.Schema({
     totalMonthlyIncome: { type: Number, default: 0, min: [0, 'Le revenu ne peut pas être négatif'] },
     incomeSource: { type: String },
     certifiedIncome: { type: Boolean, default: false },
+    // Colocation : détail des revenus par slot locataire (totalMonthlyIncome = somme du foyer).
+    perSlot: [{
+      slot: { type: Number },
+      monthlyIncome: { type: Number, default: 0 },
+      certified: { type: Boolean, default: false },
+    }],
   },
 
   // Garant

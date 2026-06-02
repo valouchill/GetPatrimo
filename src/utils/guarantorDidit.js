@@ -7,9 +7,9 @@ function normalizeEmail(value) {
 }
 
 function normalizeSlot(value) {
-  if (value === 2 || value === '2') return 2;
-  if (value === 1 || value === '1') return 1;
-  return null;
+  // 1-4 : garants (slots 1-2) ET colocataires (slots 2-4).
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
 }
 
 function isVerifiedDiditStatus(status) {
