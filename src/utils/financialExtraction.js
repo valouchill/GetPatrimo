@@ -249,6 +249,42 @@ function pickBestDocumentNetIncome({ documentType, financialData, extractedData 
 
 function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } = {}) {
   const documents = Array.isArray(application?.documents) ? application.documents : [];
+
+  // ── Colocation : si plusieurs slots locataires (subjectType:'TENANT' +
+  // subjectSlot 2-4), calculer le revenu PAR SLOT (récursivement, via le chemin
+  // mono ci-dessous) puis SOMMER au niveau du foyer. Pour 1 slot, on n'entre
+  // jamais dans cette branche → le code mono s'exécute à l'identique. ──
+  const tenantSlots = [...new Set(
+    documents
+      .filter((doc) => !doc?.subjectType || doc.subjectType === 'TENANT')
+      .map((doc) => Number(doc?.subjectSlot) || 1)
+  )].sort((a, b) => a - b);
+  if (tenantSlots.length > 1) {
+    const perSlotProfiles = tenantSlots.map((slot) => {
+      const slotDocs = documents.filter(
+        (doc) => (!doc?.subjectType || doc.subjectType === 'TENANT') && (Number(doc?.subjectSlot) || 1) === slot
+      );
+      return { slot, prof: deriveApplicationFinancialProfile({ application: { documents: slotDocs }, fallbackIncome: 0 }) };
+    });
+    const totalMonthlyIncome = roundCurrency(
+      perSlotProfiles.reduce((sum, { prof }) => sum + (prof.totalMonthlyIncome || 0), 0)
+    );
+    return {
+      ...perSlotProfiles[0].prof, // slot 1 → champs breakdown/payslips peuplés
+      totalMonthlyIncome,
+      certifiedIncome: perSlotProfiles.every(({ prof }) => prof.certifiedIncome),
+      incomeSource: 'HOUSEHOLD',
+      basisLabel: `Revenu cumulé du foyer (${perSlotProfiles.length} personnes)`,
+      primaryIncome: totalMonthlyIncome,
+      perSlot: perSlotProfiles.map(({ slot, prof }) => ({
+        slot,
+        monthlyIncome: prof.totalMonthlyIncome || 0,
+        certified: Boolean(prof.certifiedIncome),
+        incomeSource: prof.incomeSource,
+      })),
+    };
+  }
+
   const incomeDocs = documents.filter((document) => {
     const ai = document?.aiAnalysis || {};
     const type = normalizeDocumentType(document?.type || ai?.documentType || ai?.document_metadata?.type);
