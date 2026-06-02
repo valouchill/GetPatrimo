@@ -32,7 +32,7 @@ export async function saveApplicationProgress(
       id: string;
       category: string;
       subjectType?: 'tenant' | 'guarantor' | 'visale';
-      subjectSlot?: 1 | 2;
+      subjectSlot?: 1 | 2 | 3 | 4;
       type: string;
       fileName: string;
       fileUrl?: string;

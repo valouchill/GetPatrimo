@@ -127,7 +127,7 @@ export interface DocumentFile {
   canForceSend?: boolean;
   categoryMatch?: boolean;
   subjectType?: 'tenant' | 'guarantor' | 'visale';
-  subjectSlot?: 1 | 2;
+  subjectSlot?: 1 | 2 | 3 | 4;
   inconsistencyDetected?: boolean;
   inconsistencyJustification?: string;
   inconsistencyResolved?: boolean;

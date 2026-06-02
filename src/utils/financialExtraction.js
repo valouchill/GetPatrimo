@@ -7,6 +7,15 @@ function normalizeDocumentType(value) {
     .replace(/^_+|_+$/g, '');
 }
 
+// Un document compte comme revenu \u00ab locataire \u00bb si son subjectType est absent
+// ou vaut TENANT \u2014 insensible \u00e0 la casse, car buildPortalDocuments \u00e9met 'tenant'
+// (minuscule) tandis que le reste du scoring raisonne en 'TENANT'. Les pi\u00e8ces
+// garant / Visale sont exclues du revenu locataire (et de la somme du foyer).
+function isTenantSubject(doc) {
+  const st = doc && doc.subjectType;
+  return !st || String(st).toUpperCase() === 'TENANT';
+}
+
 function normalizeIncomeAmount(value) {
   if (value === null || value === undefined || value === '') return 0;
   if (typeof value === 'number') {
@@ -256,13 +265,13 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
   // jamais dans cette branche → le code mono s'exécute à l'identique. ──
   const tenantSlots = [...new Set(
     documents
-      .filter((doc) => !doc?.subjectType || doc.subjectType === 'TENANT')
+      .filter((doc) => isTenantSubject(doc))
       .map((doc) => Number(doc?.subjectSlot) || 1)
   )].sort((a, b) => a - b);
   if (tenantSlots.length > 1) {
     const perSlotProfiles = tenantSlots.map((slot) => {
       const slotDocs = documents.filter(
-        (doc) => (!doc?.subjectType || doc.subjectType === 'TENANT') && (Number(doc?.subjectSlot) || 1) === slot
+        (doc) => isTenantSubject(doc) && (Number(doc?.subjectSlot) || 1) === slot
       );
       return { slot, prof: deriveApplicationFinancialProfile({ application: { documents: slotDocs }, fallbackIncome: 0 }) };
     });
@@ -288,7 +297,7 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
   const incomeDocs = documents.filter((document) => {
     const ai = document?.aiAnalysis || {};
     const type = normalizeDocumentType(document?.type || ai?.documentType || ai?.document_metadata?.type);
-    if (document?.subjectType && document.subjectType !== 'TENANT') return false;
+    if (document?.subjectType && !isTenantSubject(document)) return false;
     return [
       'BULLETIN_SALAIRE',
       'AVIS_IMPOSITION',
