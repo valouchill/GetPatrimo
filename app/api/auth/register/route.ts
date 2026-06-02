@@ -30,15 +30,18 @@ export async function POST(req: NextRequest) {
 
     await connectDiditDb();
 
-    // Locataire : valider le code de bien avant tout
+    // Locataire : si un code est fourni, le valider ; sinon → Passeport Locatif
+    // universel (codeless). L'auto-candidature reçoit un self-token PT-SELF-*.
     let property: { _id: unknown; address?: string; city?: string } | null = null;
+    let selfToken: string | undefined;
     if (role === 'tenant') {
-      if (!propertyCode) {
-        return NextResponse.json({ error: 'Code de bien requis' }, { status: 400 });
-      }
-      property = await Property.findOne({ applyToken: propertyCode }).lean();
-      if (!property) {
-        return NextResponse.json({ error: 'Code de bien introuvable' }, { status: 400 });
+      if (propertyCode) {
+        property = await Property.findOne({ applyToken: propertyCode }).lean();
+        if (!property) {
+          return NextResponse.json({ error: 'Code de bien introuvable' }, { status: 400 });
+        }
+      } else {
+        selfToken = `PT-SELF-${crypto.randomBytes(6).toString('hex')}`;
       }
     }
 
@@ -71,6 +74,7 @@ export async function POST(req: NextRequest) {
       role,
       userId: String(user._id),
       propertyId: property ? String(property._id) : undefined,
+      selfToken,
     });
   } catch (err) {
     logger.error('[register]', { error: err instanceof Error ? err.message : err });

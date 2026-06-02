@@ -224,7 +224,7 @@ export default function LocataireGatewayClient() {
 
             <div className="mt-auto pt-6">
               <Link
-                href="/auth/register?role=tenant"
+                href="/auth/register?role=tenant&mode=codeless"
                 className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_14px_30px_-12px_rgba(6,78,59,0.5)] transition-all hover:-translate-y-0.5 hover:bg-emerald-800"
               >
                 Créer mon dossier universel

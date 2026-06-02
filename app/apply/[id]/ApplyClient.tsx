@@ -225,6 +225,8 @@ function calculateSolvencyRatio(
 // --- Main Component ---
 export default function ApplyClient({ token }: { token: string }) {
   const notify = useNotification();
+  // Passeport Locatif universel (codeless) : self-token PT-SELF-*, aucun bien associé.
+  const isUniversal = token.startsWith('PT-SELF-');
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
@@ -2779,7 +2781,7 @@ export default function ApplyClient({ token }: { token: string }) {
     );
   }
 
-  if (!property) {
+  if (!property && !isUniversal) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <motion.div
@@ -2830,7 +2832,7 @@ export default function ApplyClient({ token }: { token: string }) {
                 Candidature Sécurisée
               </p>
               <h1 className="text-white text-2xl md:text-3xl font-medium leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                {property.address || property.name || 'Résidence'}
+                {isUniversal ? 'Passeport Locatif universel' : (property?.address || property?.name || 'Résidence')}
               </h1>
             </div>
 
@@ -2839,8 +2841,8 @@ export default function ApplyClient({ token }: { token: string }) {
 
           {/* Corps */}
           <div className="p-8 md:p-10">
-            {/* Loyer */}
-            {property.rentAmount && (
+            {/* Loyer (masqué en mode passeport universel : pas de bien associé) */}
+            {!isUniversal && property?.rentAmount && (
               <div className="text-center mb-6">
                 <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Loyer charges comprises</p>
                 <p className="text-3xl font-bold text-slate-900" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
