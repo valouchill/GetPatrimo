@@ -34,6 +34,13 @@ export default function LuxeHeader() {
         </div>
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
           <Link
+            href="/locataire"
+            className="rounded-full border border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700 sm:px-5 sm:text-xs sm:tracking-widest"
+          >
+            <span className="sm:hidden">Locataire</span>
+            <span className="hidden sm:inline">Espace locataire</span>
+          </Link>
+          <Link
             href="/dashboard-luxe.html"
             className="rounded-full border border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-navy transition hover:border-emerald/60 hover:text-emerald sm:px-5 sm:text-xs sm:tracking-widest"
           >

@@ -13,7 +13,7 @@
  * fond clair, beaucoup d'air, cartes arrondies, charte émeraude + or conservée.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Key,
@@ -31,6 +31,14 @@ export default function LocataireGatewayClient() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pré-remplissage du code depuis ?code= (liens partagés par le bailleur,
+  // ex: /locataire?code=PT-789). Lu côté client, une fois au montage.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const c = new URLSearchParams(window.location.search).get('code');
+    if (c) setCode(c.trim());
+  }, []);
 
   // Accepte un code brut OU un lien collé (on extrait le token de /apply/<token>).
   const extractToken = (raw: string): string => {
