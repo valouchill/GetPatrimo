@@ -30,6 +30,21 @@ export interface PassportViewModel {
   readinessReasons: string[];
   warnings: string[];
   nextAction: string | null;
+  // Colocation — composition du foyer (mono → household null).
+  householdLabel?: string;
+  household?: {
+    isColocation: boolean;
+    size: number;
+    label: string;
+    certifiedCount: number;
+    members: Array<{
+      slot: number;
+      name: string;
+      profile: string | null;
+      identityVerified: boolean;
+      isPrimary: boolean;
+    }>;
+  } | null;
   hero: {
     name: string;
     fullName: string;

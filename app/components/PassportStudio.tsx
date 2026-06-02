@@ -4,11 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   CheckCircle2,
+  Clock,
   Copy,
   Download,
   Loader2,
   Share2,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import {
   ActionBar,
@@ -30,6 +32,20 @@ interface PassportStudioData {
   summary: string;
   readinessReasons: string[];
   warnings: string[];
+  householdLabel?: string;
+  household?: {
+    isColocation: boolean;
+    size: number;
+    label: string;
+    certifiedCount: number;
+    members: Array<{
+      slot: number;
+      name: string;
+      profile: string | null;
+      identityVerified: boolean;
+      isPrimary: boolean;
+    }>;
+  } | null;
   hero: {
     fullName: string;
     profession: string;
@@ -225,7 +241,9 @@ export default function PassportStudio({
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.32em] text-emerald-200/80">Aperçu web</p>
             <h3 className="mt-4 break-words font-serif text-4xl tracking-tight sm:text-5xl">
-              {passport?.hero.fullName || fallbackName}
+              {passport?.household?.isColocation
+                ? passport.household.label
+                : passport?.hero.fullName || fallbackName}
             </h3>
             <p className="mt-3 break-anywhere text-sm uppercase tracking-[0.22em] text-slate-300">
               {passport?.hero.profession || 'Profil locataire'} · {passport?.hero.region || 'Région masquée'}
@@ -233,6 +251,32 @@ export default function PassportStudio({
             <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-slate-200">
               {passport?.summary || fallbackSummary}
             </p>
+
+            {passport?.household?.isColocation && passport.household.members?.length > 0 && (
+              <div className="mt-5">
+                <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.28em] text-emerald-200/80">
+                  <Users className="h-3.5 w-3.5" aria-hidden="true" /> Foyer ·{' '}
+                  {passport.household.size} personnes
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {passport.household.members.map((m) => (
+                    <span
+                      key={m.slot}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-100"
+                      title={m.identityVerified ? 'Identité certifiée (eIDAS)' : 'Identité en attente'}
+                    >
+                      {m.identityVerified ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+                      )}
+                      {m.name}
+                      {m.isPrimary ? ' · titulaire' : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <ActionBar className="mt-6">
               <span className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-slate-100">

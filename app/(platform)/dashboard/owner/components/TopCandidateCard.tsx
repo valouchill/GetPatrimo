@@ -19,6 +19,7 @@ import {
   Crown,
   ShieldCheck,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import type { LocalDossier, LocalBien } from './ui';
 import {
@@ -180,7 +181,9 @@ export function TopCandidateCard({
 
   // Identité
   const initials = computeInitials(c.prenom, c.nom);
-  const fullName = `${c.prenom || ''} ${c.nom || ''}`.trim() || 'Candidat';
+  const baseName = `${c.prenom || ''} ${c.nom || ''}`.trim() || 'Candidat';
+  // Colocation : le nom affiché devient le label foyer (« Alice D. + 2 colocataires »).
+  const fullName = c.isColocation && c.householdLabel ? c.householdLabel : baseName;
   const isSelected = c.statut === 'selectionne';
   // V6.6 — Métal institutionnel (PLATINUM/GOLD/SILVER/ALERTE) à la place
   // du legacy lettrage S/A/B/C/D. Source de vérité : product-lexicon.
@@ -253,6 +256,11 @@ export function TopCandidateCard({
             {c.contrat || 'Profil'}
             {bien ? ` · ${bien.label}` : ''}
           </p>
+          {c.isColocation && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+              <Users className="h-3 w-3" aria-hidden="true" /> Colocation · {c.householdSize || 2} personnes
+            </span>
+          )}
         </div>
 
         {/* Stack de badges top-right : rank + grade */}

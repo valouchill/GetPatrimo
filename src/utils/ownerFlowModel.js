@@ -46,6 +46,10 @@ function dedupe(values) {
 
 function toDisplayName(candidate) {
   if (!candidate) return 'Aucun dossier';
+  // Colocation : le label foyer (déjà masqué côté route si scellé) prime.
+  if (candidate.isColocation && candidate.householdLabel) {
+    return candidate.householdLabel;
+  }
   if (candidate.isSealed) {
     return candidate.sealedLabel || candidate.sealedId || 'Profil masqué';
   }
@@ -451,6 +455,10 @@ function buildPrimaryCandidateSummary(candidate) {
   return {
     id: candidate.id || null,
     label: toDisplayName(candidate),
+    isColocation: Boolean(candidate?.isColocation),
+    householdSize: candidate?.isColocation
+      ? 1 + (Array.isArray(candidate?.coTenants) ? candidate.coTenants.length : 0)
+      : 1,
     rank: Number(candidate?.rank || 0) || null,
     isTop3: Boolean(candidate?.isTop3),
     isOwnerSelected: Boolean(candidate?.isOwnerSelected),

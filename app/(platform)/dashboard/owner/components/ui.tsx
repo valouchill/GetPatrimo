@@ -146,6 +146,8 @@ export type LocalDossier = {
   revenus: number; contrat: string; score: number; grade: string;
   statut: 'en_attente' | 'selectionne' | 'refuse'; isSealed: boolean;
   sealedLabel?: string; garantie?: string; guaranteeMode?: 'NONE' | 'VISALE' | 'PHYSICAL';
+  isColocation?: boolean; householdLabel?: string; householdSize?: number;
+  coTenants?: Array<{ slot: number; firstName: string; lastName: string; status: string; identityVerified: boolean }>;
   auditStatus?: string; auditSummary?: string;
   effortRateLabel?: string; remainingIncomeLabel?: string; qualityScore?: number;
   contractReady?: boolean; submittedAt?: string;
@@ -279,6 +281,10 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     statut: c.isOwnerSelected ? 'selectionne' : 'en_attente',
     isSealed: c.isSealed,
     sealedLabel: c.sealedLabel,
+    isColocation: Boolean(c.isColocation),
+    householdLabel: c.householdLabel,
+    householdSize: c.isColocation && Array.isArray(c.coTenants) ? 1 + c.coTenants.length : 1,
+    coTenants: Array.isArray(c.coTenants) ? c.coTenants : undefined,
     garantie: ins?.guarantee?.label,
     guaranteeMode: c.guarantee?.mode || ins?.guarantee?.mode,
     auditStatus: ins?.aiAudit?.status,
