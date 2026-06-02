@@ -73,6 +73,18 @@ export default function RegisterPage() {
 
   const canSubmitForm = emailValid && passwordValid && passwordsMatch;
 
+  // UX — détaille ce qui bloque encore la soumission, pour expliquer un bouton
+  // désactivé (sinon l'utilisateur croit que « le bouton ne fonctionne pas »).
+  const formBlockers: string[] = [];
+  if (!emailValid) formBlockers.push('un email valide');
+  if (password.length < 12) formBlockers.push('12 caractères');
+  if (!/[A-Z]/.test(password)) formBlockers.push('une majuscule');
+  if (!/[a-z]/.test(password)) formBlockers.push('une minuscule');
+  if (!/\d/.test(password)) formBlockers.push('un chiffre');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) formBlockers.push('un caractère spécial');
+  if (passwordValid && !passwordsMatch) formBlockers.push('confirmer le mot de passe à l’identique');
+  const showBlockers = !canSubmitForm && (email.length > 0 || password.length > 0) && formBlockers.length > 0;
+
   // ── Validation live du code de bien (débouncé 400ms) ──
   useEffect(() => {
     if (step !== 'tenantCode') return;
@@ -325,6 +337,7 @@ export default function RegisterPage() {
                     <>Créer mon coffre-fort <ArrowRight className="w-4 h-4" /></>
                   )}
                 </button>
+                <BlockHint blockers={formBlockers} show={showBlockers} />
               </motion.div>
             )}
 
@@ -491,6 +504,7 @@ export default function RegisterPage() {
                     <>{codeless ? 'Créer mon Passeport' : 'Rejoindre le bien'} <ArrowRight className="w-4 h-4" /></>
                   )}
                 </button>
+                <BlockHint blockers={formBlockers} show={showBlockers} />
               </motion.div>
             )}
 
@@ -557,6 +571,20 @@ function ErrorBox({ text }: { text: string }) {
     >
       {text}
     </motion.p>
+  );
+}
+
+/**
+ * Explique pourquoi le bouton de soumission est désactivé (UX) : liste ce qu'il
+ * reste à renseigner. Évite l'impression que « le bouton ne fonctionne pas ».
+ */
+function BlockHint({ blockers, show }: { blockers: string[]; show: boolean }) {
+  if (!show || blockers.length === 0) return null;
+  return (
+    <p className="mt-3 text-center text-xs leading-relaxed text-slate-400">
+      Pour activer le bouton, il manque encore&nbsp;:{' '}
+      <span className="font-medium text-slate-600">{blockers.join(', ')}</span>.
+    </p>
   );
 }
 
