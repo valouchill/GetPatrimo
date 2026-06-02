@@ -3,12 +3,9 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { connectDiditDb } from '../../../didit/db';
 import { logger } from '@/lib/server-logger';
 import CoTenant from '@/models/CoTenant';
-import Application from '@/models/Application';
-import Property from '@/models/Property';
+import { syncCoTenantCertification } from '@/lib/cotenant-sync';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fetchDiditSessionVerification } = require('@/src/utils/guarantorDidit');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { recomputeApplicationScore } = require('@/src/utils/recomputeApplication');
 
 /** Vérification HMAC-SHA256 de la signature du webhook Didit. */
 function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
@@ -79,64 +76,13 @@ export async function POST(request: NextRequest) {
       coTenant.certifiedAt = new Date();
       await coTenant.save();
 
-      // ── RE-SYNC vers l'Application (clé : le flux garant ne le faisait pas) ──
-      if (coTenant.applicationId) {
-        const application = await Application.findById(coTenant.applicationId);
-        if (application) {
-          const didit = {
-            status: 'VERIFIED',
-            verifiedAt: new Date(),
-            identityData: {
-              firstName: diditStatus.firstName || coTenant.firstName || '',
-              lastName: diditStatus.lastName || coTenant.lastName || '',
-              birthDate: diditStatus.birthDate || '',
-            },
-          };
-          const mirror = (application.coTenants || []).find(
-            (c: { slot?: number }) => Number(c.slot) === Number(coTenant.slot),
-          );
-          if (mirror) {
-            mirror.status = 'CERTIFIED';
-            mirror.certificationMethod = 'DIDIT';
-            mirror.didit = didit;
-            if (diditStatus.firstName) mirror.firstName = diditStatus.firstName;
-            if (diditStatus.lastName) mirror.lastName = diditStatus.lastName;
-          } else {
-            application.coTenants = application.coTenants || [];
-            application.coTenants.push({
-              slot: coTenant.slot,
-              coTenantId: coTenant._id,
-              firstName: coTenant.firstName || '',
-              lastName: coTenant.lastName || '',
-              email: coTenant.email || '',
-              phone: coTenant.phone || '',
-              profile: coTenant.profile || 'Etudiant',
-              status: 'CERTIFIED',
-              certificationMethod: 'DIDIT',
-              invitationSent: true,
-              didit,
-            });
-          }
-          application.isColocation = true;
-
-          let rentAmount = 0;
-          if (application.property) {
-            const prop = (await Property.findById(application.property)
-              .select('rentAmount')
-              .lean()) as { rentAmount?: number } | null;
-            rentAmount = Number(prop?.rentAmount) || 0;
-          }
-          recomputeApplicationScore(application, {
-            propertyRentAmount: rentAmount,
-            fallbackIncome: application.financialSummary?.totalMonthlyIncome || 0,
-          });
-          await application.save();
-          logger.info('[didit-cotenant-webhook] Colocataire certifié + score recalculé', {
-            applicationId: String(application._id),
-            slot: coTenant.slot,
-          });
-        }
-      }
+      // Re-sync vers l'Application : maj miroir coTenants[slot] + recalcul du
+      // score foyer. Source unique partagée avec la route status (robuste).
+      await syncCoTenantCertification(coTenant, {
+        firstName: diditStatus.firstName,
+        lastName: diditStatus.lastName,
+        birthDate: diditStatus.birthDate,
+      });
     }
 
     return NextResponse.json({ received: true });
