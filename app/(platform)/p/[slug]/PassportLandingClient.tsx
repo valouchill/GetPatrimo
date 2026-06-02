@@ -12,6 +12,7 @@ import {
   Loader2,
   ShieldCheck,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import UpsellBanner from '@/app/components/UpsellBanner';
 import {
@@ -44,6 +45,20 @@ interface PassportPublicData {
     propertyName: string;
     identityVerified: boolean;
   };
+  householdLabel?: string;
+  household?: {
+    isColocation: boolean;
+    size: number;
+    label: string;
+    certifiedCount: number;
+    members: Array<{
+      slot: number;
+      name: string;
+      profile: string | null;
+      identityVerified: boolean;
+      isPrimary: boolean;
+    }>;
+  } | null;
   solvency: {
     monthlyIncomeLabel: string | null;
     rentAmountLabel: string | null;
@@ -210,7 +225,7 @@ export default function PassportLandingClient({ slug }: { slug: string }) {
                 Passeport locataire partageable
               </div>
               <h1 className="mt-5 max-w-3xl break-words font-serif text-4xl tracking-tight text-slate-950 sm:text-5xl">
-                {data.hero.name}
+                {data.household?.isColocation ? data.household.label : data.hero.name}
               </h1>
               <p className="mt-4 max-w-2xl text-pretty text-lg leading-relaxed text-slate-600">
                 {data.summary}
@@ -220,6 +235,30 @@ export default function PassportLandingClient({ slug }: { slug: string }) {
                 <span className="rounded-full border border-slate-200 bg-white px-4 py-2">{data.hero.region}</span>
                 <span className="rounded-full border border-slate-200 bg-white px-4 py-2">{data.guarantee.shareBadge}</span>
               </ActionBar>
+              {data.household?.isColocation && data.household.members?.length > 0 && (
+                <div className="mt-6">
+                  <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.28em] text-emerald-700">
+                    <Users className="h-3.5 w-3.5" /> Foyer · {data.household.size} personnes
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {data.household.members.map((m) => (
+                      <span
+                        key={m.slot}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
+                        title={m.identityVerified ? 'Identité certifiée (eIDAS)' : 'Identité en attente'}
+                      >
+                        {m.identityVerified ? (
+                          <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <CircleAlert className="h-3.5 w-3.5 text-amber-500" />
+                        )}
+                        {m.name}
+                        {m.isPrimary ? ' · titulaire' : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
 
             <motion.div

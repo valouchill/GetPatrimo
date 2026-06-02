@@ -123,6 +123,30 @@ export function buildPassportHtml({
   const verdictSummary = escapeHtml(data.summary || 'Analyse complète disponible.');
   const reasonsList = (data.readinessReasons || []).slice(0, 4);
 
+  // Colocation : section « Composition du Foyer » (rendue seulement si coloc).
+  const household = data.household;
+  const householdSectionHtml = household && household.isColocation
+    ? `
+    <div class="section-title">Composition du Foyer (Colocation)</div>
+    <div class="card" style="margin-bottom: 18px;">
+        <p style="font-size: 10pt; color: #475569; margin-bottom: 10px;">
+            Candidature de groupe — ${escapeHtml(String(household.size))} personnes. Les revenus présentés ci-dessous sont cumulés au niveau du foyer.
+        </p>
+        <table class="data-table">
+            ${household.members
+              .map(
+                (m) => `
+            <tr>
+                <td class="data-label">${escapeHtml(m.name)}${m.isPrimary ? ' — titulaire' : ''}${m.profile ? ` (${escapeHtml(String(m.profile))})` : ''}</td>
+                <td class="data-value" style="color: ${m.identityVerified ? '#059669' : '#b45309'};">${m.identityVerified ? 'Identité certifiée (eIDAS)' : 'Identité en attente'}</td>
+            </tr>`,
+              )
+              .join('')}
+        </table>
+    </div>
+`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -415,6 +439,7 @@ export function buildPassportHtml({
         </tr>
     </table>
 
+    ${householdSectionHtml}
     <div class="section-title">Analyse Financière &amp; Solvabilité</div>
     <table class="table-layout">
         <tr>
