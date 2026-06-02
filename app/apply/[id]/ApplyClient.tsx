@@ -236,23 +236,34 @@ function ColocationSection({
   initiatorName,
   coTenants,
   setCoTenants,
+  onUploadCoTenantDoc,
+  coTenantDocs,
+  isAnalyzingDoc,
 }: {
   token: string;
   userEmail: string;
   initiatorName: { firstName?: string; lastName?: string; email?: string };
   coTenants: CoTenantSlot[];
   setCoTenants: (value: CoTenantSlot[] | ((prev: CoTenantSlot[]) => CoTenantSlot[])) => void;
+  onUploadCoTenantDoc: (slot: number, files: FileList | null) => void;
+  coTenantDocs: Record<number, Array<{ id: string; name: string; status: string }>>;
+  isAnalyzingDoc: boolean;
 }) {
   const [enabled, setEnabled] = useState(coTenants.length > 0);
   const [draft, setDraft] = useState({ firstName: '', lastName: '', email: '' });
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const usedSlots = coTenants.map((c) => Number(c.slot));
+  // Slots « occupés » = colocataires en state ∪ slots ayant déjà des pièces.
+  // Ainsi un colocataire « rempli » (non persisté en base) réapparaît via ses
+  // pièces au rechargement, et nextSlot ne réutilise jamais un slot déjà servi.
+  const docSlotNums = Object.keys(coTenantDocs).map(Number).filter((s) => s >= 2);
+  const usedSlots = [...new Set([...coTenants.map((c) => Number(c.slot)), ...docSlotNums])];
   let nextSlot: number | null = null;
   for (let s = 2; s <= 4; s += 1) {
     if (!usedSlots.includes(s)) { nextSlot = s; break; }
   }
+  const displaySlots = [...usedSlots].sort((a, b) => a - b);
 
   const invite = async () => {
     const email = draft.email.trim().toLowerCase();
@@ -291,13 +302,32 @@ function ColocationSection({
     }
   };
 
+  // « Je remplis » : ajoute le colocataire localement (sans invitation) pour que
+  // l'initiateur dépose lui-même ses pièces de revenus (taggées sur son slot).
+  const addLocal = () => {
+    if (nextSlot == null) return;
+    const firstName = draft.firstName.trim();
+    const lastName = draft.lastName.trim();
+    if (!firstName && !lastName) {
+      setMsg({ ok: false, text: 'Renseignez au moins le nom du colocataire pour déposer ses pièces.' });
+      return;
+    }
+    const slot = nextSlot;
+    setCoTenants((prev) => [
+      ...prev.filter((c) => Number(c.slot) !== slot),
+      { slot, firstName, lastName, status: 'DRAFT' },
+    ]);
+    setDraft({ firstName: '', lastName: '', email: '' });
+    setMsg({ ok: true, text: `${firstName || 'Colocataire'} ajouté — déposez ses pièces de revenus ci-dessous.` });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Colocation (optionnel)</p>
           <h3 className="text-lg font-serif text-navy">Vous candidatez à plusieurs&nbsp;?</h3>
-          <p className="text-sm text-slate-500 mt-1">Invitez vos colocataires : chacun certifie son identité (eIDAS) et leurs revenus se cumulent au foyer.</p>
+          <p className="text-sm text-slate-500 mt-1">Invitez vos colocataires (identité eIDAS) ou déposez leurs pièces vous-même : leurs revenus se cumulent au foyer.</p>
         </div>
         <button
           type="button"
@@ -310,19 +340,68 @@ function ColocationSection({
 
       {enabled && (
         <div className="mt-5 space-y-3">
-          {[...coTenants].sort((a, b) => a.slot - b.slot).map((c) => (
-            <div key={c.slot} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-800">
-                  {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email}
-                </p>
-                <p className="truncate text-xs text-slate-400">{c.email}</p>
+          {displaySlots.map((slot) => {
+            const c: CoTenantSlot = coTenants.find((x) => Number(x.slot) === slot) || { slot, status: 'DRAFT' };
+            const docs = coTenantDocs[slot] || [];
+            const statusLabel =
+              c.status === 'CERTIFIED' ? 'Identité certifiée' : c.status === 'INVITED' ? 'Invité (identité)' : 'À compléter';
+            const statusClass =
+              c.status === 'CERTIFIED'
+                ? 'bg-emerald-50 text-emerald-700'
+                : c.status === 'INVITED'
+                  ? 'bg-amber-50 text-amber-700'
+                  : 'bg-slate-100 text-slate-500';
+            return (
+              <div key={slot} className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-800">
+                      {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Colocataire ${slot}`}
+                    </p>
+                    <p className="truncate text-xs text-slate-400">{c.email || 'Pièces déposées par vous'}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${statusClass}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label
+                    className={`inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:border-emerald-400 ${isAnalyzingDoc ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      multiple
+                      disabled={isAnalyzingDoc}
+                      className="hidden"
+                      onChange={(e) => {
+                        onUploadCoTenantDoc(slot, e.target.files);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                    + Pièces de revenus
+                  </label>
+                  {docs.length > 0 && (
+                    <span className="text-xs text-slate-500">
+                      {docs.length} pièce{docs.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                {docs.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {docs.map((d) => (
+                      <li key={d.id} className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${d.status === 'CERTIFIED' ? 'bg-emerald-500' : d.status === 'ANALYZING' ? 'bg-amber-400' : 'bg-slate-300'}`}
+                        />
+                        <span className="truncate">{d.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${c.status === 'CERTIFIED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                {c.status === 'CERTIFIED' ? 'Certifié' : 'Invité'}
-              </span>
-            </div>
-          ))}
+            );
+          })}
 
           {nextSlot != null ? (
             <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
@@ -331,9 +410,15 @@ function ColocationSection({
                 <input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))} placeholder="Nom" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400" />
                 <input value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} placeholder="Email" type="email" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400" />
               </div>
-              <button type="button" onClick={invite} disabled={sending || !draft.email.trim()} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
-                {sending ? 'Envoi…' : 'Inviter ce colocataire'}
-              </button>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button type="button" onClick={addLocal} disabled={sending} className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition-colors hover:border-emerald-400 disabled:opacity-50">
+                  Je dépose ses pièces
+                </button>
+                <button type="button" onClick={invite} disabled={sending || !draft.email.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50">
+                  {sending ? 'Envoi…' : 'Inviter (eIDAS)'}
+                </button>
+              </div>
+              <p className="mt-2 text-center text-[11px] text-slate-400">Invitez pour une identité certifiée eIDAS, ou déposez ses pièces de revenus vous-même.</p>
             </div>
           ) : (
             <p className="text-center text-xs text-slate-400">Maximum atteint (vous + 3 colocataires).</p>
@@ -646,6 +731,8 @@ export default function ApplyClient({ token }: { token: string }) {
       ...file,
       fileName: file.name,
       subjectType: file.subjectType || (normalizeAnalysisDocumentType(file.aiAnalysis?.documentType || file.type || file.name) === 'CERTIFICAT_VISALE' ? 'visale' : 'tenant'),
+      // Colocation : préserver le slot du colocataire (2-4) ; locataire principal → undefined ⇒ slot 1.
+      subjectSlot: file.subjectSlot,
     })),
     ...uploadedFiles.guarantor.map(file => ({
       ...file,
@@ -657,7 +744,7 @@ export default function ApplyClient({ token }: { token: string }) {
 
   const getExpectedIdentityForSubject = useCallback((
     subjectType: 'tenant' | 'guarantor' | 'visale',
-    subjectSlot?: 1 | 2
+    subjectSlot?: 1 | 2 | 3 | 4
   ) => buildExpectedIdentityTarget({
     subjectType,
     subjectSlot,
@@ -673,6 +760,12 @@ export default function ApplyClient({ token }: { token: string }) {
       firstName: secondGuarantor.firstName,
       lastName: secondGuarantor.lastName,
     },
+    // Colocation : identités attendues par slot (anti faux-positif inter-slots).
+    coTenants: coTenants.map((c) => ({
+      slot: Number(c.slot),
+      firstName: c.firstName || '',
+      lastName: c.lastName || '',
+    })),
   }), [
     formData.firstName,
     formData.lastName,
@@ -682,6 +775,7 @@ export default function ApplyClient({ token }: { token: string }) {
     guarantorLastName,
     secondGuarantor.firstName,
     secondGuarantor.lastName,
+    coTenants,
   ]);
 
   const parseIsoDate = (value?: string | null): Date | null => {
@@ -1314,6 +1408,9 @@ export default function ApplyClient({ token }: { token: string }) {
             id: f.id,
             category: getPersistedDocumentCategory(f, 'resources'),
             subjectType: f.subjectType || (normalizeAnalysisDocumentType(f.aiAnalysis?.documentType || f.type || f.name) === 'CERTIFICAT_VISALE' ? 'visale' : 'tenant'),
+            // Colocation : préserver le slot du colocataire (2-4) pour l'attribution
+            // des revenus par personne ; locataire principal → undefined ⇒ slot 1.
+            subjectSlot: f.subjectSlot,
             type: f.type || 'UNKNOWN',
             fileName: f.name,
             status: f.status,
@@ -1914,7 +2011,7 @@ export default function ApplyClient({ token }: { token: string }) {
   const handleFileUpload = async (
     category: 'identity' | 'resources' | 'guarantor',
     files: FileList | null,
-    options?: { subjectType?: 'tenant' | 'guarantor' | 'visale'; subjectSlot?: 1 | 2 }
+    options?: { subjectType?: 'tenant' | 'guarantor' | 'visale'; subjectSlot?: 1 | 2 | 3 | 4 }
   ) => {
     if (!files) return;
     
@@ -1962,7 +2059,9 @@ export default function ApplyClient({ token }: { token: string }) {
       const resolvedSubjectSlot =
         resolvedSubjectType === 'guarantor'
           ? (options?.subjectSlot || 1)
-          : undefined;
+          // Colocation : un doc de locataire secondaire porte son slot (2-4) ;
+          // le locataire principal n'en a pas (undefined ⇒ slot 1 au scoring).
+          : (options?.subjectSlot || undefined);
       
       const newFile: DocumentFile = {
         id: Math.random().toString(36).substr(2, 9),
@@ -2838,11 +2937,14 @@ export default function ApplyClient({ token }: { token: string }) {
   const slotOneGuarantorFiles = getGuarantorFilesForSlot(1);
   const slotTwoGuarantorFiles = getGuarantorFilesForSlot(2);
   const reviewedResources = uploadedFiles.resources.filter(file =>
-    file.status === 'CERTIFIED' ||
-    file.status === 'REJECTED' ||
-    file.status === 'ILLEGIBLE' ||
-    file.status === 'NEEDS_REVIEW' ||
-    !!file.flagged
+    // Colocation : les pièces des colocataires (slot 2-4) s'affichent dans leur
+    // propre section, pas dans la liste « Revenus » du locataire principal.
+    (!file.subjectSlot || Number(file.subjectSlot) === 1) &&
+    (file.status === 'CERTIFIED' ||
+      file.status === 'REJECTED' ||
+      file.status === 'ILLEGIBLE' ||
+      file.status === 'NEEDS_REVIEW' ||
+      !!file.flagged)
   );
   const certifiedResources = reviewedResources.filter(file => file.status === 'CERTIFIED' && !file.flagged);
   const invalidatedResources = reviewedResources.filter(file => file.status !== 'CERTIFIED' || !!file.flagged);
@@ -3945,6 +4047,23 @@ export default function ApplyClient({ token }: { token: string }) {
                   }}
                   coTenants={coTenants}
                   setCoTenants={setCoTenants}
+                  isAnalyzingDoc={isAnalyzingDoc}
+                  onUploadCoTenantDoc={(slot, files) => {
+                    void handleFileUpload('resources', files, {
+                      subjectType: 'tenant',
+                      subjectSlot: slot as 1 | 2 | 3 | 4,
+                    });
+                  }}
+                  coTenantDocs={uploadedFiles.resources.reduce(
+                    (acc, f) => {
+                      const s = Number(f.subjectSlot);
+                      if (s >= 2) {
+                        (acc[s] = acc[s] || []).push({ id: f.id, name: f.name, status: f.status });
+                      }
+                      return acc;
+                    },
+                    {} as Record<number, Array<{ id: string; name: string; status: string }>>,
+                  )}
                 />
 
                 {/* Profiling administratif */}

@@ -94,6 +94,7 @@ function buildExpectedIdentityTarget({
   tenant,
   guarantorOne,
   guarantorTwo,
+  coTenants,
 }) {
   if (subjectType === 'guarantor') {
     const guarantor = subjectSlot === 2 ? guarantorTwo || {} : guarantorOne || {};
@@ -101,6 +102,26 @@ function buildExpectedIdentityTarget({
       firstName: String(guarantor.firstName || '').trim(),
       lastName: String(guarantor.lastName || '').trim(),
       label: subjectSlot === 2 ? 'garant 2' : 'garant 1',
+    };
+  }
+
+  // Colocation : un document de locataire secondaire (slot 2-4) doit être
+  // comparé à l'identité DE CE colocataire, pas à celle du locataire principal,
+  // sinon le contrôle anti-fraude lève un faux positif « les noms ne
+  // correspondent pas ». Si le colocataire n'a pas encore de nom renseigné,
+  // on renvoie une cible vide → la comparaison est neutralisée (non bloquante).
+  const slotNum = Number(subjectSlot) || 1;
+  if (subjectType === 'tenant' && slotNum >= 2) {
+    // Un doc slot 2-4 n'est JAMAIS celui du locataire principal : on ne
+    // retombe jamais sur son identité. Nom de colocataire inconnu → cible vide
+    // → comparaison neutralisée (jamais de faux positif inter-slots).
+    const match = Array.isArray(coTenants)
+      ? coTenants.find((c) => Number(c && c.slot) === slotNum)
+      : null;
+    return {
+      firstName: String((match && match.firstName) || '').trim(),
+      lastName: String((match && match.lastName) || '').trim(),
+      label: `colocataire ${slotNum}`,
     };
   }
 
