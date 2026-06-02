@@ -617,6 +617,41 @@ function buildPassportViewModel({
     ? new Date(new Date(app.updatedAt || app.createdAt).getTime() + 1000 * 60 * 60 * 24 * 90).toLocaleDateString('fr-FR')
     : null;
 
+  // Colocation — composition du foyer pour le passeport (mono → household null).
+  const coTenantsRaw = safeArray(app.coTenants);
+  const isColocation = Boolean(app.isColocation) && coTenantsRaw.length > 0;
+  const household = isColocation
+    ? {
+        isColocation: true,
+        size: 1 + coTenantsRaw.length,
+        label: `${identity.displayName} + ${coTenantsRaw.length} ${
+          coTenantsRaw.length > 1 ? 'colocataires' : 'colocataire'
+        }`,
+        certifiedCount:
+          (didit.status === 'VERIFIED' ? 1 : 0) +
+          coTenantsRaw.filter((c) => c.status === 'CERTIFIED' || c.didit?.status === 'VERIFIED')
+            .length,
+        members: [
+          {
+            slot: 1,
+            name: identity.displayName,
+            profile: profile.status || null,
+            identityVerified: didit.status === 'VERIFIED',
+            isPrimary: true,
+          },
+          ...coTenantsRaw.map((c) => ({
+            slot: Number(c.slot) || 2,
+            name: c.firstName
+              ? `${c.firstName} ${(c.lastName || '').charAt(0)}${c.lastName ? '.' : ''}`.trim()
+              : `Colocataire ${Number(c.slot) || 2}`,
+            profile: c.profile || null,
+            identityVerified: c.status === 'CERTIFIED' || c.didit?.status === 'VERIFIED',
+            isPrimary: false,
+          })),
+        ],
+      }
+    : null;
+
   return {
     id: app?._id ? String(app._id) : null,
     slug: readySlug,
@@ -635,6 +670,8 @@ function buildPassportViewModel({
     readinessReasons,
     warnings: scoreWarnings,
     nextAction: patrimometer.nextAction?.action || null,
+    household,
+    householdLabel: household ? household.label : identity.displayName,
     hero: {
       name: identity.displayName,
       fullName: identity.fullName,

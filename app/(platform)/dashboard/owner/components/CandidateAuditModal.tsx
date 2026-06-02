@@ -4,10 +4,12 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
+  Clock,
   FileText,
   ShieldCheck,
   Sparkles,
   Folder,
+  Users,
   X,
   XCircle,
 } from 'lucide-react';
@@ -457,12 +459,41 @@ export function CandidateAuditModal({
                     Dossier Candidat
                   </p>
                   <h2 className="mt-0.5 truncate font-serif text-2xl font-bold leading-tight text-emerald-900 sm:text-3xl">
-                    {(c.prenom || '').trim()} {(c.nom || '').trim()}
+                    {c.isColocation && c.householdLabel
+                      ? c.householdLabel
+                      : `${(c.prenom || '').trim()} ${(c.nom || '').trim()}`.trim()}
                   </h2>
                   <p className="mt-0.5 truncate text-sm text-slate-500">
                     {c.contrat || 'Profil'}
                     {bien?.label ? ` · ${bien.label}` : ''}
                   </p>
+                  {/* Colocation — composition du foyer + statut d'identité par colocataire */}
+                  {c.isColocation && Array.isArray(c.coTenants) && c.coTenants.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                        <Users className="h-3 w-3" aria-hidden="true" /> Foyer ·{' '}
+                        {c.householdSize || 1 + c.coTenants.length} personnes
+                      </span>
+                      {c.coTenants.map((m) => (
+                        <span
+                          key={m.slot}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${
+                            m.identityVerified
+                              ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                              : 'bg-amber-50 text-amber-700 ring-amber-200'
+                          }`}
+                          title={m.identityVerified ? 'Identité certifiée (eIDAS)' : 'Identité en attente'}
+                        >
+                          {m.identityVerified ? (
+                            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                          ) : (
+                            <Clock className="h-3 w-3" aria-hidden="true" />
+                          )}
+                          {`${m.firstName || 'Colocataire'} ${m.lastName || ''}`.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Score + niveau (SOURCE UNIQUE DE VÉRITÉ = Indice de

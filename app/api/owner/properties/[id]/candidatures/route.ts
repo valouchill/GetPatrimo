@@ -71,7 +71,7 @@ export async function GET(
       property: id,
       status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
     })
-      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
+      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt coTenants isColocation coTenantCount')
       .sort({ submittedAt: -1, createdAt: -1 })
       .lean();
 
@@ -81,6 +81,22 @@ export async function GET(
     const candidates = applications.map((app: any, idx: number) => {
       const firstName = app.profile?.firstName || '';
       const lastName = app.profile?.lastName || '';
+      // Colocation : composition du foyer (masquée si scellé).
+      const appCoTenants = Array.isArray(app.coTenants) ? app.coTenants : [];
+      const isColocation = Boolean(app.isColocation) && appCoTenants.length > 0;
+      const baseName = isManaged
+        ? `${firstName} ${lastName}`.trim()
+        : `${firstName.charAt(0) || '?'}. ${lastName.charAt(0) || '?'}.`;
+      const coTenantsPublic = appCoTenants.map((c: any) => ({
+        slot: c.slot,
+        firstName: isManaged ? (c.firstName || '') : `${(c.firstName || '?').charAt(0)}.`,
+        lastName: isManaged ? (c.lastName || '') : `${(c.lastName || '?').charAt(0)}.`,
+        status: c.status || 'NONE',
+        identityVerified: c.status === 'CERTIFIED' || c.didit?.status === 'VERIFIED',
+      }));
+      const householdLabel = isColocation
+        ? `${baseName} + ${appCoTenants.length} ${appCoTenants.length > 1 ? 'colocataires' : 'colocataire'}`
+        : baseName;
       const ownerInsights = buildOwnerApplicationInsights({
         application: app,
         property,
@@ -124,6 +140,9 @@ export async function GET(
             email: null,
           },
           userEmail: '',
+          isColocation,
+          coTenants: coTenantsPublic,
+          householdLabel,
           financialSummary: normalizedFinancialSummary,
           guarantor: { status: app.guarantor?.status || 'NONE' },
           guarantee: app.guarantee || null,
@@ -149,6 +168,9 @@ export async function GET(
         isSealed: false,
         profile: app.profile || {},
         userEmail: app.userEmail || '',
+        isColocation,
+        coTenants: coTenantsPublic,
+        householdLabel,
         financialSummary: normalizedFinancialSummary,
         guarantor: app.guarantor || {},
         guarantee: app.guarantee || null,

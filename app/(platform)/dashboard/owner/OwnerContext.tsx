@@ -12,6 +12,11 @@ export interface Candidature {
   rank?: number;
   sealedLabel?: string;
   sealedId?: string;
+  // Colocation (exposé par /api/owner/.../candidatures)
+  isColocation?: boolean;
+  coTenantCount?: number;
+  householdLabel?: string;
+  coTenants?: Array<{ slot: number; firstName: string; lastName: string; status: string; identityVerified: boolean }>;
   profile: { firstName: string; lastName: string; phone: string | null; email?: string | null };
   patrimometer: { score: number; grade: string };
   financialSummary?: {
