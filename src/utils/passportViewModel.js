@@ -515,6 +515,12 @@ function buildPassportViewModel({
   const effortRate = rentAmount > 0 && monthlyIncome > 0
     ? Number(((rentAmount / monthlyIncome) * 100).toFixed(1))
     : null;
+  // Passeport universel (sans bien) : on substitue au taux d'effort un "loyer
+  // éligible" = revenus / 3,03 (inverse du seuil PLATINUM, taux d'effort ~33%).
+  const isUniversalPassport = rentAmount === 0;
+  const eligibleRent = isUniversalPassport && monthlyIncome > 0
+    ? Math.floor(monthlyIncome / 3.03)
+    : null;
   const readySlug = slug || ensurePassportSlug(app);
   const urls = {
     previewUrl: readySlug ? `${getBaseUrl(baseUrl)}/p/${readySlug}?preview=1` : null,
@@ -649,6 +655,9 @@ function buildPassportViewModel({
       rentAmountLabel: formatCurrency(rentAmount),
       effortRate,
       effortRateLabel: effortRate != null ? `${effortRate.toFixed(1)}%` : null,
+      universal: isUniversalPassport,
+      eligibleRent,
+      eligibleRentLabel: eligibleRent != null ? formatCurrency(eligibleRent) : null,
       certifiedIncome: Boolean(app.financialSummary?.certifiedIncome),
     },
     guarantee: {

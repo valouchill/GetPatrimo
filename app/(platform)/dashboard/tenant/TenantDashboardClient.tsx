@@ -26,6 +26,7 @@ import {
   PremiumSurface,
   StatusBadge,
 } from '@/app/components/ui/premium';
+import { applyPassportToProperty } from '@/app/actions/application-actions';
 
 interface Document {
   id: string;
@@ -545,7 +546,9 @@ export default function TenantDashboardClient({
                 title="Mes candidatures"
                 description="Suivez l’état de vos dépôts sans perdre les informations importantes sur mobile."
               />
-            
+
+            <ApplyToListingCard userEmail={userEmail} />
+
             {applications && applications.length > 0 ? (
               <>
                 {/* Desktop table */}
@@ -766,5 +769,84 @@ function CandidatureStatus({
     <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
       <ClockIcon className="w-4 h-4" /> En cours
     </span>
+  );
+}
+
+/**
+ * Carte « Postuler à une annonce » — réutilise le Passeport Locatif universel
+ * du locataire pour candidater à un bien via son code (Phase 5).
+ */
+function ApplyToListingCard({ userEmail }: { userEmail: string }) {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const submit = async () => {
+    const c = code.trim().toUpperCase();
+    if (!c) return;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await applyPassportToProperty(userEmail, c);
+      if (!res.success) {
+        setError(res.error || 'Erreur lors de la candidature.');
+      } else if (res.submitted) {
+        setSuccess(res.message || 'Votre dossier a été transmis au propriétaire.');
+        setCode('');
+      } else {
+        // Dossier rattaché mais incomplet → le compléter dans le tunnel.
+        window.location.href = `/apply/${c}`;
+        return;
+      }
+    } catch {
+      setError('Erreur réseau. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); void submit(); }}
+      className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 sm:p-5"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+          <ArrowRightIcon className="h-4 w-4 text-emerald-700" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800">
+            Postuler à une annonce avec mon Passeport
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Un propriétaire vous a transmis un code&nbsp;? Candidatez en un clic — votre
+            dossier certifié est réutilisé.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={code}
+              onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null); setSuccess(null); }}
+              placeholder="Code du bien (ex : PT-75001-K7M9)"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium uppercase tracking-wide text-slate-800 outline-none transition-colors focus:border-emerald-400"
+            />
+            <button
+              type="submit"
+              disabled={loading || !code.trim()}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? 'Envoi…' : 'Postuler'}
+            </button>
+          </div>
+          {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
+          {success && (
+            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-700">
+              <CheckCircleIcon className="h-3.5 w-3.5" /> {success}
+            </p>
+          )}
+        </div>
+      </div>
+    </form>
   );
 }
