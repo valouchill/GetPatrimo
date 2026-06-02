@@ -42,6 +42,8 @@ interface PassportStudioData {
     exactMonthlyIncomeLabel: string | null;
     rentAmountLabel: string | null;
     effortRateLabel: string | null;
+    universal?: boolean;
+    eligibleRentLabel?: string | null;
   };
   guarantee: {
     label: string;
@@ -262,8 +264,14 @@ export default function PassportStudio({
                 valueClassName="text-sm"
               />
               <MetricTile
-                label="Taux d'effort"
-                value={passport?.solvency.effortRateLabel || 'À calculer'}
+                label={passport?.solvency.universal ? 'Loyer éligible' : "Taux d'effort"}
+                value={
+                  passport?.solvency.universal
+                    ? (passport?.solvency.eligibleRentLabel
+                        ? `${passport.solvency.eligibleRentLabel}/mois`
+                        : 'À calculer')
+                    : (passport?.solvency.effortRateLabel || 'À calculer')
+                }
                 tone="dark"
                 valueClassName="text-sm"
               />

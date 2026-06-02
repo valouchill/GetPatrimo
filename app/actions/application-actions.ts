@@ -350,3 +350,82 @@ export async function submitApplication(applicationId: string) {
     return { success: false, error: 'Erreur lors de la soumission' };
   }
 }
+
+/**
+ * Applique le Passeport Locatif universel d'un locataire à une annonce précise.
+ *
+ * Réutilise toute la machinerie existante : on alimente la candidature liée au
+ * bien (find-or-create par {userEmail, applyToken=code}) à partir du dossier
+ * universel (identité, documents, revenus), le score est recalculé AVEC le loyer
+ * du bien via saveApplicationProgress, puis on soumet via submitApplication →
+ * la candidature apparaît dans les candidatures du bailleur.
+ */
+export async function applyPassportToProperty(userEmail: string, propertyCode: string) {
+  try {
+    await connectDiditDb();
+    const code = String(propertyCode || '').trim().toUpperCase();
+    if (!/^PT-\d{5}-[A-Z0-9]{4}$/.test(code)) {
+      return { success: false, error: 'Format de code invalide (ex : PT-75001-K7M9)' };
+    }
+
+    const property = (await Property.findOne({ applyToken: code })
+      .select('_id rentAmount')
+      .lean()) as { _id: { toString(): string }; rentAmount?: number } | null;
+    if (!property) {
+      return { success: false, error: 'Code de bien introuvable' };
+    }
+
+    // Dossier universel le plus récent du locataire (self-token PT-SELF-*).
+    const universal = await Application.findOne({
+      userEmail: userEmail.toLowerCase(),
+      applyToken: { $regex: '^PT-SELF-' },
+    }).sort({ 'tunnel.lastActiveAt': -1 });
+    if (!universal) {
+      return {
+        success: false,
+        error: "Vous n'avez pas encore de Passeport Locatif universel.",
+      };
+    }
+
+    const u = universal.toObject() as Record<string, any>;
+
+    // Copie des champs vérifiés + recalcul du score AVEC le loyer du bien.
+    const saved = await saveApplicationProgress(userEmail, code, {
+      profile: {
+        firstName: u.profile?.firstName,
+        lastName: u.profile?.lastName,
+        phone: u.profile?.phone,
+        status: u.profile?.status,
+      },
+      candidateStatus: u.profile?.status,
+      diditStatus: u.didit?.status,
+      diditSessionId: u.didit?.sessionId,
+      diditIdentity: u.didit?.identityData,
+      documents: u.documents,
+      guarantorStatus: u.guarantor?.status,
+      guarantorMethod: u.guarantor?.certificationMethod,
+      guarantee: u.guarantee,
+      propertyRentAmount: Number(property.rentAmount) || undefined,
+      detectedIncome: u.financialSummary?.totalMonthlyIncome,
+    });
+    if (!saved.success || !saved.applicationId) {
+      return { success: false, error: saved.error || 'Erreur lors de la candidature' };
+    }
+
+    // Soumission → apparaît dans les candidatures du bailleur (si dossier complet).
+    const submitted = await submitApplication(saved.applicationId);
+
+    return {
+      success: true,
+      applicationId: saved.applicationId,
+      propertyId: String(property._id),
+      submitted: submitted.success,
+      message: submitted.success
+        ? 'Votre dossier a été transmis au propriétaire.'
+        : 'Dossier rattaché au bien — complétez-le pour le transmettre.',
+    };
+  } catch (error) {
+    console.error('Erreur applyPassportToProperty:', error);
+    return { success: false, error: 'Erreur lors de la candidature' };
+  }
+}
