@@ -9,9 +9,16 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    await connectDiditDb();
-
     const { token } = await params;
+
+    // Passeport Locatif universel (codeless) : auto-candidature sans bien.
+    // Court-circuit AVANT toute requête DB (un self-token n'a aucun bien associé).
+    // Tout autre token introuvable garde le 404 (non-régression du flux invité).
+    if (token.startsWith('PT-SELF-')) {
+      return NextResponse.json({ property: null, universal: true });
+    }
+
+    await connectDiditDb();
     const property = await Property.findOne({ applyToken: token }).lean();
 
     if (!property) {

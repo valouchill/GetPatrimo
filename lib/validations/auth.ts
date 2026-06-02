@@ -9,11 +9,9 @@ export const RegisterSchema = z.object({
     .regex(/\d/, 'Le mot de passe doit contenir au moins 1 chiffre')
     .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Le mot de passe doit contenir au moins 1 caractère spécial'),
   role: z.enum(['owner', 'tenant']).default('owner'),
+  // Optionnel : un locataire sans code crée un Passeport Locatif universel (codeless).
   propertyCode: z.string().regex(/^PT-\d{5}-[A-Z0-9]{4}$/, 'Format de code invalide (ex: PT-75001-K7M9)').optional(),
-}).refine(
-  (d) => d.role !== 'tenant' || !!d.propertyCode,
-  { message: 'Code de bien requis pour un locataire', path: ['propertyCode'] }
-);
+});
 
 export const LoginPasswordSchema = z.object({
   email: z.string().email('Email invalide'),

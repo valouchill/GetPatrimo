@@ -31,15 +31,23 @@ export default function RegisterPage() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Mode "codeless" : création d'un Passeport Locatif universel sans code de bien.
+  const [codeless, setCodeless] = useState(false);
 
-  // ── Pré-sélection du parcours via ?role= (depuis l'Espace Locataire) ──
-  // /auth/register?role=tenant saute le choix de rôle et ouvre directement le
-  // flux locataire ; ?role=owner ouvre le formulaire bailleur. Lu côté client
-  // (pas de Suspense requis) ; un léger flash du choix de rôle est acceptable.
+  // ── Pré-sélection du parcours via ?role= / ?mode= (depuis l'Espace Locataire) ──
+  // ?role=tenant&mode=codeless → Passeport universel (saute l'étape code).
+  // ?role=tenant → flux invité (étape code) ; ?role=owner → formulaire bailleur.
+  // Lu côté client (pas de Suspense requis) ; léger flash acceptable.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const r = new URLSearchParams(window.location.search).get('role');
-    if (r === 'tenant') {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('role');
+    const mode = params.get('mode');
+    if (r === 'tenant' && mode === 'codeless') {
+      setRole('tenant');
+      setCodeless(true);
+      setStep('tenantForm');
+    } else if (r === 'tenant') {
       setRole('tenant');
       setStep('tenantCode');
     } else if (r === 'owner') {
@@ -117,7 +125,8 @@ export default function RegisterPage() {
         password,
         role,
       };
-      if (role === 'tenant') payload.propertyCode = propertyCode.trim().toUpperCase();
+      // En mode codeless, on n'envoie PAS de code → le backend génère un self-token.
+      if (role === 'tenant' && !codeless) payload.propertyCode = propertyCode.trim().toUpperCase();
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -150,7 +159,10 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.ok) {
-        if (data.role === 'tenant' && data.propertyId) {
+        if (data.role === 'tenant' && data.selfToken) {
+          // Passeport Locatif universel (codeless) → tunnel sans bien.
+          window.location.href = `/apply/${data.selfToken}`;
+        } else if (data.role === 'tenant' && data.propertyId) {
           window.location.href = `/apply/${data.propertyId}`;
         } else {
           // V8.3 (audit M2) — honore un callbackUrl interne sûr si présent,
@@ -170,7 +182,7 @@ export default function RegisterPage() {
       setError('Erreur réseau. Veuillez réessayer.');
       setLoading(false);
     }
-  }, [email, password, role, propertyCode]);
+  }, [email, password, role, propertyCode, codeless]);
 
   // ── UI ──
   return (
@@ -401,6 +413,16 @@ export default function RegisterPage() {
                 >
                   Continuer <ArrowRight className="w-4 h-4" />
                 </button>
+
+                {/* Échappatoire codeless : pas de code → Passeport Locatif universel */}
+                <button
+                  type="button"
+                  onClick={() => { setError(null); setCodeless(true); setStep('tenantForm'); }}
+                  className="w-full mt-4 text-center text-sm text-slate-500 hover:text-emerald-700 transition-colors"
+                >
+                  Pas encore de code ?{' '}
+                  <span className="font-semibold underline underline-offset-2">Créer mon Passeport universel</span>
+                </button>
               </motion.div>
             )}
 
@@ -414,7 +436,7 @@ export default function RegisterPage() {
                 transition={{ duration: 0.25 }}
               >
                 <button
-                  onClick={() => { setStep('tenantCode'); setError(null); }}
+                  onClick={() => { setStep(codeless ? 'role' : 'tenantCode'); setError(null); if (codeless) setCodeless(false); }}
                   className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors mb-6"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -426,6 +448,12 @@ export default function RegisterPage() {
                 >
                   Finaliser mon inscription
                 </h2>
+                {codeless && (
+                  <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 mb-5 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    Vous créez votre <span className="font-medium">Passeport Locatif universel</span> — sans code.
+                  </p>
+                )}
                 {property && (
                   <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 mb-5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -460,7 +488,7 @@ export default function RegisterPage() {
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <>Rejoindre le bien <ArrowRight className="w-4 h-4" /></>
+                    <>{codeless ? 'Créer mon Passeport' : 'Rejoindre le bien'} <ArrowRight className="w-4 h-4" /></>
                   )}
                 </button>
               </motion.div>
