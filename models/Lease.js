@@ -9,12 +9,24 @@ const LeaseSchema = new mongoose.Schema({
   // Source du bail : FLOW (process complet) ou MANUAL (ajout direct en gestion)
   source: { type: String, enum: ['FLOW', 'MANUAL'], default: 'FLOW' },
   
-  // Informations locataire
+  // Informations locataire (principal)
   tenantFirstName: { type: String, required: true },
   tenantLastName: { type: String, required: true },
   tenantEmail: { type: String, required: true },
   tenantPhone: { type: String, default: '' },
-  
+
+  // Colocation — colocataires additionnels (préparation Phase 0 ; la génération
+  // du bail multi-signataires est un chantier ultérieur). Inerte par défaut.
+  coTenants: {
+    type: [{
+      firstName: { type: String, default: '' },
+      lastName: { type: String, default: '' },
+      email: { type: String, default: '' },
+      phone: { type: String, default: '' },
+    }],
+    default: [],
+  },
+
   // Informations bail
   startDate: { type: Date, required: [true, 'La date de début est obligatoire'] },
   endDate: { type: Date },
