@@ -133,6 +133,7 @@ export async function saveApplicationProgress(
     application.financialSummary.totalMonthlyIncome = derivedFinancialSummary.totalMonthlyIncome;
     application.financialSummary.certifiedIncome = derivedFinancialSummary.certifiedIncome;
     application.financialSummary.incomeSource = derivedFinancialSummary.incomeSource;
+    application.financialSummary.perSlot = derivedFinancialSummary.perSlot || [];
 
     const computedPatrimometer = computeApplicationPatrimometer({
       candidateStatus: data.candidateStatus || application.profile.status,
@@ -140,6 +141,8 @@ export async function saveApplicationProgress(
       propertyRentAmount: data.propertyRentAmount,
       detectedIncome: derivedFinancialSummary.totalMonthlyIncome || data.detectedIncome,
       documents: data.documents || application.documents,
+      // Colocation : états d'identité des colocataires (slots 2-4) pour l'agrégation.
+      coTenants: application.coTenants,
       guarantee: data.guarantee || application.guarantee || null,
       legacyGuarantor: {
         hasGuarantor: application.guarantor.hasGuarantor,
