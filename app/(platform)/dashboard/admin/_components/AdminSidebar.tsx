@@ -12,6 +12,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: '/dashboard/admin', label: 'Overview', icon: '📊' },
+  { href: '/dashboard/admin/cockpit', label: 'Cockpit', icon: '🚀', superadminOnly: true },
   { href: '/dashboard/admin/users', label: 'Utilisateurs', icon: '👥' },
   { href: '/dashboard/admin/properties', label: 'Biens', icon: '🏠' },
   { href: '/dashboard/admin/leases', label: 'Baux', icon: '📄' },
