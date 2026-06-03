@@ -82,6 +82,23 @@ test('buildSupervisorPrompt is image-free, forbids re-scoring, and carries the n
   assert.match(user, /Contrôle math Brut − Cotisations = Net social : OK/);
 });
 
+test('buildSupervisorPrompt mentions MRZ only for identity documents', () => {
+  // Paie → AUCUNE mention MRZ (sinon le LLM signale à tort son absence + faux needs_review)
+  const paie = buildSupervisorPrompt(payslipResult(), {});
+  assert.equal(/MRZ présente/.test(paie.user), false);
+  // CNI → MRZ mentionnée
+  const cni = {
+    document_metadata: { type: 'CARTE_IDENTITE', owner_name: 'Maelys Gaelle Marie MARTIN' },
+    financial_data: { monthly_net_income: 0, extra_details: {} },
+    trust_and_security: { fraud_score: 0, forensic_alerts: [], mrz_line1: 'IDFRAX4RTBPFW46<<<<<<<<<<<<<<<' },
+    ai_analysis: { expert_advice: '' },
+  };
+  const out = buildSupervisorPrompt(cni, {});
+  assert.match(out.user, /MRZ présente : OUI/);
+  // La consigne système borne explicitement la MRZ aux pièces d'identité.
+  assert.match(out.system, /MRZ ne concerne QUE les pièces d'identité/i);
+});
+
 test('coerceSupervision normalizes/clamps a raw LLM object', () => {
   const v = coerceSupervision({
     documentType: 'BULLETIN_SALAIRE',
