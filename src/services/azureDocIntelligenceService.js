@@ -294,6 +294,12 @@ function mrzDate(yymmdd, isExpiry) {
   return `${dd}.${mm}.${year}`;
 }
 
+/** "2030-02-11" (valueDate ISO d'Azure) → "11.02.2030" (format des autres adaptateurs). */
+function isoToFr(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : '';
+}
+
 /** MRZ TD1 (CNI) → champs identité déterministes (auto-vérifiables par clés de contrôle). */
 function parseMrzTd1(analyzeResult) {
   const lines = extractMrzTd1Lines(analyzeResult);
@@ -368,28 +374,52 @@ function mapAzureLayoutIdToRaw(analyzeResult, ctx = {}) {
 function mapAzureIdDocumentToRaw(analyzeResult, ctx = {}) {
   const doc = (analyzeResult.documents || [])[0] || {};
   const f = doc.fields || {};
-  const val = (k) => f[k]?.valueString || f[k]?.content || '';
-  const firstName = val('FirstName');
-  const lastName = val('LastName');
-  const mrz = val('MachineReadableZone');
-  const mrzLines = String(mrz || '').split(/\r?\n/).filter(Boolean);
-  const type = String(doc.docType || '').includes('passport') ? 'PASSEPORT' : 'CARTE_IDENTITE';
+  // Champ typé : on privilégie valueString puis valueDate (ISO) puis content brut.
+  const fv = (k) => (f[k] && (f[k].valueString || f[k].valueDate || f[k].content)) || '';
+  const firstName = fv('FirstName');
+  const lastName = fv('LastName');
+  const type = String(doc.docType || '').toLowerCase().includes('passport') ? 'PASSEPORT' : 'CARTE_IDENTITE';
+
+  // MRZ : prebuilt-idDocument n'expose PAS toujours un champ MachineReadableZone
+  // (cas CNI FR) → on la reconstruit depuis les lignes OCR, présentes aussi dans
+  // cette sortie. Préserve la vérification par clés de contrôle (validateMRZ).
+  let mrz = parseMrzTd1(analyzeResult);
+  if (!mrz && f.MachineReadableZone) {
+    const lines = String(f.MachineReadableZone.valueString || f.MachineReadableZone.content || '')
+      .split(/\r?\n/)
+      .map((s) => s.replace(/\s+/g, '').toUpperCase())
+      .filter(Boolean);
+    if (lines.length >= 2) mrz = { line1: lines[0], line2: lines[1], line3: lines[2] };
+  }
+
+  const ownerName = `${firstName} ${lastName}`.trim()
+    || (mrz ? `${titleCase(mrz.givenNames || '')} ${String(mrz.surname || '').toUpperCase()}`.trim() : '');
+
   return {
     document_metadata: {
       type,
-      owner_name: `${firstName} ${lastName}`.trim(),
-      date_emission: val('DateOfIssue') || '',
-      date_validite: val('DateOfExpiration') || '',
+      owner_name: ownerName,
+      date_emission: isoToFr(fv('DateOfIssue')),
+      date_validite: isoToFr(fv('DateOfExpiration')) || (mrz ? mrz.expiryDate : '') || '',
       suggested_file_name: ctx.fileName,
     },
-    financial_data: { monthly_net_income: 0, currency: 'EUR', is_recurring: false, extra_details: {} },
+    financial_data: {
+      monthly_net_income: 0,
+      currency: 'EUR',
+      is_recurring: false,
+      extra_details: {
+        document_number: fv('DocumentNumber') || (mrz ? mrz.docNumber : '') || undefined,
+        date_naissance: isoToFr(fv('DateOfBirth')) || (mrz ? mrz.birthDate : '') || undefined,
+        nationalite: (mrz ? mrz.nationality : '') || undefined,
+      },
+    },
     trust_and_security: {
       fraud_score: 0,
       forensic_alerts: [],
       math_validation: undefined,
-      mrz_line1: mrzLines[0],
-      mrz_line2: mrzLines[1],
-      mrz_line3: mrzLines[2],
+      mrz_line1: mrz ? mrz.line1 : undefined,
+      mrz_line2: mrz ? mrz.line2 : undefined,
+      mrz_line3: mrz ? mrz.line3 : undefined,
     },
     ai_analysis: { detected_profile: 'IDENTITY', impact_on_patrimometer: 0, expert_advice: '' },
     analysisMethod: 'azure_doc_intelligence',
