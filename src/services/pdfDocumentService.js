@@ -10,62 +10,91 @@ const {
   toStableBuffer,
 } = require('../utils/pdfBufferUtils');
 
-const SUSPICIOUS_SOFTWARE = [
-  'Adobe Photoshop', 'Canva', 'GIMP', 'Paint',
-  'Illustrator', 'InDesign', 'Photoshop', 'ImageMagick',
-];
+// Listes de logiciels : source unique de vérité (surchargeables par env via
+// FORENSIC_SUSPICIOUS_SOFTWARE / FORENSIC_LEGITIMATE_SOFTWARE). Inclut iLovePDF /
+// Smallpdf / Sejda en plus de la liste historique.
+// eslint-disable-next-line global-require
+const { getPhase1AuditConfig } = require('../config/phase1Audit');
 
-const LEGITIMATE_SOFTWARE = [
-  'Payfit', 'Sage', 'Cegid', 'Silae', 'ADP', 'Sage Paie',
-  'Cegid Paie', 'Silae Paie', 'Microsoft', 'LibreOffice',
-  'Apache', 'iText', 'PDFKit',
-];
+/**
+ * Module A — Forensic PDF (pdf-lib).
+ * Lit les métadonnées embarquées (Creator / Producer / CreationDate / ModDate)
+ * et détecte une éventuelle altération. Échec de lecture ⇒ fail-safe (aucun flag).
+ *
+ * @param {ArrayBuffer|Uint8Array|Buffer} pdfBuffer
+ * @returns {Promise<{isAltered:boolean, reasons:string[], creator?:string, producer?:string, creationDate?:string, modificationDate?:string}>}
+ */
+async function analyzePdfForensics(pdfBuffer) {
+  const out = {
+    isAltered: false,
+    reasons: [],
+    creator: undefined,
+    producer: undefined,
+    creationDate: undefined,
+    modificationDate: undefined,
+  };
+  try {
+    const { PDFDocument } = await import('pdf-lib');
+    const buffer = toStableBuffer(pdfBuffer);
+    const pdfDoc = await PDFDocument.load(buffer, { updateMetadata: false, ignoreEncryption: true });
+
+    const creator = String(pdfDoc.getCreator() || '').trim();
+    const producer = String(pdfDoc.getProducer() || '').trim();
+    let creationDate;
+    let modDate;
+    try { creationDate = pdfDoc.getCreationDate(); } catch { /* champ absent / malformé */ }
+    try { modDate = pdfDoc.getModificationDate(); } catch { /* champ absent / malformé */ }
+
+    out.creator = creator || undefined;
+    out.producer = producer || undefined;
+    out.creationDate = creationDate ? creationDate.toISOString() : undefined;
+    out.modificationDate = modDate ? modDate.toISOString() : undefined;
+
+    const { suspiciousSoftware, legitimateSoftware } = getPhase1AuditConfig();
+    const haystack = `${creator} ${producer}`.toLowerCase();
+    const suspect = (suspiciousSoftware || []).find((sw) => sw && haystack.includes(String(sw).toLowerCase()));
+    const legit = (legitimateSoftware || []).find((sw) => sw && haystack.includes(String(sw).toLowerCase()));
+
+    // Règle principale (Module A) : logiciel de retouche ⇒ document altéré.
+    if (suspect) {
+      out.isAltered = true;
+      out.reasons.push(`Logiciel de retouche détecté (${suspect}) : ${creator || producer}`);
+    }
+    // Signal informatif (non bloquant : de nombreux PDF légitimes sont ré-enregistrés)
+    // — modifié nettement après création.
+    if (creationDate && modDate && modDate.getTime() - creationDate.getTime() > 24 * 60 * 60 * 1000) {
+      out.reasons.push(
+        `Document modifié plus de 24 h après sa création (création ${out.creationDate}, modification ${out.modificationDate}).`,
+      );
+    }
+    // Signal informatif : Producer présent sans Creator et non reconnu.
+    if (!suspect && !legit && producer && !creator) {
+      out.reasons.push(`Producer « ${producer} » sans Creator — origine non identifiée.`);
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
 
 /**
  * Extrait les métadonnées d'un PDF pour détecter le logiciel de création.
+ * Conserve la forme de retour historique (`suspicious` / `details`) consommée par
+ * la route ; adossée désormais au forensic pdf-lib (Module A).
+ *
  * @param {ArrayBuffer|Uint8Array|Buffer} pdfBuffer
  * @returns {Promise<{creator?:string, producer?:string, creationDate?:string, modificationDate?:string, suspicious:boolean, details:string[]}>}
  */
 async function extractPDFMetadata(pdfBuffer) {
-  try {
-    const pdfParse = (await import('pdf-parse')).default;
-    const buffer = toStableBuffer(pdfBuffer);
-    const data = await pdfParse(buffer);
-
-    const metadata = data.info || {};
-    const creator = metadata.Creator || metadata.Producer || '';
-    const producer = metadata.Producer || '';
-    const creatorLower = creator.toLowerCase();
-    const producerLower = producer.toLowerCase();
-
-    const isSuspicious = SUSPICIOUS_SOFTWARE.some(sw =>
-      creatorLower.includes(sw.toLowerCase()) || producerLower.includes(sw.toLowerCase())
-    );
-    const isLegitimate = LEGITIMATE_SOFTWARE.some(sw =>
-      creatorLower.includes(sw.toLowerCase()) || producerLower.includes(sw.toLowerCase())
-    );
-
-    const details = [];
-    if (isSuspicious) {
-      details.push(`⚠️ PDF créé par un logiciel de retouche: ${creator || producer}`);
-      details.push(`Logiciel détecté: ${creator || producer}`);
-    } else if (isLegitimate) {
-      details.push(`✅ PDF créé par un logiciel légitime: ${creator || producer}`);
-    } else if (creator || producer) {
-      details.push(`ℹ️ Créateur détecté: ${creator || producer}`);
-    }
-
-    return {
-      creator: creator || producer || undefined,
-      producer: producer || undefined,
-      creationDate: metadata.CreationDate || undefined,
-      modificationDate: metadata.ModDate || undefined,
-      suspicious: isSuspicious,
-      details,
-    };
-  } catch {
-    return { suspicious: false, details: ["Impossible d'extraire les métadonnées du PDF"] };
-  }
+  const f = await analyzePdfForensics(pdfBuffer);
+  return {
+    creator: f.creator,
+    producer: f.producer,
+    creationDate: f.creationDate,
+    modificationDate: f.modificationDate,
+    suspicious: f.isAltered,
+    details: f.reasons,
+  };
 }
 
 /**
@@ -139,4 +168,4 @@ async function convertPDFToImages(pdfBuffer, maxPages = 3, dpi = 200) {
   throw new Error('Impossible de convertir le PDF. Format non supporté ou PDF corrompu.');
 }
 
-module.exports = { extractPDFMetadata, convertPDFToImages };
+module.exports = { extractPDFMetadata, analyzePdfForensics, convertPDFToImages };
