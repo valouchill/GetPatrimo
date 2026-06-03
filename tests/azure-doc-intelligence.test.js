@@ -9,6 +9,7 @@ const {
   mapAzurePayslipToRaw,
   mapAzureAvisToRaw,
   mapAzureLayoutIdToRaw,
+  mapAzureIdDocumentToRaw,
   mapAzureToRaw,
   parseFrenchNumber,
 } = require('../src/services/azureDocIntelligenceService');
@@ -19,6 +20,7 @@ const readFixture = (name) =>
 const payslip = readFixture('azure-layout-payslip.json');
 const avis = readFixture('azure-layout-avis.json');
 const cni = readFixture('azure-layout-cni.json');
+const idcard = readFixture('azure-iddocument-cni.json');
 
 test('parseFrenchNumber handles French thousands/decimals (incl. spaced)', () => {
   assert.equal(parseFrenchNumber('4.131,45'), 4131.45);
@@ -90,6 +92,33 @@ test('mapAzureLayoutIdToRaw parses a real CNI via the TD1 MRZ (prebuilt-layout)'
   assert.equal(ed.nationalite, 'FRA');
   assert.equal(raw.financial_data.monthly_net_income, 0);
   assert.equal(raw.analysisMethod, 'azure_doc_intelligence');
+});
+
+test('mapAzureIdDocumentToRaw uses typed fields + recovers the MRZ from lines (real prebuilt-idDocument)', () => {
+  const raw = mapAzureIdDocumentToRaw(idcard.analyzeResult, { fileName: 'cni.jpg' });
+  const ed = raw.financial_data.extra_details;
+  const ts = raw.trust_and_security;
+
+  assert.equal(raw.document_metadata.type, 'CARTE_IDENTITE');
+  // Champs typés (accents préservés, dates ISO → FR)
+  assert.equal(raw.document_metadata.owner_name, 'Maëlys-Gaëlle MARTIN');
+  assert.equal(raw.document_metadata.date_validite, '11.02.2030'); // valueDate 2030-02-11
+  assert.equal(raw.document_metadata.date_emission, '12.02.2020'); // valueDate 2020-02-12
+  assert.equal(ed.document_number, 'X4RTBPFW4');
+  assert.equal(ed.date_naissance, '13.07.1990'); // valueDate 1990-07-13
+  assert.equal(ed.nationalite, 'FRA'); // depuis la MRZ
+  // MRZ récupérée depuis les lignes (prebuilt-idDocument n'a PAS de champ MRZ ici)
+  assert.equal(ts.mrz_line1.length, 30);
+  assert.ok(ts.mrz_line1.startsWith('IDFRA'));
+  assert.ok(ts.mrz_line2.startsWith('9007138F300211'));
+  assert.equal(raw.analysisMethod, 'azure_doc_intelligence');
+});
+
+test('mapAzureToRaw routes prebuilt-idDocument to the typed adapter', () => {
+  const raw = mapAzureToRaw(idcard.analyzeResult, 'prebuilt-idDocument', {});
+  assert.equal(raw.document_metadata.type, 'CARTE_IDENTITE');
+  assert.equal(raw.document_metadata.owner_name, 'Maëlys-Gaëlle MARTIN');
+  assert.ok(raw.trust_and_security.mrz_line1.startsWith('IDFRA'));
 });
 
 test('mapAzureToRaw dispatches CNI/avis/payslip by content sniff', () => {

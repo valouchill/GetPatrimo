@@ -1,0 +1,39 @@
+{
+  "status": "succeeded",
+  "analyzeResult": {
+    "apiVersion": "2024-11-30",
+    "modelId": "prebuilt-idDocument",
+    "content": "RÉPUBLIQUE FRANÇAISE\nCARTE NATIONALE D'IDENTITÉ / IDENTITY CARD\nNOM / Surname MARTIN\nPrénoms / Given names Maëlys-Gaëlle, Marie\nNº DU DOCUMENT / Document No. X4RTBPFW4\nIDFRAX4RTBPFW46 <<<<<<<<<<<<<<<\n9007138F3002119FRA <<<<<<<<<<< 6\nMARTIN << MAELYS<GAELLE<MARIE <<<",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "unit": "pixel",
+        "lines": [
+          { "content": "MARTIN" },
+          { "content": "Maëlys-Gaëlle, Marie" },
+          { "content": "X4RTBPFW4" },
+          { "content": "IDFRAX4RTBPFW46 <<<<<<<<<<<<<<<" },
+          { "content": "9007138F3002119FRA <<<<<<<<<<< 6" },
+          { "content": "MARTIN << MAELYS<GAELLE<MARIE <<<" }
+        ]
+      }
+    ],
+    "documents": [
+      {
+        "docType": "idDocument.nationalIdentityCard",
+        "fields": {
+          "DateOfBirth": { "type": "date", "valueDate": "1990-07-13", "content": "13 07 1990", "confidence": 0.859 },
+          "DateOfExpiration": { "type": "date", "valueDate": "2030-02-11", "content": "11 02 2030", "confidence": 0.683 },
+          "DateOfIssue": { "type": "date", "valueDate": "2020-02-12", "content": "12 02 2020", "confidence": 0.635 },
+          "DocumentNumber": { "type": "string", "valueString": "X4RTBPFW4", "content": "X4RTBPFW4", "confidence": 0.774 },
+          "FirstName": { "type": "string", "valueString": "Maëlys-Gaëlle", "content": "Maëlys-Gaëlle,", "confidence": 0.882 },
+          "LastName": { "type": "string", "valueString": "MARTIN", "content": "MARTIN", "confidence": 0.882 },
+          "PlaceOfBirth": { "type": "string", "valueString": "PARIS", "content": "PARIS", "confidence": 0.707 },
+          "Sex": { "type": "string", "valueString": "F", "content": "F", "confidence": 0.329 }
+        },
+        "confidence": 1
+      }
+    ],
+    "contentFormat": "text"
+  }
+}
