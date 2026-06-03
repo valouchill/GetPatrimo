@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { getCockpitData } from '@/lib/admin/cockpit-data';
 import SuperAdminDashboard from './SuperAdminDashboard';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -30,5 +31,6 @@ export default async function CockpitPage() {
     redirect('/dashboard/admin');
   }
 
-  return <SuperAdminDashboard />;
+  const data = await getCockpitData();
+  return <SuperAdminDashboard data={data} />;
 }
