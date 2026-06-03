@@ -19,6 +19,9 @@ const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidate
 // Module B — extraction hybride Azure OCR / Vision (repli automatique si Azure non configuré).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { routeExtraction } = require('@/src/services/azureDocIntelligenceService');
+// Module D — superviseur IA documentaire (gpt-4o-mini, JSON-only). Gated DOC_SUPERVISOR_ENABLED.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { applySupervision, isSupervisorEnabled } = require('@/src/services/documentSupervisorService');
 
 // Polyfills pour pdfjs-dist dans Node.js 20
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -339,6 +342,16 @@ export async function POST(request: NextRequest) {
           result.ai_analysis.expert_advice = `${result.ai_analysis.expert_advice} ${alert}`;
         }
       }
+    }
+
+    // ─── Module D — Superviseur IA documentaire (gpt-4o-mini, JSON-only) ───
+    // Orchestration A→B→C→D : reçoit UNIQUEMENT le JSON déterministe déjà assemblé
+    // (forensic Module A via pdfMetadata, OCR Module B, sceau Module C) — jamais
+    // d'image. N'attribue AUCUNE note : ajoute seulement expert_advice + alertes +
+    // needs_human_review. Le grade et le fraud_score restent 100 % déterministes.
+    // Flag OFF (défaut) ⇒ bloc ignoré ⇒ réponse byte-identique (non-régression).
+    if (isSupervisorEnabled()) {
+      await applySupervision(result, pdfMetadata, { openaiApiKey: OPENAI_API_KEY, fileName });
     }
 
     const needsHumanReview = result.trust_and_security.needs_human_review ||

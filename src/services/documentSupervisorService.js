@@ -209,8 +209,13 @@ function mergeSupervision(result, verdict) {
   const ts = result.trust_and_security || (result.trust_and_security = {});
   const ai = result.ai_analysis || (result.ai_analysis = {});
 
-  // 1) Conseil UX (le superviseur est l'autorité du conseil).
-  if (verdict.expertAdvice) ai.expert_advice = verdict.expertAdvice;
+  // 1) Conseil UX : NON destructif. On préserve un conseil déterministe déjà posé
+  //    (ex : message d'authentification du sceau Visale) en y ajoutant celui du
+  //    superviseur, plutôt que de l'écraser.
+  if (verdict.expertAdvice) {
+    const prev = String(ai.expert_advice || '').trim();
+    ai.expert_advice = prev ? `${prev} ${verdict.expertAdvice}` : verdict.expertAdvice;
+  }
 
   // 2) Alertes : on AJOUTE les contrôles non-VERIFIED, sans doublon, sans retirer
   //    les alertes déterministes existantes.
