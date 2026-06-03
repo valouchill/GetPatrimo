@@ -9,6 +9,7 @@ const {
   coerceSupervision,
   mergeSupervision,
   superviseDocument,
+  applySupervision,
 } = require('../src/services/documentSupervisorService');
 
 // Résultat normalisé type (forme du contrat A+B) pour une fiche de paie.
@@ -137,6 +138,37 @@ test('mergeSupervision is NON-destructive: deterministic fields untouched, only 
   mergeSupervision(merged, verdict);
   const count = merged.trust_and_security.forensic_alerts.filter((a) => /Métadonnées \(WARNING\)/.test(a)).length;
   assert.equal(count, 1);
+});
+
+test('mergeSupervision preserves an existing expert_advice (append, e.g. Visale seal)', () => {
+  const result = payslipResult();
+  result.ai_analysis.expert_advice = '✅ Certificat Visale authentifié par sceau numérique.';
+  const verdict = coerceSupervision({
+    documentType: 'CERTIFICAT_VISALE',
+    checks: [{ name: 'OK', status: 'VERIFIED', detail: 'ok' }],
+    consistency: { mathConsistent: true, valuesCoherent: true },
+    needsHumanReview: false,
+    expertAdvice: 'Montants cohérents avec le dossier.',
+  });
+  mergeSupervision(result, verdict);
+  // Le message déterministe est PRÉSERVÉ, le conseil superviseur est AJOUTÉ.
+  assert.match(result.ai_analysis.expert_advice, /sceau numérique/);
+  assert.match(result.ai_analysis.expert_advice, /Montants cohérents/);
+});
+
+test('applySupervision is a no-op (result unchanged, verdict null) when disabled', async () => {
+  const save = process.env.DOC_SUPERVISOR_ENABLED;
+  try {
+    delete process.env.DOC_SUPERVISOR_ENABLED;
+    const result = payslipResult();
+    const snapshot = JSON.stringify(result);
+    const out = await applySupervision(result, { suspicious: false }, { openaiApiKey: 'sk-unused' });
+    assert.equal(out.verdict, null);
+    assert.equal(JSON.stringify(out.result), snapshot, 'résultat byte-identique quand le flag est OFF');
+  } finally {
+    if (save === undefined) delete process.env.DOC_SUPERVISOR_ENABLED;
+    else process.env.DOC_SUPERVISOR_ENABLED = save;
+  }
 });
 
 test('mergeSupervision never lowers an existing needs_human_review', () => {
