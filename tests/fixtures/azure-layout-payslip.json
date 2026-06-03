@@ -1,0 +1,38 @@
+{
+  "status": "succeeded",
+  "analyzeResult": {
+    "apiVersion": "2024-11-30",
+    "modelId": "prebuilt-layout",
+    "content": "Page 1\nAlten SA 221b Boulevard Jean Jaures 92100 BOULOGNE BILLANCOURT\nNº SS\n: 1911293045258/03\nBulletin de paie établi en euros Période de paie du 01.04.2026 au 30.04.2026\nNº SIRET\n: 34860741701087\nM. VETTESE Valentin 1 Rue des minimes 75003 PARIS\nTOTAL BRUT\n2,08 4.131,45\nTOTAL CHARGES\n927,93\n2.027,60\nNET SOCIAL\n3.203,52\nNET À PAYER AVANT IMPÔT SUR LE REVENU\n3.281,44\nMontant net imposable\n3.359,07\n20.351,99\nImpôt sur le revenu prélevé á la source\n3.359,07\n8,00\n268,73 0,00\nDate de paiement: 30.04.2026 Net à payer 3.012,71 euros\nBrut\nNet Fiscal\nCharges salariales\nCharges patronales\nPlafond SS\nMensuel\n4.131,45\n3.359,07\n927,93\n2.027,60\n4.005,00",
+    "tables": [
+      {
+        "rowCount": 3,
+        "columnCount": 9,
+        "cells": [
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 0, "content": "" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 1, "content": "Brut" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 2, "content": "Net Fiscal" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 3, "content": "Charges salariales" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 4, "content": "Charges patronales" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 5, "content": "Plafond SS" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 6, "content": "Heures Supplém." },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 7, "content": "Total verse employeur" },
+          { "kind": "columnHeader", "rowIndex": 0, "columnIndex": 8, "content": "Allègement cotisations" },
+          { "rowIndex": 1, "columnIndex": 0, "content": "Mensuel" },
+          { "rowIndex": 1, "columnIndex": 1, "content": "4.131,45" },
+          { "rowIndex": 1, "columnIndex": 2, "content": "3.359,07" },
+          { "rowIndex": 1, "columnIndex": 3, "content": "927,93" },
+          { "rowIndex": 1, "columnIndex": 4, "content": "2.027,60" },
+          { "rowIndex": 1, "columnIndex": 5, "content": "4.005,00" },
+          { "rowIndex": 1, "columnIndex": 6, "content": "0,00" },
+          { "rowIndex": 1, "columnIndex": 7, "content": "6.159,05" },
+          { "rowIndex": 1, "columnIndex": 8, "content": "0,00" },
+          { "rowIndex": 2, "columnIndex": 0, "content": "Annuel" },
+          { "rowIndex": 2, "columnIndex": 1, "content": "24.919,80" },
+          { "rowIndex": 2, "columnIndex": 2, "content": "20.351,99" },
+          { "rowIndex": 2, "columnIndex": 3, "content": "5.430,65" }
+        ]
+      }
+    ]
+  }
+}
