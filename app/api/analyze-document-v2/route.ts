@@ -323,10 +323,14 @@ export async function POST(request: NextRequest) {
             }
           }
           if (!sealVerified) {
+            // NEUTRE tant que la vérification cryptographique n'est pas opérationnelle :
+            // le décodeur actuel (jsQR) ne lit pas le DataMatrix des 2D-Doc, donc
+            // « non décodé » ≠ « falsifié ». On ne pénalise PLUS un Visale légitime.
+            // Le vrai signal (sceau décodé MAIS signature/recoupement invalide) sera
+            // ré-introduit avec Module C (lecteur DataMatrix + certificats publics).
             result.trust_and_security.digital_seal_authenticated = false;
-            result.trust_and_security.digital_seal_status = 'NON_DÉTECTÉ';
-            result.trust_and_security.forensic_alerts.push('⚠️ Sceau 2D-Doc non détecté – certificat Visale suspect');
-            result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 40);
+            result.trust_and_security.digital_seal_status = 'NON_VERIFIE';
+            result.trust_and_security.forensic_alerts.push('ℹ️ Sceau 2D-Doc non vérifié (vérification cryptographique indisponible) — non bloquant.');
           }
         } catch (error) {
           logger.error('Erreur décodage sceau 2D-Doc', { error: error instanceof Error ? error.message : error });
