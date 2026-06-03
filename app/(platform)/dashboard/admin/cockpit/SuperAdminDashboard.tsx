@@ -49,6 +49,21 @@ const fmtEUR = (n: number) =>
 const fmtEUR2 = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(n);
 const fmtNum = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+// Coût unitaire d'un appel LLM (très petit) — 4 décimales.
+const fmtEUR4 = (n: number) =>
+  new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  }).format(n);
+const fmtDateTime = (iso: string) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
 
 /* Styles recharts (thème sombre). */
 const AXIS_TICK = { fill: '#94a3b8', fontSize: 12 } as const;
@@ -195,7 +210,8 @@ export default function SuperAdminDashboard({ data }: { data: CockpitData }) {
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300">
-          <Activity className="h-3.5 w-3.5" /> Réel + coûts API estimés
+          <Activity className="h-3.5 w-3.5" />
+          {data.costSource === 'estimated' ? 'Données réelles · coûts API estimés' : 'Données + coûts API réels (loggés)'}
         </span>
       </header>
 
@@ -224,7 +240,8 @@ export default function SuperAdminDashboard({ data }: { data: CockpitData }) {
           valueClassName={costHealthy ? 'text-emerald-400' : 'text-red-400'}
           footer={
             <span className={`text-xs font-medium ${costHealthy ? 'text-emerald-400' : 'text-red-400'}`}>
-              {costHealthy ? '✓' : '⚠'} seuil overage {fmtEUR2(data.overagePriceEur)}
+              {costHealthy ? '✓' : '⚠'} &lt; overage {fmtEUR2(data.overagePriceEur)} ·{' '}
+              {data.costPerDossierReal ? 'réel' : 'estimé'}
             </span>
           }
         />
@@ -495,23 +512,61 @@ function AiTab({ data }: { data: CockpitData }) {
         </div>
       </Panel>
 
-      <Panel title="Consommation API détaillée" subtitle="Dépenses estimées par fournisseur" className="lg:col-span-3">
-        <DataTable head={['Fournisseur', 'Catégorie', 'Requêtes', 'Coût estimé']}>
+      <Panel title="Consommation API par fournisseur" subtitle="Coût réel (loggé) ou estimé — ce mois" className="lg:col-span-3">
+        <DataTable head={['Fournisseur', 'Source', 'Requêtes', 'Coût']}>
           {data.apiCostsByProvider.map((r) => (
             <tr key={r.provider} className="text-slate-200">
-              <td className="py-2.5 font-medium">{r.provider}</td>
-              <td className="py-2.5 text-right text-slate-400">{r.category}</td>
+              <td className="py-2.5 font-medium">
+                {r.provider} <span className="text-slate-500">· {r.category}</span>
+              </td>
+              <td className="py-2.5 text-right">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    r.real ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700/50 text-slate-400'
+                  }`}
+                >
+                  {r.real ? 'réel' : 'estimé'}
+                </span>
+              </td>
               <td className="py-2.5 text-right tabular-nums">{fmtNum(r.requests)}</td>
               <td className="py-2.5 text-right tabular-nums font-semibold text-amber-400">{fmtEUR2(r.estCost)}</td>
             </tr>
           ))}
           <tr className="text-white">
             <td className="pt-3 font-semibold" colSpan={3}>
-              Total estimé / mois
+              Total / mois
             </td>
             <td className="pt-3 text-right font-bold tabular-nums text-amber-300">{fmtEUR2(apiTotal)}</td>
           </tr>
         </DataTable>
+      </Panel>
+
+      {/* Détail de CHAQUE appel API (journal temps réel ApiCostLog) */}
+      <Panel
+        title="Derniers appels API"
+        subtitle="Journal des coûts unitaires mesurés (ApiCostLog)"
+        className="lg:col-span-3"
+      >
+        {data.recentApiCalls.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">
+            Aucun appel encore loggé. Les coûts unitaires réels apparaîtront ici dès la première analyse de
+            dossier / vérification d'identité.
+          </p>
+        ) : (
+          <DataTable head={['Quand', 'Fournisseur', 'Modèle', 'Tokens', 'Coût réel']}>
+            {data.recentApiCalls.map((c, i) => (
+              <tr key={`${c.createdAt}-${i}`} className="text-slate-200">
+                <td className="py-2.5 text-slate-400">{fmtDateTime(c.createdAt)}</td>
+                <td className="py-2.5 text-right font-medium">
+                  {c.provider} <span className="text-slate-500">· {c.category}</span>
+                </td>
+                <td className="py-2.5 text-right text-slate-400">{c.model || '—'}</td>
+                <td className="py-2.5 text-right tabular-nums">{c.tokens > 0 ? fmtNum(c.tokens) : '—'}</td>
+                <td className="py-2.5 text-right tabular-nums font-semibold text-amber-400">{fmtEUR4(c.costEur)}</td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
       </Panel>
     </div>
   );

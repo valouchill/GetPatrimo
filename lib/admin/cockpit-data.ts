@@ -26,6 +26,8 @@ const User = require('@/models/User');
 const Property = require('@/models/Property');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Application = require('@/models/Application');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ApiCostLog = require('@/models/ApiCostLog');
 
 export interface MetricDelta {
   value: number;
@@ -62,7 +64,20 @@ export interface CockpitData {
   utmSources: Array<{ source: string; signups: number; conversion: number }>;
   gradeDistribution: Array<{ grade: string; value: number; color: string }>;
   fraudShield: { blocked: number; analyzed: number };
-  apiCostsByProvider: Array<{ provider: string; category: string; requests: number; estCost: number }>;
+  apiCostsByProvider: Array<{ provider: string; category: string; requests: number; estCost: number; real: boolean }>;
+  /** Origine des coûts : 'real' (ApiCostLog), 'estimated' (fallback) ou 'mixed'. */
+  costSource: 'real' | 'estimated' | 'mixed';
+  /** Vrai si le coût/dossier provient de logs LLM réels (et non d'une estimation). */
+  costPerDossierReal: boolean;
+  /** Détail des derniers appels API réellement loggés. */
+  recentApiCalls: Array<{
+    provider: string;
+    category: string;
+    model: string;
+    costEur: number;
+    tokens: number;
+    createdAt: string;
+  }>;
 }
 
 function pctDelta(current: number, previous: number): number | null {
@@ -95,6 +110,8 @@ export async function getCockpitData(): Promise<CockpitData> {
     ownersTotal,
     ownersWithProp,
     signupAgg,
+    apiCostAgg,
+    recentCalls,
   ] = await Promise.all([
     User.countDocuments({ role: 'owner', createdAt: { $gte: monthStart } }),
     User.countDocuments({ role: 'owner', createdAt: { $gte: lastMonthStart, $lt: monthStart } }),
@@ -127,6 +144,13 @@ export async function getCockpitData(): Promise<CockpitData> {
         },
       },
     ]),
+    // Coûts API RÉELS du mois (ApiCostLog), agrégés par catégorie.
+    ApiCostLog.aggregate([
+      { $match: { createdAt: { $gte: monthStart } } },
+      { $group: { _id: '$category', cost: { $sum: '$costEur' }, count: { $sum: '$units' } } },
+    ]),
+    // Détail des derniers appels API loggés.
+    ApiCostLog.find({}).sort({ createdAt: -1 }).limit(12).lean(),
   ]);
 
   // — Abonnements par palier + MRR (prix réels depuis lib/billing/tiers) —
@@ -158,29 +182,83 @@ export async function getCockpitData(): Promise<CockpitData> {
     { grade: 'Alerte', value: bucket['0'] || 0, color: '#ef4444' },
   ];
 
-  // — Coûts API ESTIMÉS, dérivés du volume RÉEL du mois —
+  // — Coûts API : RÉELS (ApiCostLog) si disponibles, sinon ESTIMÉS (fallback) —
   const d = dossiersThisM;
-  const llmCost = d * EST.llmPerDossier;
-  const ocrCost = d * EST.ocrPerDossier;
-  const diditCost = d * EST.kycRatePerDossier * EST.diditPerKyc;
-  const mailCost = d * EST.mailsPerDossier * EST.mailPerSend;
-  const stripeFees = revenueTotal * EST.stripeFeeRate + paidSubs * EST.stripeFeeFixed;
-  const apiCostTotal = llmCost + ocrCost + diditCost + mailCost + stripeFees;
+
+  // Coûts réels du mois, par catégorie (depuis ApiCostLog).
+  const realCat: Record<string, { cost: number; count: number }> = {};
+  for (const c of apiCostAgg) realCat[String(c._id)] = { cost: c.cost || 0, count: c.count || 0 };
+  const realLlm =
+    (realCat['LLM']?.cost || 0) +
+    (realCat['LLM_VISION']?.cost || 0) +
+    (realCat['LLM_SCORING']?.cost || 0) +
+    (realCat['OCR']?.cost || 0);
+  const realLlmCalls =
+    (realCat['LLM']?.count || 0) +
+    (realCat['LLM_VISION']?.count || 0) +
+    (realCat['LLM_SCORING']?.count || 0) +
+    (realCat['OCR']?.count || 0);
+  const realKyc = realCat['KYC']?.cost || 0;
+  const realKycCalls = realCat['KYC']?.count || 0;
+  const realMail = realCat['Mail']?.cost || 0;
+  const realMailCalls = realCat['Mail']?.count || 0;
+  const hasRealCosts = realLlm > 0 || realKyc > 0;
+
+  // Estimations (fallback, dérivées du volume réel) — utilisées tant qu'aucun
+  // appel n'a encore été loggé pour la catégorie.
+  const estLlm = d * (EST.llmPerDossier + EST.ocrPerDossier);
+  const estKyc = d * EST.kycRatePerDossier * EST.diditPerKyc;
+  const estMail = d * EST.mailsPerDossier * EST.mailPerSend;
+
+  // Par catégorie : réel si présent, sinon estimé.
+  const llmCost = realLlm > 0 ? realLlm : estLlm;
+  const kycCost = realKyc > 0 ? realKyc : estKyc;
+  const mailCost = realMail > 0 ? realMail : estMail;
+  const stripeFees = revenueTotal * EST.stripeFeeRate + paidSubs * EST.stripeFeeFixed; // toujours calculé
+  const apiCostTotal = llmCost + kycCost + mailCost + stripeFees;
 
   const apiCostsByProvider = [
-    { provider: 'OpenAI — GPT-4o (LLM)', category: 'LLM', requests: d * 4, estCost: llmCost },
-    { provider: 'Didit — Biométrie eIDAS', category: 'KYC', requests: Math.round(d * EST.kycRatePerDossier), estCost: diditCost },
-    { provider: 'OCR / Extraction', category: 'OCR', requests: d, estCost: ocrCost },
-    { provider: 'Brevo — Emails', category: 'Mail', requests: d * EST.mailsPerDossier, estCost: mailCost },
-    { provider: 'Stripe — Frais', category: 'Paiement', requests: paidSubs, estCost: stripeFees },
+    {
+      provider: 'OpenAI — GPT-4o (LLM + OCR)',
+      category: 'LLM',
+      requests: realLlm > 0 ? realLlmCalls : d * 4,
+      estCost: llmCost,
+      real: realLlm > 0,
+    },
+    {
+      provider: 'Didit — Biométrie eIDAS',
+      category: 'KYC',
+      requests: realKyc > 0 ? realKycCalls : Math.round(d * EST.kycRatePerDossier),
+      estCost: kycCost,
+      real: realKyc > 0,
+    },
+    {
+      provider: 'Brevo — Emails',
+      category: 'Mail',
+      requests: realMail > 0 ? realMailCalls : d * EST.mailsPerDossier,
+      estCost: mailCost,
+      real: realMail > 0,
+    },
+    { provider: 'Stripe — Frais', category: 'Paiement', requests: paidSubs, estCost: stripeFees, real: false },
   ];
 
   const marginBrutIA = revenueTotal - apiCostTotal;
-  // Coût MARGINAL d'analyse d'un dossier (LLM + OCR) : c'est CE coût qui doit
-  // rester strictement < overage (0,49 €) pour que chaque dossier facturé soit
-  // rentable. Didit/mail/Stripe sont des coûts plateforme → comptés dans
-  // apiCostTotal (marge brute), pas dans le coût marginal par dossier.
-  const costPerDossier = d > 0 ? (llmCost + ocrCost) / d : EST.llmPerDossier + EST.ocrPerDossier;
+  // Coût RÉEL moyen d'analyse d'un dossier = coût LLM réel du mois / dossiers
+  // analysés (doit rester < overage 0,49 €). Fallback estimé tant qu'aucun
+  // appel LLM n'a été loggé.
+  const costPerDossierReal = realLlm > 0 && d > 0;
+  const costPerDossier = costPerDossierReal ? realLlm / d : EST.llmPerDossier + EST.ocrPerDossier;
+  const costSource: 'real' | 'estimated' | 'mixed' = hasRealCosts ? 'mixed' : 'estimated';
+
+  // Détail des derniers appels API réels.
+  const recentApiCalls = (recentCalls as Array<Record<string, unknown>>).map((c) => ({
+    provider: String(c.provider || ''),
+    category: String(c.category || ''),
+    model: String(c.model || ''),
+    costEur: Number(c.costEur) || 0,
+    tokens: (Number(c.inputTokens) || 0) + (Number(c.outputTokens) || 0),
+    createdAt: c.createdAt ? new Date(c.createdAt as string).toISOString() : '',
+  }));
 
   // — Activation : part des propriétaires ayant ≥ 1 bien (lien de location) —
   const activationRate =
@@ -236,5 +314,8 @@ export async function getCockpitData(): Promise<CockpitData> {
     gradeDistribution,
     fraudShield: { blocked: fraudBlocked, analyzed: dossiersThisM },
     apiCostsByProvider,
+    costSource,
+    costPerDossierReal,
+    recentApiCalls,
   };
 }
