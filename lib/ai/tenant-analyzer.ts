@@ -219,6 +219,19 @@ export async function analyzeApplication(
     temperature: 0, // Determinisme maximum
   });
 
+  // Coût RÉEL de l'appel de scoring LLM (fire-and-forget — n'interrompt jamais).
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('@/src/services/api-cost-logger').recordLlmCost({
+      model,
+      usage: completion.usage,
+      category: 'LLM_SCORING',
+      meta: { source: 'tenant-analyzer' },
+    });
+  } catch {
+    /* fire-and-forget */
+  }
+
   const raw = completion.choices[0]?.message?.content;
   if (!raw) {
     throw new Error('[tenant-analyzer] OpenAI a renvoyé un contenu vide.');

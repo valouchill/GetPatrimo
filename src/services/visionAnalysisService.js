@@ -16,6 +16,8 @@ const {
   pickBestDocumentNetIncome,
 } = require('../utils/financialExtraction');
 
+const { recordLlmCost } = require('./api-cost-logger');
+
 const AI_TIMEOUT_MS = 55_000;
 
 /**
@@ -291,6 +293,11 @@ async function analyzeWithVision(images, prompt, openaiApiKey, pdfMetadata, didi
   }
 
   const data = await response.json();
+
+  // Coût RÉEL de cet appel LLM, calculé depuis data.usage (fire-and-forget :
+  // ne pas await — n'ajoute aucune latence et n'interrompt jamais l'analyse).
+  recordLlmCost({ model: 'gpt-4o', usage: data.usage, category: 'LLM_VISION', meta: { fileName } });
+
   const resultText = data.choices?.[0]?.message?.content || '{}';
 
   let rawResult;

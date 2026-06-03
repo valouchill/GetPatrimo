@@ -73,7 +73,23 @@ export async function POST(request: NextRequest) {
 
         if (sessionId) {
           logger.info('Session Didit créée', { endpoint, sessionId });
-          
+
+          // Coût RÉEL d'une vérification Didit (forfait eIDAS) — fire-and-forget,
+          // n'interrompt jamais la création de session.
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { recordFlatCost, FLAT_COST_EUR } = require('@/src/services/api-cost-logger');
+            recordFlatCost({
+              provider: 'Didit',
+              category: 'KYC',
+              costEur: FLAT_COST_EUR.diditKyc,
+              model: 'eIDAS',
+              meta: { sessionId, applyToken: reference },
+            });
+          } catch {
+            /* fire-and-forget */
+          }
+
           try {
             await connectDiditDb();
             await IdentitySession.findOneAndUpdate(
