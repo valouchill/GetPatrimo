@@ -88,9 +88,13 @@ RÈGLES STRICTES :
    - CNI / passeport : MRZ présente ; nom et dates cohérents.
 4. Remonte les indices forensic transmis (logiciel d'édition suspect, fichier altéré) en WARNING/ALERT —
    ne les invente pas s'ils sont absents.
-5. needsHumanReview=true en cas d'incohérence mathématique, d'indice de falsification, ou de pièce illisible.
-6. expertAdvice : 1 à 3 phrases, ton « banque privée » (factuel, rassurant, jamais alarmiste, sans émoji),
-   destinées au propriétaire.
+5. La MRZ ne concerne QUE les pièces d'identité (CNI/passeport). Son absence sur une fiche de paie
+   ou un avis d'imposition est NORMALE : ne la signale jamais et ne base aucune alerte dessus.
+6. needsHumanReview=true UNIQUEMENT en cas d'incohérence mathématique, d'indice de falsification, ou
+   de pièce illisible. Si TOUS les contrôles sont VERIFIED, alors needsHumanReview=false.
+7. expertAdvice : 1 à 3 phrases, ton « banque privée » (factuel, rassurant, jamais alarmiste, sans émoji),
+   destinées au propriétaire. Ne demande JAMAIS de vérifier un élément hors-sujet pour le type de pièce
+   (ex : pas de MRZ sur une paie).
 Ta sortie est CONSOMMÉE PAR DU CODE : toute déviation au schéma casse le pipeline.`;
 
 /** Construit { system, user } à partir des seuls faits déterministes (pure, testable). */
@@ -121,7 +125,10 @@ function buildSupervisorPrompt(result, forensic) {
       f.mathValidation === true ? 'OK' : f.mathValidation === false ? 'ÉCHEC' : 'non applicable'
     }`,
   );
-  L.push(`- MRZ présente : ${f.mrzPresent ? 'OUI' : 'NON'}`);
+  // La MRZ ne concerne que les pièces d'identité : ne l'évoquer que pour CNI/passeport,
+  // sinon le LLM signale à tort son absence sur une paie/avis.
+  const isIdentity = f.type === 'CARTE_IDENTITE' || f.type === 'PASSEPORT';
+  if (isIdentity) L.push(`- MRZ présente : ${f.mrzPresent ? 'OUI' : 'NON'}`);
   L.push('');
   L.push('## Forensic métadonnées (Module A)');
   L.push(`- Fichier signalé altéré : ${f.isAltered ? 'OUI' : 'NON'}`);
