@@ -1,0 +1,25 @@
+{
+  "status": "succeeded",
+  "analyzeResult": {
+    "apiVersion": "2024-11-30",
+    "modelId": "prebuilt-layout",
+    "content": "RÉPUBLIQUE FRANÇAISE CARTE NATIONALE D'IDENTITÉ / IDENTITY CARD\nNOM / Surname MARTIN\nPrénoms / Given names Maëlys-Gaëlle, Marie\nSEXE / Sex F FRA\nNATIONALITÉ / Nationality\nDATE DE NAISS. Date of birth 13 07 1990\nLIEU DE NAISSANCE / Place of birth PARIS\nNº DU DOCUMENT / Document No. X4RTBPFW4\nDATE D'EXPIR. / Expiry date 11 02 2030\nDATE DE DÉLIVRANCE / Date of issue 12 02 2020\nADRESSE / Address 44 rue DESIRÉ SAINT CLEMENT RÉSIDENCE DU PLEIN AIR BAT 4 33000 BORDEAUX FRANCE\nRÉPUBLIQUE FRANÇAISE\nIDFRAX4RTBPFW46 <<<<<<<<<<<<<<< 9007138F3002119FRA <<<<<<<<<<< 6 MARTIN << MAELYS<GAELLE<MARIE <<<",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "unit": "pixel",
+        "lines": [
+          { "content": "NOM / Surname MARTIN" },
+          { "content": "Prénoms / Given names Maëlys-Gaëlle, Marie" },
+          { "content": "Nº DU DOCUMENT / Document No. X4RTBPFW4" },
+          { "content": "DATE D'EXPIR. / Expiry date 11 02 2030" },
+          { "content": "DATE DE DÉLIVRANCE / Date of issue 12 02 2020" },
+          { "content": "IDFRAX4RTBPFW46 <<<<<<<<<<<<<<<" },
+          { "content": "9007138F3002119FRA <<<<<<<<<<< 6" },
+          { "content": "MARTIN << MAELYS<GAELLE<MARIE <<<" }
+        ]
+      }
+    ],
+    "tables": []
+  }
+}

@@ -16,6 +16,9 @@ const { extractPDFMetadata, convertPDFToImages } = require('@/src/services/pdfDo
 const { getExtractionPrompt } = require('@/src/services/documentPromptService');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidateAnalysis } = require('@/src/services/visionAnalysisService');
+// Module B — extraction hybride Azure OCR / Vision (repli automatique si Azure non configuré).
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { routeExtraction } = require('@/src/services/azureDocIntelligenceService');
 
 // Polyfills pour pdfjs-dist dans Node.js 20
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -204,7 +207,18 @@ export async function POST(request: NextRequest) {
     const diditIdentity = { firstName: diditFirstName, lastName: diditLastName, birthDate: diditBirthDate };
     const prompt = getExtractionPrompt(candidateStatus || undefined, candidateName || undefined, diditIdentity, documentCategory || undefined);
 
-    let result = await analyzeWithVision(images, prompt, OPENAI_API_KEY, pdfMetadata, diditIdentity, fileName);
+    const extraction = await routeExtraction({
+      buffer,
+      images,
+      prompt,
+      openaiApiKey: OPENAI_API_KEY,
+      pdfMetadata,
+      diditIdentity,
+      fileName,
+      documentCategory,
+      hintedType: undefined,
+    });
+    let result = extraction.result;
 
     if (!result.trust_and_security.forensic_alerts) result.trust_and_security.forensic_alerts = [];
 
