@@ -62,6 +62,15 @@ interface Application {
     grade: string;
     badges: Array<{ id: string; label: string }>;
   };
+  resilience?: {
+    score: number;
+    level: MetalLevel;
+    label: string;
+    scoreLabel: string;
+    source: 'v2' | 'legacy';
+    isV2: boolean;
+    cachedAt?: string | null;
+  };
   status: string;
   property?: {
     name: string;
@@ -155,8 +164,8 @@ export default function TenantDashboardClient({
 
   const app = latestApplication;
   const firstName = app?.profile?.firstName || userName?.split(' ')[0] || 'Locataire';
-  const score = app?.patrimometer?.score || 0;
-  const metalLevel = getMetalLevel(score);
+  const score = app?.resilience?.score ?? app?.patrimometer?.score ?? 0;
+  const metalLevel = app?.resilience?.level || getMetalLevel(score);
   const grade = METAL_LABELS[metalLevel]; // Affichage display (PLATINUM/GOLD/...)
   const gradeStyle = METAL_STYLE[metalLevel];
 
@@ -579,8 +588,8 @@ export default function TenantDashboardClient({
                           </td>
                           <td className="px-6 py-4">
                             {(() => {
-                              const lvl = getMetalLevel(
-                                candidature.patrimometer?.score || 0,
+                              const lvl = candidature.resilience?.level || getMetalLevel(
+                                candidature.resilience?.score ?? candidature.patrimometer?.score ?? 0,
                               );
                               return (
                                 <span
@@ -622,8 +631,8 @@ export default function TenantDashboardClient({
                     <div key={candidature._id} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start gap-3">
                         {(() => {
-                          const lvl = getMetalLevel(
-                            candidature.patrimometer?.score || 0,
+                          const lvl = candidature.resilience?.level || getMetalLevel(
+                            candidature.resilience?.score ?? candidature.patrimometer?.score ?? 0,
                           );
                           return (
                             <span

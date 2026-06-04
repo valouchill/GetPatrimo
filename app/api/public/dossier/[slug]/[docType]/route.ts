@@ -29,6 +29,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
+import { resolveResilienceScore } from '@/lib/resilience-score';
 
 type DocType = 'cni' | 'identite' | 'revenus' | 'paie' | 'impots' | 'fiscal' | 'domicile' | 'garant';
 type Category = 'IDENTITY' | 'INCOME' | 'ADDRESS' | 'GUARANTOR';
@@ -62,6 +63,24 @@ function mapDocTypeToCategory(docType: string): Category | null {
   if (t === 'domicile') return 'ADDRESS';
   if (t === 'garant') return 'GUARANTOR';
   return null;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLegacyPassportExpr(slug: string) {
+  const match = /^PT-\d{4}-([A-F0-9]{6,24})$/i.exec(slug);
+  if (!match) return null;
+  return {
+    $expr: {
+      $regexMatch: {
+        input: { $toString: '$_id' },
+        regex: `${escapeRegExp(match[1])}$`,
+        options: 'i',
+      },
+    },
+  };
 }
 
 function mapStatusToAudit(status?: string, flagged?: boolean): string {
@@ -115,13 +134,17 @@ export async function GET(
       );
     }
 
-    // Lookup par passportSlug (priorité) OU par passportId reconstruit
+    // Lookup par passportSlug (priorité) OU fallback legacy via passportId
+    // visuel PT-YYYY-{last8(_id)} généré dans d'anciens PDFs.
+    const legacyExpr = buildLegacyPassportExpr(slug);
+    const lookupOr: Array<Record<string, unknown>> = [
+      { passportSlug: slug },
+      { 'passport.id': slug },
+    ];
+    if (legacyExpr) lookupOr.push(legacyExpr);
+
     const application = await Application.findOne({
-      $or: [
-        { passportSlug: slug },
-        // Fallback : passportId stocké tel quel (rare mais possible)
-        { 'passport.id': slug },
-      ],
+      $or: lookupOr,
     })
       .populate('property', 'name')
       .select('passportSlug documents profile patrimometer property')
@@ -191,22 +214,31 @@ export async function GET(
 
     const profile = (application as any).profile || {};
     const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+    const resilience = resolveResilienceScore(application);
 
-    return NextResponse.json({
-      slug,
-      docType,
-      category,
-      candidate: {
-        firstName: profile.firstName || null,
-        // V2 : on n'expose PAS le nom complet du candidat avant inscription
-        lastInitial: profile.lastName ? `${profile.lastName[0]}.` : null,
-        fullName: candidateName, // utilisé côté serveur uniquement
+    return NextResponse.json(
+      {
+        slug: (application as any).passportSlug || slug,
+        docType,
+        category,
+        candidate: {
+          firstName: profile.firstName || null,
+          // V2 : on n'expose PAS le nom complet du candidat avant inscription
+          lastInitial: profile.lastName ? `${profile.lastName[0]}.` : null,
+          fullName: candidateName, // utilisé côté serveur uniquement
+        },
+        score: resilience.score,
+        grade: resilience.level,
+        resilience,
+        propertyName: (application as any).property?.name || null,
+        documents,
       },
-      score: (application as any).patrimometer?.score || 0,
-      grade: (application as any).patrimometer?.grade || null,
-      propertyName: (application as any).property?.name || null,
-      documents,
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    );
   } catch (error) {
     logger.error('GET /api/public/dossier/[slug]/[docType]', {
       error: error instanceof Error ? error.message : error,

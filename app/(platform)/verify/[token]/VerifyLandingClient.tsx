@@ -382,6 +382,10 @@ export default function VerifyLandingClient({ token }: { token: string }) {
   }, [token]);
 
   const gradeConfig: Record<string, { color: string; glow: string; label: string; bg: string }> = {
+    'PLATINUM': { color: '#D4AF37', glow: '0 0 60px rgba(212,175,55,0.6)', label: 'PLATINUM', bg: 'from-slate-950 to-slate-700' },
+    'GOLD': { color: '#F59E0B', glow: '0 0 50px rgba(245,158,11,0.55)', label: 'GOLD', bg: 'from-amber-400 to-amber-600' },
+    'SILVER': { color: '#94A3B8', glow: '0 0 40px rgba(148,163,184,0.45)', label: 'SILVER', bg: 'from-slate-300 to-slate-500' },
+    'ALERTE': { color: '#EF4444', glow: '0 0 42px rgba(239,68,68,0.45)', label: 'ALERTE', bg: 'from-red-500 to-red-700' },
     'SOUVERAIN': { color: '#D4AF37', glow: '0 0 60px rgba(212,175,55,0.6)', label: 'SOUVERAIN', bg: 'from-amber-500 to-amber-700' },
     'A': { color: '#10B981', glow: '0 0 40px rgba(16,185,129,0.5)', label: 'EXCELLENCE', bg: 'from-emerald-500 to-emerald-700' },
     'B': { color: '#3B82F6', glow: '0 0 40px rgba(59,130,246,0.5)', label: 'CONFIANCE', bg: 'from-blue-500 to-blue-700' },

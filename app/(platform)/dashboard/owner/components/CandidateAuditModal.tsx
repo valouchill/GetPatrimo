@@ -372,10 +372,18 @@ export function CandidateAuditModal({
     };
   }, [open, c?.id]);
 
+  const effectiveResilience = React.useMemo(() => {
+    const score = v2Resilience
+      ? Math.max(0, Math.min(100, Math.round(v2Resilience.score)))
+      : Math.max(0, Math.min(100, Math.round(c?.score || 0)));
+    const level = (v2Resilience?.level || getMetalLevel(score)) as keyof typeof METAL_BADGE_CLASS;
+    return { score, level, isV2: Boolean(v2Resilience) };
+  }, [c?.score, v2Resilience]);
+
   // V7.12.1 — useMemo defensif (null-safe) avant le early return
   const reportCandidate = React.useMemo(
-    () => (c && bien ? dossierToAiReport(c, bien) : null),
-    [c, bien],
+    () => (c && bien ? dossierToAiReport({ ...c, score: effectiveResilience.score }, bien) : null),
+    [c, bien, effectiveResilience.score],
   );
 
   if (!c || !bien || !reportCandidate) return null;
@@ -502,12 +510,7 @@ export function CandidateAuditModal({
                     "Audit Forensic" (computeResilienceIndex). */}
                 {(() => {
                   // V2 prioritaire ; le `level` V2 est déjà PLATINUM/GOLD/…
-                  const score = v2Resilience
-                    ? Math.max(0, Math.min(100, Math.round(v2Resilience.score)))
-                    : Math.max(0, Math.min(100, Math.round(c.score || 0)));
-                  const level = (v2Resilience?.level ||
-                    getMetalLevel(score)) as keyof typeof METAL_BADGE_CLASS;
-                  const isV2 = !!v2Resilience;
+                  const { score, level, isV2 } = effectiveResilience;
                   return (
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-700">

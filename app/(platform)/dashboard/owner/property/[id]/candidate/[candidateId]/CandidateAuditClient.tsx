@@ -50,6 +50,7 @@ import {
 } from '@/app/components/audit';
 import { getMetalLevel, METAL_LABELS, PRODUCT, formatResilience, AUDIT_LABELS } from '@/lib/product-lexicon';
 import type { AuditStatus } from '@/lib/product-lexicon';
+import { resolveResilienceScore } from '@/lib/resilience-score';
 import { isEnabled } from '@/lib/features';
 import { useOwner } from '@/app/(platform)/dashboard/owner/OwnerContext';
 
@@ -72,6 +73,16 @@ type CandidateRecord = {
   status?: string;
   submittedAt?: string;
   patrimometer?: { score?: number; grade?: string };
+  aiAuditV2?: unknown;
+  resilience?: {
+    score?: number;
+    level?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+    label?: string;
+    scoreLabel?: string;
+    source?: 'v2' | 'legacy';
+    isV2?: boolean;
+    cachedAt?: string | null;
+  };
   didit?: { status?: string };
   financialSummary?: {
     monthlyNetIncome?: number;
@@ -97,6 +108,15 @@ type CandidateRecord = {
   } | null;
   integrityScore?: { score: number; category?: string; label?: string };
   ownerInsights?: {
+    resilience?: {
+      score?: number;
+      level?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+      label?: string;
+      scoreLabel?: string;
+      source?: 'v2' | 'legacy';
+      isV2?: boolean;
+      cachedAt?: string | null;
+    };
     aiAudit?: {
       status?: 'CLEAR' | 'REVIEW' | 'ALERT';
       score?: number;
@@ -199,7 +219,7 @@ function auditPresentation(c?: CandidateRecord | null) {
   if (status === 'ALERT') return { tone: 'danger' as const, label: 'Alerte critique' };
   if (status === 'REVIEW') return { tone: 'warning' as const, label: 'Vérification requise' };
   // V8.2 — niveau métal dérivé du score (single source of truth)
-  const score = Number(c?.patrimometer?.score || 0);
+  const score = resolveResilienceScore(c).score;
   if (score > 0) {
     return { tone: 'success' as const, label: METAL_LABELS[getMetalLevel(score)] };
   }
@@ -405,6 +425,7 @@ export default function CandidateAuditClient({
 
   const pillars = candidate.ownerInsights?.pillars || [];
   const name = candidateName(candidate);
+  const resilience = resolveResilienceScore(candidate);
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-12">
@@ -485,8 +506,8 @@ export default function CandidateAuditClient({
             </h1>
 
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              {PRODUCT.INDICE} : <span className="font-semibold text-slate-900">{formatResilience(Number(candidate.patrimometer?.score || 0))}</span>
-              <span className="ml-2 font-semibold text-emerald-700">· {METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}</span>
+              {PRODUCT.INDICE} : <span className="font-semibold text-slate-900">{formatResilience(resilience.score)}</span>
+              <span className="ml-2 font-semibold text-emerald-700">· {resilience.label}</span>
               {candidate.ownerInsights?.aiAudit?.status && (
                 <span className="ml-2 text-slate-500">· {AUDIT_LABELS[(candidate.ownerInsights.aiAudit.status as AuditStatus)] || PRODUCT.AUDIT}</span>
               )}
@@ -575,11 +596,11 @@ export default function CandidateAuditClient({
             <DecisionVerdict
               verdict={resolveVerdict({
                 ownerInsights: candidate.ownerInsights as { decisionSummary?: { verdict?: 'recommended' | 'review' | 'risky' } } | null,
-                score: Number(candidate.patrimometer?.score || 0),
+                score: resilience.score,
                 auditStatus: candidate.ownerInsights?.aiAudit?.status,
               })}
               reasonCodes={(candidate.ownerInsights?.decisionSummary as { reasonCodes?: string[] } | undefined)?.reasonCodes}
-              headline={METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}
+              headline={resilience.label}
               summary={
                 candidate.ownerInsights?.aiAudit?.summary ||
                 'Analyse complète disponible ci-dessous.'
@@ -603,7 +624,7 @@ export default function CandidateAuditClient({
               <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
                 {PRODUCT.INDICE}
               </p>
-              <ResilienceGauge score={Number(candidate.patrimometer?.score || 0)} size="sm" />
+              <ResilienceGauge score={resilience.score} size="sm" />
             </div>
           </div>
 
@@ -728,7 +749,7 @@ export default function CandidateAuditClient({
           </div>
 
           <CandidateBenchmark
-            score={Number(candidate.patrimometer?.score || 0)}
+            score={resilience.score}
             rank={candidate.rank}
           />
 
@@ -763,8 +784,8 @@ export default function CandidateAuditClient({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
           label={PRODUCT.INDICE}
-          value={formatResilience(Number(candidate.patrimometer?.score || 0))}
-          caption={METAL_LABELS[getMetalLevel(Number(candidate.patrimometer?.score || 0))]}
+          value={formatResilience(resilience.score)}
+          caption={resilience.label}
         />
         <MetricTile
           label="Solvabilité"
@@ -927,7 +948,7 @@ export default function CandidateAuditClient({
             'Profil candidat'
           }
           diditVerified={(candidate as any)?.didit?.status === 'VERIFIED'}
-          score={Number(candidate.patrimometer?.score || 0)}
+          score={resilience.score}
           documents={dossierDocs}
           loading={dossierLoading}
           error={dossierError}
