@@ -22,6 +22,9 @@ const { routeExtraction } = require('@/src/services/azureDocIntelligenceService'
 // Module D — superviseur IA documentaire (gpt-4o-mini, JSON-only). Gated DOC_SUPERVISOR_ENABLED.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { applySupervision, isSupervisorEnabled } = require('@/src/services/documentSupervisorService');
+// Module C — sceau 2D-Doc fiscal (décodage libdmtx + vérif signature ANTS offline). Gated FISCAL_SEAL_VERIFICATION_ENABLED.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { analyzeFiscalSeal, isFiscalSealEnabled } = require('@/src/services/fiscalSealService');
 
 // Polyfills pour pdfjs-dist dans Node.js 20
 if (typeof globalThis.DOMMatrix === 'undefined') {
@@ -270,6 +273,37 @@ export async function POST(request: NextRequest) {
         ts.mrz_validated = false;
         result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 30);
         result.trust_and_security.forensic_alerts.push('Garant : MRZ non extraite – document suspect.');
+      }
+    }
+
+    // ─── Module C — Sceau 2D-Doc fiscal (avis d'imposition) ───
+    // Décode le DataMatrix (libdmtx) + vérifie la signature ECDSA contre la TSL ANTS
+    // embarquée (lib MIT betagouv/2ddoc-parser, HORS-LIGNE, sans API ANTS), puis
+    // RECOUPE les valeurs scellées (RFR, n° fiscal, référence) avec l'OCR (Module B).
+    // Gated FISCAL_SEAL_VERIFICATION_ENABLED ⇒ OFF (défaut) = réponse byte-identique.
+    if (isFiscalSealEnabled() && result.document_metadata.type === 'AVIS_IMPOSITION') {
+      const ed = result.financial_data.extra_details || {};
+      const fiscal = await analyzeFiscalSeal({
+        images,
+        ocr: { rfr: ed.revenu_fiscal_reference, numeroFiscal: ed.numero_fiscal, referenceAvis: ed.reference_avis },
+      });
+      if (fiscal && fiscal.seal) {
+        result.trust_and_security.fiscal_seal_status = fiscal.seal.signatureValid
+          ? 'SIGNATURE_VALIDE'
+          : 'SIGNATURE_NON_VERIFIEE';
+        if (fiscal.cross.anyMismatch) {
+          // Valeur(s) scellée(s) ≠ document : édition probable → signal de fraude FORT.
+          result.trust_and_security.forensic_alerts.push(
+            `❌ Sceau fiscal 2D-Doc : divergence ${fiscal.cross.mismatches.join(', ')} (valeur scellée ≠ document).`,
+          );
+          result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 40);
+        } else if (fiscal.seal.signatureValid && fiscal.cross.anyConfirmation) {
+          result.trust_and_security.digital_seal_authenticated = true;
+          result.trust_and_security.forensic_alerts.push('✅ Sceau fiscal 2D-Doc authentifié (signature ANTS valide, RFR concordant).');
+          result.trust_and_security.fraud_score = Math.max(0, (result.trust_and_security.fraud_score || 0) - 10);
+        } else if (fiscal.cross.anyConfirmation) {
+          result.trust_and_security.forensic_alerts.push('ℹ️ Sceau fiscal 2D-Doc décodé, valeurs concordantes (signature non vérifiée).');
+        }
       }
     }
 
