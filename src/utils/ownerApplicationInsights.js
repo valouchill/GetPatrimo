@@ -1,6 +1,7 @@
 const { buildPassportViewModel } = require('./passportViewModel');
 const { deriveLeaseType, computeSmartDeposit } = require('./leaseWizardShared');
 const { deriveApplicationFinancialProfile } = require('./financialExtraction');
+const { resolveResilienceScore } = require('./resilienceScore');
 
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
@@ -313,8 +314,9 @@ function buildAuditSummary({ application, passport, financial, quality, contract
   const effortLabel = financial.effortRateLabel || '';
   const remainLabel = financial.remainingIncomeLabel || '';
   const rentLabel = financial.rentAmountLabel || '';
-  const grade = application?.patrimometer?.grade || '';
-  const indiceResilience = round(application?.patrimometer?.score || 0);
+  const resilience = resolveResilienceScore(application);
+  const grade = resilience.label || application?.patrimometer?.grade || '';
+  const indiceResilience = resilience.score;
   const guaranteeMode = String(passport?.guarantee?.mode || 'NONE').toUpperCase();
   const qualityLabel = quality.status?.label || '';
   const certDocs = quality.certifiedDocuments || 0;
@@ -343,7 +345,7 @@ function buildAuditSummary({ application, passport, financial, quality, contract
       summaryParts.push('Un garant physique est rattaché au dossier, ce qui renforce la sécurité contractuelle.');
     }
     if (grade) {
-      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (grade ${grade}). Ce profil se positionne ${indiceResilience >= 75 ? 'dans le haut de la distribution' : indiceResilience >= 55 ? 'dans la moyenne des candidats' : 'en dessous de la médiane'}.`);
+      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (${grade}). Ce profil se positionne ${indiceResilience >= 75 ? 'dans le haut de la distribution' : indiceResilience >= 55 ? 'dans la moyenne des candidats' : 'en dessous de la médiane'}.`);
     }
     summaryParts.push('Le dossier est prêt pour une décision propriétaire. Vous pouvez sélectionner ce candidat ou comparer avec les autres profils reçus.');
   } else if (status === 'REVIEW') {
@@ -358,7 +360,7 @@ function buildAuditSummary({ application, passport, financial, quality, contract
       summaryParts.push('L\'identité n\'a pas encore été vérifiée par Didit. Tant que cette étape n\'est pas franchie, le dossier reste classé en revue.');
     }
     if (grade) {
-      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (grade ${grade}).`);
+      summaryParts.push(`Indice de Résilience : ${indiceResilience}/100 (${grade}).`);
     }
     summaryParts.push('Recommandation : demandez les pièces manquantes ou la vérification d\'identité avant de finaliser votre choix.');
   } else {
@@ -588,13 +590,14 @@ function buildComparisonSnapshot({
   isSealed,
 }) {
   const diditVerified = String(application?.didit?.status || '').toUpperCase() === 'VERIFIED';
-  const scoreValue = round(application?.patrimometer?.score || aiAudit?.score || 0);
-  const grade = application?.patrimometer?.grade || '';
+  const resilience = resolveResilienceScore(application);
+  const scoreValue = resilience.score;
   const readyToLease = !isSealed && Boolean(contractReadiness?.ready);
 
   return {
     scoreValue,
-    scoreLabel: `${scoreValue}/100${grade ? ` · ${grade}` : ''}`,
+    scoreLabel: resilience.scoreLabel,
+    resilience,
     identityVerified: diditVerified,
     identityVerifiedLabel: boolLabel(diditVerified, 'Oui', 'À vérifier'),
     monthlyIncomeLabel: financial?.monthlyIncomeLabel || '—',
@@ -703,6 +706,7 @@ function buildOwnerApplicationInsights({
     ...app,
     property: property || app.property || {},
   };
+  const resilience = resolveResilienceScore(app);
   const derivedFinancialProfile = deriveApplicationFinancialProfile({
     application: mergedApplication,
     fallbackIncome: Number(app?.financialSummary?.totalMonthlyIncome || 0),
@@ -782,6 +786,7 @@ function buildOwnerApplicationInsights({
   });
 
   return {
+    resilience,
     aiAudit,
     financial,
     quality,

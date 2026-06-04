@@ -19,6 +19,16 @@ export interface Candidature {
   coTenants?: Array<{ slot: number; firstName: string; lastName: string; status: string; identityVerified: boolean }>;
   profile: { firstName: string; lastName: string; phone: string | null; email?: string | null };
   patrimometer: { score: number; grade: string };
+  aiAuditV2?: unknown;
+  resilience?: {
+    score: number;
+    level: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+    label: string;
+    scoreLabel: string;
+    source: 'v2' | 'legacy';
+    isV2: boolean;
+    cachedAt?: string | null;
+  };
   financialSummary?: {
     monthlyNetIncome?: number;
     contractType?: string;
@@ -43,6 +53,15 @@ export interface Candidature {
     readinessReasons?: string[];
   } | null;
   ownerInsights?: {
+    resilience?: {
+      score: number;
+      level: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+      label: string;
+      scoreLabel: string;
+      source: 'v2' | 'legacy';
+      isV2: boolean;
+      cachedAt?: string | null;
+    };
     aiAudit?: {
       status: 'CLEAR' | 'REVIEW' | 'ALERT';
       score: number;

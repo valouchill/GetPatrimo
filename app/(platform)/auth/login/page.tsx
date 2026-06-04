@@ -11,6 +11,28 @@ import { safeCallbackUrl } from '@/lib/safe-callback-url';
 type Mode = 'password' | 'otp';
 type OtpStep = 'email' | 'otp' | 'unlocking';
 
+const LOGIN_TIMEOUT_MS = 12_000;
+const LOGIN_TIMEOUT_MESSAGE = 'Connexion trop longue, veuillez réessayer.';
+
+function withLoginTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise,
+    new Promise<never>((_resolve, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(LOGIN_TIMEOUT_MESSAGE)), LOGIN_TIMEOUT_MS);
+    }),
+  ]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+function loginErrorMessage(error: unknown) {
+  if (error instanceof Error && (error.name === 'AbortError' || error.message === LOGIN_TIMEOUT_MESSAGE)) {
+    return LOGIN_TIMEOUT_MESSAGE;
+  }
+  return 'Erreur réseau. Veuillez réessayer.';
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('password');
 
@@ -68,14 +90,23 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/auth/login-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: pwEmail.trim().toLowerCase(),
-          password: pwPassword,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
+      const res = await (async () => {
+        try {
+          return await fetch('/api/auth/login-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              email: pwEmail.trim().toLowerCase(),
+              password: pwPassword,
+            }),
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      })();
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Connexion impossible.');
@@ -84,11 +115,13 @@ export default function LoginPage() {
       }
 
       cleanupStaleCookies();
-      const result = await signIn('magic-fast', {
-        email: data.email,
-        token: data.token,
-        redirect: false,
-      });
+      const result = await withLoginTimeout(
+        signIn('magic-fast', {
+          email: data.email,
+          token: data.token,
+          redirect: false,
+        }),
+      );
 
       if (result?.ok) {
         redirectByRole(data.role);
@@ -96,8 +129,8 @@ export default function LoginPage() {
         setError("Erreur d'authentification. Veuillez réessayer.");
         setLoading(false);
       }
-    } catch {
-      setError('Erreur réseau. Veuillez réessayer.');
+    } catch (err) {
+      setError(loginErrorMessage(err));
       setLoading(false);
     }
   };

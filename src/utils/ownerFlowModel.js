@@ -2,6 +2,8 @@ function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+const { resolveResilienceScore } = require('./resilienceScore');
+
 const STAGE_CONFIG = {
   search: {
     id: 'search',
@@ -71,7 +73,7 @@ function contractHref(propertyId, applicationId) {
 function getCandidatePriority(candidate, acceptedTenantId) {
   if (!candidate) return -Infinity;
 
-  let score = Number(candidate?.patrimometer?.score || 0);
+  let score = resolveResilienceScore(candidate).score;
 
   if (candidate.id && acceptedTenantId && String(candidate.id) === String(acceptedTenantId)) {
     score += 1000;
@@ -200,7 +202,7 @@ function derivePropertyStage({ property, candidates, primaryCandidate } = {}) {
   const acceptedTenantId = String(property?.acceptedTenantId || '');
   const hasCandidates = safeArray(candidates).length > 0;
   const hasStrongSelectionMaterial = safeArray(candidates).some((candidate) => {
-    const score = Number(candidate?.patrimometer?.score || 0);
+    const score = resolveResilienceScore(candidate).score;
     const auditStatus = String(candidate?.ownerInsights?.aiAudit?.status || '');
     const passportState = String(candidate?.passport?.state || '');
     return auditStatus === 'CLEAR' || passportState === 'ready' || passportState === 'sealed' || score >= 70;
@@ -325,7 +327,7 @@ function buildStageSummary({ stage, property, candidates, primaryCandidate } = {
   }
 
   if (stage.id === 'selection') {
-    const topScore = primaryCandidate?.patrimometer?.score || 0;
+    const topScore = resolveResilienceScore(primaryCandidate).score;
     return count > 1
       ? `${count} dossiers sont maintenant comparables. Le meilleur Indice de Résilience est de ${topScore}/100. Comparez les finalistes puis choisissez votre locataire.`
       : `Le dossier de ${tenantLabel} est exploitable (Indice de Résilience : ${topScore}/100). Vérifiez-le puis passez à la sélection.`;
@@ -464,8 +466,9 @@ function buildPrimaryCandidateSummary(candidate) {
     isOwnerSelected: Boolean(candidate?.isOwnerSelected),
     isUnlocked: Boolean(candidate?.isUnlocked),
     sealed: Boolean(candidate.isSealed),
-    score: Number(candidate?.patrimometer?.score || 0),
-    grade: candidate?.patrimometer?.grade || 'F',
+    score: resolveResilienceScore(candidate).score,
+    grade: resolveResilienceScore(candidate).level,
+    resilience: resolveResilienceScore(candidate),
     passportState: candidate?.passport?.state || 'draft',
     passportStateLabel: candidate?.passport?.stateLabel || 'Brouillon',
     guaranteeLabel: candidate?.ownerInsights?.guarantee?.label || candidate?.passport?.guarantee?.label || 'Sans garant',

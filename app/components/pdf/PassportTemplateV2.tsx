@@ -21,8 +21,10 @@ import * as React from 'react';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface PassportV2SmartLink {
-  /** Type de document (cni, revenus, impots, domicile, garant…) */
-  type: 'cni' | 'revenus' | 'impots' | 'domicile' | 'garant' | 'autre';
+  /** Identifiant stable du lien/document */
+  id?: string;
+  /** Type de document (legacy: cni, revenus, impots… ou type métier libre) */
+  type?: string;
   /** Label affiché sur le lien (ex: "CNI", "Fiches de paie") */
   label: string;
   /** URL absolue construite côté serveur avec UTM */
@@ -458,7 +460,7 @@ export function PassportTemplateV2({
           />
           <div>
             {smartLinks.map((link) => (
-              <a key={link.type} href={link.href} className="doc-link">
+              <a key={link.id || link.type || link.href} href={link.href} className="doc-link">
                 🔍 {link.label} (Accès Sécurisé)
               </a>
             ))}

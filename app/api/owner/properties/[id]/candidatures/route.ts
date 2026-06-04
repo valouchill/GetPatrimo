@@ -11,6 +11,8 @@ import Property from '@/models/Property';
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
  
 const { decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
+ 
+const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
 
  
 const User = require('@/models/User');
@@ -71,7 +73,7 @@ export async function GET(
       property: id,
       status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
     })
-      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt coTenants isColocation coTenantCount')
+      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer aiAuditV2 status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt coTenants isColocation coTenantCount')
       .sort({ submittedAt: -1, createdAt: -1 })
       .lean();
 
@@ -103,6 +105,7 @@ export async function GET(
         baseUrl,
         isSealed: !isManaged,
       });
+      const resilience = resolveResilienceScore(app);
 
       const maskedPassport = !isManaged
         ? {
@@ -148,6 +151,8 @@ export async function GET(
           guarantee: app.guarantee || null,
           didit: { status: app.didit?.status || 'UNKNOWN' },
           patrimometer: app.patrimometer || {},
+          aiAuditV2: app.aiAuditV2 || null,
+          resilience,
           passport: maskedPassport,
           ownerInsights: {
             ...ownerInsights,
@@ -176,6 +181,8 @@ export async function GET(
         guarantee: app.guarantee || null,
         didit: app.didit || {},
         patrimometer: app.patrimometer || {},
+        aiAuditV2: app.aiAuditV2 || null,
+        resilience,
         passport: ownerInsights.passport,
         ownerInsights,
         documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,

@@ -141,7 +141,7 @@ app.use((req, res, next) => {
   // Routes Next.js API qui gèrent leur propre body
   const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
   const isNextApiRoute = nextApiRoutes.some(route => req.url.startsWith(route));
-  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register'];
+  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password'];
   if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
 
   if (isNextApiRoute) {
@@ -154,7 +154,7 @@ app.use((req, res, next) => {
 // et Next.js hang en attendant un body déjà lu)
 app.use((req, res, next) => {
   const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
-  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register'];
+  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password'];
   if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
   if (nextApiRoutes.some(route => req.url.startsWith(route))) return next();
   express.urlencoded({ limit: '1mb', extended: true })(req, res, next);

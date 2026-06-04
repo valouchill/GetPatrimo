@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { inferEvidenceKind } = require('./applicationScoring');
+const { resolveResilienceScore } = require('./resilienceScore');
 
 const PASSPORT_STATE_META = {
   draft: {
@@ -234,13 +235,17 @@ function isRejected(doc) {
 }
 
 function getDocumentSubject(doc) {
-  if (doc?.subjectType === 'GUARANTOR' || doc?.category === 'GUARANTOR') {
+  const subjectType = String(doc?.subjectType || '').toUpperCase();
+  const category = String(doc?.category || '').toUpperCase();
+  const type = String(doc?.type || '').toUpperCase();
+
+  if (subjectType === 'GUARANTOR' || category === 'GUARANTOR' || type === 'GUARANTOR') {
     return {
       subjectType: 'guarantor',
       subjectSlot: doc?.subjectSlot === 2 ? 2 : 1,
     };
   }
-  if (doc?.subjectType === 'VISALE' || inferEvidenceKind(doc) === 'visale') {
+  if (subjectType === 'VISALE' || category === 'VISALE' || type === 'VISALE' || inferEvidenceKind(doc) === 'visale') {
     return { subjectType: 'visale' };
   }
   return { subjectType: 'tenant' };
@@ -248,6 +253,68 @@ function getDocumentSubject(doc) {
 
 function getTenantDocuments(documents) {
   return safeArray(documents).filter((doc) => getDocumentSubject(doc).subjectType === 'tenant');
+}
+
+function getPrimaryTenantDocuments(documents) {
+  return getTenantDocuments(documents).filter((doc) => {
+    const slot = Number(doc?.subjectSlot || 1);
+    return !Number.isFinite(slot) || slot <= 1;
+  });
+}
+
+function getDocumentRawId(doc) {
+  const raw = doc?.id || doc?._id;
+  return raw ? String(raw).trim() : '';
+}
+
+function isUsableDocumentId(id) {
+  return /^[A-Za-z0-9_-]{3,80}$/.test(String(id || ''));
+}
+
+function getDocumentLinkLabel(doc) {
+  const aiType = doc?.aiAnalysis?.documentType;
+  if (typeof aiType === 'string' && aiType.trim()) return aiType.trim();
+  if (doc?.fileName) return String(doc.fileName);
+  if (doc?.type) return String(doc.type);
+  return 'Document vérifié';
+}
+
+function mapDocumentAuditStatus(doc) {
+  const status = String(getDocStatus(doc) || '').toUpperCase();
+  if (status === 'CERTIFIED' && !doc?.flagged) return 'verified';
+  if (status === 'REJECTED' || status === 'ILLEGIBLE') return 'altered';
+  if (status === 'NEEDS_REVIEW' || status === 'FLAGGED' || doc?.flagged) return 'manual_review';
+  return 'pending';
+}
+
+function buildDocumentLinks({ documents, baseUrl, slug }) {
+  const base = getBaseUrl(baseUrl);
+  if (!base || !slug) return [];
+
+  const primaryDocuments = getPrimaryTenantDocuments(documents);
+  const idCounts = primaryDocuments.reduce((acc, doc) => {
+    const rawId = getDocumentRawId(doc);
+    if (rawId) acc[rawId] = (acc[rawId] || 0) + 1;
+    return acc;
+  }, {});
+
+  return primaryDocuments
+    .map((doc, index) => {
+      const rawId = getDocumentRawId(doc);
+      const id = isUsableDocumentId(rawId) && idCounts[rawId] === 1
+        ? rawId
+        : `doc-${index + 1}`;
+      return {
+        id,
+        label: getDocumentLinkLabel(doc),
+        category: doc?.category || null,
+        type: doc?.type || null,
+        fileName: doc?.fileName || null,
+        auditStatus: mapDocumentAuditStatus(doc),
+        url: `${base}/dossier/${encodeURIComponent(slug)}/document/${encodeURIComponent(id)}`,
+      };
+    })
+    .filter(Boolean);
 }
 
 function getPropertyData(application) {
@@ -592,8 +659,9 @@ function buildPassportViewModel({
   }
 
   const stateMeta = PASSPORT_STATE_META[state] || PASSPORT_STATE_META.draft;
-  const grade = patrimometer.grade || 'F';
-  const score = clamp(round(patrimometer.score || 0), 0, 100);
+  const resilience = resolveResilienceScore(app);
+  const grade = resilience.level;
+  const score = resilience.score;
   const shareEnabled = state === 'ready' || state === 'sealed';
   const publicIncome = audience === 'public'
     ? roundToNearestHundred(monthlyIncome)
@@ -655,6 +723,7 @@ function buildPassportViewModel({
   return {
     id: app?._id ? String(app._id) : null,
     slug: readySlug,
+    passportSlug: readySlug,
     state,
     stateLabel: stateMeta.label,
     stateShortLabel: stateMeta.shortLabel,
@@ -666,6 +735,7 @@ function buildPassportViewModel({
     verificationUrl: urls.verificationUrl,
     score,
     grade,
+    resilience,
     summary,
     readinessReasons,
     warnings: scoreWarnings,
@@ -678,7 +748,7 @@ function buildPassportViewModel({
       profession: displayProfession,
       region: audience === 'public' ? deriveRegion(property) : property.address || 'Région non précisée',
       propertyName: property.name || '',
-      gradeLabel: grade === 'SOUVERAIN' ? 'Souverain' : `Grade ${grade}`,
+      gradeLabel: resilience.label,
       badge: guaranteeSummary.shareBadge,
       candidateStatus: profile.status || null,
       identityVerified: didit.status === 'VERIFIED',
@@ -727,6 +797,11 @@ function buildPassportViewModel({
         latestDocumentAt: formatDate(block.latestDocumentAt),
       })),
     },
+    documentLinks: buildDocumentLinks({
+      documents,
+      baseUrl,
+      slug: readySlug,
+    }),
     auditTimeline: buildAuditTimeline({
       application: app,
       state,

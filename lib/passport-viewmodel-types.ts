@@ -15,6 +15,9 @@
  */
 
 export interface PassportViewModel {
+  id?: string | null;
+  slug?: string;
+  passportSlug: string;
   state: 'draft' | 'review' | 'ready' | 'sealed';
   stateLabel: string;
   stateMeta: {
@@ -26,6 +29,15 @@ export interface PassportViewModel {
   verificationUrl: string | null;
   score: number;
   grade: string;
+  resilience?: {
+    score: number;
+    level: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+    label: string;
+    scoreLabel: string;
+    source: 'v2' | 'legacy';
+    isV2: boolean;
+    cachedAt: string | null;
+  };
   summary: string;
   readinessReasons: string[];
   warnings: string[];
@@ -118,6 +130,15 @@ export interface PassportViewModel {
       latestDocumentAt: string | null;
     }>;
   };
+  documentLinks: Array<{
+    id: string;
+    label: string;
+    category: string | null;
+    type: string | null;
+    fileName: string | null;
+    auditStatus: string;
+    url: string;
+  }>;
   auditTimeline: Array<{
     id: string;
     title: string;
@@ -156,6 +177,7 @@ export interface PassportViewModel {
       }>;
     };
     resilience: {
+      score?: number;
       level?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
     };
     meta?: { model: string; analyzedAt: string };

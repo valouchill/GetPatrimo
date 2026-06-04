@@ -27,7 +27,8 @@ const CreatePropertySchema = z.object({
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
  
 const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
- 
+const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
+
 const User = require('@/models/User');
 
 async function resolveUserId(session: any): Promise<string | null> {
@@ -83,7 +84,7 @@ export async function GET() {
       property: { $in: propertyIds },
       status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
     })
-      .select('property applyToken profile userEmail patrimometer didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount pipelineStage ownerDecision createdAt updatedAt reanalyzeCount')
+      .select('property applyToken profile userEmail patrimometer aiAuditV2 didit guarantor guarantee financialSummary status submittedAt documents passportSlug passportViewCount passportShareCount pipelineStage ownerDecision createdAt updatedAt reanalyzeCount')
       .lean();
 
     // Indexer les applications par property ID
@@ -108,6 +109,7 @@ export async function GET() {
             baseUrl,
             isSealed: !isManaged,
           });
+          const resilience = resolveResilienceScore(app);
 
           const maskedPassport = !isManaged
             ? {
@@ -145,6 +147,8 @@ export async function GET() {
                 email: null,
               },
               patrimometer: app.patrimometer,
+              aiAuditV2: app.aiAuditV2 || null,
+              resilience,
               financialSummary: normalizedFinancialSummary,
               didit: { status: app.didit?.status || 'UNKNOWN' },
               guarantor: { status: app.guarantor?.status || 'NONE' },
@@ -171,6 +175,8 @@ export async function GET() {
             isSealed: false,
             profile: app.profile,
             patrimometer: app.patrimometer,
+            aiAuditV2: app.aiAuditV2 || null,
+            resilience,
             financialSummary: normalizedFinancialSummary,
             didit: app.didit,
             guarantor: app.guarantor,

@@ -32,6 +32,11 @@ const META_TYPE_LABELS: Record<string, string> = {
   FACTURE_TRAVAUX: 'Facture de travaux',
   ASSURANCE: 'Assurance',
 };
+
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+  Pragma: 'no-cache',
+};
 function labelForDocument(doc: any): string {
   const metaType = doc?.metadata?.documentType;
   if (metaType && META_TYPE_LABELS[metaType]) return META_TYPE_LABELS[metaType];
@@ -62,7 +67,8 @@ const PatchPropertySchema = z.object({
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
  
 const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
- 
+const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
+
 const User = require('@/models/User');
 
 async function resolveUserId(session: any): Promise<string | null> {
@@ -204,7 +210,7 @@ export async function GET(
       property: id,
       status: { $in: ['COMPLETE', 'SUBMITTED', 'PENDING_REVIEW', 'ACCEPTED'] },
     })
-      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
+      .select('applyToken profile userEmail financialSummary guarantor guarantee didit patrimometer aiAuditV2 status submittedAt documents passportSlug passportViewCount passportShareCount createdAt updatedAt')
       .sort({ submittedAt: -1, createdAt: -1 })
       .lean();
 
@@ -217,6 +223,7 @@ export async function GET(
         baseUrl,
         isSealed: !isManaged,
       });
+      const resilience = resolveResilienceScore(app);
 
       const maskedPassport = !isManaged
         ? {
@@ -254,6 +261,8 @@ export async function GET(
             email: null,
           },
           patrimometer: app.patrimometer,
+          aiAuditV2: app.aiAuditV2 || null,
+          resilience,
           financialSummary: normalizedFinancialSummary,
           didit: { status: app.didit?.status || 'UNKNOWN' },
           guarantor: { status: app.guarantor?.status || 'NONE' },
@@ -283,6 +292,8 @@ export async function GET(
         guarantee: app.guarantee || null,
         didit: app.didit || {},
         patrimometer: app.patrimometer || {},
+        aiAuditV2: app.aiAuditV2 || null,
+        resilience,
         passport: ownerInsights.passport,
         ownerInsights,
         documentsCount: Array.isArray(app.documents) ? app.documents.length : 0,
@@ -353,7 +364,7 @@ export async function GET(
         edlStatus: leaseDoc?.edlStatus || 'PENDING',
         vaultDocuments: await buildVaultDocuments(leaseDoc, id, userId),
       },
-    });
+    }, { headers: NO_STORE_HEADERS });
   } catch (e) {
     logger.error('GET /api/owner/properties/[id]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

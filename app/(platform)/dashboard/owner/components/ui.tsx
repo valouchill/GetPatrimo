@@ -267,6 +267,8 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
   const finalRemain = (backendRemain !== null && backendRemain !== undefined && backendRemain > 0)
     ? backendRemain
     : computedRemain;
+  const resolvedScore = c.resilience?.score ?? c.ownerInsights?.resilience?.score ?? c.patrimometer?.score ?? 0;
+  const resolvedGrade = c.resilience?.level ?? c.ownerInsights?.resilience?.level ?? c.patrimometer?.grade ?? 'ALERTE';
 
   return {
     id: c.id,
@@ -276,8 +278,8 @@ export function toDossier(c: RealCandidature, bienId: string, loyer: number): Lo
     loyer,
     revenus: finalIncome ?? 0,
     contrat: c.financialSummary?.contractType || 'N/A',
-    score: c.patrimometer.score,
-    grade: c.patrimometer.grade,
+    score: resolvedScore,
+    grade: resolvedGrade,
     statut: c.isOwnerSelected ? 'selectionne' : 'en_attente',
     isSealed: c.isSealed,
     sealedLabel: c.sealedLabel,

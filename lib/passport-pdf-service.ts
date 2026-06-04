@@ -87,11 +87,12 @@ function getBaseUrl(): string {
  * Détecte les types de pièces présents dans le ViewModel pour générer
  * dynamiquement les Smart Links visibles dans le PDF.
  *
- * Le PDF expose un lien par catégorie de pièce — pas un lien par fichier.
- * Cohérent avec la page publique qui regroupe par catégorie.
+ * Le PDF expose désormais un lien par pièce précise du locataire. Le fallback
+ * par catégorie reste uniquement pour les anciens dossiers incomplets.
  */
 function buildSmartLinks(
   data: PassportViewModel,
+  passportSlug: string,
   passportId: string,
   baseUrl: string,
 ): PassportV2SmartLink[] {
@@ -100,7 +101,16 @@ function buildSmartLinks(
     `?utm_source=passport_pdf` +
     `&utm_medium=pdf` +
     `&utm_campaign=owner_acq` +
-    `&utm_content=${encodeURIComponent(passportId)}`;
+    `&utm_content=${encodeURIComponent(passportSlug || passportId)}`;
+
+  if (Array.isArray(data.documentLinks) && data.documentLinks.length > 0) {
+    return data.documentLinks.map((link) => ({
+      id: link.id,
+      type: link.type || link.category || 'document',
+      label: link.label,
+      href: `${link.url}${link.url.includes('?') ? '&' : '?'}${utm.slice(1)}`,
+    }));
+  }
 
   const blocks = data.documentCoverage?.blocks || [];
   const has = (cat: string): boolean =>
@@ -109,7 +119,7 @@ function buildSmartLinks(
         (b.id || '').toUpperCase() === cat || (b.label || '').toUpperCase().includes(cat),
     );
 
-  const candidates: Array<{ type: PassportV2SmartLink['type']; label: string; show: boolean }> = [
+  const candidates: Array<{ type: string; label: string; show: boolean }> = [
     { type: 'cni', label: 'CNI', show: has('IDENTITY') || data.hero?.identityVerified === true },
     { type: 'revenus', label: 'Fiches de paie', show: has('INCOME') },
     { type: 'impots', label: "Avis d'imposition", show: has('INCOME') },
@@ -124,9 +134,10 @@ function buildSmartLinks(
   return candidates
     .filter((c) => c.show)
     .map((c) => ({
+      id: `legacy-${c.type}`,
       type: c.type,
       label: c.label,
-      href: `${baseUrl}/dossier/${encodeURIComponent(passportId)}/${c.type}${utm}`,
+      href: `${baseUrl}/dossier/${encodeURIComponent(passportSlug || passportId)}/${c.type}${utm}`,
     }));
 }
 
@@ -159,6 +170,7 @@ function viewModelToV2Props(
 ): PassportTemplateV2Props {
   const baseUrl = getBaseUrl();
   const passportId = data.metrics?.passportId || 'PT-2026-TEMP';
+  const passportSlug = data.passportSlug || data.slug || passportId;
   const fullName = data.hero?.fullName || 'Candidat';
 
   // Date FR formatée
@@ -203,7 +215,7 @@ function viewModelToV2Props(
           : null,
       guarantorIncomeLabel: null,
     },
-    smartLinks: buildSmartLinks(data, passportId, baseUrl),
+    smartLinks: buildSmartLinks(data, passportSlug, passportId, baseUrl),
     aiCommentHtml: buildAiComment(data.score || 0),
     forensicChecks: buildForensicChecks(data),
     // V6.5 — Si l'analyse V2 est en cache, on enrichit le PDF :

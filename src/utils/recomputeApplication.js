@@ -97,6 +97,7 @@ function recomputeApplicationScore(application, { propertyRentAmount = 0, fallba
       submittedAt: application.submittedAt,
       createdAt: application.createdAt,
       updatedAt: application.updatedAt,
+      aiAuditV2: application.aiAuditV2,
     },
     audience: 'candidate',
     baseUrl: passportBaseUrl,

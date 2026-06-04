@@ -9,6 +9,17 @@ const { computeApplicationPatrimometer } = require('@/src/utils/applicationScori
 const { buildPassportViewModel } = require('@/src/utils/passportViewModel');
  
 const { deriveApplicationFinancialProfile } = require('@/src/utils/financialExtraction');
+ 
+const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
+
+function withResolvedResilience(application: unknown) {
+  if (!application || typeof application !== 'object') return application;
+  const app = application as Record<string, unknown>;
+  return {
+    ...app,
+    resilience: resolveResilienceScore(app),
+  };
+}
 
 async function resolvePropertyId(applyToken?: string): Promise<string | null> {
   if (!applyToken) return null;
@@ -214,6 +225,7 @@ export async function saveApplicationProgress(
         submittedAt: application.submittedAt,
         createdAt: application.createdAt,
         updatedAt: application.updatedAt,
+        aiAuditV2: application.aiAuditV2,
       },
       audience: 'candidate',
       baseUrl: passportBaseUrl,
@@ -288,7 +300,7 @@ export async function getApplication(userEmail: string, applyToken?: string) {
 
     return { 
       success: true, 
-      application: JSON.parse(JSON.stringify(application))
+      application: JSON.parse(JSON.stringify(withResolvedResilience(application)))
     };
   } catch (error) {
     console.error('Erreur getApplication:', error);
@@ -312,7 +324,7 @@ export async function getUserApplications(userEmail: string) {
 
     return { 
       success: true, 
-      applications: JSON.parse(JSON.stringify(applications))
+      applications: JSON.parse(JSON.stringify(applications.map((application) => withResolvedResilience(application))))
     };
   } catch (error) {
     console.error('Erreur getUserApplications:', error);

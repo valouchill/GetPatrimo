@@ -4,7 +4,8 @@ import crypto from 'crypto';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
-import { getMetalLevel, METAL_LABELS, METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
+import { METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
+import { resolveResilienceScore } from '@/lib/resilience-score';
 
  
 const PassportShare = require('@/models/PassportShare');
@@ -39,7 +40,6 @@ export async function sharePassportByEmail(
     
     const appData = app as any;
     const profile = appData.profile || {};
-    const patrimometer = appData.patrimometer || {};
     const didit = appData.didit || {};
     const guarantor = appData.guarantor || {};
     
@@ -69,10 +69,9 @@ export async function sharePassportByEmail(
     const tenantName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Le candidat';
     // V8.3 (audit L2) — niveau métal dérivé du score (single source of truth),
     // au lieu du grade legacy patrimometer.grade (F/E/D/C/B/A/SOUVERAIN).
-    const score = Number(patrimometer.score || 0);
-    const level = getMetalLevel(score);
-    const grade = METAL_LABELS[level];
-    const gradeLabel = METAL_DESCRIPTIONS[level];
+    const resilience = resolveResilienceScore(appData);
+    const grade = resilience.level;
+    const gradeLabel = METAL_DESCRIPTIONS[resilience.level];
     
     const identityVerified = didit.status === 'VERIFIED';
     const incomeVerified = appData.financialSummary?.certifiedIncome || false;

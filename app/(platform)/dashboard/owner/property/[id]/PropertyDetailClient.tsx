@@ -125,7 +125,9 @@ type CandidateRecord = {
   sealedId?: string;
   profile?: { firstName?: string; lastName?: string; email?: string | null };
   patrimometer?: { score?: number; grade?: string };
+  resilience?: { score?: number; level?: string; label?: string; scoreLabel?: string; source?: string; isV2?: boolean };
   ownerInsights?: {
+    resilience?: { score?: number; level?: string; label?: string; scoreLabel?: string; source?: string; isV2?: boolean };
     aiAudit?: { status?: string; summary?: string; blockers?: string[]; reviewReasons?: string[] };
     financial?: { monthlyIncomeLabel?: string | null; remainingIncomeLabel?: string | null; effortRateLabel?: string | null };
     quality?: { status?: { label?: string; tone?: string }; score?: number };
@@ -179,6 +181,10 @@ function candidateName(candidate?: CandidateRecord | null) {
   return [candidate.profile?.firstName, candidate.profile?.lastName].filter(Boolean).join(' ').trim() || 'Candidat';
 }
 
+function candidateResilienceScore(candidate?: CandidateRecord | null) {
+  return Number(candidate?.resilience?.score ?? candidate?.ownerInsights?.resilience?.score ?? candidate?.patrimometer?.score ?? 0);
+}
+
 function resolveStageTone(tone?: string) {
   if (tone === 'success') return 'success' as const;
   if (tone === 'warning') return 'warning' as const;
@@ -189,6 +195,10 @@ function resolveStageTone(tone?: string) {
 }
 
 const GRADE_BG: Record<string, string> = {
+  PLATINUM: 'bg-gradient-to-br from-slate-950 to-slate-700',
+  GOLD: 'bg-gradient-to-br from-amber-400 to-amber-600',
+  SILVER: 'bg-gradient-to-br from-slate-300 to-slate-500',
+  ALERTE: 'bg-gradient-to-br from-red-400 to-red-600',
   SOUVERAIN: 'bg-gradient-to-br from-amber-400 to-amber-600',
   A: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
   B: 'bg-gradient-to-br from-blue-400 to-blue-600',
@@ -424,7 +434,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
       const aRank = Number(a.rank || 999);
       const bRank = Number(b.rank || 999);
       if (aRank !== bRank) return aRank - bRank;
-      return Number(b.patrimometer?.score || 0) - Number(a.patrimometer?.score || 0);
+      return candidateResilienceScore(b) - candidateResilienceScore(a);
     });
   }, [candidatures]);
 
@@ -801,7 +811,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
             {sorted.length > 0 ? (
               <div className="mt-6 divide-y divide-slate-100">
                 {sorted.map((candidate) => {
-                  const grade = candidate.patrimometer?.grade;
+                  const grade = candidate.resilience?.level || candidate.ownerInsights?.resilience?.level || candidate.patrimometer?.grade;
                   const gradeBg = grade ? (GRADE_BG[grade] || GRADE_BG.F) : null;
                   const initials = [candidate.profile?.firstName?.[0], candidate.profile?.lastName?.[0]]
                     .filter(Boolean).join('').toUpperCase();
@@ -836,7 +846,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                           <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
                         )}
                         {grade && !candidate.isSealed && gradeBg && (
-                          <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black text-white ${gradeBg}`}>
+                          <span className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-[10px] font-black text-white ${gradeBg}`}>
                             {grade === 'SOUVERAIN' ? '👑' : grade}
                           </span>
                         )}
