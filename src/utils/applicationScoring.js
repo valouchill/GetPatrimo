@@ -1,4 +1,8 @@
 const { normalizeAnalysisDocumentType } = require('./documentCertificationRules');
+const {
+  evaluateDossierIdentityConcordance,
+  isConcordanceEnabled,
+} = require('./dossierIdentityConcordance');
 
 const SUPPORTED_PROFILES = ['Etudiant', 'Salarie', 'Independant', 'Retraite'];
 const GUARANTEE_MODES = ['NONE', 'VISALE', 'PHYSICAL'];
@@ -747,6 +751,23 @@ function computeApplicationPatrimometer(input = {}) {
     tenant.activity > 0 &&
     tenant.domicile === TENANT_WEIGHTS.domicile;
 
+  // Concordance d'identité au niveau dossier (gated). Null quand OFF ⇒ no-op.
+  const concordance = isConcordanceEnabled()
+    ? evaluateDossierIdentityConcordance({
+        documents,
+        tenant: input.profile || {},
+        diditIdentity: input.diditIdentity || null,
+        diditStatus,
+        coTenants: tenantSlotsInput,
+        guarantorOne: input.guarantorOne || null,
+        guarantorTwo: input.guarantorTwo || null,
+      })
+    : null;
+  const concordanceBlocking = Boolean(concordance && concordance.needsHumanReview);
+  if (concordance && concordance.warnings.length) {
+    warnings.push(...concordance.warnings);
+  }
+
   const chapterStates = {
     identity: {
       engaged: identityStarted,
@@ -771,11 +792,21 @@ function computeApplicationPatrimometer(input = {}) {
       mode: guarantee.mode,
     },
     passport: {
-      ready: tenantComplete && (guaranteeRequirement === 'required' ? guaranteeSatisfied : true),
+      ready: tenantComplete && (guaranteeRequirement === 'required' ? guaranteeSatisfied : true) && !concordanceBlocking,
     },
   };
 
-  const totalScore = clamp(tenant.total + guarantee.total, 0, 100);
+  if (concordance) {
+    chapterStates.concordance = {
+      state: concordanceBlocking ? 'review' : 'complete',
+      evaluated: Boolean(concordance.evaluated),
+      needsHumanReview: concordanceBlocking,
+      findings: concordance.findings,
+    };
+  }
+
+  const concordanceMalus = concordance && concordance.evaluated && !concordance.matches ? concordance.scoreMalus : 0;
+  const totalScore = clamp(tenant.total + guarantee.total - concordanceMalus, 0, 100);
   const grade = totalScore >= 90 ? 'SOUVERAIN'
     : totalScore >= 80 ? 'A'
     : totalScore >= 70 ? 'B'
@@ -815,6 +846,7 @@ function computeApplicationPatrimometer(input = {}) {
     warnings: Array.from(new Set(warnings.filter(Boolean))),
     nextAction,
     chapterStates,
+    concordance,
     guarantee: {
       ...normalizedGuarantee,
       mode: guarantee.mode,
