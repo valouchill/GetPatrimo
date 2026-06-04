@@ -154,6 +154,9 @@ export async function saveApplicationProgress(
       documents: data.documents || application.documents,
       // Colocation : états d'identité des colocataires (slots 2-4) pour l'agrégation.
       coTenants: application.coTenants,
+      // Concordance d'identité (anti-fraude inter-documents) : ancre Didit + profil.
+      profile: application.profile,
+      diditIdentity: application.didit?.identityData || null,
       guarantee: data.guarantee || application.guarantee || null,
       legacyGuarantor: {
         hasGuarantor: application.guarantor.hasGuarantor,
@@ -161,6 +164,33 @@ export async function saveApplicationProgress(
         certificationMethod: data.guarantorMethod || application.guarantor.certificationMethod,
       },
     });
+
+    // Concordance d'identité : si une non-concordance de nom est détectée, on flague
+    // les documents fautifs AVANT buildPassportViewModel — le passeport est alors gaté
+    // (state 'review' ⇒ pas de bascule en COMPLETE) et le grade est déjà abaissé par le
+    // malus du scorer. No-op quand le flag est OFF (concordance === null).
+    const concordance = (
+      computedPatrimometer as {
+        concordance?: { needsHumanReview?: boolean; flaggedDocumentIds?: Array<string | number> } | null;
+      }
+    ).concordance;
+    if (concordance && concordance.needsHumanReview) {
+      const flaggedIds = new Set((concordance.flaggedDocumentIds || []).map((x) => String(x)));
+      if (Array.isArray(data.documents)) {
+        const flaggedDocs = (data.documents as unknown as Array<Record<string, unknown>>).map((d) =>
+          flaggedIds.has(String(d && d.id)) ? { ...d, flagged: true, status: 'NEEDS_REVIEW' } : d
+        );
+        data.documents = flaggedDocs as unknown as typeof data.documents;
+        application.documents = flaggedDocs as unknown as typeof application.documents;
+      } else if (Array.isArray(application.documents)) {
+        (application.documents as unknown as Array<Record<string, unknown>>).forEach((d) => {
+          if (flaggedIds.has(String(d && d.id))) {
+            d.flagged = true;
+            d.status = 'NEEDS_REVIEW';
+          }
+        });
+      }
+    }
 
     const nextScore =
       data.patrimometerScore !== undefined ? data.patrimometerScore : computedPatrimometer.score;

@@ -344,6 +344,11 @@ export async function POST(request: NextRequest) {
                 if (decodedData.numeroVisa && !visaleData.numero_visa) visaleData.numero_visa = decodedData.numeroVisa;
                 if (decodedData.dateEmission && !visaleData.date_validite) visaleData.date_validite = decodedData.dateEmission;
                 if (decodedData.loyerMaximumGaranti && !visaleData.loyer_maximum_garanti) visaleData.loyer_maximum_garanti = decodedData.loyerMaximumGaranti;
+                // Concordance d'identité inter-docs : surfacer le nom du titulaire
+                // scellé dans owner_name (sinon le certificat Visale est un angle mort).
+                if ((decodedData.nom || decodedData.prenom) && !result.document_metadata.owner_name) {
+                  result.document_metadata.owner_name = `${decodedData.prenom || ''} ${decodedData.nom || ''}`.trim();
+                }
                 if (verificationResult.signatureValid && verificationResult.matchesDiditIdentity) {
                   result.trust_and_security.digital_seal_authenticated = true;
                   result.trust_and_security.digital_seal_status = 'AUTHENTIFIÉ_PAR_SCELLEMENT_NUMÉRIQUE';
