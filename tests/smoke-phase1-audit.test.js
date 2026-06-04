@@ -31,7 +31,7 @@ test('metadata smoke helper reports success with the local metadata script', asy
   try {
     const fixtures = await createSmokeFixtures(tempDir);
     const check = await runMetadataCheck(fixtures.payslip, {
-      metadataCommand: path.resolve('/opt/doc2loc/scripts/extract-metadata.js'),
+      metadataCommand: path.resolve(__dirname, '../scripts/extract-metadata.js'),
       metadataTimeoutMs: 15000,
     });
 
