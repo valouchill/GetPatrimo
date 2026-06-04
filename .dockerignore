@@ -3,6 +3,9 @@
 .next
 .e2e
 node_modules
+**/node_modules
+.claude
+*.pdf
 playwright-report
 test-results
 uploads
