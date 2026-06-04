@@ -288,21 +288,29 @@ export async function POST(request: NextRequest) {
         ocr: { rfr: ed.revenu_fiscal_reference, numeroFiscal: ed.numero_fiscal, referenceAvis: ed.reference_avis },
       });
       if (fiscal && fiscal.seal) {
-        result.trust_and_security.fiscal_seal_status = fiscal.seal.signatureValid
-          ? 'SIGNATURE_VALIDE'
-          : 'SIGNATURE_NON_VERIFIEE';
-        if (fiscal.cross.anyMismatch) {
-          // Valeur(s) scellée(s) ≠ document : édition probable → signal de fraude FORT.
+        // Logique anti-faux-positif (risque d'erreur quasi nul) :
+        //  - on n'agit QUE sur le RFR (champ sémantiquement identique scellé↔OCR, validé
+        //    sur un vrai avis). Le n° fiscal/référence scellés (IDs internes 2D-Doc) ne
+        //    sont PAS garantis égaux aux valeurs OCR → laissés informatifs, jamais bloquants.
+        //  - on ne lève une fraude QUE si la signature ANTS est VALIDE (sceau authentique)
+        //    et que le RFR affiché diverge du RFR scellé ⇒ valeur imprimée falsifiée.
+        //  - signature non vérifiable (CA inconnue / TSL à rafraîchir) ⇒ NEUTRE.
+        const sealValid = fiscal.seal.signatureValid === true;
+        const rfrCheck = (fiscal.cross.checks || []).find((c: { field: string; ok: boolean }) => c.field === 'rfr');
+        result.trust_and_security.fiscal_seal_status = sealValid ? 'SIGNATURE_VALIDE' : 'SIGNATURE_NON_VERIFIEE';
+        if (sealValid && rfrCheck && rfrCheck.ok === false) {
           result.trust_and_security.forensic_alerts.push(
-            `❌ Sceau fiscal 2D-Doc : divergence ${fiscal.cross.mismatches.join(', ')} (valeur scellée ≠ document).`,
+            '❌ Sceau fiscal 2D-Doc AUTHENTIQUE mais RFR affiché ≠ RFR scellé — valeur falsifiée.',
           );
           result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 40);
-        } else if (fiscal.seal.signatureValid && fiscal.cross.anyConfirmation) {
+        } else if (sealValid) {
+          // Signature DGFiP valide ⇒ avis authentique (RFR concordant, ou non lu par l'OCR).
           result.trust_and_security.digital_seal_authenticated = true;
-          result.trust_and_security.forensic_alerts.push('✅ Sceau fiscal 2D-Doc authentifié (signature ANTS valide, RFR concordant).');
+          const note = rfrCheck && rfrCheck.ok ? ' (RFR concordant)' : '';
+          result.trust_and_security.forensic_alerts.push(`✅ Sceau fiscal 2D-Doc authentifié — signature ANTS valide${note}.`);
           result.trust_and_security.fraud_score = Math.max(0, (result.trust_and_security.fraud_score || 0) - 10);
-        } else if (fiscal.cross.anyConfirmation) {
-          result.trust_and_security.forensic_alerts.push('ℹ️ Sceau fiscal 2D-Doc décodé, valeurs concordantes (signature non vérifiée).');
+        } else {
+          result.trust_and_security.forensic_alerts.push('ℹ️ Sceau fiscal 2D-Doc décodé mais signature non vérifiée — non bloquant.');
         }
       }
     }
