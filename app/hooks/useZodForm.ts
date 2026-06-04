@@ -17,7 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
  * {form.formState.errors.firstName?.message}
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function useZodForm<T extends FieldValues>(
   schema: any,
   defaultValues?: DefaultValues<T>

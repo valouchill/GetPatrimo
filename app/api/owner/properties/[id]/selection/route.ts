@@ -10,7 +10,7 @@ import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 const NO_STORE_HEADERS = {

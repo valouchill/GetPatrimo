@@ -6,7 +6,7 @@ import { connectDiditDb } from '../../didit/db';
 import IdentitySession from '@/models/IdentitySession';
 import Property from '@/models/Property';
 import Candidature from '@/models/Candidature';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   buildDiditCompletionUrl,
   renderDiditCompletionHtml,

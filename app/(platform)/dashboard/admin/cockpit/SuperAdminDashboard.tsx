@@ -83,7 +83,7 @@ const TOOLTIP_LABEL = { color: '#94a3b8', fontWeight: 600 } as const;
 
 function DeltaBadge({ delta }: { delta: number | null }) {
   if (delta === null) {
-    return <span className="text-xs text-slate-500">— pas d'historique</span>;
+    return <span className="text-xs text-slate-500">— pas d&apos;historique</span>;
   }
   const positive = delta >= 0;
   return (
@@ -206,7 +206,7 @@ export default function SuperAdminDashboard({ data }: { data: CockpitData }) {
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-400">Cockpit · SuperAdmin</p>
           <h1 className="mt-1 font-serif text-2xl font-bold text-white sm:text-3xl">Économie Unitaire & Pilotage</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Revenus vs coûts API, rentabilité de l'IA, acquisition et moteur forensic.
+            Revenus vs coûts API, rentabilité de l&apos;IA, acquisition et moteur forensic.
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300">
@@ -550,7 +550,7 @@ function AiTab({ data }: { data: CockpitData }) {
         {data.recentApiCalls.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">
             Aucun appel encore loggé. Les coûts unitaires réels apparaîtront ici dès la première analyse de
-            dossier / vérification d'identité.
+            dossier / vérification d&apos;identité.
           </p>
         ) : (
           <DataTable head={['Quand', 'Fournisseur', 'Modèle', 'Tokens', 'Coût réel']}>

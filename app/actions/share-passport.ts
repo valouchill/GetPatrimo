@@ -7,7 +7,7 @@ import { logger } from '@/lib/server-logger';
 import { METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
 import { resolveResilienceScore } from '@/lib/resilience-score';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const PassportShare = require('@/models/PassportShare');
 
 interface ShareResult {

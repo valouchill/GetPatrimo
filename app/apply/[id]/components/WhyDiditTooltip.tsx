@@ -39,20 +39,20 @@ export function WhyDiditTooltip({ isOpen, onClose }: { isOpen: boolean; onClose:
           {/* Corps */}
           <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
             <p>
-              En 2026, une simple photo de votre pièce d'identité ne suffit plus à protéger contre les <span className="font-semibold">usurpations sophistiquées (Deepfakes)</span>.
+              En 2026, une simple photo de votre pièce d&apos;identité ne suffit plus à protéger contre les <span className="font-semibold">usurpations sophistiquées (Deepfakes)</span>.
             </p>
 
             <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
               <p className="font-semibold text-blue-800 mb-1">Pourquoi cette étape ?</p>
               <p className="text-blue-700">
-                Didit effectue une comparaison biométrique éphémère entre votre visage et la puce sécurisée de votre document. Cela génère une <span className="font-semibold">preuve d'identité infalsifiable</span> qui rassure instantanément 100% des propriétaires.
+                Didit effectue une comparaison biométrique éphémère entre votre visage et la puce sécurisée de votre document. Cela génère une <span className="font-semibold">preuve d&apos;identité infalsifiable</span> qui rassure instantanément 100% des propriétaires.
               </p>
             </div>
 
             <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
               <p className="font-semibold text-emerald-800 mb-1">🔒 Notre garantie Souveraine</p>
               <p className="text-emerald-700">
-                PatrimoTrust ne stocke <span className="font-semibold">jamais</span> l'image brute de votre pièce d'identité ni vos données biométriques. Nous ne conservons que le <span className="font-semibold">certificat de validation chiffré</span>.
+                PatrimoTrust ne stocke <span className="font-semibold">jamais</span> l&apos;image brute de votre pièce d&apos;identité ni vos données biométriques. Nous ne conservons que le <span className="font-semibold">certificat de validation chiffré</span>.
               </p>
             </div>
           </div>

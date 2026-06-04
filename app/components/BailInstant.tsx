@@ -169,7 +169,7 @@ export default function BailInstant({
             Génération du Bail
           </h1>
           <p className="text-slate-600">
-            Génération automatique du bail et de l'acte de cautionnement pour{" "}
+            Génération automatique du bail et de l&apos;acte de cautionnement pour{" "}
             <span className="font-semibold text-navy">
               {tenant.firstName} {tenant.lastName}
             </span>
@@ -235,7 +235,7 @@ export default function BailInstant({
                   onClick={() => setShowDatePicker(!showDatePicker)}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg text-left hover:border-emerald transition-colors bg-white"
                 >
-                  <div className="text-sm text-slate-600 mb-1">Date d'entrée</div>
+                  <div className="text-sm text-slate-600 mb-1">Date d&apos;entrée</div>
                   <div className="font-semibold text-navy">
                     {formatDate(leaseData.startDate)}
                   </div>

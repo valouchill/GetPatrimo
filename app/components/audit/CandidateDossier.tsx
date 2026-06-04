@@ -524,7 +524,7 @@ function DiditCertifiedSlot({
           {reason}
         </p>
         <p className="mt-0.5 text-xs text-emerald-700">
-          Aucune pièce à fournir — l'identité est validée par {certifier}.
+          Aucune pièce à fournir — l&apos;identité est validée par {certifier}.
         </p>
       </div>
       <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-800 ring-1 ring-emerald-300">
@@ -883,7 +883,7 @@ export function CandidateDossier({
                   Aucune pièce transmise pour le moment
                 </p>
                 <p className="mt-1 max-w-sm text-sm text-slate-500">
-                  Le candidat n'a pas encore commencé à compléter son dossier.
+                  Le candidat n&apos;a pas encore commencé à compléter son dossier.
                 </p>
               </div>
             );

@@ -5,9 +5,9 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { auditLog } from '@/lib/services/audit';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const bcrypt = require('bcryptjs');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 export async function POST(request: NextRequest) {

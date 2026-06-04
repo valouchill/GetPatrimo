@@ -25,6 +25,7 @@ export default function RootLayout({
     <html lang="fr">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font -- chargement global des polices via <link>, volontaire (app router) */}
         <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet" />
       </head>
       <body className="font-sans antialiased bg-slate-50 text-navy">

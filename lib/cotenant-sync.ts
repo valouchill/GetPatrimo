@@ -1,6 +1,6 @@
 import Application from '@/models/Application';
 import Property from '@/models/Property';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { recomputeApplicationScore } = require('@/src/utils/recomputeApplication');
 
 interface CoTenantLike {

@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
           // Coût RÉEL d'une vérification Didit (forfait eIDAS) — fire-and-forget,
           // n'interrompt jamais la création de session.
           try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
+             
             const { recordFlatCost, FLAT_COST_EUR } = require('@/src/services/api-cost-logger');
             recordFlatCost({
               provider: 'Didit',

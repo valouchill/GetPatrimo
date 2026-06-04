@@ -13,7 +13,7 @@ const Application = require('@/models/Application');
 
 const MAX_ATTEMPTS = 5;
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const OtpToken = require('@/models/OtpToken');
 
 export async function POST(request: NextRequest) {

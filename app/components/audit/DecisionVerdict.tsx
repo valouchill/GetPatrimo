@@ -91,7 +91,7 @@ export function DecisionVerdict({
         </div>
         <div className="min-w-0 flex-1">
           <p className={`text-[11px] font-bold uppercase tracking-[0.18em] ${v.accent}`}>
-            Verdict d'audit
+            Verdict d&apos;audit
           </p>
           <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             {v.label} {headline ? `· ${headline}` : ""}

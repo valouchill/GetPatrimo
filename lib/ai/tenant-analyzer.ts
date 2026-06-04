@@ -221,7 +221,7 @@ export async function analyzeApplication(
 
   // Coût RÉEL de l'appel de scoring LLM (fire-and-forget — n'interrompt jamais).
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     require('@/src/services/api-cost-logger').recordLlmCost({
       model,
       usage: completion.usage,

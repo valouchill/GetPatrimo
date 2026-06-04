@@ -4,13 +4,13 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { sendEmail, isEmailConfigured } = require('@/src/services/emailService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logEvent } = require('@/src/services/eventService');
 
 /**

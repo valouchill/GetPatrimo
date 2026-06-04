@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin } from '@/lib/auth-admin';
 import { getPagination } from '@/lib/pagination';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const IdentitySession = require('@/models/IdentitySession');
 
 export const GET = withAdmin(async (req: NextRequest) => {

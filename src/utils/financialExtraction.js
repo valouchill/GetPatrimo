@@ -411,7 +411,7 @@ function deriveApplicationFinancialProfile({ application, fallbackIncome = 0 } =
     incomeSource = 'SALARY';
     basisLabel = certifiedSalaryDocs.length > 0
       ? `Moyenne de ${certifiedSalaryDocs.length} bulletin(s) certifié(s)`
-      : `Moyenne de ${chosenSalaryDocs.length} bulletin(s) en revue`;
+      : `Moyenne de ${salaryDocs.length} bulletin(s) en revue`;
   } else if (pensionNet > 0) {
     incomeSource = 'PENSION';
     basisLabel = 'Montant mensuel issu du justificatif de pension';

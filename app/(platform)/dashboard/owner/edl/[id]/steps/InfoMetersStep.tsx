@@ -37,7 +37,7 @@ export default function InfoMetersStep({
   onUpdate,
 }: {
   inspection: InspectionData;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   onUpdate: (changes: any) => void;
 }) {
   const meters = inspection.meterReadings || {};

@@ -91,7 +91,7 @@ export function SectionLocataire({
       {selectedApplication?.ownerInsights?.financial?.effortRateLabel && (
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Taux d'effort</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Taux d&apos;effort</div>
             <div className="mt-0.5 text-sm font-semibold text-slate-900">{selectedApplication.ownerInsights.financial.effortRateLabel}</div>
           </div>
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">

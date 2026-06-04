@@ -356,7 +356,6 @@ export function SecureDocumentViewer({
                     />
                   ) : mimeType === 'image' ? (
                     <div className="flex h-full w-full items-center justify-center p-4 sm:p-8">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={document.url}
                         alt={document.name}
@@ -617,7 +616,7 @@ function SecureDocumentPlaceholder({
           <div className="mb-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
             <p className="mb-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
               <ShieldCheck className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
-              Synthèse de l'IA
+              Synthèse de l&apos;IA
             </p>
             <p className="font-serif text-sm italic leading-relaxed text-slate-800">
               {ai.summary}
@@ -629,7 +628,7 @@ function SecureDocumentPlaceholder({
         {extractedEntries.length > 0 && (
           <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-              Données extraites par l'IA
+              Données extraites par l&apos;IA
             </p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
               {extractedEntries.map(([key, value]) => (

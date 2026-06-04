@@ -197,6 +197,7 @@ export default function ConciergeOnboardingClient() {
     } else if (currentStep === "photos") {
       launchAnalysis();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   }, [stepIndex, currentStep]);
 
   const launchAnalysis = async () => {

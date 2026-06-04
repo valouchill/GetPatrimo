@@ -13,7 +13,7 @@ const {
 // Listes de logiciels : source unique de vérité (surchargeables par env via
 // FORENSIC_SUSPICIOUS_SOFTWARE / FORENSIC_LEGITIMATE_SOFTWARE). Inclut iLovePDF /
 // Smallpdf / Sejda en plus de la liste historique.
-// eslint-disable-next-line global-require
+ 
 const { getPhase1AuditConfig } = require('../config/phase1Audit');
 
 /**

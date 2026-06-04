@@ -224,8 +224,8 @@ export function PropertySesameCard({
             <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" aria-hidden="true" />
             <span>
               <strong className="text-slate-700">Bon à savoir :</strong> chaque dossier reçu est
-              automatiquement <strong>analysé par l'IA</strong> (Indice de Résilience, Audit Forensic,
-              vérification d'identité Didit). Vous recevez les profils prêts à comparer.
+              automatiquement <strong>analysé par l&apos;IA</strong> (Indice de Résilience, Audit Forensic,
+              vérification d&apos;identité Didit). Vous recevez les profils prêts à comparer.
             </span>
           </p>
         </div>

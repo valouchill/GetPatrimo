@@ -261,6 +261,7 @@ export function ContractPreview({
         </p>
       );
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   }, [paragraphs, mergeData, rawData, requiredVarNames, activeVar, editable, handleVarClick]);
 
   if (isLoading) {

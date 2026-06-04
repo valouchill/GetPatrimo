@@ -8,13 +8,13 @@ import { checkLatePayments } from '@/lib/services/paymentService';
 import { fillReminderTemplate, type ReminderType } from '@/lib/templates/rent-reminders';
 import { connectDiditDb } from '@/app/api/didit/db';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { sendEmail, isEmailConfigured } = require('@/src/services/emailService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logEvent } = require('@/src/services/eventService');
 
 function determineReminderLevel(daysLate: number, alreadySent: string[]): ReminderType | null {

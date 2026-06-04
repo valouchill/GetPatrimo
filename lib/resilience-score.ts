@@ -19,7 +19,7 @@ type ResolverModule = {
 };
 
 // Shared CommonJS resolver used by server utilities and client components.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const resolver = require('@/src/utils/resilienceScore') as ResolverModule;
 
 export const LEVEL_LABELS = resolver.LEVEL_LABELS;

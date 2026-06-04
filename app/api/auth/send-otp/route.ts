@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer';
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const OtpToken = require('@/models/OtpToken');
 
 function generateOtp(): string {

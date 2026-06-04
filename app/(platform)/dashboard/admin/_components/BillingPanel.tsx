@@ -50,7 +50,8 @@ export default function BillingPanel({ propertyId, stripeSubscriptionId, managed
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [propertyId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
+  useEffect(() => { load();   }, [propertyId]);
 
   async function runAction(name: string, url: string, method = 'POST', body?: any) {
     if (!confirm(`Confirmer : ${name} ?`)) return;

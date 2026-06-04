@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildPassportViewModel } = require('@/src/utils/passportViewModel');
 
 /**

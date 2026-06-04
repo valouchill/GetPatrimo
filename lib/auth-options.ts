@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import clientPromise from '@/lib/mongodb-client';
 import { connectDiditDb } from '@/app/api/didit/db';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 const isE2ETestMode = process.env.E2E_TEST_MODE === 'true' && process.env.NODE_ENV !== 'production';

@@ -47,8 +47,9 @@ export default function SimpleTable<T extends { _id: string }>({
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [skip, ...filtersDep]);
-  useEffect(() => { setSkip(0); /* eslint-disable-next-line */ }, filtersDep);
+  useEffect(() => { setSkip(0);   }, filtersDep);
 
   return (
     <>

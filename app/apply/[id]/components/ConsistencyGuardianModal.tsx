@@ -103,7 +103,7 @@ export function ConsistencyGuardianModal({
                     Le nom sur votre <span className="font-semibold text-amber-700">{inconsistency.documentName}</span> (<span className="font-bold">{inconsistency.detectedName}</span>) ne correspond pas exactement à votre identité certifiée (<span className="font-bold">{inconsistency.expectedName}</span>).
                   </p>
                   <p className="text-sm text-slate-600 mt-2">
-                    Un propriétaire y verra un risque de dossier non conforme. <span className="font-medium text-emerald-600">Corrigeons cela ensemble avant l'envoi.</span>
+                    Un propriétaire y verra un risque de dossier non conforme. <span className="font-medium text-emerald-600">Corrigeons cela ensemble avant l&apos;envoi.</span>
                   </p>
                 </div>
               </div>
@@ -134,7 +134,7 @@ export function ConsistencyGuardianModal({
                   className="mb-5"
                 >
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Expliquez la différence (ex: nom d'épouse, nom d'usage...)
+                    Expliquez la différence (ex: nom d&apos;épouse, nom d&apos;usage...)
                   </label>
                   <textarea
                     value={justificationText}
@@ -175,7 +175,7 @@ export function ConsistencyGuardianModal({
                     </div>
                     <div className="flex-1 text-left">
                       <p className="font-semibold text-slate-800">Expliquer la différence</p>
-                      <p className="text-xs text-slate-500">Mariage, nom d'usage, etc.</p>
+                      <p className="text-xs text-slate-500">Mariage, nom d&apos;usage, etc.</p>
                     </div>
                     <svg className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

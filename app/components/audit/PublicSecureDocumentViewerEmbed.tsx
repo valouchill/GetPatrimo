@@ -136,14 +136,14 @@ export function PublicSecureDocumentViewerEmbed({
           aria-label={`Voir l'aperçu sécurisé de ${document.name}`}
         >
           <Eye className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-          Voir l'aperçu sécurisé
+          Voir l&apos;aperçu sécurisé
         </button>
       </div>
 
       {teaserFields.length > 0 && (
         <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 sm:px-6">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-            Aperçu données extraites par l'IA
+            Aperçu données extraites par l&apos;IA
           </p>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-3">
             {teaserFields.map(([key, value]) => (

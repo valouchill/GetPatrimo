@@ -85,7 +85,7 @@ function AuditTrail({
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <span className="text-xl">📋</span>
-              Rapport d'Intégrité PatrimoTrust™
+              Rapport d&apos;Intégrité PatrimoTrust™
             </h3>
             <p className="text-slate-500 text-xs mt-1 font-mono">
               Référence : <span className="text-slate-400">{passportId}</span> | Certification : <span className="text-slate-400">{certificationDate}</span>
@@ -234,13 +234,13 @@ function AuditTrail({
               <span className="text-2xl">🤖</span>
             </div>
             <div>
-              <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">Conclusion de l'Expert PatrimoTrust</p>
+              <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">Conclusion de l&apos;Expert PatrimoTrust</p>
               <p className="text-white text-sm leading-relaxed">
-                "Ce dossier a passé notre protocole d'audit complet. 
+                &quot;Ce dossier a passé notre protocole d&apos;audit complet. 
                 {events.some(e => e.status === 'warning') 
                   ? " Les observations relevées ont été traitées et validées. Le risque d'usurpation est écarté."
                   : " Aucune anomalie détectée."
-                } Le dossier conserve son Grade certifié."
+                } Le dossier conserve son Grade certifié.&quot;
               </p>
             </div>
           </div>
@@ -254,7 +254,7 @@ function AuditTrail({
           className="mt-6 p-4 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 rounded-xl"
         >
           <p className="text-slate-400 text-xs text-center">
-            <span className="text-emerald-400 font-semibold">Cette rigueur d'audit est incluse dans votre Protection PatrimoTrust.</span>
+            <span className="text-emerald-400 font-semibold">Cette rigueur d&apos;audit est incluse dans votre Protection PatrimoTrust.</span>
             <br />
             <span className="text-slate-500">Vous louez à un profil dont nous avons personnellement vérifié chaque détail.</span>
           </p>
@@ -442,7 +442,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
             href="/"
             className="inline-block px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold rounded-full hover:shadow-lg hover:shadow-amber-500/30 transition-all"
           >
-            Retour à l'accueil
+            Retour à l&apos;accueil
           </Link>
         </motion.div>
       </div>
@@ -532,7 +532,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
           
           <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            Vérifié par l'IA PatrimoTrust le {data.certificationDate}
+            Vérifié par l&apos;IA PatrimoTrust le {data.certificationDate}
           </p>
         </motion.section>
 
@@ -760,7 +760,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                     <span className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
                       <span className="text-emerald-400 text-sm">✓</span>
                     </span>
-                    <span className="text-emerald-400 font-semibold">100% loyers à l'heure</span>
+                    <span className="text-emerald-400 font-semibold">100% loyers à l&apos;heure</span>
                   </div>
                 </div>
               </div>
@@ -797,7 +797,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                   <div className="flex-1 h-0.5 bg-gradient-to-r from-emerald-500 to-amber-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Aujourd'hui —</span>
+                  <span className="text-slate-500">Aujourd&apos;hui —</span>
                   <span className="text-amber-400 font-medium">24 mois sans incident</span>
                   <div className="w-3 h-3 bg-amber-400 rounded-full animate-pulse" />
                 </div>
@@ -875,7 +875,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                       <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                         <span className="text-amber-400 text-xl">🔓</span>
                       </div>
-                      <p className="text-white text-sm font-medium">Consulter l'original</p>
+                      <p className="text-white text-sm font-medium">Consulter l&apos;original</p>
                       <p className="text-amber-400 text-xs">Certifié PatrimoTrust™</p>
                     </div>
                   </div>
@@ -906,9 +906,9 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                       <span className="text-xl">🔍</span>
                     </div>
                     <div>
-                      <p className="text-amber-400 text-sm font-semibold">Observations d'Audit</p>
+                      <p className="text-amber-400 text-sm font-semibold">Observations d&apos;Audit</p>
                       <p className="text-slate-400 text-xs">
-                        Nous avons relevé une différence de nom d'usage, validée par acte officiel.
+                        Nous avons relevé une différence de nom d&apos;usage, validée par acte officiel.
                       </p>
                     </div>
                   </div>
@@ -1084,7 +1084,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                   <span className="text-3xl">🔓</span>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Débloquez l'accès complet
+                  Débloquez l&apos;accès complet
                 </h3>
                 <p className="text-slate-400 text-sm">
                   Pour protéger la vie privée de {data.firstName} et accéder aux pièces originales auditées, créez votre accès propriétaire gratuit.
@@ -1103,7 +1103,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  <span>S'inscrire avec Google</span>
+                  <span>S&apos;inscrire avec Google</span>
                 </button>
 
                 <div className="flex items-center gap-4 my-6">

@@ -153,6 +153,7 @@ export default function OwnerDashboardClient() {
     setExpandedId(null);
     setSidebarOpen(false);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   const goToContract = (propertyId: string, applicationId?: string) => {
     // V7.2 — Le module de contractualisation est maintenant la page
     // /dashboard/owner/lease/[applicationId] (cf. PR #62). L'ancienne

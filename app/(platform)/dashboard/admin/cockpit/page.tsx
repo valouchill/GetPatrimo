@@ -6,7 +6,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { getCockpitData } from '@/lib/admin/cockpit-data';
 import SuperAdminDashboard from './SuperAdminDashboard';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 export const dynamic = 'force-dynamic';

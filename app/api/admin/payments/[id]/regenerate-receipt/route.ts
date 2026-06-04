@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 import { generateReceipt } from '@/lib/services/paymentService';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
 
 export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {

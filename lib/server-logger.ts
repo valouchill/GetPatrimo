@@ -7,7 +7,7 @@
  *   logger.info('message', { key: 'value' });
  */
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logger: winstonLogger } = require('@/lib/logger');
 
 interface Logger {

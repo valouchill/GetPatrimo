@@ -134,7 +134,7 @@ export default function SignaturesStep({
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Signatures</h2>
-        <p className="mt-1 text-sm text-slate-500">Signez directement sur l'écran avec votre doigt</p>
+        <p className="mt-1 text-sm text-slate-500">Signez directement sur l&apos;écran avec votre doigt</p>
       </div>
 
       <SignaturePad

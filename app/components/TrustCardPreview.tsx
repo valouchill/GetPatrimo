@@ -28,6 +28,7 @@ export default function TrustCardPreview({ applyUrl, privilegeCode }: TrustCardP
       color: { dark: '#064e3b', light: '#ffffff' },
       errorCorrectionLevel: 'H',
     }).then(setQrDataUrl);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   }, [applyUrl]);
 
   const handleDownload = useCallback(async () => {

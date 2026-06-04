@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import AdminSidebar from './_components/AdminSidebar';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
