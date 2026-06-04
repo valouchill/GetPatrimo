@@ -27,9 +27,9 @@ import { buildPassportHtml } from './passport-html-template';
 import {
   PassportTemplateV2,
   wrapAsHtmlDocument,
-  buildAiComment,
+  buildAiVerdict,
   type PassportTemplateV2Props,
-  type PassportV2SmartLink,
+  type PassportV2AnnexeSection,
 } from '@/app/components/pdf/PassportTemplateV2';
 import type { PassportViewModel } from '@/lib/passport-viewmodel-types';
 
@@ -84,61 +84,65 @@ function getBaseUrl(): string {
 }
 
 /**
- * Détecte les types de pièces présents dans le ViewModel pour générer
- * dynamiquement les Smart Links visibles dans le PDF.
- *
- * Le PDF expose désormais un lien par pièce précise du locataire. Le fallback
- * par catégorie reste uniquement pour les anciens dossiers incomplets.
+ * Nettoie le libellé d'une pièce : jamais le nom de fichier brut
+ * (`LOCATAIRE_9_13_FEV_26_PNG.png`), mais le type métier lisible.
  */
-function buildSmartLinks(
+function cleanDocLabel(link: { label?: string; type?: string | null; category?: string | null }): string {
+  const raw = String(link.label || '').trim();
+  const looksLikeFile =
+    /\.(png|jpe?g|pdf|webp|heic|gif)$/i.test(raw) || /_[A-Z0-9]{2,}/.test(raw) || raw.length > 42;
+  if (raw && !looksLikeFile) return raw;
+
+  const t = `${link.type || ''} ${link.category || ''} ${raw}`.toUpperCase();
+  if (/PASSEPORT|PASSPORT/.test(t)) return 'Passeport';
+  if (/CNI|IDENTIT|CARTE|TITRE_SEJOUR/.test(t)) return "Pièce d'identité";
+  if (/PAIE|SALAIRE|BULLETIN|PAYSLIP/.test(t)) return 'Bulletin de salaire';
+  if (/IMPOT|IMPÔT|AVIS|FISCAL/.test(t)) return "Avis d'imposition";
+  if (/DOMICILE|ADDRESS|QUITTANCE|FACTURE/.test(t)) return 'Justificatif de domicile';
+  if (/VISALE/.test(t)) return 'Certificat Visale';
+  if (/CONTRAT|TRAVAIL|EMPLOI|EMPLOYEUR/.test(t)) return 'Contrat / Attestation employeur';
+  if (/GARANT|GUARANTOR|CAUTION/.test(t)) return 'Pièce du garant';
+  // Fallback : nom de fichier nettoyé (extension + séparateurs).
+  return (
+    raw
+      .replace(/\.[a-z0-9]+$/i, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Document justificatif'
+  );
+}
+
+/**
+ * Construit l'annexe documentaire (page 2) : les liens de pièces regroupés en
+ * 3 catégories, avec libellés propres. Les pièces ne figurent JAMAIS en page 1.
+ */
+function buildAnnexeSections(
   data: PassportViewModel,
   passportSlug: string,
   passportId: string,
-  baseUrl: string,
-): PassportV2SmartLink[] {
-  // UTM pour traquer l'origine des inscriptions
+): PassportV2AnnexeSection[] {
   const utm =
-    `?utm_source=passport_pdf` +
-    `&utm_medium=pdf` +
-    `&utm_campaign=owner_acq` +
+    `utm_source=passport_pdf&utm_medium=pdf&utm_campaign=owner_acq` +
     `&utm_content=${encodeURIComponent(passportSlug || passportId)}`;
+  const links = Array.isArray(data.documentLinks) ? data.documentLinks : [];
+  const cat = (l: { category?: string | null }): string => String(l.category || '').toUpperCase();
+  const withUtm = (url: string): string => `${url}${url.includes('?') ? '&' : '?'}${utm}`;
+  const toLink = (l: { label?: string; type?: string | null; category?: string | null; url: string }) => ({
+    label: cleanDocLabel(l),
+    href: withUtm(l.url),
+  });
 
-  if (Array.isArray(data.documentLinks) && data.documentLinks.length > 0) {
-    return data.documentLinks.map((link) => ({
-      id: link.id,
-      type: link.type || link.category || 'document',
-      label: link.label,
-      href: `${link.url}${link.url.includes('?') ? '&' : '?'}${utm.slice(1)}`,
-    }));
-  }
+  const identityDomicile = links.filter((l) => ['IDENTITY', 'ADDRESS'].includes(cat(l)));
+  const guarantorDocs = links.filter((l) => ['GUARANTOR', 'VISALE'].includes(cat(l)));
+  const known = new Set(['IDENTITY', 'ADDRESS', 'GUARANTOR', 'VISALE']);
+  // INCOME + toute pièce non catégorisée → ressources du locataire (défaut sûr).
+  const tenantResources = links.filter((l) => !known.has(cat(l)));
 
-  const blocks = data.documentCoverage?.blocks || [];
-  const has = (cat: string): boolean =>
-    blocks.some(
-      (b) =>
-        (b.id || '').toUpperCase() === cat || (b.label || '').toUpperCase().includes(cat),
-    );
-
-  const candidates: Array<{ type: string; label: string; show: boolean }> = [
-    { type: 'cni', label: 'CNI', show: has('IDENTITY') || data.hero?.identityVerified === true },
-    { type: 'revenus', label: 'Fiches de paie', show: has('INCOME') },
-    { type: 'impots', label: "Avis d'imposition", show: has('INCOME') },
-    { type: 'domicile', label: 'Justificatif de domicile', show: has('ADDRESS') },
-    {
-      type: 'garant',
-      label: 'Documents garant',
-      show: data.guarantee?.mode === 'PHYSICAL' || data.guarantee?.mode === 'VISALE',
-    },
+  return [
+    { title: 'Identité & Domicile', links: identityDomicile.map(toLink) },
+    { title: 'Ressources Financières du Locataire', links: tenantResources.map(toLink) },
+    { title: 'Pièces du Garant', links: guarantorDocs.map(toLink) },
   ];
-
-  return candidates
-    .filter((c) => c.show)
-    .map((c) => ({
-      id: `legacy-${c.type}`,
-      type: c.type,
-      label: c.label,
-      href: `${baseUrl}/dossier/${encodeURIComponent(passportSlug || passportId)}/${c.type}${utm}`,
-    }));
 }
 
 function buildForensicChecks(data: PassportViewModel): {
@@ -194,11 +198,16 @@ function viewModelToV2Props(
       initials: computeInitials(fullName),
       fullName,
       profession: data.hero?.profession || 'Profil candidat',
-      employer: data.hero?.candidateStatus || null,
-      seniority: null, // À enrichir si le ViewModel expose ce champ ultérieurement
+      // Pas de champ employeur fiable dans le ViewModel (dépend de l'OCR des
+      // pièces) → null, la ligne Employeur est alors masquée.
+      employer: null,
+      seniority: null,
     },
+    presentationText: data.presentationText || null,
     score: data.score || 0,
     gradeLabel: data.hero?.gradeLabel || data.grade || 'GRADE',
+    // Badge métal : niveau V2 si analyse en cache, sinon niveau de résilience.
+    metalLevel: data.aiAuditV2?.resilience?.level || data.resilience?.level,
     financials: {
       monthlyIncomeLabel:
         data.solvency?.exactMonthlyIncomeLabel ||
@@ -207,22 +216,25 @@ function viewModelToV2Props(
       taxIncomeLabel: null,
       stabilityLabel: data.solvency?.certifiedIncome ? 'Validée (12 mois)' : null,
       maxRentLabel: data.solvency?.rentAmountLabel || 'À évaluer',
-      guarantorStatusLabel:
-        data.guarantee?.mode === 'VISALE'
-          ? 'Visale (Certifié)'
-          : data.guarantee?.mode === 'PHYSICAL'
-          ? 'Présent (Certifié)'
-          : null,
-      guarantorIncomeLabel: null,
     },
-    smartLinks: buildSmartLinks(data, passportSlug, passportId, baseUrl),
-    aiCommentHtml: buildAiComment(data.score || 0),
+    guarantor: {
+      hasGuarantor: Boolean(data.guarantee?.mode && data.guarantee.mode !== 'NONE'),
+      typeLabel:
+        data.guarantee?.typeLabel ||
+        (data.guarantee?.mode === 'VISALE'
+          ? 'Visale'
+          : data.guarantee?.mode === 'PHYSICAL'
+          ? 'Garant physique'
+          : 'Aucune'),
+      name: data.guarantee?.guarantorName || null,
+      incomeLabel: data.guarantee?.guarantorIncomeLabel || null,
+      statusLabel: data.guarantee?.status || null,
+    },
+    aiVerdictHtml: buildAiVerdict(data.score || 0),
     forensicChecks: buildForensicChecks(data),
-    // V6.5 — Si l'analyse V2 est en cache, on enrichit le PDF :
-    //  - forensicAudit (Trust-List structurée) remplace les 2 colonnes legacy
-    //  - metalLevel (PLATINUM/GOLD/SILVER/ALERTE) remplace le grade label
+    // Trust-List enrichie (analyse neuro-symbolique) si en cache.
     forensicAudit: data.aiAuditV2?.ai?.forensicAudit,
-    metalLevel: data.aiAuditV2?.resilience?.level,
+    annexeSections: buildAnnexeSections(data, passportSlug, passportId),
     signupUrl,
     brandDomain: getBrandDomain(),
   };

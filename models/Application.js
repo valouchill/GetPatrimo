@@ -50,6 +50,9 @@ const ApplicantProfileSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   birthDate: { type: String, default: '' },
   status: { type: String, default: 'Etudiant' },
+  // Mot du locataire : texte de présentation libre (optionnel), affiché en
+  // en-tête du Passeport Locatif pour rassurer le propriétaire.
+  presentationText: { type: String, default: '', maxlength: 500 },
 }, { _id: false });
 
 const ApplicantVerificationSchema = new mongoose.Schema({

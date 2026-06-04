@@ -1,34 +1,49 @@
 /**
- * <PassportTemplateV2> — Template React du Passeport Locatif V2.
+ * <PassportTemplateV2> — Template React du Passeport Locatif (Rapport d'Audit).
  *
- * V2 "Growth Hacking" : one-pager A4 avec Smart Links qui forcent le
- * propriétaire prospect à venir sur la plateforme pour consulter les
- * pièces (et créer son compte → acquisition).
+ * Refonte "Banque Privée / Rapport d'Audit" : document structuré en 2 parties.
+ *   • PAGE 1 — Rapport Exécutif :
+ *       Header → BLOC 1 Mot du Locataire → BLOC 2 Synthèse Exécutive (Candidat |
+ *       Caution) → BLOC 3 Indice de Résilience & IA → BLOC 4 Audit Forensic.
+ *   • PAGE 2 — Annexe Documentaire :
+ *       "Annexe : Pièces Justificatives (Accès Sécurisé)" — liens regroupés par
+ *       catégorie (Identité & Domicile / Ressources / Garant), libellés propres.
+ *
+ * La liste des pièces ne figure JAMAIS sur la page 1 (elle vit en annexe).
  *
  * Pipeline de génération :
- *   <PassportTemplateV2 {...props} />
- *      → renderToStaticMarkup() = HTML string
- *      → wrapHtmlDocument(markup, css) = HTML complet avec <head>
- *      → WeasyPrint subprocess → PDF A4 one-pager
+ *   <PassportTemplateV2 {...props} /> → renderToStaticMarkup() = HTML
+ *     → wrapAsHtmlDocument(markup) → WeasyPrint subprocess → PDF A4 multi-pages.
  *
- * Note : pas de Tailwind ni styled-components (WeasyPrint ne résout pas
- * les classes utilitaires). Tout en attributs `style` ou via la
- * stylesheet inline {@link PASSPORT_V2_CSS}.
+ * Note : pas de Tailwind (WeasyPrint ne résout pas les classes utilitaires).
+ * Tout en attributs `style` ou via la stylesheet inline {@link PASSPORT_V2_CSS}.
  */
 
 import * as React from 'react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Lien legacy (conservé pour compat d'API ; le rendu utilise `annexeSections`). */
 export interface PassportV2SmartLink {
-  /** Identifiant stable du lien/document */
   id?: string;
-  /** Type de document (legacy: cni, revenus, impots… ou type métier libre) */
   type?: string;
-  /** Label affiché sur le lien (ex: "CNI", "Fiches de paie") */
   label: string;
-  /** URL absolue construite côté serveur avec UTM */
   href: string;
+}
+
+/** Un lien de pièce justificative (annexe), au libellé propre. */
+export interface PassportV2AnnexeLink {
+  /** Libellé propre du document (type métier, jamais le nom de fichier brut). */
+  label: string;
+  /** URL absolue d'accès sécurisé (UTM-taggée). */
+  href: string;
+}
+
+/** Une section catégorisée de l'annexe documentaire. */
+export interface PassportV2AnnexeSection {
+  /** Titre de section (ex: "Identité & Domicile"). */
+  title: string;
+  links: PassportV2AnnexeLink[];
 }
 
 export interface PassportTemplateV2Props {
@@ -46,37 +61,44 @@ export interface PassportTemplateV2Props {
     seniority?: string | null;
   };
 
+  /** BLOC 1 — Mot du locataire (présentation libre, optionnel). */
+  presentationText?: string | null;
+
   /** Score + grade */
   score: number;
   gradeLabel: string;
+  /** Niveau institutionnel "carte premium" (PLATINUM/GOLD/SILVER/ALERTE). */
+  metalLevel?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
 
-  /** Métriques financières (toutes formatées en strings) */
+  /** BLOC 2 gauche — Le Candidat (toutes valeurs formatées en strings). */
   financials: {
     monthlyIncomeLabel: string;
     taxIncomeLabel?: string | null;
     stabilityLabel?: string | null;
     maxRentLabel: string;
-    guarantorStatusLabel?: string | null;
-    guarantorIncomeLabel?: string | null;
   };
 
-  /** Smart Links — pièces consultables côté plateforme */
-  smartLinks: PassportV2SmartLink[];
+  /** BLOC 2 droite — La Caution / Garant. */
+  guarantor: {
+    hasGuarantor: boolean;
+    typeLabel: string;
+    name?: string | null;
+    incomeLabel?: string | null;
+    statusLabel?: string | null;
+  };
 
-  /** Avis IA dynamique (généré selon le score) */
-  aiCommentHtml: string;
+  /** BLOC 3 — Avis textuel de l'IA (HTML, italique, sans CTA). */
+  aiVerdictHtml: string;
 
-  /** Liste des checks forensic 2 colonnes (legacy V1) */
+  /** BLOC 4 — Checks forensic 2 colonnes (legacy V1). */
   forensicChecks: {
     left: string[];
     right: string[];
   };
 
   /**
-   * V2 (optionnel) : Trust-List enrichie issue de l'analyse neuro-symbolique.
-   * Si fournie ET non vide, REMPLACE le rendu legacy `forensicChecks` par
-   * un tableau structuré avec statut (VERIFIED/WARNING/ALERT) + details.
-   *
+   * BLOC 4 (optionnel) — Trust-List enrichie (analyse neuro-symbolique).
+   * Si fournie ET non vide, REMPLACE le rendu legacy `forensicChecks`.
    * Source : Application.aiAuditV2.ai.forensicAudit
    */
   forensicAudit?: Array<{
@@ -85,16 +107,10 @@ export interface PassportTemplateV2Props {
     details: string;
   }>;
 
-  /**
-   * V2 (optionnel) : niveau institutionnel "carte bancaire premium"
-   * affiché dans le hero, sous le score. Si fourni, REMPLACE le rendu
-   * `gradeLabel` legacy par un badge métal (PLATINUM/GOLD/SILVER/ALERTE).
-   *
-   * Source : Application.aiAuditV2.resilience.level
-   */
-  metalLevel?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'ALERTE';
+  /** PAGE 2 — Annexe documentaire (liens regroupés par catégorie). */
+  annexeSections: PassportV2AnnexeSection[];
 
-  /** URL d'inscription owner (UTM-taggée) */
+  /** URL d'inscription owner (UTM-taggée) — CTA d'acquisition (fin d'annexe). */
   signupUrl: string;
 
   /** Domaine pour le footer (ex: "doc2loc.com") */
@@ -102,23 +118,25 @@ export interface PassportTemplateV2Props {
 }
 
 // ─── CSS Stylesheet (inline pour WeasyPrint) ─────────────────────────────────
+// Charte stricte : Émeraude (#064e3b/#047857), Or brossé (#d97706/#f59e0b),
+// Gris Ardoise (#0f172a/#334155/#475569/#64748b). Beaucoup de whitespace.
 
 export const PASSPORT_V2_CSS = `
 @page {
   size: A4;
-  margin: 12mm 15mm;
-  background-color: #f8fafc;
+  margin: 14mm 15mm;
+  background-color: #ffffff;
   @bottom-left {
     content: var(--footer-left, "PatrimoTrust © 2026 • Document Confidentiel et Infalsifiable");
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 7.5pt;
-    color: #64748b;
+    color: #94a3b8;
   }
   @bottom-right {
     content: var(--footer-right, "");
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 7.5pt;
-    color: #64748b;
+    color: #94a3b8;
   }
 }
 body {
@@ -126,28 +144,87 @@ body {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #1e293b;
   font-size: 9pt;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 h1, h2, h3 { font-family: Georgia, serif; color: #064e3b; margin-top: 0; }
 .w-full { width: 100%; }
-.table-layout { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-.table-layout td { vertical-align: top; }
-.header { border-bottom: 2px solid #d97706; padding-bottom: 8px; margin-bottom: 15px; }
-.brand-name { font-size: 20pt; font-weight: bold; color: #064e3b; font-family: Georgia, serif; }
-.document-title { font-size: 9pt; color: #475569; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
-.card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-.score-box { background-color: #064e3b; color: #ffffff; padding: 15px 10px; border-radius: 8px; text-align: center; }
-.score-value { font-size: 32pt; font-weight: bold; font-family: Georgia, serif; color: #f59e0b; margin: 2px 0; line-height: 1; }
-.grade-badge { background-color: #f59e0b; color: #064e3b; font-weight: bold; font-size: 11pt; padding: 2px 12px; border-radius: 15px; display: inline-block; }
+.table-layout { width: 100%; border-collapse: collapse; }
 
-/* ── Badge métal V2 (carte bancaire premium) ───────────────────────────── */
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header { border-bottom: 2px solid #d97706; padding-bottom: 10px; margin-bottom: 20px; }
+.brand-name { font-size: 21pt; font-weight: bold; color: #064e3b; font-family: Georgia, serif; }
+.document-title { font-size: 8.5pt; color: #475569; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-top: 2px; }
+.header-meta { font-size: 8pt; color: #64748b; line-height: 1.6; }
+.header-candidate { font-size: 11pt; font-family: Georgia, serif; color: #064e3b; font-weight: bold; }
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+.section-title { font-size: 12pt; border-left: 3px solid #d97706; padding-left: 10px; margin: 0 0 12px 0; font-weight: bold; color: #064e3b; font-family: Georgia, serif; }
+.card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+.block-spacer { height: 22px; }
+
+/* ── BLOC 1 — Mot du locataire (citation) ──────────────────────────────── */
+.presentation-quote {
+  background-color: #f8fafc;
+  border-left: 4px solid #047857;
+  border-radius: 0 8px 8px 0;
+  padding: 13px 18px;
+  color: #334155;
+  font-style: italic;
+  font-size: 9.5pt;
+  line-height: 1.6;
+}
+.presentation-quote .quote-label {
+  display: block;
+  font-style: normal;
+  font-size: 7pt;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #047857;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.presentation-quote .quote-glyph { font-family: Georgia, serif; color: #047857; font-style: normal; }
+
+/* ── BLOC 2 — Synthèse Exécutive (2 colonnes) ──────────────────────────── */
+.synthese-table { width: 100%; border-collapse: collapse; }
+.synthese-table td { vertical-align: top; }
+.col-header { font-family: Georgia, serif; font-size: 9.5pt; font-weight: bold; color: #047857; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.synthese-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 13px; min-height: 118px; }
+.identity-line { margin-bottom: 8px; }
+.avatar-box {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #064e3b, #047857);
+  color: #ffffff; border-radius: 50%;
+  text-align: center; line-height: 38px;
+  font-size: 12pt; font-weight: bold; font-family: Georgia, serif;
+}
+.identity-name { font-family: Georgia, serif; font-size: 12pt; color: #064e3b; font-weight: bold; line-height: 1.1; }
+.identity-sub { font-size: 8pt; color: #64748b; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table td { padding: 4px 0; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-label { color: #64748b; width: 52%; }
+.data-value { font-weight: 600; color: #1e293b; text-align: right; }
+.data-value.accent { color: #047857; }
+.no-guarantor { color: #94a3b8; font-style: italic; font-size: 9pt; text-align: center; padding: 28px 8px; }
+
+/* ── BLOC 3 — Indice de Résilience & IA ────────────────────────────────── */
+.score-box { background-color: #064e3b; color: #ffffff; padding: 14px 10px; border-radius: 8px; text-align: center; }
+.score-box .score-eyebrow { font-size: 7pt; text-transform: uppercase; color: #a7f3d0; font-weight: bold; letter-spacing: 1px; }
+.score-value { font-size: 34pt; font-weight: bold; font-family: Georgia, serif; color: #f59e0b; margin: 2px 0; line-height: 1; }
+.score-value .score-sub { font-size: 13pt; color: #a7f3d0; }
+.grade-badge { background-color: #f59e0b; color: #064e3b; font-weight: bold; font-size: 11pt; padding: 2px 12px; border-radius: 15px; display: inline-block; }
 .metal-badge { font-weight: bold; font-size: 11pt; padding: 3px 14px; border-radius: 15px; display: inline-block; letter-spacing: 2px; text-transform: uppercase; }
 .metal-platinum { background: #0f172a; color: #f59e0b; border: 1px solid #f59e0b; }
 .metal-gold { background-color: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
 .metal-silver { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
 .metal-alerte { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.ai-verdict-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; }
+.ai-verdict-label { font-size: 8pt; font-weight: bold; color: #064e3b; margin-bottom: 6px; }
+.ai-verdict { color: #334155; font-size: 9.5pt; line-height: 1.6; }
+.ai-verdict em { font-style: italic; color: #1e293b; }
 
-/* ── Trust-List forensic V2 (table structurée) ─────────────────────────── */
+/* ── BLOC 4 — Audit Forensic ───────────────────────────────────────────── */
 .forensic-audit-table { width: 100%; border-collapse: collapse; }
 .forensic-audit-table tr.forensic-row { border-bottom: 1px solid #f1f5f9; }
 .forensic-audit-table tr.forensic-row:last-child { border-bottom: none; }
@@ -156,105 +233,66 @@ h1, h2, h3 { font-family: Georgia, serif; color: #064e3b; margin-top: 0; }
 .forensic-name { font-size: 8.5pt; font-weight: bold; color: #0f172a; margin-bottom: 1px; }
 .forensic-details { font-size: 7.5pt; color: #475569; line-height: 1.3; }
 .forensic-status { width: 60px; padding: 6px 0 6px 4px; vertical-align: middle; font-size: 6.5pt; font-weight: bold; text-align: right; letter-spacing: 1px; }
-.forensic-row.forensic-verified .forensic-symbol { color: #059669; }
-.forensic-row.forensic-verified .forensic-status { color: #059669; }
-.forensic-row.forensic-warning .forensic-symbol { color: #d97706; }
-.forensic-row.forensic-warning .forensic-status { color: #d97706; }
-.forensic-row.forensic-alert .forensic-symbol { color: #dc2626; }
-.forensic-row.forensic-alert .forensic-status { color: #dc2626; }
-.avatar-box {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #064e3b, #047857);
-  color: #ffffff;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 50px;
-  font-size: 14pt;
-  font-weight: bold;
-  font-family: Georgia, serif;
-}
-.profile-name { font-family: Georgia, serif; font-size: 14pt; color: #064e3b; font-weight: bold; margin-bottom: 2px; }
-.profile-tag { font-size: 8pt; background-color: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table td { padding: 4px 0; border-bottom: 1px solid #f1f5f9; font-size: 8.5pt; }
-.data-label { color: #64748b; width: 55%; }
-.data-value { font-weight: 600; color: #1e293b; text-align: right; }
-.section-title { font-size: 11pt; border-left: 3px solid #d97706; padding-left: 8px; margin-bottom: 8px; font-weight: bold; color: #064e3b; font-family: Georgia, serif; }
-.smart-links-box { background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-.ai-comment { color: #92400e; font-size: 9pt; margin-bottom: 10px; line-height: 1.5; }
-.ai-comment em { font-style: italic; }
-.doc-link {
-  display: inline-block;
-  background: #ffffff;
-  border: 1px solid #d97706;
-  color: #d97706;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 8pt;
-  font-weight: bold;
-  text-decoration: none;
-  margin-right: 8px;
-  margin-bottom: 4px;
-}
+.forensic-row.forensic-verified .forensic-symbol, .forensic-row.forensic-verified .forensic-status { color: #059669; }
+.forensic-row.forensic-warning .forensic-symbol, .forensic-row.forensic-warning .forensic-status { color: #d97706; }
+.forensic-row.forensic-alert .forensic-symbol, .forensic-row.forensic-alert .forensic-status { color: #dc2626; }
 .check-item { padding: 3px 0; font-size: 8pt; }
 .check-icon { color: #059669; font-weight: bold; margin-right: 5px; }
+
+/* ── PAGE 2 — Annexe documentaire ──────────────────────────────────────── */
+.page-break { page-break-before: always; }
+.annexe-intro { font-size: 8.5pt; color: #475569; line-height: 1.5; margin: 0 0 18px 0; }
+.annexe-section { margin-bottom: 18px; }
+.annexe-section-title { font-family: Georgia, serif; font-size: 10pt; font-weight: bold; color: #064e3b; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; }
+.annexe-row { width: 100%; border-collapse: collapse; }
+.annexe-row td { padding: 7px 0; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.annexe-doc-type { font-size: 9pt; font-weight: 600; color: #334155; }
+.annexe-link { color: #047857; font-size: 8.5pt; font-weight: bold; text-decoration: none; white-space: nowrap; }
+.annexe-empty { font-size: 8pt; color: #94a3b8; font-style: italic; padding: 4px 0; }
+
+/* ── CTA acquisition (fin d'annexe) ────────────────────────────────────── */
 .marketing-banner {
   background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
-  color: #ffffff;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 10px;
-  border-top: 3px solid #f59e0b;
+  color: #ffffff; border-radius: 8px; padding: 16px;
+  margin-top: 24px; border-top: 3px solid #f59e0b;
 }
 .marketing-title { font-family: Georgia, serif; font-size: 12pt; color: #f59e0b; margin-bottom: 4px; font-weight: bold; }
 .marketing-text { font-size: 8.5pt; color: #e2e8f0; margin-bottom: 10px; line-height: 1.4; }
-.marketing-button {
-  background-color: #f59e0b;
-  color: #064e3b;
-  font-weight: bold;
-  font-size: 9pt;
-  padding: 8px 16px;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-block;
-}
+.marketing-button { background-color: #f59e0b; color: #064e3b; font-weight: bold; font-size: 9pt; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block; }
 `;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Génère un avis IA dynamique selon le score.
- * Retourne du HTML (avec balises strong / em) pour insertion via
- * dangerouslySetInnerHTML. Le contenu est encodé côté serveur — pas
- * d'input utilisateur dans cette fonction (safe).
+ * Avis IA legacy (avec CTA pièces). Conservé pour compat d'API ; le rendu
+ * exécutif utilise {@link buildAiVerdict} (verdict italique seul).
  */
 export function buildAiComment(score: number): string {
-  const safe = Math.max(0, Math.min(100, Math.round(score || 0)));
-  const ctaPhrase =
-    `<strong>Propriétaire :</strong> Pour protéger les données du candidat, ` +
-    `les pièces justificatives sont scellées. Cliquez sur les liens ` +
-    `ci-dessous pour ouvrir votre espace sécurisé et consulter les ` +
-    `originaux avec filigrane.`;
+  return buildAiVerdict(score);
+}
 
+/**
+ * Avis textuel de l'IA selon le score — verdict en italique, SANS CTA.
+ * Retourne du HTML (balises em) pour dangerouslySetInnerHTML. Contenu encodé
+ * côté serveur (pas d'input utilisateur ici) → safe.
+ */
+export function buildAiVerdict(score: number): string {
+  const safe = Math.max(0, Math.min(100, Math.round(score || 0)));
   if (safe >= 85) {
     return (
-      `<strong>🎯 Avis de l'Intelligence Artificielle :</strong> ` +
-      `<em>"Dossier d'excellence. L'intégrité des revenus et de l'identité ` +
-      `est totale. Risque de défaut historiquement nul.”</em> ${ctaPhrase}`
+      `<em>« Dossier d'excellence. L'intégrité des revenus et de l'identité ` +
+      `est totale. Risque de défaut historiquement nul. »</em>`
     );
   }
   if (safe >= 60) {
     return (
-      `<strong>🎯 Avis de l'Intelligence Artificielle :</strong> ` +
-      `<em>"Dossier solide. Les flux de revenus sont cohérents et la ` +
-      `garantie est correcte. Quelques points secondaires à examiner.”</em> ${ctaPhrase}`
+      `<em>« Dossier solide. Les flux de revenus sont cohérents et la garantie ` +
+      `est correcte. Quelques points secondaires restent à examiner. »</em>`
     );
   }
   return (
-    `<strong>⚠️ Avis de l'Intelligence Artificielle :</strong> ` +
-    `<em>"Vigilance requise. Des incohérences ont été détectées dans le ` +
-    `dossier. Une vérification manuelle approfondie est recommandée.”</em> ${ctaPhrase}`
+    `<em>« Vigilance requise. Des incohérences ont été détectées dans le dossier. ` +
+    `Une vérification manuelle approfondie est recommandée. »</em>`
   );
 }
 
@@ -264,42 +302,40 @@ export function PassportTemplateV2({
   passportId,
   generatedAt,
   candidate,
+  presentationText,
   score,
   gradeLabel,
+  metalLevel,
   financials,
-  smartLinks,
-  aiCommentHtml,
+  guarantor,
+  aiVerdictHtml,
   forensicChecks,
   forensicAudit,
-  metalLevel,
+  annexeSections,
   signupUrl,
   brandDomain,
 }: PassportTemplateV2Props): React.ReactElement {
   const safeScore = Math.max(0, Math.min(100, Math.round(score || 0)));
   const useV2Audit = Array.isArray(forensicAudit) && forensicAudit.length > 0;
+  const presentation = (presentationText || '').trim();
+  const sections = Array.isArray(annexeSections) ? annexeSections : [];
 
   return (
     <html lang="fr">
       <head>
         <meta charSet="UTF-8" />
         <title>Passeport Locatif Certifié — PatrimoTrust</title>
-        <style
-          // CSS inline + @page rules + variables dynamiques de footer
-          // (les `var(--footer-*)` sont définies en attribut style du <body>
-          // pour permettre l'injection runtime)
-          dangerouslySetInnerHTML={{
-            __html: PASSPORT_V2_CSS,
-          }}
-        />
+        <style dangerouslySetInnerHTML={{ __html: PASSPORT_V2_CSS }} />
       </head>
       <body
         style={{
-          // CSS variables consommées par les @page bottom-left / bottom-right
           ['--footer-left' as string]: `"${brandDomain.toUpperCase()} © 2026 • Document Confidentiel et Infalsifiable"`,
           ['--footer-right' as string]: `"ID: ${passportId}"`,
         }}
       >
-        {/* ─── Header brand ───────────────────────────────────────────── */}
+        {/* ═══════════ PAGE 1 — RAPPORT EXÉCUTIF ═══════════ */}
+
+        {/* ─── Header ─────────────────────────────────────────────── */}
         <div className="header">
           <table className="w-full">
             <tbody>
@@ -308,77 +344,133 @@ export function PassportTemplateV2({
                   <div className="brand-name">PatrimoTrust</div>
                   <div className="document-title">Passeport Locatif Certifié</div>
                 </td>
-                <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
-                  <span style={{ fontSize: '8pt', color: '#64748b' }}>
+                <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
+                  <div className="header-candidate">{candidate.fullName}</div>
+                  <div className="header-meta">
                     Généré le {generatedAt}
-                  </span>
+                    <br />
+                    Réf. {passportId}
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* ─── Identité + Score ─────────────────────────────────────── */}
-        <table className="table-layout">
+        {/* ─── BLOC 1 — Le Mot du Locataire ───────────────────────── */}
+        {presentation ? (
+          <>
+            <div className="presentation-quote">
+              <span className="quote-label">Le Mot du Locataire</span>
+              <span className="quote-glyph">«&nbsp;</span>
+              {presentation}
+              <span className="quote-glyph">&nbsp;»</span>
+            </div>
+            <div className="block-spacer" />
+          </>
+        ) : null}
+
+        {/* ─── BLOC 2 — Synthèse Exécutive ────────────────────────── */}
+        <div className="section-title">Synthèse Exécutive</div>
+        <table className="synthese-table">
           <tbody>
             <tr>
-              <td style={{ width: '65%' }}>
-                <div className="card" style={{ height: '95px', marginBottom: 0 }}>
-                  <table className="w-full">
+              {/* Colonne gauche — Le Candidat */}
+              <td style={{ width: '48%' }}>
+                <div className="col-header">Le Candidat</div>
+                <div className="synthese-card">
+                  <table className="w-full identity-line">
                     <tbody>
                       <tr>
-                        <td style={{ width: '65px' }}>
+                        <td style={{ width: '46px' }}>
                           <div className="avatar-box">{candidate.initials}</div>
                         </td>
                         <td>
-                          <div className="profile-name">{candidate.fullName}</div>
-                          <div className="profile-tag">{candidate.profession}</div>
-                          <div
-                            style={{
-                              marginTop: '6px',
-                              fontSize: '8.5pt',
-                              color: '#475569',
-                            }}
-                          >
-                            {candidate.employer ? (
-                              <>
-                                <strong>Employeur :</strong> {candidate.employer}
-                                <br />
-                              </>
-                            ) : null}
-                            {candidate.seniority ? (
-                              <>
-                                <strong>Ancienneté :</strong> {candidate.seniority}
-                              </>
-                            ) : null}
-                          </div>
+                          <div className="identity-name">{candidate.fullName}</div>
+                          <div className="identity-sub">{candidate.profession}</div>
                         </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table className="data-table">
+                    <tbody>
+                      <tr>
+                        <td className="data-label">Statut professionnel</td>
+                        <td className="data-value">{candidate.profession}</td>
+                      </tr>
+                      {candidate.employer ? (
+                        <tr>
+                          <td className="data-label">Employeur</td>
+                          <td className="data-value">{candidate.employer}</td>
+                        </tr>
+                      ) : null}
+                      <tr>
+                        <td className="data-label">Revenus nets mensuels</td>
+                        <td className="data-value accent">{financials.monthlyIncomeLabel}</td>
+                      </tr>
+                      <tr>
+                        <td className="data-label">Loyer Max Conseillé CC</td>
+                        <td className="data-value">{financials.maxRentLabel}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </td>
-              <td style={{ width: '3%' }} />
+              <td style={{ width: '4%' }} />
+              {/* Colonne droite — La Caution / Garant */}
+              <td style={{ width: '48%' }}>
+                <div className="col-header">La Caution / Garant</div>
+                <div className="synthese-card">
+                  {guarantor.hasGuarantor ? (
+                    <table className="data-table">
+                      <tbody>
+                        {guarantor.name ? (
+                          <tr>
+                            <td className="data-label">Garant</td>
+                            <td className="data-value">{guarantor.name}</td>
+                          </tr>
+                        ) : null}
+                        <tr>
+                          <td className="data-label">Type de garantie</td>
+                          <td className="data-value accent">{guarantor.typeLabel}</td>
+                        </tr>
+                        {guarantor.statusLabel ? (
+                          <tr>
+                            <td className="data-label">Statut</td>
+                            <td className="data-value">{guarantor.statusLabel}</td>
+                          </tr>
+                        ) : null}
+                        <tr>
+                          <td className="data-label">Revenus nets du garant</td>
+                          <td className="data-value">{guarantor.incomeLabel || 'Non communiqués'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="no-guarantor">Aucun garant déclaré</div>
+                  )}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="block-spacer" />
+
+        {/* ─── BLOC 3 — Indice de Résilience & Analyse IA ─────────── */}
+        <div className="section-title">Indice de Résilience &amp; Analyse IA</div>
+        <table className="synthese-table">
+          <tbody>
+            <tr>
               <td style={{ width: '32%' }}>
-                <div className="score-box" style={{ height: '95px' }}>
-                  <div
-                    style={{
-                      fontSize: '7pt',
-                      textTransform: 'uppercase',
-                      color: '#a7f3d0',
-                      fontWeight: 'bold',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    Indice de Résilience
-                  </div>
+                <div className="score-box">
+                  <div className="score-eyebrow">Indice de Résilience</div>
                   <div className="score-value">
                     {safeScore}
-                    <span style={{ fontSize: '14pt', color: '#a7f3d0' }}>/100</span>
+                    <span className="score-sub">/100</span>
                   </div>
                   {metalLevel ? (
                     <div className={`metal-badge metal-${metalLevel.toLowerCase()}`}>
-                      {metalLevel === 'PLATINUM' && '★ '}
+                      {metalLevel === 'PLATINUM' ? '★ ' : ''}
                       {metalLevel}
                     </div>
                   ) : (
@@ -386,104 +478,29 @@ export function PassportTemplateV2({
                   )}
                 </div>
               </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* ─── Analyse Financière ────────────────────────────────────── */}
-        <div className="section-title">Analyse Financière &amp; Capacité</div>
-        <table className="table-layout">
-          <tbody>
-            <tr>
-              <td style={{ width: '48%' }}>
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <table className="data-table">
-                    <tbody>
-                      <tr>
-                        <td className="data-label">Revenus nets moyens</td>
-                        <td className="data-value">{financials.monthlyIncomeLabel}</td>
-                      </tr>
-                      {financials.taxIncomeLabel ? (
-                        <tr>
-                          <td className="data-label">Revenu Fiscal (N-1)</td>
-                          <td className="data-value">{financials.taxIncomeLabel}</td>
-                        </tr>
-                      ) : null}
-                      {financials.stabilityLabel ? (
-                        <tr>
-                          <td className="data-label">Stabilité des flux</td>
-                          <td className="data-value" style={{ color: '#059669' }}>
-                            {financials.stabilityLabel}
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
-                </div>
-              </td>
               <td style={{ width: '4%' }} />
-              <td style={{ width: '48%' }}>
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <table className="data-table">
-                    <tbody>
-                      <tr>
-                        <td className="data-label">Loyer Max Conseillé CC</td>
-                        <td className="data-value">{financials.maxRentLabel}</td>
-                      </tr>
-                      {financials.guarantorStatusLabel ? (
-                        <tr>
-                          <td className="data-label">Garant Solidaire</td>
-                          <td className="data-value" style={{ color: '#059669' }}>
-                            {financials.guarantorStatusLabel}
-                          </td>
-                        </tr>
-                      ) : null}
-                      {financials.guarantorIncomeLabel ? (
-                        <tr>
-                          <td className="data-label">Couverture Garant</td>
-                          <td className="data-value">{financials.guarantorIncomeLabel}</td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
+              <td style={{ width: '64%' }}>
+                <div className="ai-verdict-card">
+                  <div className="ai-verdict-label">🎯 Avis de l&apos;Intelligence Artificielle</div>
+                  <div className="ai-verdict" dangerouslySetInnerHTML={{ __html: aiVerdictHtml }} />
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+        <div className="block-spacer" />
 
-        {/* ─── Smart Links Box (The Hook) ────────────────────────────── */}
-        <div className="smart-links-box">
-          <div
-            className="ai-comment"
-            dangerouslySetInnerHTML={{ __html: aiCommentHtml }}
-          />
-          <div>
-            {smartLinks.map((link) => (
-              <a key={link.id || link.type || link.href} href={link.href} className="doc-link">
-                🔍 {link.label} (Accès Sécurisé)
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* ─── Audit Technique & Forensic ────────────────────────────── */}
+        {/* ─── BLOC 4 — Audit Technique & Forensic ────────────────── */}
         <div className="section-title">Audit Technique &amp; Forensic (Anti-Fraude)</div>
         <div className="card">
           {useV2Audit ? (
-            // V2 — Trust-List enrichie (issue de l'analyse neuro-symbolique)
             <table className="forensic-audit-table">
               <tbody>
                 {forensicAudit!.map((item, idx) => {
                   const symbol =
-                    item.status === 'VERIFIED'
-                      ? '✓'
-                      : item.status === 'WARNING'
-                      ? '⚠'
-                      : '✕';
-                  const cls = `forensic-row forensic-${item.status.toLowerCase()}`;
+                    item.status === 'VERIFIED' ? '✓' : item.status === 'WARNING' ? '⚠' : '✕';
                   return (
-                    <tr key={`audit-${idx}`} className={cls}>
+                    <tr key={`audit-${idx}`} className={`forensic-row forensic-${item.status.toLowerCase()}`}>
                       <td className="forensic-symbol">{symbol}</td>
                       <td className="forensic-content">
                         <div className="forensic-name">{item.checkName}</div>
@@ -496,17 +513,10 @@ export function PassportTemplateV2({
               </tbody>
             </table>
           ) : (
-            // Legacy V1 — 2 colonnes de checks simples
             <table className="w-full">
               <tbody>
                 <tr>
-                  <td
-                    style={{
-                      width: '50%',
-                      paddingRight: '10px',
-                      borderRight: '1px solid #e2e8f0',
-                    }}
-                  >
+                  <td style={{ width: '50%', paddingRight: '10px', borderRight: '1px solid #e2e8f0' }}>
                     {forensicChecks.left.map((check, idx) => (
                       <div className="check-item" key={`left-${idx}`}>
                         <span className="check-icon">✓</span> {check}
@@ -526,29 +536,71 @@ export function PassportTemplateV2({
           )}
         </div>
 
-        {/* ─── Marketing Banner (Bottom CTA) ─────────────────────────── */}
+        {/* ═══════════ PAGE 2 — ANNEXE DOCUMENTAIRE ═══════════ */}
+        <div className="page-break" />
+        <div className="header">
+          <table className="w-full">
+            <tbody>
+              <tr>
+                <td>
+                  <div className="brand-name" style={{ fontSize: '15pt' }}>
+                    PatrimoTrust
+                  </div>
+                </td>
+                <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                  <span className="header-meta">{candidate.fullName} — Réf. {passportId}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="section-title">Annexe : Pièces Justificatives (Accès Sécurisé)</div>
+        <p className="annexe-intro">
+          Pour protéger les données du candidat, les pièces justificatives sont scellées et
+          horodatées. Chaque lien ci-dessous ouvre l&apos;original avec filigrane dans un espace
+          sécurisé, sans téléchargement local. L&apos;accès est tracé et révocable.
+        </p>
+
+        {sections.map((section, sIdx) => (
+          <div className="annexe-section" key={`section-${sIdx}`}>
+            <div className="annexe-section-title">{section.title}</div>
+            {section.links.length > 0 ? (
+              <table className="annexe-row">
+                <tbody>
+                  {section.links.map((link, lIdx) => (
+                    <tr key={`link-${sIdx}-${lIdx}`}>
+                      <td>
+                        <span className="annexe-doc-type">{link.label}</span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <a href={link.href} className="annexe-link">
+                          [ Ouvrir le document sécurisé ]
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="annexe-empty">Aucune pièce dans cette catégorie.</div>
+            )}
+          </div>
+        ))}
+
+        {/* ─── CTA acquisition propriétaire (fin d'annexe) ────────── */}
         <div className="marketing-banner">
           <table className="w-full">
             <tbody>
               <tr>
                 <td style={{ width: '70%', paddingRight: '15px' }}>
-                  <div className="marketing-title">
-                    Propriétaires : Ne laissez pas passer ce dossier.
-                  </div>
+                  <div className="marketing-title">Propriétaires : Ne laissez pas passer ce dossier.</div>
                   <div className="marketing-text">
-                    Connectez-vous pour ajouter ce candidat à votre sélection.
-                    Générez le bail pré-rempli loi ALUR en 3 clics et accédez
-                    au coffre-fort numérique. Le premier mois est offert pour
-                    finaliser cette location.
+                    Connectez-vous pour consulter les pièces, ajouter ce candidat à votre sélection,
+                    générer le bail pré-rempli loi ALUR en 3 clics et accéder au coffre-fort numérique.
                   </div>
                 </td>
-                <td
-                  style={{
-                    width: '30%',
-                    textAlign: 'right',
-                    verticalAlign: 'middle',
-                  }}
-                >
+                <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'middle' }}>
                   <a href={signupUrl} className="marketing-button">
                     Créer mon compte
                   </a>
