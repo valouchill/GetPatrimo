@@ -740,6 +740,8 @@ function buildPassportViewModel({
     readinessReasons,
     warnings: scoreWarnings,
     nextAction: patrimometer.nextAction?.action || null,
+    // Mot du locataire — présentation libre (optionnel), affichée en en-tête du passeport.
+    presentationText: String(profile.presentationText || '').slice(0, 500),
     household,
     householdLabel: household ? household.label : identity.displayName,
     hero: {
@@ -771,6 +773,29 @@ function buildPassportViewModel({
       ...guaranteeSummary,
       requirement: guaranteeRequirement,
       satisfied: guaranteeSatisfied,
+      // Enrichissements pour la Synthèse Exécutive du passeport (colonne Caution) :
+      // type lisible + nom/revenus du garant si disponibles (sinon null → rendu gracieux).
+      typeLabel:
+        guaranteeSummary.mode === 'VISALE'
+          ? 'Visale'
+          : guaranteeSummary.mode === 'PHYSICAL'
+            ? 'Garant physique'
+            : 'Aucune',
+      guarantorName:
+        (app.guarantor && app.guarantor.firstName
+          ? `${app.guarantor.firstName} ${app.guarantor.lastName || ''}`.trim()
+          : null) ||
+        (guaranteeSummary.mode === 'VISALE'
+          ? 'Organisme Visale (Action Logement)'
+          : guaranteeSummary.guarantors[0]
+            ? `Garant ${guaranteeSummary.guarantors[0].profile || ''}`.trim()
+            : null),
+      guarantorIncomeLabel:
+        app.guarantor &&
+        app.guarantor.financialSummary &&
+        Number(app.guarantor.financialSummary.totalMonthlyIncome) > 0
+          ? formatCurrency(Number(app.guarantor.financialSummary.totalMonthlyIncome))
+          : null,
     },
     pillars: tenantBlocks.map((block) => ({
       id: block.id,

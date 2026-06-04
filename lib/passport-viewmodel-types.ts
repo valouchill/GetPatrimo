@@ -42,6 +42,8 @@ export interface PassportViewModel {
   readinessReasons: string[];
   warnings: string[];
   nextAction: string | null;
+  /** Mot du locataire — présentation libre (optionnel, max 500), en-tête du passeport. */
+  presentationText?: string;
   // Colocation — composition du foyer (mono → household null).
   householdLabel?: string;
   household?: {
@@ -96,6 +98,12 @@ export interface PassportViewModel {
       certificationMethod: string | null;
       label: string;
     }>;
+    /** Type de garantie lisible (Visale / Garant physique / Aucune). */
+    typeLabel?: string;
+    /** Nom (ou descripteur) du garant, si disponible. */
+    guarantorName?: string | null;
+    /** Revenus nets mensuels du garant formatés, si disponibles. */
+    guarantorIncomeLabel?: string | null;
   };
   pillars: Array<{
     id: string;

@@ -35,7 +35,7 @@ export async function saveApplicationProgress(
   applyToken: string,
   data: {
     currentStep?: number;
-    profile?: { firstName?: string; lastName?: string; phone?: string; status?: string };
+    profile?: { firstName?: string; lastName?: string; phone?: string; status?: string; presentationText?: string };
     diditStatus?: string;
     diditSessionId?: string;
     diditIdentity?: { firstName?: string; lastName?: string; birthDate?: string };

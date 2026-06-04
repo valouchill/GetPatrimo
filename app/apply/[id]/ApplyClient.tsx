@@ -454,6 +454,8 @@ export default function ApplyClient({ token }: { token: string }) {
 
   // Candidate Status
   const [candidateStatus, setCandidateStatus] = useState<CandidateStatus>('Etudiant');
+  // Mot du locataire — présentation libre (optionnel), figure en en-tête du passeport.
+  const [presentationText, setPresentationText] = useState('');
   const [guaranteeMode, setGuaranteeMode] = useState<GuaranteeMode>('NONE');
   const [guarantorSlotsCount, setGuarantorSlotsCount] = useState<1 | 2>(1);
   const [diditStatus, setDiditStatus] = useState<'idle' | 'loading' | 'verified'>('idle');
@@ -1392,6 +1394,7 @@ export default function ApplyClient({ token }: { token: string }) {
           lastName: formData.lastName,
           phone: formData.phone,
           status: candidateStatus,
+          presentationText,
         },
         candidateStatus,
         diditStatus: diditStatus === 'verified' ? 'VERIFIED' : diditStatus === 'loading' ? 'PENDING' : undefined,
@@ -1448,7 +1451,7 @@ export default function ApplyClient({ token }: { token: string }) {
     } catch (error) {
       console.error('Erreur auto-save:', error);
     }
-  }, [userEmail, token, currentStep, formData, candidateStatus, diditStatus, diditSessionId, diditIdentity, uploadedFiles, guarantorCertified, guarantorInvitationSent, guarantorCertificationMethod, score, scoringSnapshot, property?.rentAmount, detectedIncome]);
+  }, [userEmail, token, currentStep, formData, candidateStatus, presentationText, diditStatus, diditSessionId, diditIdentity, uploadedFiles, guarantorCertified, guarantorInvitationSent, guarantorCertificationMethod, score, scoringSnapshot, property?.rentAmount, detectedIncome]);
 
   // Déclencher l'auto-save avec debounce
   useEffect(() => {
@@ -1502,6 +1505,9 @@ export default function ApplyClient({ token }: { token: string }) {
             }));
             if (application.profile.status && SUPPORTED_PROFILES.includes(application.profile.status)) {
               setCandidateStatus(application.profile.status as CandidateStatus);
+            }
+            if (typeof application.profile.presentationText === 'string') {
+              setPresentationText(application.profile.presentationText);
             }
           }
           
@@ -4104,8 +4110,28 @@ export default function ApplyClient({ token }: { token: string }) {
                   </div>
                 </div>
 
+                  {/* ─── Le Mot du Locataire — présentation libre (optionnel) ─── */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-5 md:p-6">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Optionnel</span>
+                    <h3 className="text-base md:text-lg font-serif-display text-[#0F172A] mt-1">Votre projet</h3>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">
+                      Expliquez en quelques mots pourquoi vous recherchez cet appartement (mutation,
+                      rapprochement, etc.). Ce texte figurera en en-tête de votre dossier et rassurera
+                      les propriétaires.
+                    </p>
+                    <textarea
+                      value={presentationText}
+                      onChange={e => setPresentationText(e.target.value.slice(0, 500))}
+                      maxLength={500}
+                      rows={4}
+                      placeholder="Ex : Muté à Paris pour un nouveau poste en CDI, je recherche un logement calme proche des transports…"
+                      className="w-full mt-4 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-800 text-[16px] resize-none"
+                    />
+                    <p className="text-xs text-slate-400 mt-2 text-right">{presentationText.length}/500</p>
+                  </div>
+
                   {/* Zone de dépôt intelligent */}
-                  <div 
+                  <div
                     className="relative group border-2 border-dashed border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white rounded-xl md:rounded-[2.5rem] p-8 md:p-16 flex flex-col items-center justify-center transition-all hover:border-emerald-400 cursor-pointer overflow-hidden"
                     onClick={() => document.getElementById('resources-file-input')?.click()}
                     onDragOver={e => e.preventDefault()}
