@@ -94,7 +94,7 @@ export function CriteriaGrid({ criteria, className = "" }: CriteriaGridProps) {
       <div className="mb-4 flex items-center gap-2">
         <FileCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-          Critères d'évaluation
+          Critères d&apos;évaluation
         </p>
       </div>
 

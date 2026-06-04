@@ -25,7 +25,7 @@ import { logger } from '@/lib/server-logger';
 import { getStripeClient, getTierPriceIds } from '@/lib/admin-stripe';
 import { normalizeTier, isPaidTier, quotaForTier } from '@/lib/billing/tiers';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

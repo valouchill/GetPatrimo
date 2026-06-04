@@ -4,7 +4,7 @@ import { connectDiditDb } from '../../../didit/db';
 import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import Candidature from '@/models/Candidature';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   fetchDiditSessionVerification,
 } = require('@/src/utils/guarantorDidit');

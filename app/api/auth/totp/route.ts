@@ -5,9 +5,9 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import crypto from 'crypto';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const bcrypt = require('bcryptjs');
 
 // Use dynamic import for ESM-only otpauth

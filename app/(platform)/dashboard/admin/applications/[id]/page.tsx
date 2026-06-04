@@ -46,7 +46,8 @@ export default function AdminApplicationDetailPage() {
       if (res.ok) setData(await res.json());
     } finally { setLoading(false); }
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
+  useEffect(() => { load();   }, [id]);
 
   async function accept() {
     if (!confirm('Accepter cette candidature ?\n(Le bien passera en LEASE_IN_PROGRESS)')) return;

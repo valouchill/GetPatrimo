@@ -8,7 +8,7 @@ import '@/models/Property';
 import QRCode from 'qrcode';
 import { generatePassportPdf } from '@/lib/passport-pdf-service';
 import { userCanAccessApplicationPassport } from '@/lib/passport-access';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildPassportViewModel, ensurePassportSlug } = require('@/src/utils/passportViewModel');
 
 /**

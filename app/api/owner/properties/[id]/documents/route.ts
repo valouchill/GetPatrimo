@@ -8,9 +8,9 @@ import fs from 'fs';
 import path from 'path';
 import Property from '@/models/Property';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Document = require('@/models/Document');
 
 async function resolveUserId(session: any): Promise<string | null> {

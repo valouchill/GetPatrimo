@@ -4,32 +4,32 @@ import { authOptions } from '@/lib/auth-options';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { validateMRZ } from '@/app/actions/validate-mrz';
 import { logger } from '@/lib/server-logger';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildCategoryMismatchMessage } = require('@/src/utils/documentCertificationRules');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { getPdfConversionUserMessage, isDetachedArrayBufferError, toStableBuffer } = require('@/src/utils/pdfBufferUtils');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildE2EDocumentAnalysis } = require('@/src/utils/e2eDocumentAnalysis');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { extractPDFMetadata, convertPDFToImages } = require('@/src/services/pdfDocumentService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { getExtractionPrompt } = require('@/src/services/documentPromptService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidateAnalysis } = require('@/src/services/visionAnalysisService');
 // Module B — extraction hybride Azure OCR / Vision (repli automatique si Azure non configuré).
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { routeExtraction } = require('@/src/services/azureDocIntelligenceService');
 // Module D — superviseur IA documentaire (gpt-4o-mini, JSON-only). Gated DOC_SUPERVISOR_ENABLED.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { applySupervision, isSupervisorEnabled } = require('@/src/services/documentSupervisorService');
 // Module C — sceau 2D-Doc fiscal (décodage libdmtx + vérif signature ANTS offline). Gated FISCAL_SEAL_VERIFICATION_ENABLED.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { analyzeFiscalSeal, isFiscalSealEnabled } = require('@/src/services/fiscalSealService');
 
 // Polyfills pour pdfjs-dist dans Node.js 20
 if (typeof globalThis.DOMMatrix === 'undefined') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const { createCanvas } = require('canvas');
     const canvas = createCanvas(1, 1);
     const ctx = canvas.getContext('2d');

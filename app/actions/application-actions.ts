@@ -3,11 +3,11 @@
 import { connectDiditDb } from '@/app/api/didit/db';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { computeApplicationPatrimometer } = require('@/src/utils/applicationScoring');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildPassportViewModel } = require('@/src/utils/passportViewModel');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { deriveApplicationFinancialProfile } = require('@/src/utils/financialExtraction');
 
 async function resolvePropertyId(applyToken?: string): Promise<string | null> {

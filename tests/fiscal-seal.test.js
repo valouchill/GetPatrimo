@@ -73,7 +73,7 @@ test('isFiscalSealEnabled + analyzeFiscalSeal no-op when disabled', async () => 
 test('runSealWrapper decodes + verifies a 2D-Doc image end-to-end', async (t) => {
   let png;
   try {
-    // eslint-disable-next-line global-require
+     
     const bwipjs = require('bwip-js');
     png = await bwipjs.toBuffer({ bcid: 'datamatrix', text: SPECIMEN_2DDOC, scale: 4, padding: 8 });
   } catch {

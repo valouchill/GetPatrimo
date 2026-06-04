@@ -3,7 +3,7 @@ import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { normalizeSlot } = require('@/src/utils/guarantorDidit');
 
 /** Crée une session Didit pour un colocataire (clone de guarantor/create-session). */

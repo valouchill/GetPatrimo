@@ -8,7 +8,7 @@
 
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Event = require('@/models/Event');
 
 export type AuditAction =

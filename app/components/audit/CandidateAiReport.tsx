@@ -342,7 +342,7 @@ export function CandidateAiReport({
         <div className="mx-auto max-w-3xl">
           <div className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
             <Sparkles className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            Synthèse de l'Auditeur Virtuel
+            Synthèse de l&apos;Auditeur Virtuel
           </div>
           <blockquote className="flex gap-3 sm:gap-4">
             <Quote

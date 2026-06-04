@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 import { LeasePatchSchema } from '@/lib/validations/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
 
 export const GET = withAdmin(async (_req: NextRequest, ctx: any) => {

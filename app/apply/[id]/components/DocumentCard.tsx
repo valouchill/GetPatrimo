@@ -459,7 +459,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                   </svg>
                 </button>
                 <p className="text-[10px] text-amber-600 text-center mt-2">
-                  Le propriétaire sera informé qu'une vérification visuelle est recommandée
+                  Le propriétaire sera informé qu&apos;une vérification visuelle est recommandée
                 </p>
               </div>
             )}

@@ -410,7 +410,7 @@ export function TenantCardDemo(): React.ReactElement {
             TenantCard — Banque Privée
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600">
-            Refonte premium de la carte de résumé d'un candidat locataire.
+            Refonte premium de la carte de résumé d&apos;un candidat locataire.
             Émeraude profond + or brossé. Jauge Sésame SVG circulaire,
             métriques aérées, alertes intégrées avec élégance.
           </p>
@@ -453,7 +453,7 @@ export function TenantCardDemo(): React.ReactElement {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
-              Jauge "Sésame" en SVG circulaire (donut), stroke or sur fond
+              Jauge &quot;Sésame&quot; en SVG circulaire (donut), stroke or sur fond
               slate-100, transition douce 700ms.
             </li>
             <li className="flex items-start gap-2">
@@ -468,7 +468,7 @@ export function TenantCardDemo(): React.ReactElement {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
-              CTA bottom emerald-900 — "Ouvrir le dossier certifié".
+              CTA bottom emerald-900 — &quot;Ouvrir le dossier certifié&quot;.
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-amber-500" />

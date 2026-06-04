@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { sendEmail, isEmailConfigured } = require('@/src/services/emailService');
 
 const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];

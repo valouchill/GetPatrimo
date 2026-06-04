@@ -25,7 +25,7 @@ import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 const MAX_NOTIFICATIONS = 30;

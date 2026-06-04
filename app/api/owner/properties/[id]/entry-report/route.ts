@@ -9,7 +9,7 @@ import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import { MoveInInventoryPDFDocument } from '@/app/components/MoveInInventoryPDF';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 async function resolveUserId(session: any): Promise<string | null> {

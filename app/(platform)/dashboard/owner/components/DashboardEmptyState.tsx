@@ -115,7 +115,7 @@ export function DashboardEmptyState({
             </ul>
             {biens.length > 5 && (
               <p className="text-xs text-slate-500">
-                + {biens.length - 5} autres biens dans l'onglet « Mes biens »
+                + {biens.length - 5} autres biens dans l&apos;onglet « Mes biens »
               </p>
             )}
           </div>

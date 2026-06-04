@@ -6,7 +6,7 @@ import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import '@/models/Property';
 import { userCanAccessApplicationPassport } from '@/lib/passport-access';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildPassportViewModel, ensurePassportSlug } = require('@/src/utils/passportViewModel');
 
 /**

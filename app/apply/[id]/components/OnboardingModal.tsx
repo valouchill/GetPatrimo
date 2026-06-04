@@ -127,7 +127,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                     </svg>
                   </div>
 
-                  <h3 className="font-bold text-slate-800 text-sm mb-1 text-center">Scellement d'Identité</h3>
+                  <h3 className="font-bold text-slate-800 text-sm mb-1 text-center">Scellement d&apos;Identité</h3>
                   <p className="text-[11px] text-slate-500 leading-relaxed text-center mb-3">
                     Le socle de votre crédit. Prouvez votre authenticité sans stocker vos documents sensibles.
                   </p>
@@ -161,7 +161,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
 
                   <h3 className="font-bold text-slate-800 text-sm mb-1 text-center">Audit Intelligent</h3>
                   <p className="text-[11px] text-slate-500 leading-relaxed text-center mb-3">
-                    L'IA travaille pour vous. Glissez vos justificatifs en vrac, nous faisons le reste.
+                    L&apos;IA travaille pour vous. Glissez vos justificatifs en vrac, nous faisons le reste.
                   </p>
 
                   {/* Badge temps */}
@@ -249,7 +249,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                 <p className="text-[11px] text-slate-500">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-5 h-5 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center text-[10px]">🤖</span>
-                    <span>Besoin d'aide ? <span className="font-semibold text-emerald-600">Notre Expert IA</span> vous guide à chaque étape du dépôt.</span>
+                    <span>Besoin d&apos;aide ? <span className="font-semibold text-emerald-600">Notre Expert IA</span> vous guide à chaque étape du dépôt.</span>
                   </span>
                 </p>
               </motion.div>

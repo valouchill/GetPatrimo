@@ -9,7 +9,7 @@ import {
 } from '@/lib/auth-admin';
 import { UserPromoteSchema } from '@/lib/validations/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 const USER_SELECT = '-password -totpSecret -totpBackupCodes -magicSignInToken';

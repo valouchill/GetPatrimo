@@ -5,15 +5,15 @@ import { logger } from '@/lib/server-logger';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { analyzeDocumentBuffer } = require('@/src/services/documentAnalysisService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { deriveApplicationFinancialProfile } = require('@/src/utils/financialExtraction');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { connectDiditDb } = require('@/app/api/didit/db');
 
 const REANALYZE_COOLDOWN_MS = 30_000; // 30 secondes anti-double-clic

@@ -389,7 +389,7 @@ function TopCard({
         <div className="mx-7 mt-7 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
           <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
             <Quote className="h-3.5 w-3.5" aria-hidden="true" />
-            Note de l'auditeur
+            Note de l&apos;auditeur
           </div>
           <p className="line-clamp-4 font-serif text-sm italic leading-relaxed text-emerald-900">
             {candidate.aiSynthesis}
@@ -441,7 +441,7 @@ function TopCard({
       {/* Hint cliquable */}
       {enableDrawer && (
         <p className="mx-7 mt-5 mb-7 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Cliquez pour le rapport d'audit complet →
+          Cliquez pour le rapport d&apos;audit complet →
         </p>
       )}
       {!enableDrawer && <div className="h-7" aria-hidden="true" />}
@@ -704,8 +704,8 @@ function EmptyState({ onReset }: { onReset?: () => void }): React.ReactElement {
         Toutes les candidatures sont traitées
       </h3>
       <p className="mt-2 max-w-sm text-sm text-slate-500">
-        Vous avez passé en revue l'ensemble des dossiers reçus pour ce bien.
-        Utilisez l'historique en bas pour rembobiner une décision si besoin.
+        Vous avez passé en revue l&apos;ensemble des dossiers reçus pour ce bien.
+        Utilisez l&apos;historique en bas pour rembobiner une décision si besoin.
       </p>
       {onReset && (
         <button

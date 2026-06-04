@@ -25,7 +25,7 @@ const FLAT_COST_EUR = {
 
 function getApiCostLogModel() {
   // require paresseux : évite les cycles + ne charge mongoose qu'au besoin.
-  // eslint-disable-next-line global-require
+   
   return require('../../models/ApiCostLog');
 }
 
@@ -57,7 +57,7 @@ async function recordLlmCost({ model, usage, userId, applicationId, category, me
   } catch (err) {
     // fire-and-forget : on n'interrompt jamais l'analyse.
     try {
-      // eslint-disable-next-line global-require
+       
       require('../../lib/server-logger').logger.warn('[api-cost-logger] LLM cost log failed', {
         error: err instanceof Error ? err.message : err,
       });
@@ -85,7 +85,7 @@ async function recordFlatCost({ provider, category, costEur, units, model, userI
     });
   } catch (err) {
     try {
-      // eslint-disable-next-line global-require
+       
       require('../../lib/server-logger').logger.warn('[api-cost-logger] Flat cost log failed', {
         error: err instanceof Error ? err.message : err,
       });

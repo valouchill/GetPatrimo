@@ -6,7 +6,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import { getMetalLevel, METAL_LABELS, METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const PassportShare = require('@/models/PassportShare');
 
 interface ShareResult {

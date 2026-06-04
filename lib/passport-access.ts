@@ -11,9 +11,9 @@
  *   2. PROPRIÉTAIRE : la Property liée à la candidature lui appartient.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 interface SessionLike {

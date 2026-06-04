@@ -8,13 +8,13 @@ import { GeneratePaymentsSchema } from '@/lib/validations/payment';
 import { generateMonthlyPayments } from '@/lib/services/paymentService';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logEvent } = require('@/src/services/eventService');
 
 /**

@@ -7,9 +7,9 @@ import { validateRequest } from '@/lib/validate-request';
 import { CompileLeaseSchema } from '@/lib/validations/lease';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { prepareLeaseCompilation } = require('@/src/services/leaseCompileService');
 
 async function resolveUserId(session: any): Promise<string | null> {

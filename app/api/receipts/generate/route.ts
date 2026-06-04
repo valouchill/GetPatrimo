@@ -7,9 +7,9 @@ import { validateRequest } from '@/lib/validate-request';
 import { GenerateReceiptSchema } from '@/lib/validations/receipt';
 import { generateAndSendReceipt } from '@/lib/services/paymentService';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logEvent } = require('@/src/services/eventService');
 
 /**
