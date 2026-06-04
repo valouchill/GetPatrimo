@@ -53,7 +53,12 @@ def decode_datamatrix(image_bytes):
             im = bg
         im = im.convert("L")
         timeout = int(os.environ.get("DMTX_TIMEOUT_MS", "8000"))
-        results = dmtx_decode(im, timeout=timeout, max_count=4)
+        # max_count=1 : on s'arrête au PREMIER code trouvé. Sans ça, libdmtx continue
+        # de balayer toute la page à la recherche d'autres codes jusqu'au timeout
+        # (~10 s sur un A4 200 DPI) ; avec, c'est ~2 s. NB : ne PAS sous-échantillonner
+        # (shrink>1 perd le DataMatrix de l'avis).
+        max_count = int(os.environ.get("DMTX_MAX_COUNT", "1"))
+        results = dmtx_decode(im, timeout=timeout, max_count=max_count)
         return [r.data.decode("utf-8", "replace") for r in results], None
     except Exception as e:
         return None, f"decode error: {e}"
