@@ -63,6 +63,8 @@ RUN apk add --no-cache \
     font-noto \
     font-noto-emoji \
     curl \
+    libdmtx \
+    libdmtx-libs \
     libreoffice-writer \
     libreoffice-common \
     python3 \
@@ -75,6 +77,7 @@ RUN apk add --no-cache \
     && fc-cache -fv \
     && pip3 install --no-cache-dir --break-system-packages \
        'weasyprint==68.1' \
+       pylibdmtx Pillow 'pydantic>=2.12' 'cryptography>=43' \
     && apk del gcc musl-dev python3-dev
 
 # Copy everything from builder EXCEPT node_modules
@@ -91,6 +94,8 @@ COPY --from=builder /opt/doc2loc/.cursor ./.cursor
 COPY --from=builder /opt/doc2loc/scoring.js ./scoring.js
 COPY --from=builder /opt/doc2loc/scoringEngine.js ./scoringEngine.js
 COPY --from=builder /opt/doc2loc/scripts ./scripts
+# Module C — lib 2D-Doc vendorée (MIT) + TSL ANTS embarquée (vérif sceau offline)
+COPY --from=builder /opt/doc2loc/vendor ./vendor
 
 # Marquer le script Python comme exécutable pour le subprocess Node.js
 RUN chmod +x /opt/doc2loc/scripts/generate_passport_pdf.py 2>/dev/null || true
