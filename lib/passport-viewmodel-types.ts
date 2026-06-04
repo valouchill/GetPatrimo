@@ -68,6 +68,7 @@ export interface PassportViewModel {
     gradeLabel: string;
     badge: string;
     candidateStatus: string | null;
+    employer?: string | null;
     identityVerified: boolean;
   };
   solvency: {

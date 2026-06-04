@@ -198,9 +198,9 @@ function viewModelToV2Props(
       initials: computeInitials(fullName),
       fullName,
       profession: data.hero?.profession || 'Profil candidat',
-      // Pas de champ employeur fiable dans le ViewModel (dépend de l'OCR des
-      // pièces) → null, la ligne Employeur est alors masquée.
-      employer: null,
+      // Employeur surfacé depuis l'OCR des pièces (cf. buildPassportViewModel) ;
+      // null si non capturé → la ligne Employeur est masquée dans le PDF.
+      employer: data.hero?.employer || null,
       seniority: null,
     },
     presentationText: data.presentationText || null,

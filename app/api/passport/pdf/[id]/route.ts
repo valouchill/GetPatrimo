@@ -31,6 +31,7 @@ export async function GET(
 
     const app = await Application.findById(id)
       .populate('property', 'name address rentAmount')
+      .populate('guarantor.guarantorId', 'firstName lastName identityVerification')
       .lean();
 
     if (!app) {
