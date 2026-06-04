@@ -252,7 +252,7 @@ export default async function PublicDossierPage({
               Aucune pièce dans cette catégorie
             </h3>
             <p className="mt-2 max-w-md text-sm text-slate-500 mx-auto">
-              Le candidat n'a pas encore transmis de pièce de type{' '}
+              Le candidat n&apos;a pas encore transmis de pièce de type{' '}
               {categoryLabel.toLowerCase()}. Inscrivez-vous pour suivre les
               prochains envois.
             </p>
@@ -286,7 +286,7 @@ export default async function PublicDossierPage({
             <p className="mx-auto mt-3 max-w-2xl text-sm text-emerald-100 sm:text-base">
               Plus de dossiers incomplets. Plus de pièces à vérifier
               manuellement. Vos candidats passent par PatrimoTrust avant
-              d'arriver sur votre bureau — vous ne consultez que les profils
+              d&apos;arriver sur votre bureau — vous ne consultez que les profils
               déjà notés, certifiés et scellés.
             </p>
             <div className="mt-6">

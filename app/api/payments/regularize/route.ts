@@ -7,7 +7,7 @@ import { validateRequest } from '@/lib/validate-request';
 import { RegularizeSchema } from '@/lib/validations/payment';
 import { calculateRegularization } from '@/lib/services/paymentService';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 /**

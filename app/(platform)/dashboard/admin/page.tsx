@@ -2,17 +2,17 @@ import Link from 'next/link';
 
 import { connectDiditDb } from '@/app/api/didit/db';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const AdminAuditLog = require('@/models/AdminAuditLog');
 
 export const dynamic = 'force-dynamic';

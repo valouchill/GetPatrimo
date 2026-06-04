@@ -6,9 +6,9 @@ import { z } from 'zod';
 import { validateRequest } from '@/lib/validate-request';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Event = require('@/models/Event');
 
 const ConsentSchema = z.object({

@@ -319,7 +319,7 @@ export function ExpertPatrimoTrust({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-slate-700 leading-relaxed font-medium italic">
-                    "{currentAdvice.message}"
+                    &quot;{currentAdvice.message}&quot;
                   </p>
                   {currentAdvice.action && (
                     <button className="mt-3 px-4 py-2 bg-navy text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg">

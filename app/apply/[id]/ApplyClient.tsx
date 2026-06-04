@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback, useMemo, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { useNotification } from '@/app/hooks/useNotification';
 import { ApplySchema } from '@/lib/schemas/apply';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -16,27 +17,27 @@ import {
   UsersIcon, ShieldIcon, CheckIcon, QRCodeIcon, LockIcon, ArrowRightIcon,
   LightbulbIcon, AwardIcon, FileIcon, AlertTriangleIcon,
 } from './components/Icons';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   getChecklistIdForDocumentType,
   getDocumentCertificationDecision,
   isChecklistItemCompatibleWithUploadCategory,
   normalizeAnalysisDocumentType,
 } = require('@/src/utils/documentCertificationRules');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   SUPPORTED_PROFILES,
   computeApplicationPatrimometer,
   inferEvidenceKind,
 } = require('@/src/utils/applicationScoring');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   buildExpectedIdentityTarget,
   compareIdentityToExpected,
   extractIdentityCandidate,
   hasUsableIdentity,
 } = require('@/src/utils/documentSubjectIdentity');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { getDocumentIncomeContribution } = require('@/src/utils/financialExtraction');
 
 import { DocumentCard } from './components/DocumentCard';
@@ -965,6 +966,7 @@ export default function ApplyClient({ token }: { token: string }) {
     };
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   const expirationFlags = useMemo(() => computeExpirationFlags(), [uploadedFiles, diditStatus, candidateStatus]);
 
   // Cross-check identité garant : CNI vs avis d'imposition (bloc score si incohérent)
@@ -983,6 +985,7 @@ export default function ApplyClient({ token }: { token: string }) {
       const n2 = normalizeValue(nameFromAvis).replace(/\s/g, '');
       return n1 !== n2;
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
   }, [getGuarantorFilesForSlot]);
 
   const visaleFiles = useMemo(
@@ -3036,12 +3039,12 @@ export default function ApplyClient({ token }: { token: string }) {
           <p className="text-slate-500 text-sm leading-relaxed mb-6">
             Ce Sésame est expiré ou introuvable. Vérifiez le code auprès du propriétaire ou scannez à nouveau le QR Code.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors"
           >
             Retour à l&apos;accueil
-          </a>
+          </Link>
         </motion.div>
       </div>
     );
@@ -3475,7 +3478,7 @@ export default function ApplyClient({ token }: { token: string }) {
                   >
                     {/* Header */}
                     <div className="max-w-xl">
-                      <p className="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre I • Passerelle d'Identité</p>
+                      <p className="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre I • Passerelle d&apos;Identité</p>
                       <h1 className="text-4xl md:text-5xl font-serif text-[#0F172A] leading-tight mb-4">Votre identité, certifiée en 30 secondes.</h1>
                       <p className="text-slate-400 text-lg">Effort zéro. Sécurité maximale.</p>
                     </div>
@@ -3547,7 +3550,7 @@ export default function ApplyClient({ token }: { token: string }) {
                               <ShieldCheckIcon className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                              <h4 className="font-bold text-navy text-sm">Vérification d'Identité Didit</h4>
+                              <h4 className="font-bold text-navy text-sm">Vérification d&apos;Identité Didit</h4>
                               <p className="text-xs text-slate-500">Complétez la vérification ci-dessous</p>
                             </div>
                           </div>
@@ -3594,7 +3597,7 @@ export default function ApplyClient({ token }: { token: string }) {
                                   </div>
                                   <div>
                                     <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Expert PatrimoTrust™</p>
-                                    <p className="text-[10px] text-slate-400">L'instant décisif</p>
+                                    <p className="text-[10px] text-slate-400">L&apos;instant décisif</p>
                                   </div>
                                   <button
                                     onClick={() => setShowPostOnboardingNudge(false)}
@@ -3608,7 +3611,7 @@ export default function ApplyClient({ token }: { token: string }) {
                                 
                                 {/* Message Success Story */}
                                 <p className="text-sm text-slate-700 leading-relaxed mb-3">
-                                  C'est ici que tout commence. <span className="font-semibold text-emerald-700">Scellez votre identité</span> pour débloquer vos <span className="font-bold text-amber-600">40 premiers points</span> et rassurer le propriétaire dès la première seconde.
+                                  C&apos;est ici que tout commence. <span className="font-semibold text-emerald-700">Scellez votre identité</span> pour débloquer vos <span className="font-bold text-amber-600">40 premiers points</span> et rassurer le propriétaire dès la première seconde.
                                 </p>
                                 
                                 {/* Réassurance de dernière seconde */}
@@ -3704,7 +3707,7 @@ export default function ApplyClient({ token }: { token: string }) {
                         {/* Copywriting de Réassurance */}
                         <div className="max-w-md bg-gradient-to-br from-slate-50 to-white border border-slate-100 rounded-2xl p-6 shadow-sm">
                           <p className="text-sm text-slate-600 leading-relaxed">
-                            <span className="font-bold text-navy">PatrimoTrust™</span> s'appuie sur la technologie <span className="font-bold text-emerald-600">Didit</span> pour certifier votre identité. <span className="font-semibold text-emerald-700">Zéro stockage de documents sensibles.</span> Certification souveraine instantanée.
+                            <span className="font-bold text-navy">PatrimoTrust™</span> s&apos;appuie sur la technologie <span className="font-bold text-emerald-600">Didit</span> pour certifier votre identité. <span className="font-semibold text-emerald-700">Zéro stockage de documents sensibles.</span> Certification souveraine instantanée.
                           </p>
                           <div className="mt-4 flex items-center justify-center gap-6 text-xs text-slate-400">
                             <div className="flex items-center gap-1.5">
@@ -3720,7 +3723,7 @@ export default function ApplyClient({ token }: { token: string }) {
                           </div>
                           {/* Mention RGPD */}
                           <p className="mt-4 text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3">
-                            🔒 Protocole conforme RGPD : PatrimoTrust ne stocke pas votre pièce d'identité.
+                            🔒 Protocole conforme RGPD : PatrimoTrust ne stocke pas votre pièce d&apos;identité.
                           </p>
                         </div>
 
@@ -4443,7 +4446,7 @@ export default function ApplyClient({ token }: { token: string }) {
                   {guaranteeMode === 'PHYSICAL' && guarantorIdentityMismatch && (
                     <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-amber-900">
                       <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">Incohérence détectée</p>
-                      <p className="text-sm">Le nom sur la CNI du garant ne correspond pas au nom sur l'avis d'imposition. Le score du bloc Garant est bloqué à 0 jusqu'à correction.</p>
+                      <p className="text-sm">Le nom sur la CNI du garant ne correspond pas au nom sur l&apos;avis d&apos;imposition. Le score du bloc Garant est bloqué à 0 jusqu&apos;à correction.</p>
                     </div>
                   )}
 
@@ -4488,7 +4491,7 @@ export default function ApplyClient({ token }: { token: string }) {
                       </div>
                       <div className="bg-white/90 rounded-xl p-4 border border-emerald-100">
                         <p className="text-slate-700 text-sm leading-relaxed">
-                          {formData.firstName || diditIdentity?.firstName || 'Votre dossier'}, l'identité et les revenus de votre garant ont été passés au scanner de sécurité. Son profil est désormais certifié conforme. L'intégrité documentaire de votre garant a été vérifiée à 100%. Ce document est désormais scellé numériquement pour le propriétaire.
+                          {formData.firstName || diditIdentity?.firstName || 'Votre dossier'}, l&apos;identité et les revenus de votre garant ont été passés au scanner de sécurité. Son profil est désormais certifié conforme. L&apos;intégrité documentaire de votre garant a été vérifiée à 100%. Ce document est désormais scellé numériquement pour le propriétaire.
                         </p>
                       </div>
                     </motion.div>
@@ -4645,7 +4648,7 @@ export default function ApplyClient({ token }: { token: string }) {
                                 ) : (
                                   <>
                                     <UsersIcon className="w-5 h-5" />
-                                    <span>Envoyer l'invitation par email</span>
+                                    <span>Envoyer l&apos;invitation par email</span>
                                   </>
                                 )}
                               </button>

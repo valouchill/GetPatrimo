@@ -5,7 +5,7 @@ import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import CoTenant from '@/models/CoTenant';
 import { syncCoTenantCertification } from '@/lib/cotenant-sync';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   buildGuarantorLookupFilters,
   fetchDiditSessionVerification,

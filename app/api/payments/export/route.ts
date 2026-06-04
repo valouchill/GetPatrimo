@@ -5,7 +5,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import { exportPayments } from '@/lib/services/paymentService';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 /**

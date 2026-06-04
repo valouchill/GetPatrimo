@@ -7,13 +7,13 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import UserActionsPanel from '../../_components/UserActionsPanel';
 import UserTimeline from '../../_components/UserTimeline';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
 
 export const dynamic = 'force-dynamic';

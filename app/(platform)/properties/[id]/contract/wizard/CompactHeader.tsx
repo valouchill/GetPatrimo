@@ -79,7 +79,7 @@ export function CompactHeader({
 
       {selectionRequired ? (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-          Sélectionnez d'abord un dossier depuis la fiche bien avant de préparer le bail.
+          Sélectionnez d&apos;abord un dossier depuis la fiche bien avant de préparer le bail.
         </div>
       ) : contractLocked ? (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">

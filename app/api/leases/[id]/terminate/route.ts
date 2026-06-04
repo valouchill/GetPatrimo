@@ -5,13 +5,13 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import { validateNoticePeriod } from '@/lib/validations/lease';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { logEvent } = require('@/src/services/eventService');
 
 /**

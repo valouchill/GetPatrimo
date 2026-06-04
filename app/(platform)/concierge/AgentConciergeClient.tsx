@@ -340,6 +340,7 @@ export default function AgentConciergeClient() {
         setQuickReplies(null);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
     [propertyData, dpeData, photos.length, isProcessing, isComplete, messages, agentQuestion]
   );
 

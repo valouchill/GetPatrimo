@@ -120,7 +120,7 @@ export default function AccessCodeClient() {
                 htmlFor="access-code"
                 className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500"
               >
-                Code d'accès
+                Code d&apos;accès
               </label>
               <div className="relative">
                 <input
@@ -177,7 +177,7 @@ export default function AccessCodeClient() {
             <p className="text-[11px] leading-snug text-emerald-900">
               <strong>Vos données sont protégées :</strong> les documents soumis sont chiffrés et
               uniquement visibles par votre propriétaire et vous. RGPD · Audit Forensic ·
-              vérification d'identité Didit.
+              vérification d&apos;identité Didit.
             </p>
           </div>
         </motion.div>
@@ -192,7 +192,7 @@ export default function AccessCodeClient() {
               href="/"
               className="font-semibold text-emerald-700 hover:text-emerald-800"
             >
-              Retour à l'accueil
+              Retour à l&apos;accueil
             </Link>
           </p>
         </div>

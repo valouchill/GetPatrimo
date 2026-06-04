@@ -349,10 +349,10 @@ export function PatrimoMeter({
                   </motion.div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 mb-0.5">
-                      Rang d'Excellence Atteint !
+                      Rang d&apos;Excellence Atteint !
                     </p>
                     <p className="text-xs text-amber-700">
-                      Félicitations <span className="font-bold">{userName}</span>, votre dossier a atteint le rang d'Excellence.
+                      Félicitations <span className="font-bold">{userName}</span>, votre dossier a atteint le rang d&apos;Excellence.
                     </p>
                   </div>
                 </div>

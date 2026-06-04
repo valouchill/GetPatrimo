@@ -4,11 +4,11 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 /**

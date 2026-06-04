@@ -16,7 +16,7 @@ const QueryParamsSchema = z.object({
   (data) => data.token || data.applyToken || data.sessionId,
   { message: "Token d'invitation, applyToken ou sessionId requis" }
 );
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   buildGuarantorLookupFilters,
   fetchDiditSessionVerification,

@@ -121,7 +121,7 @@ export default function PortfolioFocusHero({
                 Ajoutez votre premier actif
               </h2>
               <p className="text-sm leading-6 text-slate-600">
-                Une fois l'actif créé, le Sésame candidat et le cockpit de sélection s'activent automatiquement.
+                Une fois l&apos;actif créé, le Sésame candidat et le cockpit de sélection s&apos;activent automatiquement.
               </p>
             </div>
           )}

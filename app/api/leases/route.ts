@@ -6,11 +6,11 @@ import { withErrorHandler } from '@/lib/with-error-handler';
 import { validateRequest } from '@/lib/validate-request';
 import { CreateLeaseSchema, checkDiagnosticExpiry } from '@/lib/validations/lease';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
 
 /**

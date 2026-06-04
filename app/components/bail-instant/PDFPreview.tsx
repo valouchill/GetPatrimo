@@ -37,7 +37,7 @@ export function PDFPreview({ property, tenant, leaseData }: PDFPreviewProps) {
           <h1 className="text-3xl font-serif font-bold text-navy mb-2">
             CONTRAT DE LOCATION
           </h1>
-          <p className="text-slate-600">Bail de location d'habitation</p>
+          <p className="text-slate-600">Bail de location d&apos;habitation</p>
         </div>
 
         {/* Informations du Bien */}
@@ -47,13 +47,13 @@ export function PDFPreview({ property, tenant, leaseData }: PDFPreviewProps) {
           </h2>
           <div className="space-y-2 text-slate-700 leading-relaxed">
             <p>
-              Le présent contrat de location a pour objet la location d'un bien situé à l'adresse suivante :
+              Le présent contrat de location a pour objet la location d&apos;un bien situé à l&apos;adresse suivante :
             </p>
             <p className="font-semibold text-navy pl-4 border-l-4 border-emerald">
               {property.address}
             </p>
             <p className="mt-4">
-              D'une surface de <span className="font-semibold">{property.surfaceM2 || "N/A"} m²</span>,
+              D&apos;une surface de <span className="font-semibold">{property.surfaceM2 || "N/A"} m²</span>,
               pour un loyer hors charges de <span className="font-semibold">{property.rentAmount.toFixed(2)} €</span>
               {property.chargesAmount > 0 && (
                 <> et des charges de <span className="font-semibold">{property.chargesAmount.toFixed(2)} €</span></>

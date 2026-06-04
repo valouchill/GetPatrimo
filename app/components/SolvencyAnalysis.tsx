@@ -202,7 +202,7 @@ export default function SolvencyAnalysis({
         <div className="flex items-start gap-2">
           <SparklesIcon className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-slate-600 leading-relaxed italic">
-            "{result.message}"
+            &quot;{result.message}&quot;
           </p>
         </div>
       </div>

@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
 
 export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {

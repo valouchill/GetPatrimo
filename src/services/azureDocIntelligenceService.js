@@ -132,7 +132,7 @@ async function analyzeWithAzure(buffer, model) {
   try {
     const pages = analyzeResult?.pages?.length || 1;
     const perPage = Number(process.env.AZURE_DOC_INTELLIGENCE_PRICE_EUR_PER_PAGE || 0.01);
-    // eslint-disable-next-line global-require
+     
     require('./api-cost-logger').recordFlatCost({
       provider: 'Azure',
       category: 'OCR',

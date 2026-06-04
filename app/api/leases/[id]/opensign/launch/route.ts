@@ -5,13 +5,13 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Lease = require('@/models/Lease');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { compileLeaseBundle } = require('@/src/services/leaseCompileService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { sendDocumentsForSignature } = require('@/src/services/opensignService');
 
 /**

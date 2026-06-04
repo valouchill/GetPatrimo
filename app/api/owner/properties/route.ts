@@ -23,11 +23,11 @@ const CreatePropertySchema = z.object({
   description: z.string().optional(),
   purchasePrice: z.number().optional(),
 });
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 async function resolveUserId(session: any): Promise<string | null> {

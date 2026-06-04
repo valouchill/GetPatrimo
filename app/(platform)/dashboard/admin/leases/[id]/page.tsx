@@ -59,7 +59,8 @@ export default function AdminLeaseDetailPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
+  useEffect(() => { load();   }, [id]);
 
   const dirty = useMemo(() => {
     if (!data || !initial) return false;

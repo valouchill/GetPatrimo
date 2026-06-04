@@ -145,7 +145,7 @@ export function ReanalyzeButton({
                   <ul className="mt-1 list-disc space-y-0.5 pl-4 text-amber-800">
                     <li>Revenu net non extrait ou à 0 €</li>
                     <li>Documents marqués « À réviser » par erreur</li>
-                    <li>Mise à jour de l'algorithme d'extraction (V1.4+)</li>
+                    <li>Mise à jour de l&apos;algorithme d&apos;extraction (V1.4+)</li>
                   </ul>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export function ReanalyzeButton({
             <Loader2 className="h-10 w-10 animate-spin text-amber-600" aria-hidden="true" />
             <p className="mt-4 font-serif text-lg font-bold text-slate-900">Analyse en cours…</p>
             <p className="mt-1 max-w-sm text-center text-sm text-slate-500">
-              L'IA examine chaque document et extrait le revenu net. Ne fermez pas cette fenêtre.
+              L&apos;IA examine chaque document et extrait le revenu net. Ne fermez pas cette fenêtre.
             </p>
           </div>
         )}

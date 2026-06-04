@@ -5,17 +5,17 @@ import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const PizZip = require('pizzip');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { prepareLeaseCompilation, TEMPLATE_MAP } = require('@/src/services/leaseCompileService');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { resolveTemplatePath } = require('@/src/utils/leaseTemplateInventory');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { deriveLeaseType } = require('@/src/utils/leaseWizardShared');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { isMissingValue } = require('@/src/utils/leaseDataBuilder');
 
 function decodeXmlEntities(value: string): string {

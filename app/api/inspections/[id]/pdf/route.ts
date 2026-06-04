@@ -6,9 +6,9 @@ import { withErrorHandler } from '@/lib/with-error-handler';
 import fs from 'fs';
 import path from 'path';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Inspection = require('@/models/Inspection');
 
 /**

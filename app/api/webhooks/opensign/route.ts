@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { logger } from '@/lib/server-logger';
 import { connectDiditDb } from '@/app/api/didit/db';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { handleOpenSignWebhook } = require('@/src/controllers/webhookController');
 
 /**

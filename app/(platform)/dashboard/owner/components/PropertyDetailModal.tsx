@@ -327,7 +327,7 @@ export function PropertyDetailModal({
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-500">
                   Partagez le {PRODUCT.SESAME} ci-dessus sur LeBonCoin, WhatsApp ou par email
-                  pour recevoir vos premiers dossiers analysés par l'IA.
+                  pour recevoir vos premiers dossiers analysés par l&apos;IA.
                 </p>
                 <p className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
                   <Sparkles className="h-3 w-3" aria-hidden="true" />

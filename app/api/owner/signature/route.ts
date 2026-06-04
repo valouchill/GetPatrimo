@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 const SIGNATURES_DIR = path.join(process.cwd(), 'uploads', 'signatures');

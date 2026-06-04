@@ -20,13 +20,13 @@ import {
   utmSources,
 } from '@/app/(platform)/dashboard/admin/cockpit/mockAdminData';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const ApiCostLog = require('@/models/ApiCostLog');
 
 export interface MetricDelta {

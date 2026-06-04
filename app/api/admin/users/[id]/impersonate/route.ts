@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError, assertNotSelf } from '@/lib/auth-admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 export const POST = withAdmin(

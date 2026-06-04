@@ -5,7 +5,7 @@ import path from 'path';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Application = require('@/models/Application');
 
 export const GET = withAdmin(async (req: NextRequest, ctx: any, admin) => {

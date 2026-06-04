@@ -176,10 +176,10 @@ export function MoveInInventoryPDFDocument({
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.eyebrow}>PatrimoTrust · Etat des lieux</Text>
-        <Text style={styles.title}>Etat des lieux d'entree</Text>
+        <Text style={styles.title}>Etat des lieux d&apos;entree</Text>
         <Text style={styles.subtitle}>
-          Modele vierge premium pour la remise des cles, la constatation de l'etat du logement
-          et la constitution d'un dossier d'entree clair, complet et opposable.
+          Modele vierge premium pour la remise des cles, la constatation de l&apos;etat du logement
+          et la constitution d&apos;un dossier d&apos;entree clair, complet et opposable.
         </Text>
 
         <View style={styles.heroCard}>
@@ -208,7 +208,7 @@ export function MoveInInventoryPDFDocument({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cadre de visite</Text>
           <Text style={styles.sectionText}>
-            Renseigner l'identite du bailleur, du locataire, la date, l'heure, le nombre de cles
+            Renseigner l&apos;identite du bailleur, du locataire, la date, l&apos;heure, le nombre de cles
             remises et les observations generales avant le detail piece par piece.
           </Text>
         </View>
@@ -237,7 +237,7 @@ export function MoveInInventoryPDFDocument({
           <Text style={styles.footerTitle}>Bon usage du modele</Text>
           <Text style={styles.footerText}>
             Ajouter des photos datees, faire signer chaque page si necessaire, et conserver le PDF
-            final dans le coffre-fort du bien avec le bail et, le cas echeant, l'acte de caution.
+            final dans le coffre-fort du bien avec le bail et, le cas echeant, l&apos;acte de caution.
           </Text>
         </View>
       </Page>

@@ -9,7 +9,7 @@ import { logger } from '@/lib/server-logger';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 import Lease from '@/models/Lease';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Document = require('@/models/Document');
 
 const DOC_TYPE_LABELS: Record<string, string> = {
@@ -58,11 +58,11 @@ const PatchPropertySchema = z.object({
   hotWaterMode: z.string().optional(),
   legalRegime: z.string().optional(),
 });
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/utils/ownerFlowModel');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 async function resolveUserId(session: any): Promise<string | null> {

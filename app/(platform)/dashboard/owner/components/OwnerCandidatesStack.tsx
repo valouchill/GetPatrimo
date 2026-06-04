@@ -355,7 +355,7 @@ export function OwnerCandidatesStack({
         </p>
         <p className="mt-1 max-w-sm text-center text-sm text-slate-500">
           Partagez votre Sésame sur LeBonCoin pour recevoir vos premières
-          candidatures déjà analysées par l'IA.
+          candidatures déjà analysées par l&apos;IA.
         </p>
       </div>
     );

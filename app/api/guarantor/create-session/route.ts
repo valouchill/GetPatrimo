@@ -3,7 +3,7 @@ import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const {
   normalizeSlot,
   resolveGuarantorWebhookUrl,

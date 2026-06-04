@@ -202,7 +202,7 @@ export function PayslipsBreakdown({
 
       {typeof primaryAmount === "number" && primaryAmount > 0 && (
         <p className="mt-3 text-[11px] text-slate-500">
-          Revenu retenu pour l'évaluation : <strong className="text-slate-700">{formatPrice(primaryAmount)}/mois</strong>
+          Revenu retenu pour l&apos;évaluation : <strong className="text-slate-700">{formatPrice(primaryAmount)}/mois</strong>
           {method === "median" ? " (médiane)" : " (moyenne)"}.
         </p>
       )}

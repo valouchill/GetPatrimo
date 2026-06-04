@@ -4,9 +4,9 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, AdminHttpError } from '@/lib/auth-admin';
 import { getStripeClient } from '@/lib/admin-stripe';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const User = require('@/models/User');
 
 export const GET = withAdmin(async (_req: NextRequest, ctx: any) => {

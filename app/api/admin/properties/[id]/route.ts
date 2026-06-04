@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 import { PropertyPatchSchema } from '@/lib/validations/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Property = require('@/models/Property');
 
 export const GET = withAdmin(async (_req: NextRequest, ctx: any) => {

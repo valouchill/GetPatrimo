@@ -4,7 +4,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
 import { PaymentPatchSchema } from '@/lib/validations/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const Payment = require('@/models/Payment');
 
 export const GET = withAdmin(async (_req: NextRequest, ctx: any) => {

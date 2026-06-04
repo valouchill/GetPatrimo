@@ -49,7 +49,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
             placeholder="garant@email.com"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
           />
-          <p className="text-[10px] text-slate-400 mt-0.5">Requis pour la signature de l'acte de cautionnement</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Requis pour la signature de l&apos;acte de cautionnement</p>
         </label>
         <label className="block">
           <span className="text-xs font-medium text-slate-600 mb-1 block">Téléphone du garant</span>
