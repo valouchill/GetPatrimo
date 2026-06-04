@@ -31,6 +31,11 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+# Lib vendorée (vendor/fr_2ddoc_parser, MIT) : ajoutée au path, relative à scripts/.
+_VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vendor")
+if os.path.isdir(_VENDOR) and _VENDOR not in sys.path:
+    sys.path.insert(0, _VENDOR)
+
 
 def emit(obj):
     sys.stdout.write(json.dumps(obj, default=str, ensure_ascii=False))
