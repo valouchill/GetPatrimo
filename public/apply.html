@@ -96,7 +96,7 @@
                 </div>
                 <div class="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
                     <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
-                    <span class="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">PatrimoTrust™</span>
+                    <span class="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">getpatrimo</span>
                 </div>
             </div>
         </div>
@@ -117,7 +117,7 @@
                     <div class="max-w-2xl">
                         <p class="text-emerald-600 text-[10px] font-black uppercase tracking-[0.5em] mb-4">Chapitre I</p>
                         <h1 class="text-5xl font-serif text-[#0F172A] leading-tight mb-4">Commençons par faire connaissance.</h1>
-                        <p class="text-slate-400 text-lg">Votre identité est le socle de votre certification PatrimoTrust™.</p>
+                        <p class="text-slate-400 text-lg">Votre identité est le socle de votre certification getpatrimo.</p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-6">
@@ -227,7 +227,7 @@
                             <div class="z-10 space-y-2">
                                 <p class="text-emerald-500 text-[10px] font-black uppercase tracking-[0.4em]" id="passport-score">Score A+</p>
                                 <h2 class="text-4xl font-serif text-white tracking-tight" id="passport-name">Prénom Nom</h2>
-                                <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest italic">Dossier Certifié PatrimoTrust™</p>
+                                <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest italic">Dossier Certifié getpatrimo</p>
                             </div>
 
                             <div class="z-10 flex flex-col items-center gap-4">
@@ -271,7 +271,7 @@
                             </div>
                         </div>
                         <p id="ai-message" class="font-serif text-sm text-amber-900 leading-relaxed italic">
-                            "L'IA PatrimoTrust™ suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire."
+                            "L'IA getpatrimo suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire."
                         </p>
                     </div>
                 </div>
@@ -281,15 +281,15 @@
                     <!-- Rempli par JavaScript -->
                 </div>
 
-                <!-- Coach PatrimoTrust -->
+                <!-- Coach getpatrimo -->
                 <div class="mt-6 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-xl p-4 relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent shimmer-bg"></div>
                     <div class="relative z-10 flex items-center gap-2 mb-2">
                         <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
-                        <strong class="text-xs text-emerald-900">PatrimoTrust™ Coach</strong>
+                        <strong class="text-xs text-emerald-900">getpatrimo Coach</strong>
                     </div>
                     <p id="coach-message" class="font-serif text-sm text-emerald-800 leading-relaxed italic">
-                        "Commencez par les documents essentiels. L'IA PatrimoTrust™ vous guide vers une certification optimale."
+                        "Commencez par les documents essentiels. L'IA getpatrimo vous guide vers une certification optimale."
                     </p>
                 </div>
             </div>
@@ -350,11 +350,11 @@
 
         // Messages de recommandation IA
         const AI_MESSAGES = {
-            bourse: "L'IA PatrimoTrust™ suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire.",
+            bourse: "L'IA getpatrimo suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire.",
             caf: "Une simulation CAF/APL renforce significativement la crédibilité de votre dossier auprès des bailleurs.",
             garant_salaires: "Les justificatifs de revenus du garant sont essentiels pour une certification complète.",
             motivation: "Une lettre de motivation personnalisée fait la différence et démontre votre sérieux.",
-            default: "Chaque document ajouté renforce votre Score de Confiance PatrimoTrust™."
+            default: "Chaque document ajouté renforce votre Score de Confiance getpatrimo."
         };
 
         // Messages du Coach selon le score
@@ -362,7 +362,7 @@
             if (score >= 85) return "Exceptionnel ! Votre dossier atteint un niveau de certification premium. Les propriétaires privilégient systématiquement ce type de profil.";
             if (score >= 70) return "Excellent ! Votre dossier est solide. Quelques documents supplémentaires vous placeraient en tête des candidatures.";
             if (score >= 50) return "Votre dossier progresse bien. Chaque document ajouté renforce significativement votre crédibilité.";
-            return "Commencez par les documents essentiels. L'IA PatrimoTrust™ vous guide vers une certification optimale.";
+            return "Commencez par les documents essentiels. L'IA getpatrimo vous guide vers une certification optimale.";
         }
 
         // Calculer le score

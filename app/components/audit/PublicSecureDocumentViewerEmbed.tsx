@@ -164,7 +164,7 @@ export function PublicSecureDocumentViewerEmbed({
         open={open}
         document={secureDoc}
         onClose={() => setOpen(false)}
-        watermarkText="PATRIMOTRUST · CONSULTATION PUBLIQUE · INSCRIPTION REQUISE"
+        watermarkText="GETPATRIMO · CONSULTATION PUBLIQUE · INSCRIPTION REQUISE"
         viewerIdentity={`Consultation publique · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`}
       />
     </article>

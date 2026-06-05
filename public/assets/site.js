@@ -40,8 +40,8 @@
       }catch(_){}
 
       // fallback : mailto
-      const to = 'contact@doc2loc.com';
-      const subject = encodeURIComponent('Lead Doc2Loc');
+      const to = 'contact@getpatrimo.com';
+      const subject = encodeURIComponent('Lead getpatrimo');
       const body = encodeURIComponent(`Bonjour,\n\nEmail: ${email}\nSource: ${source}\nUTM: ${localStorage.getItem('utm')||''}\n`);
       window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
     });

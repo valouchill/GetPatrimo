@@ -353,7 +353,7 @@ export default function ConciergeOnboardingClient() {
             </div>
             <div>
               <span className="font-serif text-lg font-semibold text-slate-900">
-                PatrimoTrust™
+                getpatrimo
               </span>
               <span className="ml-2 text-xs text-slate-500">
                 Mode Concierge

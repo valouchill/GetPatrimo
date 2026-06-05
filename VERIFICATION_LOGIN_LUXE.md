@@ -18,11 +18,11 @@
 
 ### 3. Page Bien (property-luxe.html)
 - ✅ Affichage des détails du bien
-- ✅ Liste des candidatures avec scores PatrimoTrust™
-- ✅ **PatrimoTrust™ Scan View** :
+- ✅ Liste des candidatures avec scores getpatrimo
+- ✅ **getpatrimo Scan View** :
   - ✅ Fonction `openScanView(candId)` - Ouvre le slide-over d'analyse
   - ✅ Fonction `triggerAnalysis(candId)` - Lance l'analyse via `/api/candidatures/:id/analyze-trust`
-  - ✅ Fonction `renderPatrimoTrustGauge(score, isLoading)` - Affiche la jauge semi-circulaire
+  - ✅ Fonction `renderGetPatrimoGauge(score, isLoading)` - Affiche la jauge semi-circulaire
   - ✅ Affichage des 10 points de contrôle
   - ✅ AI Insight avec résumé
   - ✅ Liste des documents du candidat
@@ -66,7 +66,7 @@
 - ✅ `GET /api/candidatures/:id` - Détails d'une candidature
 - ✅ `POST /api/candidatures/:id/accept` - Accepter une candidature
 - ✅ `POST /api/candidatures/:id/reject` - Refuser une candidature
-- ✅ `POST /api/candidatures/:id/analyze-trust` - **Lancer analyse PatrimoTrust™**
+- ✅ `POST /api/candidatures/:id/analyze-trust` - **Lancer analyse getpatrimo**
 - ✅ `GET /api/candidatures/:id/insight` - Insight IA
 - ✅ `PATCH /api/candidatures/:id/status` - Mettre à jour le statut
 - ✅ `PATCH /api/candidatures/:id/shortlist` - Toggle favori
@@ -97,8 +97,8 @@
 
 ### 6. Services Backend
 
-#### PatrimoTrust™ Engine (`src/services/trustEngineService.js`)
-- ✅ Fonction `calculatePatrimoTrustScore(applicationData)` - Calcul du score pondéré
+#### getpatrimo Engine (`src/services/trustEngineService.js`)
+- ✅ Fonction `calculateGetPatrimoScore(applicationData)` - Calcul du score pondéré
 - ✅ Fonction `analyzeCandidatureTrust(candidature, property)` - Analyse complète avec 10 checks
 - ✅ Kill-Switch pour fraude détectée
 - ✅ Système de pondération (Solvabilité 40%, Cohérence 30%, Stabilité 20%, Intégrité 10%)
@@ -118,14 +118,14 @@
 ### ✅ Fonctionnels
 1. ✅ Login → Dashboard → Property : Navigation fluide
 2. ✅ Routes API montées et accessibles
-3. ✅ PatrimoTrust™ : Route `/api/candidatures/:id/analyze-trust` fonctionnelle
+3. ✅ getpatrimo : Route `/api/candidatures/:id/analyze-trust` fonctionnelle
 4. ✅ LeasingJourney : Stepper et navigation entre étapes présents
 5. ✅ Compliance Checklist : Upload et validation des diagnostics
 6. ✅ OpenSign : Routes backend présentes
 
 ### ⚠️ À Tester en Conditions Réelles
 1. ⚠️ Connexion réelle avec credentials valides
-2. ⚠️ Analyse PatrimoTrust™ complète avec données réelles
+2. ⚠️ Analyse getpatrimo complète avec données réelles
 3. ⚠️ Génération PDF du bail avec annexes
 4. ⚠️ Envoi réel à OpenSign (nécessite clés API)
 5. ⚠️ Webhooks OpenSign (nécessite configuration)

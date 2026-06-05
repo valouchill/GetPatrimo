@@ -8,7 +8,7 @@
 import { PropertiesPortfolioDemo } from '@/app/components/audit/PropertiesPortfolio';
 
 export const metadata = {
-  title: 'Démo · Portefeuille — PatrimoTrust',
+  title: 'Démo · Portefeuille — getpatrimo',
 };
 
 export default function PortfolioDemoPage() {

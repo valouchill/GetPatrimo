@@ -1,5 +1,5 @@
 /**
- * PatrimoTrust — Verdict System (source unique de vérité UI)
+ * getpatrimo — Verdict System (source unique de vérité UI)
  *
  * Ce module centralise toute la logique d'affichage du verdict propriétaire :
  *  - VERDICT_STYLES : tokens visuels (icon, couleurs, label) par verdict

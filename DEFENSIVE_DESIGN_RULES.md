@@ -1,4 +1,4 @@
-# PatrimoTrust — Règles de Design Défensif (Tailwind + React)
+# getpatrimo — Règles de Design Défensif (Tailwind + React)
 
 Ces 4 règles sont **obligatoires** pour tout nouveau composant UI dans la
 codebase. Elles évitent les bugs visuels classiques (explosions Safari,

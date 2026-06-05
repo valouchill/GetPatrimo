@@ -3,7 +3,7 @@ import PropertyDetailClient from './PropertyDetailClient';
 import { OwnerShell } from '../../components/OwnerShell';
 
 export const metadata: Metadata = {
-  title: 'Fiche bien | PatrimoTrust™',
+  title: 'Fiche bien | getpatrimo',
   description: 'Vue d\'ensemble du bien, candidatures, documents et gestion locative.',
 };
 

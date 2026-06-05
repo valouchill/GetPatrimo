@@ -354,7 +354,7 @@ export function CandidateAiReport({
             </p>
           </blockquote>
           <p className="mt-6 ml-11 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-            — Auditeur IA PatrimoTrust · Confidentiel
+            — Auditeur IA getpatrimo · Confidentiel
           </p>
         </div>
       </section>

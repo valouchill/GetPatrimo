@@ -386,7 +386,7 @@ export function LeasePreparationPage({
 
         {/* ─── V7.11 — Mention légale (responsabilité IA) ─────────────
             Disclaimer obligatoire en bas de la "modale de succès" rappelant
-            que PatrimoTrust est un outil d'aide à la décision. Style très
+            que GetPatrimo est un outil d'aide à la décision. Style très
             discret pour ne pas casser l'aspect celebration banque privée. */}
         <div className="mt-6 pt-4 border-t border-slate-100 flex items-start gap-2">
           <Info
@@ -394,7 +394,7 @@ export function LeasePreparationPage({
             aria-hidden="true"
           />
           <p className="text-[11px] text-slate-400 leading-tight">
-            <span className="font-semibold">Note légale :</span> PatrimoTrust
+            <span className="font-semibold">Note légale :</span> getpatrimo
             est un outil d&rsquo;aide à la décision. Bien que notre intelligence
             artificielle soit hautement performante, une marge d&rsquo;erreur
             reste possible. La sélection de ce dossier ne se substitue pas à

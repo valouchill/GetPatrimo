@@ -180,7 +180,7 @@
             <div class="smart-deposit-content">
               <i data-lucide="upload-cloud" class="smart-deposit-icon" id="smartDepositIcon"></i>
               <div class="smart-deposit-title">Déposez vos documents ici</div>
-              <div class="smart-deposit-subtitle">Glissez-déposez ou cliquez pour sélectionner<br>Analyse IA automatique PatrimoTrust™</div>
+              <div class="smart-deposit-subtitle">Glissez-déposez ou cliquez pour sélectionner<br>Analyse IA automatique getpatrimo</div>
             </div>
             <input type="file" id="smartDepositInput" class="smart-deposit-input" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(event)">
             
@@ -188,7 +188,7 @@
               <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
               </div>
-              <div class="progress-text" id="progressText">Analyse PatrimoTrust™ en cours...</div>
+              <div class="progress-text" id="progressText">Analyse getpatrimo en cours...</div>
             </div>
           </div>
         </div>
@@ -363,7 +363,7 @@
           
           // Update progress
           progressFill.style.width = progress + '%';
-          progressText.textContent = `Analyse PatrimoTrust™ : ${file.name}...`;
+          progressText.textContent = `Analyse getpatrimo : ${file.name}...`;
           
           // Simulate AI analysis (OCR mock)
           await new Promise(resolve => setTimeout(resolve, 1500));

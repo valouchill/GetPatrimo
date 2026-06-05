@@ -1,5 +1,5 @@
 /**
- * PatrimoTrust — Motion utilities (framer-motion + a11y)
+ * getpatrimo — Motion utilities (framer-motion + a11y)
  *
  * Centralise :
  *  - Hook `useReducedMotion()` (wrap natif framer-motion pour usage cohérent)

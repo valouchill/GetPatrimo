@@ -3,7 +3,7 @@
 import { validateMRZ, compareMRZWithIdentity } from './validate-mrz';
 
 /**
- * Server Action pour l'Audit d'Identité PatrimoTrust
+ * Server Action pour l'Audit d'Identité getpatrimo
  * Fallback quand Didit n'est pas disponible ou échoue
  * 
  * Méthodes de vérification :

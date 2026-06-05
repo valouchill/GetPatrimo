@@ -54,8 +54,8 @@ export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   await sendEmail({
     to: toEmail,
     subject: `Votre quittance de loyer — ${periodLabel}`,
-    text: `Bonjour ${tenantName || ''},\n\nVeuillez trouver ci-joint votre quittance pour ${periodLabel}.\n\nCordialement,\nPatrimoTrust`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;"><p>Bonjour${tenantName ? ' ' + tenantName : ''},</p><p>Veuillez trouver ci-joint votre quittance pour <strong>${periodLabel}</strong>.</p><p style="color:#64748B;font-size:13px;">PatrimoTrust</p></div>`,
+    text: `Bonjour ${tenantName || ''},\n\nVeuillez trouver ci-joint votre quittance pour ${periodLabel}.\n\nCordialement,\ngetpatrimo`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;"><p>Bonjour${tenantName ? ' ' + tenantName : ''},</p><p>Veuillez trouver ci-joint votre quittance pour <strong>${periodLabel}</strong>.</p><p style="color:#64748B;font-size:13px;">getpatrimo</p></div>`,
     attachments: [{ filename: fileName, content: pdfBuffer, contentType: 'application/pdf' }],
   });
 

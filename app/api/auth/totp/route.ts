@@ -41,7 +41,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Generate a new TOTP secret
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({
-      issuer: 'PatrimoTrust',
+      issuer: 'getpatrimo',
       label: user.email,
       algorithm: 'SHA1',
       digits: 6,
@@ -74,7 +74,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     const totp = new TOTP({
-      issuer: 'PatrimoTrust',
+      issuer: 'getpatrimo',
       label: user.email,
       algorithm: 'SHA1',
       digits: 6,
@@ -114,7 +114,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Verify current TOTP before disabling
     if (user.totpEnabled && user.totpSecret) {
       const totp = new TOTP({
-        issuer: 'PatrimoTrust',
+        issuer: 'getpatrimo',
         label: user.email,
         algorithm: 'SHA1',
         digits: 6,
@@ -143,7 +143,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
 
     const totp = new TOTP({
-      issuer: 'PatrimoTrust',
+      issuer: 'getpatrimo',
       label: user.email,
       algorithm: 'SHA1',
       digits: 6,

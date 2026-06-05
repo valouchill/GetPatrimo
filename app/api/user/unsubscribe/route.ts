@@ -18,7 +18,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     // Not logged in — show a simple HTML page asking to log in first
     return new NextResponse(
       `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><title>Désinscription — PatrimoTrust</title>
+<html lang="fr"><head><meta charset="utf-8"><title>Désinscription — getpatrimo</title>
 <style>body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f4f4f5;margin:0;}
 .card{background:#fff;border-radius:12px;padding:40px;max-width:480px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.1);}
 a{color:#1E40AF;text-decoration:none;font-weight:600;}</style></head>
@@ -51,7 +51,7 @@ a{color:#1E40AF;text-decoration:none;font-weight:600;}</style></head>
 
   return new NextResponse(
     `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><title>Désinscription confirmée — PatrimoTrust</title>
+<html lang="fr"><head><meta charset="utf-8"><title>Désinscription confirmée — getpatrimo</title>
 <style>body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f4f4f5;margin:0;}
 .card{background:#fff;border-radius:12px;padding:40px;max-width:480px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .check{font-size:48px;margin-bottom:16px;}

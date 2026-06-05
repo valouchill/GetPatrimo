@@ -19,7 +19,7 @@ function formatStatus(ok, label, details = '') {
 async function main() {
   const result = await runPhase1Healthcheck({ mode: 'live' });
 
-  console.log('Doc2Loc Phase 1 Smoke Test');
+  console.log('getpatrimo Phase 1 Smoke Test');
   console.log('');
 
   const config = result.config || {};

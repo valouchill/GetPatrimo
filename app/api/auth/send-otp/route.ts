@@ -55,11 +55,11 @@ export async function POST(request: NextRequest) {
     });
 
     const rawFrom = (process.env.MAIL_FROM || '').replace(/^"|"$/g, '').trim();
-    const fromAddr = rawFrom || 'PatrimoTrust <no-reply@doc2loc.com>';
+    const fromAddr = rawFrom || 'getpatrimo <no-reply@getpatrimo.com>';
     await transporter.sendMail({
       to: normalizedEmail,
       from: fromAddr,
-      subject: `Votre code d'accès PatrimoTrust : ${code}`,
+      subject: `Votre code d'accès getpatrimo : ${code}`,
       html: `
 <!DOCTYPE html>
 <html>
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 <body style="font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px;">
   <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
     <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 32px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 22px; letter-spacing: 1px;">PatrimoTrust</h1>
+      <h1 style="color: white; margin: 0; font-size: 22px; letter-spacing: 1px;">getpatrimo</h1>
       <p style="color: #94a3b8; font-size: 12px; margin: 8px 0 0;">Coffre-fort Immobilier Intelligent</p>
     </div>
     <div style="padding: 40px 32px; text-align: center;">
@@ -86,13 +86,13 @@ export async function POST(request: NextRequest) {
     </div>
     <div style="background: #f8fafc; padding: 16px 32px; border-top: 1px solid #e2e8f0;">
       <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center;">
-        PatrimoTrust™ — Standard de Confiance Immobilier
+        getpatrimo — Standard de Confiance Immobilier
       </p>
     </div>
   </div>
 </body>
 </html>`,
-      text: `Votre code d'accès PatrimoTrust : ${code} — Ce code expire dans 10 minutes.`,
+      text: `Votre code d'accès getpatrimo : ${code} — Ce code expire dans 10 minutes.`,
     });
 
     return NextResponse.json({ ok: true });

@@ -67,11 +67,11 @@ function computeInitials(fullName: string): string {
 }
 
 function getBrandDomain(): string {
-  // Priorité : env override → fallback doc2loc.com
+  // Priorité : env override → fallback getpatrimo.com
   return (
     process.env.PASSPORT_BRAND_DOMAIN ||
     process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '').replace(/\/$/, '') ||
-    'doc2loc.com'
+    'getpatrimo.com'
   );
 }
 
@@ -79,7 +79,7 @@ function getBaseUrl(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
-    'https://doc2loc.com'
+    'https://getpatrimo.com'
   ).replace(/\/$/, '');
 }
 

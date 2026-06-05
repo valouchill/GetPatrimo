@@ -57,7 +57,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* Le dégradé signature PatrimoTrust */
+/* Le dégradé signature getpatrimo */
 .patrimo-gradient {
   background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #fbbf24 100%);
 }

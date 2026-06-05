@@ -73,7 +73,7 @@ const CandidatureSchema = new mongoose.Schema({
     }]
   },
 
-  // Moteur PatrimoTrust™
+  // Moteur getpatrimo
   trustAnalysis: {
     score: { type: Number, default: 0 }, // 0-100
     status: { type: String, enum: ['PENDING', 'VALIDATED', 'WARNING', 'REJECTED'], default: 'PENDING' },

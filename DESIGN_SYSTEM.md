@@ -1,8 +1,8 @@
-# PatrimoTrust — Design System "Banque Privée de l'Immobilier"
+# getpatrimo — Design System "Banque Privée de l'Immobilier"
 
 ## Philosophie
 
-PatrimoTrust transmet le positionnement **Banque Privée de l'Immobilier** : sérieux, premium, rassurant. Chaque écran applique trois principes :
+getpatrimo transmet le positionnement **Banque Privée de l'Immobilier** : sérieux, premium, rassurant. Chaque écran applique trois principes :
 
 1. **Zéro Friction** — pas de répétition d'information, données extraites des docs et injectées directement.
 2. **Divulgation Progressive** — pas de surcharge UI, info affichée uniquement quand nécessaire.

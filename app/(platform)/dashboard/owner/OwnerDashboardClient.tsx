@@ -314,7 +314,7 @@ export default function OwnerDashboardClient() {
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600"><ShieldCheck className="h-5 w-5 text-white" /></div>
             <div className="flex-1">
-              <div className="font-serif text-base font-bold tracking-tight text-slate-950">PatrimoTrust™</div>
+              <div className="font-serif text-base font-bold tracking-tight text-slate-950">getpatrimo</div>
               <div className="mt-0.5 inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Propriétaire</div>
             </div>
             <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:hidden" aria-label="Fermer le menu">
@@ -600,7 +600,7 @@ export default function OwnerDashboardClient() {
                   pending: 'En attente',
                 };
                 const sesameLink = b.applyToken
-                  ? `${typeof window !== 'undefined' ? window.location.origin : 'https://doc2loc.com'}/apply/${b.applyToken}`
+                  ? `${typeof window !== 'undefined' ? window.location.origin : 'https://getpatrimo.com'}/apply/${b.applyToken}`
                   : '';
                 return {
                   id: b.id,
@@ -625,7 +625,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8">
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Nouvel actif</h1>
-              <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille PatrimoTrust</p>
+              <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille getpatrimo</p>
             </div>
             <NouvelActifForm onDone={() => { refresh(); go('biens'); }} />
           </motion.div>

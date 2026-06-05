@@ -395,7 +395,7 @@ function TopCard({
             {candidate.aiSynthesis}
           </p>
           <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-            — Synthèse PatrimoTrust · Confidentielle
+            — Synthèse getpatrimo · Confidentielle
           </p>
         </div>
       )}

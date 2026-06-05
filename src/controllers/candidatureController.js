@@ -532,7 +532,7 @@ async function toggleShortlist(req, res) {
 }
 
 /**
- * Lance l'analyse PatrimoTrust™ sur une candidature
+ * Lance l'analyse getpatrimo sur une candidature
  */
 async function runTrustAnalysis(req, res) {
   try {

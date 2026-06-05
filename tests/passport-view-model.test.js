@@ -119,7 +119,7 @@ test('Passport stays draft when essential tenant blocks are missing', () => {
   const passport = buildPassportViewModel({
     application,
     audience: 'candidate',
-    baseUrl: 'https://doc2loc.com',
+    baseUrl: 'https://getpatrimo.com',
     slug: application.passportSlug,
   });
 
@@ -139,7 +139,7 @@ test('Passport enters review when a secondary document remains under manual revi
   const passport = buildPassportViewModel({
     application,
     audience: 'candidate',
-    baseUrl: 'https://doc2loc.com',
+    baseUrl: 'https://getpatrimo.com',
     slug: application.passportSlug,
   });
 
@@ -156,14 +156,14 @@ test('Passport becomes ready when the dossier is complete and stable', () => {
   const passport = buildPassportViewModel({
     application,
     audience: 'candidate',
-    baseUrl: 'https://doc2loc.com',
+    baseUrl: 'https://getpatrimo.com',
     slug: application.passportSlug,
   });
 
   assert.equal(passport.state, 'ready');
   assert.equal(passport.shareEnabled, true);
-  assert.equal(passport.previewUrl, 'https://doc2loc.com/p/alice-martin-demo?preview=1');
-  assert.equal(passport.shareUrl, 'https://doc2loc.com/p/alice-martin-demo');
+  assert.equal(passport.previewUrl, 'https://getpatrimo.com/p/alice-martin-demo?preview=1');
+  assert.equal(passport.shareUrl, 'https://getpatrimo.com/p/alice-martin-demo');
 });
 
 test('Passport becomes sealed after submission without changing the public model shape', () => {
@@ -175,7 +175,7 @@ test('Passport becomes sealed after submission without changing the public model
   const passport = buildPassportViewModel({
     application,
     audience: 'candidate',
-    baseUrl: 'https://doc2loc.com',
+    baseUrl: 'https://getpatrimo.com',
     slug: application.passportSlug,
   });
 
@@ -195,7 +195,7 @@ test('Public audience masks identity and rounds income', () => {
   const passport = buildPassportViewModel({
     application,
     audience: 'public',
-    baseUrl: 'https://doc2loc.com',
+    baseUrl: 'https://getpatrimo.com',
     slug: application.passportSlug,
   });
 

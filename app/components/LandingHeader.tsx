@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Menu, X, Key } from 'lucide-react';
+import { Menu, X, Key } from 'lucide-react';
+import { Logo } from './Logo';
 
 const NAV_LINKS = [
   { label: 'Fonctionnalités', href: '#features' },
@@ -17,13 +18,8 @@ export default function LandingHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-slate-50/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-900">
-            <ShieldCheck className="h-5 w-5 text-amber-400" aria-hidden="true" />
-          </span>
-          <span className="font-serif text-lg font-semibold tracking-tight text-emerald-900">
-            PatrimoTrust™
-          </span>
+        <Link href="/" className="flex items-center" onClick={() => setOpen(false)}>
+          <Logo className="h-9" />
         </Link>
 
         {/* Liens centraux (desktop) */}

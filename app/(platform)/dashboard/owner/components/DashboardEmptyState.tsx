@@ -18,7 +18,7 @@ export interface DashboardEmptyStateProps {
 function buildSesameUrl(applyToken: string | undefined, baseUrl?: string): string | null {
   if (!applyToken) return null;
   const origin = baseUrl
-    || (typeof window !== "undefined" ? window.location.origin : "https://doc2loc.com");
+    || (typeof window !== "undefined" ? window.location.origin : "https://getpatrimo.com");
   return `${origin}/apply/${applyToken}`;
 }
 

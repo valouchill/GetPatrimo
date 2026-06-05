@@ -71,7 +71,7 @@ export default function E2ESignInClient() {
       <div className="mx-auto flex max-w-xl flex-col gap-5 rounded-[32px] border border-white/10 bg-white/5 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
-            Doc2Loc E2E
+            getpatrimo E2E
           </p>
           <h1 className="text-3xl font-semibold tracking-tight">Authentification locale de test</h1>
           <p className="text-sm text-slate-300">

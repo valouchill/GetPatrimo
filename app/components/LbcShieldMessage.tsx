@@ -10,7 +10,7 @@ interface LbcShieldMessageProps {
 function buildMessage(code: string): string {
   return `Bonjour,
 
-Face au très grand nombre de demandes pour ce bien, j'ai mandaté le protocole PatrimoTrust pour sécuriser la collecte et l'audit des dossiers.
+Face au très grand nombre de demandes pour ce bien, j'ai mandaté le protocole getpatrimo pour sécuriser la collecte et l'audit des dossiers.
 
 Pourriez-vous certifier votre profil en 3 minutes sur leur portail ?
 

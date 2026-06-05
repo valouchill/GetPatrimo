@@ -2145,7 +2145,7 @@
           
           // Update progress
           if(progressFill) progressFill.style.width = progress + '%';
-          if(progressText) progressText.textContent = `Analyse PatrimoTrust™ : ${file.name}...`;
+          if(progressText) progressText.textContent = `Analyse getpatrimo : ${file.name}...`;
           
           // Simulate AI analysis (OCR mock)
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -3866,7 +3866,7 @@
                 <div style="font-size:18px;font-weight:600;color:var(--navy)">${cand.firstName || ''} ${cand.lastName || ''}</div>
                 <div style="width:50px;height:50px;border-radius:50%;background:${scoreColor};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">${score}</div>
               </div>
-              <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Score PatrimoTrust™: <strong style="color:${scoreColor}">${rating}</strong></div>
+              <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Score getpatrimo: <strong style="color:${scoreColor}">${rating}</strong></div>
               <div style="font-size:13px;color:var(--muted)">📧 ${cand.email || 'N/A'}</div>
               <button class="btn btn-emerald" style="width:100%;margin-top:16px" onclick="event.stopPropagation();selectCandidate('${cand._id || cand.id}')">
                 <i data-lucide="check"></i>
@@ -4352,7 +4352,7 @@
         `;
       } else if (type === 'physical') {
         const guarantor = leasingJourney.data.guarantee.guarantor || {};
-        // Essaie de récupérer les infos du garant depuis PatrimoTrust si disponible
+        // Essaie de récupérer les infos du garant depuis getpatrimo si disponible
         const candidate = leasingJourney.data.candidate;
         const guarantorFromTrust = candidate?.guarantor || {};
         
@@ -4407,7 +4407,7 @@
             ${guarantorFromTrust.firstName ? `
               <div style="margin-top:16px;padding:12px;background:var(--white);border-radius:8px;border-left:4px solid var(--emerald);font-size:13px;color:var(--muted)">
                 <i data-lucide="info" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px"></i>
-                Informations pré-remplies depuis l'analyse PatrimoTrust™
+                Informations pré-remplies depuis l'analyse getpatrimo
               </div>
             ` : ''}
           </div>

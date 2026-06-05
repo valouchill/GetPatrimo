@@ -1,14 +1,14 @@
 /**
- * Templates email HTML pour PatrimoTrust
+ * Templates email HTML pour getpatrimo
  *
  * Utilise un layout commun responsive + branded.
  * Chaque template retourne { subject, html, text }.
  */
 
-const APP_NAME = 'PatrimoTrust';
-const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://doc2loc.com';
-const BRAND_COLOR = '#1E40AF';
-const SUPPORT_EMAIL = process.env.MAIL_REPLY_TO || 'contact@doc2loc.com';
+const APP_NAME = 'getpatrimo';
+const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://getpatrimo.com';
+const BRAND_COLOR = '#064E3B';
+const SUPPORT_EMAIL = process.env.MAIL_REPLY_TO || 'contact@getpatrimo.com';
 
 // ─── Layout wrapper ─────────────────────────────────────────────
 function layout(title, bodyContent) {
@@ -74,7 +74,7 @@ function otpLogin(otp, email) {
       Bonjour,<br>
       Voici votre code de vérification pour vous connecter à ${APP_NAME} :
     </p>
-    <div style="background:#f0f4ff;border:2px solid ${BRAND_COLOR};border-radius:8px;padding:16px;text-align:center;margin:24px 0;">
+    <div style="background:#ecfdf5;border:2px solid ${BRAND_COLOR};border-radius:8px;padding:16px;text-align:center;margin:24px 0;">
       <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND_COLOR};">${otp}</span>
     </div>
     <p style="color:#6b7280;font-size:13px;">

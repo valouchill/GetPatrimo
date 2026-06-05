@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       
       // Stocker les détails de l'audit
       (guarantor as Record<string, unknown>).auditDetails = {
-        method: 'AUDIT_PATRIMOTRUST',
+        method: 'AUDIT_GETPATRIMO',
         score: auditResult.score,
         checks: auditResult.checks,
         patrimometerPoints: auditResult.patrimometerPoints,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       
       await guarantor.save();
       
-      logger.info('Garant certifié par Audit PatrimoTrust', { email: guarantor.email });
+      logger.info('Garant certifié par Audit getpatrimo', { email: guarantor.email });
     }
     
     return NextResponse.json({

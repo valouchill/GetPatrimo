@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-interface PatrimoTrustGaugeProps {
+interface GetPatrimoGaugeProps {
   score: number; // 0-100
   isLoading?: boolean;
 }
 
 /**
- * Composant PatrimoTrustGauge - Jauge semi-circulaire Luxe-Tech
- * Affiche le score PatrimoTrust™ avec animations fluides et design premium
+ * Composant GetPatrimoGauge - Jauge semi-circulaire Luxe-Tech
+ * Affiche le score getpatrimo avec animations fluides et design premium
  */
-export default function PatrimoTrustGauge({ score, isLoading = false }: PatrimoTrustGaugeProps) {
+export default function GetPatrimoGauge({ score, isLoading = false }: GetPatrimoGaugeProps) {
   const [displayScore, setDisplayScore] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -218,7 +218,7 @@ export default function PatrimoTrustGauge({ score, isLoading = false }: PatrimoT
                 letterSpacing: "0.1em",
               }}
             >
-              Score PatrimoTrust™
+              Score getpatrimo
             </motion.div>
           </>
         )}

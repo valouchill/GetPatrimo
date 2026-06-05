@@ -30,7 +30,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Préparation de bail · PatrimoTrust',
+  title: 'Préparation de bail · getpatrimo',
   description:
     'Téléchargez le modèle ALUR et reportez les informations du dossier en un clic.',
 };

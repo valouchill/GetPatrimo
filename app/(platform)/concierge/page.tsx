@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import AgentConciergeClient from "./AgentConciergeClient";
 
 export const metadata = {
-  title: "Agent Expert — PatrimoTrust™",
+  title: "Agent Expert — getpatrimo",
   description: "Agent IA conversationnel pour la collecte de votre bien",
 };
 

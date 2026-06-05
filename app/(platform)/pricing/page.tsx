@@ -9,7 +9,7 @@ import { Suspense } from 'react';
 import { PricingClient } from './PricingClient';
 
 export const metadata = {
-  title: 'Tarifs · PatrimoTrust',
+  title: 'Tarifs · getpatrimo',
   description:
     'Paiement par logement : analysez vos dossiers locataires avec l’IA anti-fraude. Offres Essentiel, Analyse IA et Max.',
 };

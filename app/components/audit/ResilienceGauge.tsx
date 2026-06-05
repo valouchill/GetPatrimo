@@ -9,7 +9,7 @@ import {
   formatResilience,
 } from "@/lib/product-lexicon";
 
-const PatrimoTrustGauge = dynamic(() => import("@/app/components/PatrimoTrustGauge"), { ssr: false });
+const GetPatrimoGauge = dynamic(() => import("@/app/components/GetPatrimoGauge"), { ssr: false });
 
 export interface ResilienceGaugeProps {
   score: number;
@@ -19,7 +19,7 @@ export interface ResilienceGaugeProps {
 }
 
 /**
- * Wrapper de PatrimoTrustGauge — jauge V2 (niveau métal : PLATINUM/GOLD/
+ * Wrapper de GetPatrimoGauge — jauge V2 (niveau métal : PLATINUM/GOLD/
  * SILVER/ALERTE). Affiche la jauge semi-circulaire + badge niveau en dessous.
  */
 export function ResilienceGauge({
@@ -35,7 +35,7 @@ export function ResilienceGauge({
   return (
     <div className={`flex flex-col items-center ${className}`}>
       <div className={`origin-center ${scale}`}>
-        <PatrimoTrustGauge score={Math.round(score)} />
+        <GetPatrimoGauge score={Math.round(score)} />
       </div>
       {showLabel && (
         <div className={`-mt-4 inline-flex items-center gap-2 rounded-pill px-3 py-1 ring-1 ${METAL_BADGE_CLASS[level]}`}>
