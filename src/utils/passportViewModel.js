@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { inferEvidenceKind } = require('./applicationScoring');
 const { resolveResilienceScore } = require('./resilienceScore');
+const { deriveApplicationFinancialProfile } = require('./financialExtraction');
 
 const PASSPORT_STATE_META = {
   draft: {
@@ -608,6 +609,53 @@ function buildPassportViewModel({
   const tenantBlocks = buildBlockSummaries(blockDocs, breakdownTenant, didit.status, tenantDocuments);
   const guaranteeSummary = getGuaranteeSummary(guarantee, guaranteeState);
 
+  // ── Garant : NOM réel (collection Guarantor populée via app.guarantor.guarantorId)
+  // + REVENUS dérivés de ses pièces. Tout est gracieux (null si indisponible). ──
+  const populatedGuarantor =
+    app.guarantor && app.guarantor.guarantorId && typeof app.guarantor.guarantorId === 'object'
+      ? app.guarantor.guarantorId
+      : null;
+  const guarantorRealName = populatedGuarantor
+    ? `${(populatedGuarantor.identityVerification && populatedGuarantor.identityVerification.firstName) || populatedGuarantor.firstName || ''} ${(populatedGuarantor.identityVerification && populatedGuarantor.identityVerification.lastName) || populatedGuarantor.lastName || ''}`.trim()
+    : '';
+  // Revenus du garant : dérivés de ses pièces (subjectType GUARANTOR). On neutralise
+  // subjectType car deriveApplicationFinancialProfile ne compte que les pièces locataire.
+  let guarantorMonthlyIncome = 0;
+  const guarantorIncomeDocs = documents
+    .filter(
+      (d) =>
+        String((d && d.subjectType) || '').toUpperCase() === 'GUARANTOR' ||
+        String((d && d.category) || '').toUpperCase() === 'GUARANTOR',
+    )
+    .map((d) => ({ ...(d && d.toObject ? d.toObject() : d), subjectType: undefined, category: undefined }));
+  if (guarantorIncomeDocs.length) {
+    try {
+      const prof = deriveApplicationFinancialProfile({ application: { documents: guarantorIncomeDocs } });
+      guarantorMonthlyIncome = Number((prof && prof.totalMonthlyIncome) || 0);
+    } catch (_e) {
+      guarantorMonthlyIncome = 0;
+    }
+  }
+
+  // ── Employeur : meilleure source disponible dans les pièces OCR du locataire
+  // (extra_details / extractedData / metadata) ou l'analyse V2. Gracieux (vide si
+  // l'OCR ne l'a pas capturé → la ligne Employeur est masquée dans le PDF). ──
+  const tenantEmployer = (() => {
+    for (const d of documents) {
+      const ai = (d && d.aiAnalysis) || {};
+      const ed = (ai.financial_data && ai.financial_data.extra_details) || {};
+      const ex = ai.extractedData || ai.extracted_data || {};
+      const meta = ai.document_metadata || {};
+      const v =
+        ed.employeur || ed.employer_name || ed.companyName ||
+        ex.employerName || ex.employer_name || ex.employeur || ex.companyName ||
+        meta.employer || meta.employeur;
+      if (v && String(v).trim()) return String(v).trim();
+    }
+    const v2 = app.aiAuditV2 && app.aiAuditV2.ai && app.aiAuditV2.ai.candidate && app.aiAuditV2.ai.candidate.employer;
+    return v2 && String(v2).trim() ? String(v2).trim() : '';
+  })();
+
   const readinessBlockers = [];
   const reviewReasons = [];
 
@@ -753,6 +801,7 @@ function buildPassportViewModel({
       gradeLabel: resilience.label,
       badge: guaranteeSummary.shareBadge,
       candidateStatus: profile.status || null,
+      employer: tenantEmployer || null,
       identityVerified: didit.status === 'VERIFIED',
     },
     solvency: {
@@ -782,20 +831,13 @@ function buildPassportViewModel({
             ? 'Garant physique'
             : 'Aucune',
       guarantorName:
-        (app.guarantor && app.guarantor.firstName
-          ? `${app.guarantor.firstName} ${app.guarantor.lastName || ''}`.trim()
-          : null) ||
+        guarantorRealName ||
         (guaranteeSummary.mode === 'VISALE'
           ? 'Organisme Visale (Action Logement)'
           : guaranteeSummary.guarantors[0]
             ? `Garant ${guaranteeSummary.guarantors[0].profile || ''}`.trim()
             : null),
-      guarantorIncomeLabel:
-        app.guarantor &&
-        app.guarantor.financialSummary &&
-        Number(app.guarantor.financialSummary.totalMonthlyIncome) > 0
-          ? formatCurrency(Number(app.guarantor.financialSummary.totalMonthlyIncome))
-          : null,
+      guarantorIncomeLabel: guarantorMonthlyIncome > 0 ? formatCurrency(guarantorMonthlyIncome) : null,
     },
     pillars: tenantBlocks.map((block) => ({
       id: block.id,

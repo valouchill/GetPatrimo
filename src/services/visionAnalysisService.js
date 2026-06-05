@@ -206,6 +206,15 @@ function normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName) {
         montant_bourse: docType === 'ATTESTATION_BOURSE' ? monthlyNetIncome : undefined,
         montant_apl: docType === 'AIDE_LOGEMENT' ? monthlyNetIncome : undefined,
         montant_pension: docType === 'PENSION' ? monthlyNetIncome : undefined,
+        // Employeur (raison sociale) capté par l'OCR → exposé pour la Synthèse du passeport.
+        employeur:
+          (legacy.extractedData &&
+            (legacy.extractedData.companyName ||
+              legacy.extractedData.employeur ||
+              legacy.extractedData.employerName)) ||
+          legacy.companyName ||
+          legacy.employerName ||
+          undefined,
       },
     },
     trust_and_security: {
