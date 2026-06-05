@@ -1,4 +1,4 @@
-/** Schémas tunnel propriétaire GetPatrimo - pipeline déterministe */
+/** Schémas tunnel propriétaire Maison Patrimo - pipeline déterministe */
 export type EtiquetteDPE = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
 
 export interface DPEResult {

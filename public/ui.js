@@ -1,4 +1,4 @@
-/* getpatrimo Elite — ui.js (CLEAN V5) */
+/* Maison Patrimo Elite — ui.js (CLEAN V5) */
 (function(){
   const $ = (sel, root)=> (root||document).querySelector(sel);
   const $$ = (sel, root)=> Array.from((root||document).querySelectorAll(sel));

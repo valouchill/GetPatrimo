@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Politique de confidentialité — getpatrimo',
+  title: 'Politique de confidentialité — Maison Patrimo',
 };
 
 export default function Privacy() {
@@ -18,12 +18,12 @@ export default function Privacy() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Responsable du traitement</h2>
           <p>
-            GetPatrimo SAS [À COMPLÉTER], dont le siège social est situé au [À COMPLÉTER],
+            Maison Patrimo SAS [À COMPLÉTER], dont le siège social est situé au [À COMPLÉTER],
             immatriculée au RCS de [À COMPLÉTER] sous le numéro [À COMPLÉTER].
           </p>
           <p className="mt-2">
             <strong>Délégué à la protection des données (DPO) :</strong> [À COMPLÉTER]<br />
-            <strong>Contact :</strong> dpo@getpatrimo.com [À COMPLÉTER]
+            <strong>Contact :</strong> dpo@maisonpatrimo.com [À COMPLÉTER]
           </p>
         </div>
 
@@ -137,7 +137,7 @@ export default function Privacy() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">5. Destinataires des données</h2>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Personnel habilité de GetPatrimo SAS</li>
+            <li>Personnel habilité de Maison Patrimo SAS</li>
             <li>Sous-traitants techniques : hébergement [À COMPLÉTER], base de données MongoDB Atlas, Stripe (paiements), Didit (vérification d&apos;identité), OpenAI (analyse documentaire)</li>
             <li>Les données ne sont pas transférées hors de l&apos;Union européenne, sauf vers des prestataires disposant de garanties appropriées (clauses contractuelles types, décision d&apos;adéquation)</li>
           </ul>
@@ -159,8 +159,8 @@ export default function Privacy() {
           </ul>
           <p className="mt-3">
             Pour exercer vos droits, contactez-nous à{' '}
-            <a href="mailto:dpo@getpatrimo.com" className="text-cobalt hover:underline">
-              dpo@getpatrimo.com
+            <a href="mailto:dpo@maisonpatrimo.com" className="text-cobalt hover:underline">
+              dpo@maisonpatrimo.com
             </a>{' '}
             [À COMPLÉTER] ou par courrier au siège social.
           </p>

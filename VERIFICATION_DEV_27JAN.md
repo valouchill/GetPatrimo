@@ -2,7 +2,7 @@
 
 ## Redémarrage effectué
 - **Build Next.js** : `npm run build` — OK (compilation réussie, ~21s)
-- **PM2** : `pm2 restart getpatrimo` — OK (processus en ligne)
+- **PM2** : `pm2 restart Maison Patrimo` — OK (processus en ligne)
 
 ## Routes et fonctionnalités pris en compte
 

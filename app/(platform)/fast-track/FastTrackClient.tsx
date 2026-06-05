@@ -26,7 +26,7 @@ export default function FastTrackClient() {
               Formulaire Éclair
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-              getpatrimo
+              Maison Patrimo
             </h1>
             <p className="text-slate-400 text-sm mt-1">
               Votre tableau de bord en moins de 15 secondes

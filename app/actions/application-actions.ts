@@ -225,7 +225,7 @@ export async function saveApplicationProgress(
     const passportBaseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXTAUTH_URL ||
-      'https://getpatrimo.com';
+      'https://maisonpatrimo.com';
     const passportView = buildPassportViewModel({
       application: {
         _id: application._id,

@@ -14,7 +14,7 @@ export default function CertificationScoreBar({ score, level }: CertificationSco
   const levelLabels = {
     incomplet: 'Profil incomplet',
     certifie: 'Dossier certifié',
-    excellence: 'Excellence getpatrimo',
+    excellence: 'Excellence Maison Patrimo',
   };
 
   const levelColors = {
@@ -28,7 +28,7 @@ export default function CertificationScoreBar({ score, level }: CertificationSco
       <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
         <span>Profil incomplet</span>
         <span>Dossier certifié</span>
-        <span>Excellence getpatrimo</span>
+        <span>Excellence Maison Patrimo</span>
       </div>
       
       <div className="h-2 bg-slate-100 rounded-full overflow-hidden relative">

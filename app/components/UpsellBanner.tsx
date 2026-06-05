@@ -33,7 +33,7 @@ export default function UpsellBanner({ passportSlug, candidateName }: UpsellBann
               </div>
               <div>
                 <p className="font-semibold text-white text-sm">
-                  Ce profil a été certifié par l&apos;IA getpatrimo.
+                  Ce profil a été certifié par l&apos;IA Maison Patrimo.
                 </p>
                 <p className="text-slate-400 text-xs mt-0.5">
                   Générez le bail, sécurisez le paiement et automatisez l&apos;état des lieux.

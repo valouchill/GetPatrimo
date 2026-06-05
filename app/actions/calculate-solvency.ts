@@ -6,7 +6,7 @@
  * SÉCURITÉ: Ce calcul doit être effectué côté serveur pour éviter que le locataire
  * ne puisse manipuler son grade en modifiant le loyer cible dans le navigateur.
  * 
- * @param totalCertifiedIncome - Revenu mensuel total certifié (extrait du Passeport getpatrimo)
+ * @param totalCertifiedIncome - Revenu mensuel total certifié (extrait du Passeport Maison Patrimo)
  * @param rentAmount - Montant du loyer de l'annonce du propriétaire
  * @param profile - Profil du locataire (STUDENT, SALARIED, INDEPENDENT, RETIRED)
  * @param guarantorIncome - Revenu mensuel du garant (optionnel)

@@ -113,7 +113,7 @@ export interface PassportTemplateV2Props {
   /** URL d'inscription owner (UTM-taggée) — CTA d'acquisition (fin d'annexe). */
   signupUrl: string;
 
-  /** Domaine pour le footer (ex: "getpatrimo.com") */
+  /** Domaine pour le footer (ex: "maisonpatrimo.com") */
   brandDomain: string;
 }
 
@@ -127,7 +127,7 @@ export const PASSPORT_V2_CSS = `
   margin: 14mm 15mm;
   background-color: #ffffff;
   @bottom-left {
-    content: var(--footer-left, "getpatrimo © 2026 • Document Confidentiel et Infalsifiable");
+    content: var(--footer-left, "Maison Patrimo © 2026 • Document Confidentiel et Infalsifiable");
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 7.5pt;
     color: #94a3b8;
@@ -152,7 +152,12 @@ h1, h2, h3 { font-family: Georgia, serif; color: #064e3b; margin-top: 0; }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .header { border-bottom: 2px solid #d97706; padding-bottom: 10px; margin-bottom: 20px; }
-.brand-name { font-size: 21pt; font-weight: bold; color: #064e3b; font-family: Georgia, serif; }
+.brand-lockup { display: inline-block; }
+.brand-seal { display: inline-block; vertical-align: middle; }
+.brand-wordmark { display: inline-block; vertical-align: middle; margin-left: 11px; }
+.brand-maison { display: block; font-size: 7pt; letter-spacing: 3.5px; text-transform: uppercase; color: #475569; font-weight: 600; line-height: 1; margin-bottom: 2px; }
+.brand-patrimo { display: block; font-size: 21pt; font-weight: bold; color: #064e3b; font-family: Georgia, serif; line-height: 0.85; letter-spacing: -0.3px; }
+.brand-patrimo--sm { font-size: 14pt; }
 .document-title { font-size: 8.5pt; color: #475569; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-top: 2px; }
 .header-meta { font-size: 8pt; color: #64748b; line-height: 1.6; }
 .header-candidate { font-size: 11pt; font-family: Georgia, serif; color: #064e3b; font-weight: bold; }
@@ -324,12 +329,12 @@ export function PassportTemplateV2({
     <html lang="fr">
       <head>
         <meta charSet="UTF-8" />
-        <title>Passeport Locatif Certifié — getpatrimo</title>
+        <title>Passeport Locatif Certifié — Maison Patrimo</title>
         <style dangerouslySetInnerHTML={{ __html: PASSPORT_V2_CSS }} />
       </head>
       <body
         style={{
-          ['--footer-left' as string]: `"${brandDomain.toUpperCase()} © 2026 • Document Confidentiel et Infalsifiable"`,
+          ['--footer-left' as string]: `"MAISON PATRIMO · ${brandDomain} © 2026 • Document Confidentiel et Infalsifiable"`,
           ['--footer-right' as string]: `"ID: ${passportId}"`,
         }}
       >
@@ -341,8 +346,20 @@ export function PassportTemplateV2({
             <tbody>
               <tr>
                 <td>
-                  <div className="brand-name">getpatrimo</div>
-                  <div className="document-title">Passeport Locatif Certifié</div>
+                  <span className="brand-lockup">
+                    <svg className="brand-seal" width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M50 10 L85 22 V50 C85 75 50 92 50 92 C50 92 15 75 15 50 V22 Z" fill="#064E3B" />
+                      <path d="M50 16 L79 26 V49 C79 70 50 84 50 84 C50 84 21 70 21 49 V26 Z" stroke="#F59E0B" strokeWidth="1.5" strokeOpacity="0.4" />
+                      <path d="M32 62 V36 L50 50 L68 36 V62" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M68 36 H74 C78 36 81 39 81 43 C81 47 78 50 74 50 H68" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="50" cy="74" r="3.5" fill="#F59E0B" />
+                    </svg>
+                    <span className="brand-wordmark">
+                      <span className="brand-maison">Maison</span>
+                      <span className="brand-patrimo">Patrimo</span>
+                    </span>
+                  </span>
+                  <div className="document-title" style={{ marginTop: '9px' }}>Passeport Locatif Certifié</div>
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
                   <div className="header-candidate">{candidate.fullName}</div>
@@ -543,9 +560,19 @@ export function PassportTemplateV2({
             <tbody>
               <tr>
                 <td>
-                  <div className="brand-name" style={{ fontSize: '15pt' }}>
-                    getpatrimo
-                  </div>
+                  <span className="brand-lockup">
+                    <svg className="brand-seal" width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M50 10 L85 22 V50 C85 75 50 92 50 92 C50 92 15 75 15 50 V22 Z" fill="#064E3B" />
+                      <path d="M50 16 L79 26 V49 C79 70 50 84 50 84 C50 84 21 70 21 49 V26 Z" stroke="#F59E0B" strokeWidth="1.5" strokeOpacity="0.4" />
+                      <path d="M32 62 V36 L50 50 L68 36 V62" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M68 36 H74 C78 36 81 39 81 43 C81 47 78 50 74 50 H68" stroke="#F59E0B" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <circle cx="50" cy="74" r="3.5" fill="#F59E0B" />
+                    </svg>
+                    <span className="brand-wordmark">
+                      <span className="brand-maison">Maison</span>
+                      <span className="brand-patrimo brand-patrimo--sm">Patrimo</span>
+                    </span>
+                  </span>
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
                   <span className="header-meta">{candidate.fullName} — Réf. {passportId}</span>

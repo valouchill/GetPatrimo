@@ -76,7 +76,7 @@ Tu dois retourner un JSON valide avec EXACTEMENT cette structure:
     "✓ Cinquième atout (localisation/transports)"
   ],
   "ad_paragraph": "Paragraphe de prestige, 3-4 phrases. Mentionne les matériaux visibles, les volumes, la lumière.",
-  "ad_full_standard": "Ton 'Discret & Prestigieux' (180-220 mots). Vocabulaire d'architecture d'intérieur. Ne dis jamais 'Bel appartement'. Décris les volumes sous Xm de plafond, les matériaux nobles visibles, la rénovation si récente. Termine par : 'Pour préserver la confidentialité des parties, ce bien est géré sous protocole getpatrimo.'",
+  "ad_full_standard": "Ton 'Discret & Prestigieux' (180-220 mots). Vocabulaire d'architecture d'intérieur. Ne dis jamais 'Bel appartement'. Décris les volumes sous Xm de plafond, les matériaux nobles visibles, la rénovation si récente. Termine par : 'Pour préserver la confidentialité des parties, ce bien est géré sous protocole Maison Patrimo.'",
   "ad_full_storytelling": "Ton 'Technique & Exhaustif' (180-220 mots). DPE, loi Carrez, charges détaillées, proximité transports/commerces, étage, ascenseur, exposition. Factuel et rassurant pour un locataire méthodique.",
   "ad_full_premium": "Ton 'Rapide & Direct' (80-120 mots). L'essentiel en phrases courtes. Type, surface, pièces, étage, DPE, loyer. Pour ceux qui n'ont pas le temps de lire.",
   "keywords": ["mot-clé SEO 1", "mot-clé 2", "mot-clé 3", "mot-clé 4", "mot-clé 5", "mot-clé 6"],

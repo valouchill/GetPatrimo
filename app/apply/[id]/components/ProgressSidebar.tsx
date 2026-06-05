@@ -112,7 +112,7 @@ export function ProgressSidebar({ profile, certifiedItems, uploadedFiles, score,
       <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
         <p className="text-[9px] text-slate-500 flex items-center gap-1.5">
           <Lock className="h-3 w-3" aria-hidden="true" />
-          <span>Données cryptées AES-256 • Secret professionnel getpatrimo</span>
+          <span>Données cryptées AES-256 • Secret professionnel Maison Patrimo</span>
         </p>
       </div>
 

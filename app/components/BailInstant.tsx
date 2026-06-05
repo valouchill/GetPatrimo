@@ -210,7 +210,7 @@ export default function BailInstant({
                 {tenant.trustAnalysis && (
                   <div className="pt-2 border-t border-slate-200">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-600">Score getpatrimo</span>
+                      <span className="text-slate-600">Score Maison Patrimo</span>
                       <span className={`font-bold ${
                         tenant.trustAnalysis.score >= 80 ? "text-emerald" :
                         tenant.trustAnalysis.score >= 60 ? "text-amber-500" :

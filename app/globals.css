@@ -32,7 +32,7 @@ body {
   word-break: break-word;
 }
 
-/* === GetPatrimo Apply Page Custom Styles === */
+/* === Maison Patrimo Apply Page Custom Styles === */
 .font-serif-display {
   font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
@@ -57,7 +57,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* Le dégradé signature getpatrimo */
+/* Le dégradé signature Maison Patrimo */
 .patrimo-gradient {
   background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #fbbf24 100%);
 }

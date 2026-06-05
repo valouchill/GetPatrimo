@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- getpatrimo Atelier v3 - 2026-02-23 - Property Architect + LBC Shield -->
+<!-- Maison Patrimo Atelier v3 - 2026-02-23 - Property Architect + LBC Shield -->
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>GetPatrimo — L'Ascension Patrimoniale</title>
+  <title>Maison Patrimo — L'Ascension Patrimoniale</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -3222,7 +3222,7 @@
       <div class="journey-brand">
         <div class="journey-brand-logo">🏛️</div>
         <div>
-          <div class="journey-brand-name">getpatrimo</div>
+          <div class="journey-brand-name">Maison Patrimo</div>
           <div class="journey-brand-tagline">L'Ascension Patrimoniale</div>
         </div>
       </div>
@@ -3719,7 +3719,7 @@
                     Lien de candidature
                   </div>
                   <div class="access-code-value">
-                    <code id="accessLink">getpatrimo.com/apply/abc123</code>
+                    <code id="accessLink">maisonpatrimo.com/apply/abc123</code>
                     <button class="access-code-copy" onclick="copyAccessLink()">
                       <i data-lucide="copy"></i>
                     </button>
@@ -4002,7 +4002,7 @@
           <div style="font-weight:600;font-size:14px;color:#92400E;margin-bottom:4px;">Des diagnostics manquants ?</div>
           <div style="font-size:12px;color:#A16207;">Notre conciergerie s'occupe de tout : prise de RDV, suivi, et dépôt dans votre coffre.</div>
         </div>
-        <button type="button" onclick="showToast('Demande envoyée à la Conciergerie getpatrimo !','success')" style="padding:12px 24px;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 4px 16px rgba(212,175,55,0.3);">
+        <button type="button" onclick="showToast('Demande envoyée à la Conciergerie Maison Patrimo !','success')" style="padding:12px 24px;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 4px 16px rgba(212,175,55,0.3);">
           <i data-lucide="concierge-bell" style="width:16px;height:16px;"></i>
           Déléguer à la Conciergerie
         </button>
@@ -4088,7 +4088,7 @@
   <div class="share-link-bar" id="shareLinkBar">
     <span class="share-link-text">Votre lien de candidature est prêt : </span>
     <div class="share-link-url">
-      <code id="shareLink">getpatrimo.com/apply/</code>
+      <code id="shareLink">maisonpatrimo.com/apply/</code>
     </div>
     <button class="share-link-copy" onclick="copyShareLink()">
       <i data-lucide="copy"></i>
@@ -4112,7 +4112,7 @@
     <div class="ai-expert-nudge-header">
       <div class="ai-expert-nudge-avatar">🤖</div>
       <div>
-        <div class="ai-expert-nudge-name">Expert getpatrimo</div>
+        <div class="ai-expert-nudge-name">Expert Maison Patrimo</div>
         <div class="ai-expert-nudge-role">Copilote de Patrimoine</div>
       </div>
     </div>
@@ -4140,7 +4140,7 @@
           <li>Amende jusqu'à 3 000 € par diagnostic manquant</li>
           <li>Annulation du bail par le locataire</li>
           <li>Non-couverture par votre assurance PNO</li>
-          <li>Inéligibilité à la garantie getpatrimo</li>
+          <li>Inéligibilité à la garantie Maison Patrimo</li>
         </ul>
       </div>
       <div class="skip-modal-actions">
@@ -4375,7 +4375,7 @@
                 <svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#D4AF37" opacity="0.9"/><path d="M9 12l2 2 4-4" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
               <div class="watermark-text-block">
-                <span class="watermark-text">Dossier Audité par getpatrimo</span>
+                <span class="watermark-text">Dossier Audité par Maison Patrimo</span>
                 <span class="watermark-sub">Réf. ${propRef}</span>
               </div>
             </div>
@@ -4404,7 +4404,7 @@
                 <i data-lucide="shield-check" style="width:10px;height:10px;"></i>
                 Certifié
               </div>
-              <div class="carte-logo">getpatrimo</div>
+              <div class="carte-logo">Maison Patrimo</div>
               <div class="carte-title">Carte de Confiance</div>
               <div class="carte-qr-wrapper" id="carteQrWrapper">
                 <img id="carteQrImage" width="120" height="120" style="display:block;border-radius:6px;" alt="QR Code"/>
@@ -4865,9 +4865,9 @@
         ? propertyInfo.address.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8)
         : 'bien' + Math.random().toString(36).slice(2, 6);
       
-      document.getElementById('accessLink').textContent = `getpatrimo.com/apply/${linkSlug}`;
+      document.getElementById('accessLink').textContent = `maisonpatrimo.com/apply/${linkSlug}`;
       document.getElementById('accessCode').textContent = uniqueCode;
-      document.getElementById('shareLink').textContent = `getpatrimo.com/apply/${linkSlug}`;
+      document.getElementById('shareLink').textContent = `maisonpatrimo.com/apply/${linkSlug}`;
       
       accessBlock.classList.remove('hidden');
       
@@ -4950,11 +4950,11 @@
         ? address.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8)
         : 'bien' + Math.random().toString(36).slice(2, 6);
       
-      document.getElementById('accessLink').textContent = `getpatrimo.com/apply/${linkSlug}`;
+      document.getElementById('accessLink').textContent = `maisonpatrimo.com/apply/${linkSlug}`;
       document.getElementById('accessCode').textContent = uniqueCode;
       
       // Update share link bar too
-      document.getElementById('shareLink').textContent = `getpatrimo.com/apply/${linkSlug}`;
+      document.getElementById('shareLink').textContent = `maisonpatrimo.com/apply/${linkSlug}`;
       
       // Show access codes block
       accessBlock.classList.remove('hidden');
@@ -5037,8 +5037,8 @@ ${aiAdContent.ad_full_standard}
 
 💰 ${rentLine}
 
-📋 Dossier certifié getpatrimo exigé
-🔗 Candidature : getpatrimo.com/apply/${slug}
+📋 Dossier certifié Maison Patrimo exigé
+🔗 Candidature : maisonpatrimo.com/apply/${slug}
 ${callToAction}`;
       } else {
         adTemplates.standard = `${headline}
@@ -5052,8 +5052,8 @@ ${highlightsText}
 ${(aiAdContent && aiAdContent.ad_paragraph) ? aiAdContent.ad_paragraph + '\n' : ''}
 💰 ${rentLine}
 
-📋 Dossier certifié getpatrimo exigé
-🔗 Candidature : getpatrimo.com/apply/${slug}`;
+📋 Dossier certifié Maison Patrimo exigé
+🔗 Candidature : maisonpatrimo.com/apply/${slug}`;
       }
 
       // ========== ANNONCE STORYTELLING ==========
@@ -5065,8 +5065,8 @@ ${(aiAdContent && aiAdContent.ad_paragraph) ? aiAdContent.ad_paragraph + '\n' : 
 ${extraLine ? extraLine + '\n' : ''}
 💰 ${rentLine}
 
-Dossier certifié getpatrimo bienvenu 💫
-🔗 getpatrimo.com/apply/${slug}`;
+Dossier certifié Maison Patrimo bienvenu 💫
+🔗 maisonpatrimo.com/apply/${slug}`;
       } else {
         const storyIntro = (aiAdContent && aiAdContent.ad_paragraph)
           ? aiAdContent.ad_paragraph
@@ -5081,8 +5081,8 @@ ${extraLine ? '\n' + extraLine : ''}
 
 ${rentLine} pour votre nouveau chez-vous.
 
-Dossier certifié getpatrimo bienvenu 💫
-🔗 getpatrimo.com/apply/${slug}`;
+Dossier certifié Maison Patrimo bienvenu 💫
+🔗 maisonpatrimo.com/apply/${slug}`;
       }
 
       // ========== ANNONCE TECHNIQUE / PREMIUM ==========
@@ -5133,7 +5133,7 @@ FINANCIER :
 • Dépôt de garantie : ${p.furnished === 'meuble' ? '2 mois' : '1 mois'}
 
 CANDIDATURE SÉCURISÉE :
-🔗 getpatrimo.com/apply/${slug}
+🔗 maisonpatrimo.com/apply/${slug}
 📱 Code : ${document.getElementById('accessCode')?.textContent || 'PTM-XXXX'}
 ${keywords ? '\n🏷️ ' + keywords : ''}
 ${hashtags}
@@ -5215,7 +5215,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const link = document.getElementById('shareLink').textContent;
       const url = link.startsWith('http') ? link : 'https://' + link;
       if (navigator.share) {
-        navigator.share({ title: 'Candidature via getpatrimo', url }).then(() => {
+        navigator.share({ title: 'Candidature via Maison Patrimo', url }).then(() => {
           showToast('Partage réussi', 'success');
         }).catch(() => {});
       } else {
@@ -5381,7 +5381,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
           
           // Update share link
           if(property.applyToken) {
-            document.getElementById('shareLink').textContent = `getpatrimo.com/apply/${property.applyToken.slice(0,8)}`;
+            document.getElementById('shareLink').textContent = `maisonpatrimo.com/apply/${property.applyToken.slice(0,8)}`;
           }
           
           // Update property form
@@ -5494,7 +5494,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
                     <div class="ai-verdict-header">
                       <div class="ai-verdict-icon">🤖</div>
                       <div>
-                        <div class="ai-verdict-title">Verdict de l'Expert getpatrimo</div>
+                        <div class="ai-verdict-title">Verdict de l'Expert Maison Patrimo</div>
                         <div class="ai-verdict-subtitle">Analyse automatique du dossier</div>
                       </div>
                     </div>
@@ -5653,7 +5653,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         return;
       }
       
-      const link = document.getElementById('accessLink')?.textContent || document.getElementById('shareLink')?.textContent || 'getpatrimo.com/apply';
+      const link = document.getElementById('accessLink')?.textContent || document.getElementById('shareLink')?.textContent || 'maisonpatrimo.com/apply';
       const url = link.startsWith('http') ? link : 'https://' + link;
       
       console.log('Generating QR code for URL:', url);
@@ -5837,12 +5837,12 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
           ctx.font = 'bold ' + titleSize + 'px Inter, Helvetica, Arial, sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText('Dossier Audité par getpatrimo', textX, h - bannerH + bannerH * 0.3, textMaxW);
+          ctx.fillText('Dossier Audité par Maison Patrimo', textX, h - bannerH + bannerH * 0.3, textMaxW);
           
           const subSize = Math.max(9, Math.min(15, Math.round(bannerH * 0.17)));
           ctx.fillStyle = 'rgba(255,255,255,0.7)';
           ctx.font = '500 ' + subSize + 'px Inter, Helvetica, Arial, sans-serif';
-          ctx.fillText('Candidature sécurisée via le Protocole getpatrimo', textX, h - bannerH + bannerH * 0.55, textMaxW);
+          ctx.fillText('Candidature sécurisée via le Protocole Maison Patrimo', textX, h - bannerH + bannerH * 0.55, textMaxW);
           
           const refSize = Math.max(10, Math.min(16, Math.round(bannerH * 0.19)));
           ctx.fillStyle = '#D4AF37';
@@ -5853,7 +5853,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
           const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
           const a = document.createElement('a');
           a.href = dataUrl;
-          a.download = 'photo-getpatrimo-' + (photoIndex + 1) + '.jpg';
+          a.download = 'photo-Maison Patrimo-' + (photoIndex + 1) + '.jpg';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -5874,7 +5874,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     
     // Obtenir l'URL de candidature
     function getApplyUrl() {
-      const link = document.getElementById('accessLink')?.textContent || document.getElementById('shareLink')?.textContent || 'getpatrimo.com/apply';
+      const link = document.getElementById('accessLink')?.textContent || document.getElementById('shareLink')?.textContent || 'maisonpatrimo.com/apply';
       return link.startsWith('http') ? link : 'https://' + link;
     }
     
@@ -5930,11 +5930,11 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       ctx.textAlign = 'left';
       ctx.fillText('✓ CERTIFIÉ', 84, 96);
       
-      // Logo getpatrimo
+      // Logo Maison Patrimo
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 72px Playfair Display, Georgia, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('getpatrimo', w/2, 180);
+      ctx.fillText('Maison Patrimo', w/2, 180);
       
       // Sous-titre
       ctx.font = '500 40px Inter, sans-serif';
@@ -5952,7 +5952,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       // Messages
       ctx.font = '400 28px Inter, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('Dossiers certifiés uniquement via getpatrimo', w/2, 350);
+      ctx.fillText('Dossiers certifiés uniquement via Maison Patrimo', w/2, 350);
       ctx.font = '500 26px Inter, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.fillText('Scannez le QR code pour candidater en toute sécurité', w/2, 395);
@@ -6083,7 +6083,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const ref = getPropertyRef();
       const el = document.getElementById('lbcSecureResponse');
       if(!el) return;
-      el.innerHTML = 'Bonjour,<br><br>Merci pour votre int\u00e9r\u00eat. Pour pr\u00e9server la confidentialit\u00e9 des parties et la s\u00e9curit\u00e9 des donn\u00e9es, ce bien est g\u00e9r\u00e9 sous <strong>Protocole getpatrimo</strong>.<br><br>Les dossiers sont consult\u00e9s exclusivement via notre portail certifi\u00e9. Je vous envoie votre Carte d\u2019Acc\u00e8s Num\u00e9rique pour d\u00e9poser votre candidature en toute s\u00e9curit\u00e9.<br><br><strong>R\u00e9f\u00e9rence Bien : ' + ref + '</strong><br><br>Cordialement.';
+      el.innerHTML = 'Bonjour,<br><br>Merci pour votre int\u00e9r\u00eat. Pour pr\u00e9server la confidentialit\u00e9 des parties et la s\u00e9curit\u00e9 des donn\u00e9es, ce bien est g\u00e9r\u00e9 sous <strong>Protocole Maison Patrimo</strong>.<br><br>Les dossiers sont consult\u00e9s exclusivement via notre portail certifi\u00e9. Je vous envoie votre Carte d\u2019Acc\u00e8s Num\u00e9rique pour d\u00e9poser votre candidature en toute s\u00e9curit\u00e9.<br><br><strong>R\u00e9f\u00e9rence Bien : ' + ref + '</strong><br><br>Cordialement.';
     }
     
     function getPropertyRef() {
@@ -6122,7 +6122,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       ctx.fillStyle = '#D4AF37';
       ctx.font = 'bold 36px Playfair Display, Georgia, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('getpatrimo\u2122', w/2, 70);
+      ctx.fillText('Maison Patrimo\u2122', w/2, 70);
       
       // Sous-titre
       ctx.fillStyle = '#94A3B8';
@@ -6136,7 +6136,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       // Texte principal
       ctx.fillStyle = '#E2E8F0';
       ctx.font = '500 20px Inter, sans-serif';
-      ctx.fillText('Candidature s\u00e9curis\u00e9e via le Protocole getpatrimo', w/2, 165);
+      ctx.fillText('Candidature s\u00e9curis\u00e9e via le Protocole Maison Patrimo', w/2, 165);
       
       // R\u00e9f\u00e9rence
       ctx.fillStyle = '#D4AF37';
@@ -6170,7 +6170,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
           
           const a = document.createElement('a');
           a.href = canvas.toDataURL('image/png');
-          a.download = 'Carte-Acces-getpatrimo.png';
+          a.download = 'Carte-Acces-Maison Patrimo.png';
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
           showToast('Carte d\u2019Acc\u00e8s t\u00e9l\u00e9charg\u00e9e !', 'success');
         }
@@ -6384,7 +6384,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const phone = (document.getElementById('phoneInput')?.value || '').trim();
       if(!phone) { showToast('Entrez un numéro de téléphone.', 'warning'); return; }
       const url = getApplyUrl();
-      const body = encodeURIComponent('Votre Carte de Confiance getpatrimo est prête. Accédez à votre dossier : ' + url);
+      const body = encodeURIComponent('Votre Carte de Confiance Maison Patrimo est prête. Accédez à votre dossier : ' + url);
       window.open('sms:' + phone + '?body=' + body, '_blank');
       showToast('SMS préparé !', 'success');
     }
@@ -6393,7 +6393,7 @@ REF: PT-2026-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
       const phone = (document.getElementById('phoneInput')?.value || '').replace(/\s/g, '').replace(/^0/, '33');
       if(!phone) { showToast('Entrez un numéro de téléphone.', 'warning'); return; }
       const url = getApplyUrl();
-      const text = encodeURIComponent('Votre Carte de Confiance getpatrimo — Accédez à votre dossier sécurisé : ' + url);
+      const text = encodeURIComponent('Votre Carte de Confiance Maison Patrimo — Accédez à votre dossier sécurisé : ' + url);
       window.open('https://wa.me/' + phone + '?text=' + text, '_blank');
       showToast('WhatsApp ouvert !', 'success');
     }

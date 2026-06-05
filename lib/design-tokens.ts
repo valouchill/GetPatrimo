@@ -1,5 +1,5 @@
 /**
- * getpatrimo — Design Tokens (TypeScript)
+ * Maison Patrimo — Design Tokens (TypeScript)
  *
  * Source unique de vérité pour les composants TypeScript qui ont besoin
  * d'accéder aux tokens (animations, calculs, génération SVG, etc.).

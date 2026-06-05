@@ -73,7 +73,7 @@ function collectFacts(result = {}, forensic = {}) {
 
 /* ─────────────────────────────  Prompt (JSON-only)  ───────────────────────────── */
 
-const SYSTEM_PROMPT = `Tu es le SUPERVISEUR documentaire de getpatrimo (location haut de gamme, façon banque privée).
+const SYSTEM_PROMPT = `Tu es le SUPERVISEUR documentaire de Maison Patrimo (location haut de gamme, façon banque privée).
 On te transmet UNIQUEMENT des données DÉJÀ EXTRAITES (JSON) — aucune image, aucun PDF.
 Ces chiffres viennent d'un OCR déterministe : tu NE les réécris PAS et tu NE les recalcules PAS
 depuis une image ; tu VÉRIFIES leur cohérence interne et tu CONSEILLES.

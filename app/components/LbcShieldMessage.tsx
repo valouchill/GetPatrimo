@@ -10,11 +10,11 @@ interface LbcShieldMessageProps {
 function buildMessage(code: string): string {
   return `Bonjour,
 
-Face au très grand nombre de demandes pour ce bien, j'ai mandaté le protocole getpatrimo pour sécuriser la collecte et l'audit des dossiers.
+Face au très grand nombre de demandes pour ce bien, j'ai mandaté le protocole Maison Patrimo pour sécuriser la collecte et l'audit des dossiers.
 
 Pourriez-vous certifier votre profil en 3 minutes sur leur portail ?
 
-Rendez-vous sur le site : getpatrimo . fr / acces (sans les espaces)
+Rendez-vous sur le site : Maison Patrimo . fr / acces (sans les espaces)
 Et saisissez mon Code Privilège : ❖ ${code} ❖
 
 Votre dossier sera chiffré et je serai notifié immédiatement de votre score. Merci d'avance.`;

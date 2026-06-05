@@ -113,7 +113,7 @@ export default function SuccessClient({
       const objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = `Passeport_GetPatrimo_${passport?.hero.fullName || 'Dossier'}.pdf`;
+      link.download = `Passeport_MaisonPatrimo_${passport?.hero.fullName || 'Dossier'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

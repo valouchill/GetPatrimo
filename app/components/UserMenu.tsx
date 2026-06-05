@@ -16,7 +16,7 @@ function getInitials(name: string) {
 }
 
 export default function UserMenu({
-  name = "Utilisateur GetPatrimo",
+  name = "Utilisateur Maison Patrimo",
   plan = "Plan Prestige",
 }: UserMenuProps) {
   const [open, setOpen] = useState(false);

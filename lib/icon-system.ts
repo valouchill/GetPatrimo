@@ -1,5 +1,5 @@
 /**
- * getpatrimo — Icon System
+ * Maison Patrimo — Icon System
  *
  * Mappers centralisés des icônes Lucide pour les différents états métier :
  *  - ICON_BY_STATUS : statut document (CERTIFIED, ANALYZING, REJECTED…)

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * <SuperAdminDashboard> — Cockpit de pilotage du fondateur getpatrimo.
+ * <SuperAdminDashboard> — Cockpit de pilotage du fondateur Maison Patrimo.
  *
  * Surface SOMBRE « Data Center / Cockpit » (bg-slate-950) centrée sur l'ÉCONOMIE
  * UNITAIRE : revenus vs coûts API, marge brute IA, coût par dossier (< overage).

@@ -1,14 +1,14 @@
 /**
- * Templates email HTML pour getpatrimo
+ * Templates email HTML pour Maison Patrimo
  *
  * Utilise un layout commun responsive + branded.
  * Chaque template retourne { subject, html, text }.
  */
 
-const APP_NAME = 'getpatrimo';
-const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://getpatrimo.com';
+const APP_NAME = 'Maison Patrimo';
+const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://maisonpatrimo.com';
 const BRAND_COLOR = '#064E3B';
-const SUPPORT_EMAIL = process.env.MAIL_REPLY_TO || 'contact@getpatrimo.com';
+const SUPPORT_EMAIL = process.env.MAIL_REPLY_TO || 'contact@maisonpatrimo.com';
 
 // ─── Layout wrapper ─────────────────────────────────────────────
 function layout(title, bodyContent) {

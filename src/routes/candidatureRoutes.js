@@ -37,7 +37,7 @@ router.patch('/:id/status', auth, updateCandidatureStatus);
 // Mettre à jour le statut shortlist (favori) d'une candidature
 router.patch('/:id/shortlist', auth, toggleShortlist);
 
-// Lance l'analyse getpatrimo
+// Lance l'analyse Maison Patrimo
 router.post('/:id/analyze-trust', auth, runTrustAnalysis);
 
 module.exports = router;

@@ -12,7 +12,7 @@ export interface SealCertificateProps {
 }
 
 /**
- * Cachet rotatif "Certifié getpatrimo" pour le Passeport Locatif public.
+ * Cachet rotatif "Certifié Maison Patrimo" pour le Passeport Locatif public.
  * Effet : SVG circulaire avec texte rotatif autour + Grade central.
  */
 export function SealCertificate({
@@ -34,7 +34,7 @@ export function SealCertificate({
 
   // Texte rotatif : on dessine un cercle invisible et on attache un textPath
   const circumference = 2 * Math.PI * radiusText;
-  const text = "CERTIFIÉ GETPATRIMO · IDENTITÉ VÉRIFIÉE · AUDIT FORENSIC · ";
+  const text = "CERTIFIÉ MAISON PATRIMO · IDENTITÉ VÉRIFIÉE · AUDIT FORENSIC · ";
   const repeats = Math.max(1, Math.floor(circumference / 200));
   const fullText = Array(repeats).fill(text).join("");
 
@@ -50,7 +50,7 @@ export function SealCertificate({
         viewBox={`0 0 ${size} ${size}`}
         className={spinning ? "animate-[spin_28s_linear_infinite]" : ""}
         role="img"
-        aria-label={`Cachet de certification getpatrimo ${METAL_LABELS[level]}`}
+        aria-label={`Cachet de certification Maison Patrimo ${METAL_LABELS[level]}`}
       >
         <defs>
           <path

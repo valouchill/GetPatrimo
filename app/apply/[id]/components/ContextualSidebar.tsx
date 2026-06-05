@@ -87,7 +87,7 @@ export function ContextualSidebar({
       if (!detectedProfile) {
         messages.push({
           type: 'info',
-          text: 'Déposez un premier document de revenu. L\'IA getpatrimo détectera automatiquement votre profil.',
+          text: 'Déposez un premier document de revenu. L\'IA Maison Patrimo détectera automatiquement votre profil.',
           delay: 0
         });
         messages.push({
@@ -154,7 +154,7 @@ export function ContextualSidebar({
       messages: [
         {
           type: 'success' as const,
-          text: `${userName}, votre dossier getpatrimo est prêt. Score final : ${score} points.`,
+          text: `${userName}, votre dossier Maison Patrimo est prêt. Score final : ${score} points.`,
           delay: 0
         },
         {
@@ -218,7 +218,7 @@ export function ContextualSidebar({
         </div>
         <div>
           <h4 className="text-xs font-bold text-navy">{content.title}</h4>
-          <p className="text-[9px] text-slate-400 uppercase tracking-wider">Expert getpatrimo</p>
+          <p className="text-[9px] text-slate-400 uppercase tracking-wider">Expert Maison Patrimo</p>
         </div>
       </div>
 

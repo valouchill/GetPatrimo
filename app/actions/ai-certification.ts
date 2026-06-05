@@ -2,7 +2,7 @@
 
 /**
  * Server Action pour l'analyse et certification de documents avec GPT-4o Vision
- * Système anti-fraude adaptatif pour GetPatrimo
+ * Système anti-fraude adaptatif pour Maison Patrimo
  */
 
 interface DocumentAnalysisResult {
@@ -49,7 +49,7 @@ function getAnalysisPrompt(candidateStatus?: string): string {
     ? `\n\nCONTEXTE CANDIDAT: Le candidat a déclaré être "${candidateStatus}". Vérifie la cohérence entre le profil déclaré et les documents fournis.`
     : '';
 
-  return `Tu es un expert en audit de documents locatifs pour GetPatrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
+  return `Tu es un expert en audit de documents locatifs pour Maison Patrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
 
 MISSION:
 1. Identifie précisément le type de document (CNI/Passeport, Bulletin de salaire, Avis de bourse CROUS, Attestation CAF/APL, Justificatif de pension alimentaire, Contrat de travail, Certificat de scolarité, etc.)

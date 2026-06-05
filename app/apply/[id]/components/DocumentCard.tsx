@@ -434,7 +434,7 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                 <Brain className="h-5 w-5 text-amber-700" aria-hidden="true" />
               </div>
               <div className="flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Expert getpatrimo</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Expert Maison Patrimo</p>
                 <p className="text-sm text-amber-900 leading-relaxed">
                   {file.humanReviewReason || file.improvementTip || file.errorMessage || 'Document partiellement analysé. Une petite amélioration et c\'est parfait !'}
                 </p>

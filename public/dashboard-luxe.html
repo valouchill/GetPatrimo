@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GetPatrimo — Copilote Intelligent</title>
+  <title>Maison Patrimo — Copilote Intelligent</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -1382,7 +1382,7 @@
           <button class="user-trigger" id="userTrigger">GP</button>
           <div class="user-dropdown" id="userDropdown">
             <div class="user-section">
-              <div class="user-name" id="userName">Utilisateur GetPatrimo</div>
+              <div class="user-name" id="userName">Utilisateur Maison Patrimo</div>
               <div class="user-plan" id="userPlan">Plan Prestige</div>
             </div>
             <div class="user-divider"></div>
@@ -1448,7 +1448,7 @@
           </svg>
         </div>
         <h2 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:600;color:var(--navy);margin-bottom:16px;letter-spacing:-0.02em">Votre patrimoine commence ici</h2>
-        <p style="font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 32px;line-height:1.6">Ajoutez votre premier bien pour activer l'analyse getpatrimo et gérez votre patrimoine locatif en toute simplicité.</p>
+        <p style="font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 32px;line-height:1.6">Ajoutez votre premier bien pour activer l'analyse Maison Patrimo et gérez votre patrimoine locatif en toute simplicité.</p>
         <button class="btn-primary" onclick="openCreatePropertySlideOver()">
           <i data-lucide="plus"></i>
           Ajouter mon premier bien
@@ -1575,7 +1575,7 @@
           throw new Error('Erreur profil');
         }
         const user = await res.json();
-        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Utilisateur GetPatrimo';
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Utilisateur Maison Patrimo';
         $('userName').textContent = fullName;
         const isPrestige = user.plan === 'PRO';
         $('userPlan').textContent = isPrestige ? 'Plan Prestige' : 'Plan Essentiel';
@@ -1932,7 +1932,7 @@
             <div class="section-header">
               <div>
                 <div class="section-title">Opportunités</div>
-                <div class="section-subtitle">${propCandidaturesAll.length} dossier${propCandidaturesAll.length > 1 ? 's' : ''} reçu${propCandidaturesAll.length > 1 ? 's' : ''} • Score moyen getpatrimo : ${avgScore}/100</div>
+                <div class="section-subtitle">${propCandidaturesAll.length} dossier${propCandidaturesAll.length > 1 ? 's' : ''} reçu${propCandidaturesAll.length > 1 ? 's' : ''} • Score moyen Maison Patrimo : ${avgScore}/100</div>
               </div>
               <div class="section-badge opportunity">En Recrutement</div>
             </div>

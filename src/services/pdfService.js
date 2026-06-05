@@ -311,7 +311,7 @@ async function generateLeasePdf(lease, property, candidature) {
       // === PIED DE PAGE ===
       const pageHeight = doc.page.height;
       doc.fillColor('#999').font('Helvetica').fontSize(8)
-        .text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} par GetPatrimo`, 50, pageHeight - 30, {
+        .text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} par Maison Patrimo`, 50, pageHeight - 30, {
           align: 'center',
           width: 495
         });
@@ -443,7 +443,7 @@ async function generateAnnexesPdf(diagnosticDocuments, property) {
       // === PIED DE PAGE ===
       const pageHeight = doc.page.height;
       doc.fillColor('#999').font('Helvetica').fontSize(8)
-        .text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} par GetPatrimo`, 50, pageHeight - 30, {
+        .text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} par Maison Patrimo`, 50, pageHeight - 30, {
           align: 'center',
           width: 495
         });

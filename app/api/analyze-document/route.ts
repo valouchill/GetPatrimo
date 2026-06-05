@@ -125,7 +125,7 @@ function getAnalysisSystemPrompt(isTextMode: boolean = false): string {
     ? 'Tu analyses le TEXTE extrait d\'un document PDF.'
     : 'Tu analyses une IMAGE de document.';
 
-  return `Tu es un expert en audit de documents locatifs pour GetPatrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
+  return `Tu es un expert en audit de documents locatifs pour Maison Patrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
 
 ${modeContext}
 

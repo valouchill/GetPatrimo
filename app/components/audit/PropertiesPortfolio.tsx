@@ -472,7 +472,7 @@ const DEMO_ASSETS: PortfolioAsset[] = [
     status: 'searching',
     statusLabel: 'En recherche',
     pendingApplications: 4,
-    sesameLink: 'https://getpatrimo.com/sesame/lyon-rep-14',
+    sesameLink: 'https://maisonpatrimo.com/sesame/lyon-rep-14',
   },
   {
     id: 'prop_2',
@@ -482,7 +482,7 @@ const DEMO_ASSETS: PortfolioAsset[] = [
     status: 'sealed',
     statusLabel: 'Sous scellé (Loué)',
     pendingApplications: 0,
-    sesameLink: 'https://getpatrimo.com/sesame/paris-foch-8',
+    sesameLink: 'https://maisonpatrimo.com/sesame/paris-foch-8',
   },
   {
     id: 'prop_3',
@@ -492,7 +492,7 @@ const DEMO_ASSETS: PortfolioAsset[] = [
     status: 'searching',
     statusLabel: 'En recherche',
     pendingApplications: 12,
-    sesameLink: 'https://getpatrimo.com/sesame/paris-male-12',
+    sesameLink: 'https://maisonpatrimo.com/sesame/paris-male-12',
   },
 ];
 

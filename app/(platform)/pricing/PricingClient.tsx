@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * <PricingClient> — Tableau tarifaire "Pay-per-Listing" getpatrimo.
+ * <PricingClient> — Tableau tarifaire "Pay-per-Listing" Maison Patrimo.
  *
  * Charte banque privée : émeraude + or, cartes aérées, offre PREMIUM
  * mise en avant. CTAs spécifiques par offre (cf. TIERS[*].cta).

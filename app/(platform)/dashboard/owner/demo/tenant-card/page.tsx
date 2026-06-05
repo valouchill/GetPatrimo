@@ -9,7 +9,7 @@
 import { TenantCardDemo } from '@/app/components/audit/TenantCard';
 
 export const metadata = {
-  title: 'Démo · TenantCard — getpatrimo',
+  title: 'Démo · TenantCard — Maison Patrimo',
 };
 
 export default function TenantCardDemoPage() {

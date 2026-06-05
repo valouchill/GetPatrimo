@@ -557,7 +557,7 @@ export default function AgentConciergeClient() {
           )}
         </motion.div>
         <p className="mt-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-          Expert getpatrimo
+          Expert Maison Patrimo
         </p>
       </div>
 

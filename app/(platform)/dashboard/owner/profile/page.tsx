@@ -443,7 +443,7 @@ export default function ProfilePage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `getpatrimo-export-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `Maison Patrimo-export-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
       }

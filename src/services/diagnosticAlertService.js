@@ -104,7 +104,7 @@ function generateExpiryAlertEmail(property, doc, expiryInfo) {
     <body>
       <div class="container">
         <div class="header">
-          <h1 style="margin: 0; font-size: 24px; font-weight: 300;">GetPatrimo</h1>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 300;">Maison Patrimo</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.9;">Alerte Diagnostic</p>
         </div>
         <div class="content">
@@ -131,7 +131,7 @@ function generateExpiryAlertEmail(property, doc, expiryInfo) {
           </a>
 
           <div class="footer">
-            <p>Cet email a été envoyé automatiquement par GetPatrimo pour vous informer de l'état de vos diagnostics.</p>
+            <p>Cet email a été envoyé automatiquement par Maison Patrimo pour vous informer de l'état de vos diagnostics.</p>
             <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
           </div>
         </div>

@@ -15,7 +15,7 @@ Le module BailInstant permet de générer automatiquement un bail de location et
 ### 2. Smart Fill Automatique
 Le système hérite automatiquement des données :
 - **Du Bien** : Adresse, loyer, charges via l'annonce
-- **Du Locataire** : Nom, prénom, email, téléphone, revenus via getpatrimo
+- **Du Locataire** : Nom, prénom, email, téléphone, revenus via Maison Patrimo
 - **Du Garant** : Si applicable, informations du garant
 
 ### 3. Sélecteur de Garantie Intelligent

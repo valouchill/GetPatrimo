@@ -169,7 +169,7 @@ export default function PassportLandingClient({ slug }: { slug: string }) {
       <div className="min-h-screen flex items-center justify-center bg-[#F6F2EA] p-6">
         <div className="max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
           <p className="font-semibold text-slate-900">Ce lien de passeport est invalide ou a expiré.</p>
-          <p className="mt-2 text-sm text-slate-500">Demandez au locataire de vous renvoyer son lien getpatrimo.</p>
+          <p className="mt-2 text-sm text-slate-500">Demandez au locataire de vous renvoyer son lien Maison Patrimo.</p>
         </div>
       </div>
     );
@@ -186,7 +186,7 @@ export default function PassportLandingClient({ slug }: { slug: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 shadow-sm">
               <ShieldCheck className="h-4 w-4 text-[#0F766E]" />
-              getpatrimo Passport
+              Maison Patrimo Passport
             </div>
             <StatusBadge
               tone={data.state === 'ready' ? 'success' : data.state === 'sealed' ? 'neutral' : data.state === 'review' ? 'info' : 'warning'}

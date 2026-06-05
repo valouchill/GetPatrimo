@@ -1,5 +1,5 @@
 /**
- * tiers.ts — Grille tarifaire "Pay-per-Listing" getpatrimo.
+ * tiers.ts — Grille tarifaire "Pay-per-Listing" Maison Patrimo.
  *
  * Source unique de vérité (client + serveur, AUCUNE dépendance serveur)
  * pour les offres par bien immobilier. Le suivi de quota se fait au niveau

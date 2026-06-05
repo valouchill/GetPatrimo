@@ -38,7 +38,7 @@
      ? `\n\nIDENTITÉ CERTIFIÉE DIDIT:\n- Nom: ${diditIdentity.lastName || 'N/A'}\n- Prénom: ${diditIdentity.firstName || 'N/A'}\n- Date de naissance: ${diditIdentity.birthDate || 'N/A'}\n- Human Verified: ${diditIdentity.humanVerified ? 'Oui' : 'Non'}\nVérifie la cohérence entre ces informations et le document.`
      : '';
  
-   return `Tu es un expert en audit de documents locatifs pour GetPatrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
+   return `Tu es un expert en audit de documents locatifs pour Maison Patrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
  
  MISSION:
  1. Identifie précisément le type de document (CNI/Passeport, Bulletin de salaire, Avis de bourse CROUS, Attestation CAF/APL, Justificatif de pension alimentaire, Contrat de travail, Certificat de scolarité, etc.)

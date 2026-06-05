@@ -128,7 +128,7 @@ export function verifyVisaleCertificate(
 }
 
 /**
- * Génère un message d'alerte pour l'Expert getpatrimo
+ * Génère un message d'alerte pour l'Expert Maison Patrimo
  */
 export function generateVisaleAlert(
   visaleData: VisaleData,

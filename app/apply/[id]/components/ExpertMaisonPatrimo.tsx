@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SparklesIcon, AlertTriangleIcon, CheckCircleIcon, LightbulbIcon } from './Icons';
 import { REQUIRED_DOCS_BY_PROFILE } from '../constants';
 
-// --- Expert getpatrimo: Conseiller IA Adaptatif ---
+// --- Expert Maison Patrimo: Conseiller IA Adaptatif ---
 export interface ExpertAdvice {
   message: string;
   action?: string;
@@ -13,7 +13,7 @@ export interface ExpertAdvice {
   icon: 'star' | 'warning' | 'tip' | 'success';
 }
 
-export interface ExpertGetPatrimoProps {
+export interface ExpertMaisonPatrimoProps {
   profile: 'Etudiant' | 'Salarie' | 'Independant';
   score: number;
   rentAmount?: number;
@@ -25,7 +25,7 @@ export interface ExpertGetPatrimoProps {
   hasFlaggedDocs: boolean;
 }
 
-export function ExpertGetPatrimo({
+export function ExpertMaisonPatrimo({
   profile,
   score,
   rentAmount = 0,
@@ -35,7 +35,7 @@ export function ExpertGetPatrimo({
   certifiedItems,
   userName,
   hasFlaggedDocs
-}: ExpertGetPatrimoProps) {
+}: ExpertMaisonPatrimoProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentAdviceIndex, setCurrentAdviceIndex] = useState(0);
 
@@ -277,7 +277,7 @@ export function ExpertGetPatrimo({
             <span className="text-white text-xs font-serif font-bold">EP</span>
           </div>
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Expert getpatrimo</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Expert Maison Patrimo</h4>
             <p className="text-[9px] text-slate-400">Conseiller dédié</p>
           </div>
         </div>

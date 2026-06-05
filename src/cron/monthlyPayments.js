@@ -157,7 +157,7 @@ async function sendLateReminders() {
       await sendEmail({
         to: payment.tenant.email,
         subject: `Rappel — Loyer ${periodLabel} en attente`,
-        text: `Bonjour ${tenantName},\n\nNous vous rappelons que le loyer de ${periodLabel} (${payment.amounts.totalTTC.toFixed(2)} €) n'a pas encore été confirmé.\n\nMerci de procéder au règlement dès que possible.\n\nCordialement,\ngetpatrimo`,
+        text: `Bonjour ${tenantName},\n\nNous vous rappelons que le loyer de ${periodLabel} (${payment.amounts.totalTTC.toFixed(2)} €) n'a pas encore été confirmé.\n\nMerci de procéder au règlement dès que possible.\n\nCordialement,\nMaison Patrimo`,
       });
 
       await Payment.findByIdAndUpdate(payment._id, {

@@ -10,7 +10,7 @@ const GEO_VALIDATION = process.env.GEO_VALIDATION !== '0';
 // Configuration Brevo SMTP
 const BREVO_USER = process.env.BREVO_USER;
 const BREVO_PASS = process.env.BREVO_PASS;
-const MAIL_FROM = process.env.MAIL_FROM || '"getpatrimo" <no-reply@getpatrimo.com>';
+const MAIL_FROM = process.env.MAIL_FROM || '"Maison Patrimo" <no-reply@maisonpatrimo.com>';
 
 // Configuration Admin
 const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || '');

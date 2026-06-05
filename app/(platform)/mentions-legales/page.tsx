@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Mentions légales — getpatrimo',
+  title: 'Mentions légales — Maison Patrimo',
 };
 
 export default function MentionsLegales() {
@@ -18,14 +18,14 @@ export default function MentionsLegales() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Éditeur du site</h2>
           <ul className="list-none space-y-1">
-            <li><strong>Raison sociale :</strong> GetPatrimo SAS [À COMPLÉTER]</li>
+            <li><strong>Raison sociale :</strong> Maison Patrimo SAS [À COMPLÉTER]</li>
             <li><strong>Forme juridique :</strong> Société par Actions Simplifiée (SAS) [À COMPLÉTER]</li>
             <li><strong>Capital social :</strong> [À COMPLÉTER] €</li>
             <li><strong>SIRET :</strong> [À COMPLÉTER]</li>
             <li><strong>RCS :</strong> [À COMPLÉTER]</li>
             <li><strong>Siège social :</strong> [À COMPLÉTER]</li>
             <li><strong>Directeur de la publication :</strong> [À COMPLÉTER]</li>
-            <li><strong>Email :</strong> contact@getpatrimo.com [À COMPLÉTER]</li>
+            <li><strong>Email :</strong> contact@maisonpatrimo.com [À COMPLÉTER]</li>
             <li><strong>Téléphone :</strong> [À COMPLÉTER]</li>
           </ul>
         </div>
@@ -43,7 +43,7 @@ export default function MentionsLegales() {
           <h2 className="text-lg font-semibold text-slate-900 mb-2">3. Propriété intellectuelle</h2>
           <p>
             L&apos;ensemble du contenu de ce site (textes, images, vidéos, graphismes, logo, icônes,
-            sons, logiciels, etc.) est la propriété exclusive de GetPatrimo SAS ou de ses partenaires,
+            sons, logiciels, etc.) est la propriété exclusive de Maison Patrimo SAS ou de ses partenaires,
             et est protégé par les lois françaises et internationales relatives à la propriété
             intellectuelle. Toute reproduction, représentation, modification, publication ou adaptation
             de tout ou partie des éléments du site est interdite sans autorisation écrite préalable.
@@ -75,7 +75,7 @@ export default function MentionsLegales() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">6. Limitation de responsabilité</h2>
           <p>
-            GetPatrimo SAS s&apos;efforce de fournir des informations exactes et à jour sur ce site.
+            Maison Patrimo SAS s&apos;efforce de fournir des informations exactes et à jour sur ce site.
             Toutefois, elle ne peut garantir l&apos;exactitude, la complétude ou l&apos;actualité des
             informations diffusées. L&apos;utilisateur est seul responsable de l&apos;utilisation qu&apos;il
             fait des informations et contenus disponibles sur le site.
