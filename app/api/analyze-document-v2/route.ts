@@ -329,69 +329,24 @@ export async function POST(request: NextRequest) {
     // Vérification Visale + sceau 2D-Doc
     if (result.document_metadata.type === 'CERTIFICAT_VISALE' && result.financial_data.extra_details?.visale) {
       const visaleData = result.financial_data.extra_details.visale;
-      if (images.length > 0) {
-        try {
-          const { verify2DDocSeal } = await import('@/app/utils/2d-doc-decoder');
-          let sealVerified = false;
-          for (const image of images) {
-            const verificationResult = await verify2DDocSeal(image, diditIdentity);
-            if (verificationResult.decoded && verificationResult.signatureValid) {
-              sealVerified = true;
-              const decodedData = verificationResult.data;
-              if (decodedData) {
-                visaleData.code_2d_doc = 'SCEAU_2D_DOC_DECODE';
-                visaleData.code_2d_doc_valide = true;
-                if (decodedData.numeroVisa && !visaleData.numero_visa) visaleData.numero_visa = decodedData.numeroVisa;
-                if (decodedData.dateEmission && !visaleData.date_validite) visaleData.date_validite = decodedData.dateEmission;
-                if (decodedData.loyerMaximumGaranti && !visaleData.loyer_maximum_garanti) visaleData.loyer_maximum_garanti = decodedData.loyerMaximumGaranti;
-                // Concordance d'identité inter-docs : surfacer le nom du titulaire
-                // scellé dans owner_name (sinon le certificat Visale est un angle mort).
-                if ((decodedData.nom || decodedData.prenom) && !result.document_metadata.owner_name) {
-                  result.document_metadata.owner_name = `${decodedData.prenom || ''} ${decodedData.nom || ''}`.trim();
-                }
-                if (verificationResult.signatureValid && verificationResult.matchesDiditIdentity) {
-                  result.trust_and_security.digital_seal_authenticated = true;
-                  result.trust_and_security.digital_seal_status = 'AUTHENTIFIÉ_PAR_SCELLEMENT_NUMÉRIQUE';
-                  result.trust_and_security.forensic_alerts.push('✅ AUTHENTIFIÉ PAR SCELLEMENT NUMÉRIQUE 2D-Doc');
-                  result.trust_and_security.fraud_score = Math.max(0, result.trust_and_security.fraud_score - 20);
-                  result.ai_analysis.expert_advice = `✅ Certificat Visale authentifié par sceau numérique. ${result.ai_analysis.expert_advice}`;
-                } else if (verificationResult.signatureValid && !verificationResult.matchesDiditIdentity) {
-                  result.trust_and_security.digital_seal_authenticated = false;
-                  result.trust_and_security.digital_seal_status = 'NOM_NON_CORRESPONDANT';
-                  result.trust_and_security.forensic_alerts.push('⚠️ Sceau 2D-Doc valide mais nom ne correspond pas à l\'identité Didit');
-                } else {
-                  result.trust_and_security.digital_seal_authenticated = false;
-                  result.trust_and_security.digital_seal_status = 'SIGNATURE_INVALIDE';
-                  result.trust_and_security.forensic_alerts.push('❌ Signature 2D-Doc invalide – Document suspect');
-                  result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 40);
-                }
-              }
-              break;
-            }
-          }
-          if (!sealVerified) {
-            // NEUTRE tant que la vérification cryptographique n'est pas opérationnelle :
-            // le décodeur actuel (jsQR) ne lit pas le DataMatrix des 2D-Doc, donc
-            // « non décodé » ≠ « falsifié ». On ne pénalise PLUS un Visale légitime.
-            // Le vrai signal (sceau décodé MAIS signature/recoupement invalide) sera
-            // ré-introduit avec Module C (lecteur DataMatrix + certificats publics).
-            result.trust_and_security.digital_seal_authenticated = false;
-            result.trust_and_security.digital_seal_status = 'NON_VERIFIE';
-            result.trust_and_security.forensic_alerts.push('ℹ️ Sceau 2D-Doc non vérifié (vérification cryptographique indisponible) — non bloquant.');
-          }
-        } catch (error) {
-          logger.error('Erreur décodage sceau 2D-Doc', { error: error instanceof Error ? error.message : error });
-          result.trust_and_security.forensic_alerts.push('⚠️ Erreur lors du décodage du sceau 2D-Doc');
+      // Le visa Visale ne porte PAS de sceau 2D-Doc : l'authenticité se vérifie sur
+      // visale.fr (n° de visa + nom du bénéficiaire) puis via la signature du contrat de
+      // cautionnement (« le visa seul ne constitue pas la garantie »). On automatise donc
+      // les seuls contrôles de cohérence (format du n°, validité, plafond ≥ loyer) et on
+      // guide le bailleur vers la vérification officielle. La concordance du NOM du
+      // bénéficiaire vs l'identité du dossier est gérée par le module de concordance.
+      try {
+        const { verifyVisaleCoherence } = await import('@/app/utils/visale-verification');
+        const coherence = verifyVisaleCoherence(visaleData, { rentAmount });
+        result.trust_and_security.digital_seal_authenticated = false;
+        result.trust_and_security.digital_seal_status = coherence.status;
+        if (coherence.alerts.length > 0) {
+          result.trust_and_security.forensic_alerts.push(...coherence.alerts);
+          result.ai_analysis.visale_alert = coherence.alerts[0];
         }
-      }
-
-      if (rentAmount && visaleData.loyer_maximum_garanti > 0) {
-        const { generateVisaleAlert } = await import('@/app/utils/visale-verification');
-        const alert = generateVisaleAlert(visaleData, rentAmount);
-        if (alert) {
-          result.ai_analysis.visale_alert = alert;
-          result.ai_analysis.expert_advice = `${result.ai_analysis.expert_advice} ${alert}`;
-        }
+        result.ai_analysis.expert_advice = `${coherence.advice} ${result.ai_analysis.expert_advice}`.trim();
+      } catch (error) {
+        logger.error('Erreur vérification cohérence Visale', { error: error instanceof Error ? error.message : error });
       }
     }
 
