@@ -45,7 +45,7 @@ import { ProgressSidebar } from './components/ProgressSidebar';
 import { SmartAdvice } from './components/SmartAdvice';
 import { SkipVerificationButton } from './components/SkipVerificationButton';
 import { PatrimoMeter } from './components/PatrimoMeter';
-import { ExpertPatrimoTrust } from './components/ExpertPatrimoTrust';
+import { ExpertGetPatrimo } from './components/ExpertGetPatrimo';
 import { ContextualSidebar } from './components/ContextualSidebar';
 import { ConsistencyGuardianModal } from './components/ConsistencyGuardianModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -626,7 +626,7 @@ export default function ApplyClient({ token }: { token: string }) {
     setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 4000);
   };
   
-  const [expertBubbleMessage, setExpertBubbleMessage] = useState<string>('Expert PatrimoTrust™ à votre service.');
+  const [expertBubbleMessage, setExpertBubbleMessage] = useState<string>('Expert getpatrimo à votre service.');
   // cockpitOpen supprimé — le cockpit est masqué sur mobile, toujours visible sur desktop
   
   // AI Feedback States
@@ -1688,7 +1688,7 @@ export default function ApplyClient({ token }: { token: string }) {
     if (score >= 85) return "Exceptionnel ! Votre dossier atteint un niveau de certification premium. Les propriétaires privilégient systématiquement ce type de profil.";
     if (score >= 70) return "Excellent ! Votre dossier est solide. Quelques documents supplémentaires vous placeraient en tête des candidatures.";
     if (score >= 50) return "Votre dossier progresse bien. Chaque document ajouté renforce significativement votre crédibilité.";
-    return "Commencez par les documents essentiels. L'IA PatrimoTrust™ vous guide vers une certification optimale.";
+    return "Commencez par les documents essentiels. L'IA getpatrimo vous guide vers une certification optimale.";
   };
 
   // --- Détecter le type de document par nom de fichier ---
@@ -2093,7 +2093,7 @@ export default function ApplyClient({ token }: { token: string }) {
         // Afficher un feedback immédiat
         setAiFeedback({
           visible: true,
-          message: `Analyse en cours de "${file.name}" par l'IA PatrimoTrust™...`,
+          message: `Analyse en cours de "${file.name}" par l'IA getpatrimo...`,
           type: 'info',
         });
 
@@ -2441,7 +2441,7 @@ export default function ApplyClient({ token }: { token: string }) {
           setCertifiedItems(prev => new Set([...prev, finalDetectedItem.id]));
           triggerGoldenSeal(finalDetectedItem.label);
           setExpertBubbleMessage('Parfait ! Votre solvabilité est renforcée de 15 points.');
-          setTimeout(() => setExpertBubbleMessage('Expert PatrimoTrust™ à votre service.'), 5000);
+          setTimeout(() => setExpertBubbleMessage('Expert getpatrimo à votre service.'), 5000);
           
           // Message de succès avec augmentation du score
           const scoreIncrease = Math.floor(finalConfidenceScore / 10);
@@ -3105,7 +3105,7 @@ export default function ApplyClient({ token }: { token: string }) {
 
             {/* Paragraphe de rassurance */}
             <p className="text-slate-600 text-sm leading-relaxed text-center mb-8">
-              Pour garantir un traitement équitable, le propriétaire utilise le protocole d&apos;Audit Forensic <span className="font-semibold text-emerald-700">PatrimoTrust™</span>. Préparez votre pièce d&apos;identité et vos justificatifs de revenus.
+              Pour garantir un traitement équitable, le propriétaire utilise le protocole d&apos;Audit Forensic <span className="font-semibold text-emerald-700">getpatrimo</span>. Préparez votre pièce d&apos;identité et vos justificatifs de revenus.
             </p>
 
             {/* Badges de confiance */}
@@ -3258,7 +3258,7 @@ export default function ApplyClient({ token }: { token: string }) {
               </div>
             </div>
             
-            {/* Score Circulaire + Badge PatrimoTrust */}
+            {/* Score Circulaire + Badge getpatrimo */}
             <div className="flex items-center gap-4">
               {/* Mini Score Circulaire - Style Crystal */}
               <motion.div 
@@ -3308,10 +3308,10 @@ export default function ApplyClient({ token }: { token: string }) {
                 </motion.span>
               </motion.div>
               
-              {/* Badge PatrimoTrust */}
+              {/* Badge getpatrimo */}
               <div className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
                 <LockIcon className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-[0.12em]">PatrimoTrust™</span>
+                <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-[0.12em]">getpatrimo</span>
               </div>
             </div>
           </div>
@@ -3585,7 +3585,7 @@ export default function ApplyClient({ token }: { token: string }) {
                     {/* Bouton Magistral - visible seulement si pas encore lancé */}
                     {diditStatus === 'idle' && (
                       <>
-                        {/* Post-Onboarding Nudge - Bulle Expert PatrimoTrust */}
+                        {/* Post-Onboarding Nudge - Bulle Expert getpatrimo */}
                         <AnimatePresence>
                           {showPostOnboardingNudge && (
                             <motion.div
@@ -3602,7 +3602,7 @@ export default function ApplyClient({ token }: { token: string }) {
                                     <span className="text-white text-lg">🤖</span>
                                   </div>
                                   <div>
-                                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Expert PatrimoTrust™</p>
+                                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Expert getpatrimo</p>
                                     <p className="text-[10px] text-slate-400">L&apos;instant décisif</p>
                                   </div>
                                   <button
@@ -3713,7 +3713,7 @@ export default function ApplyClient({ token }: { token: string }) {
                         {/* Copywriting de Réassurance */}
                         <div className="max-w-md bg-gradient-to-br from-slate-50 to-white border border-slate-100 rounded-2xl p-6 shadow-sm">
                           <p className="text-sm text-slate-600 leading-relaxed">
-                            <span className="font-bold text-navy">PatrimoTrust™</span> s&apos;appuie sur la technologie <span className="font-bold text-emerald-600">Didit</span> pour certifier votre identité. <span className="font-semibold text-emerald-700">Zéro stockage de documents sensibles.</span> Certification souveraine instantanée.
+                            <span className="font-bold text-navy">GetPatrimo</span> s&apos;appuie sur la technologie <span className="font-bold text-emerald-600">Didit</span> pour certifier votre identité. <span className="font-semibold text-emerald-700">Zéro stockage de documents sensibles.</span> Certification souveraine instantanée.
                           </p>
                           <div className="mt-4 flex items-center justify-center gap-6 text-xs text-slate-400">
                             <div className="flex items-center gap-1.5">
@@ -3729,7 +3729,7 @@ export default function ApplyClient({ token }: { token: string }) {
                           </div>
                           {/* Mention RGPD */}
                           <p className="mt-4 text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3">
-                            🔒 Protocole conforme RGPD : PatrimoTrust ne stocke pas votre pièce d&apos;identité.
+                            🔒 Protocole conforme RGPD : GetPatrimo ne stocke pas votre pièce d&apos;identité.
                           </p>
                         </div>
 
@@ -3886,7 +3886,7 @@ export default function ApplyClient({ token }: { token: string }) {
                               <span className="text-lg">🧠</span>
                             </div>
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Expert PatrimoTrust</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Expert getpatrimo</p>
                               <p className="text-slate-700 text-sm leading-relaxed">
                                 Excellent début, <strong>{formData.firstName || diditIdentity?.firstName || 'Locataire'}</strong>. Votre identité est scellée. Indiquez votre téléphone pour que le propriétaire puisse vous joindre facilement après l&apos;audit de votre dossier.
                               </p>
@@ -4181,7 +4181,7 @@ export default function ApplyClient({ token }: { token: string }) {
                       <SparklesIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Expert PatrimoTrust</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Expert getpatrimo</p>
                       <p className="text-sm text-slate-600">{expertBubbleMessage}</p>
                     </div>
                   </div>
@@ -4191,7 +4191,7 @@ export default function ApplyClient({ token }: { token: string }) {
                     <div className="mt-4">
                       <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                         <span>Analyse IA en cours...</span>
-                        <span>PatrimoTrust™</span>
+                        <span>getpatrimo</span>
                       </div>
                       <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                         <motion.div
@@ -4491,7 +4491,7 @@ export default function ApplyClient({ token }: { token: string }) {
                           <h3 className="text-xl font-serif text-navy">Votre Bouclier de Garantie</h3>
                           <p className="text-sm text-emerald-700 font-medium flex items-center gap-2">
                             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Certifié par Audit PatrimoTrust
+                            Certifié par Audit getpatrimo
                           </p>
                         </div>
                       </div>
@@ -4549,7 +4549,7 @@ export default function ApplyClient({ token }: { token: string }) {
                             <p className={`${guarantorCertificationMethod === 'DIDIT' ? 'text-emerald-800' : 'text-blue-800'} font-medium text-sm`}>
                               {guarantorCertificationMethod === 'DIDIT'
                                 ? '✅ Le garant 1 a certifié son identité via Didit. Vous pouvez maintenant déposer ses revenus, son activité et son domicile dans les blocs ci-dessous.'
-                                : '📋 Le garant 1 a passé l’audit documentaire PatrimoTrust. Les zones d’upload restent disponibles ci-dessous pour compléter son sous-score.'
+                                : '📋 Le garant 1 a passé l’audit documentaire getpatrimo. Les zones d’upload restent disponibles ci-dessous pour compléter son sous-score.'
                               }
                             </p>
                           </div>

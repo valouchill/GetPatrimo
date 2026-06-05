@@ -555,7 +555,7 @@ async function generateCandidatureInsight(candidature, property) {
     const warnings = [];
     
     if (scoring.total >= 70) {
-      strengths.push('Score PatrimoTrust élevé');
+      strengths.push('Score getpatrimo élevé');
     }
     if (scoring.ratio >= 3.0) {
       strengths.push('Ratio loyer/revenus excellent');
@@ -568,7 +568,7 @@ async function generateCandidatureInsight(candidature, property) {
     }
     
     if (scoring.total < 40) {
-      warnings.push('Score PatrimoTrust faible');
+      warnings.push('Score getpatrimo faible');
     }
     if (scoring.ratio < 2.5) {
       warnings.push('Ratio loyer/revenus fragile');
@@ -601,7 +601,7 @@ Analyse ce dossier candidature et génère un insight professionnel en français
 3. Un résumé en 1-2 phrases
 
 DONNÉES DU DOSSIER :
-- Score PatrimoTrust: ${scoring.total || 0}/100 (Grade: ${scoring.grade || 'N/A'})
+- Score getpatrimo: ${scoring.total || 0}/100 (Grade: ${scoring.grade || 'N/A'})
 - Ratio loyer/revenus: ${ratio.toFixed(2)}
 - Revenus nets mensuels: ${income.toFixed(2)}€
 - Loyer + charges: ${(rent + charges).toFixed(2)}€

@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Building2, User, ArrowLeft, ArrowRight, Shield, CheckCircle2, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Logo } from '@/app/components/Logo';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
 type Role = 'owner' | 'tenant';
@@ -212,15 +213,8 @@ export default function RegisterPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-sm font-bold group-hover:scale-105 transition-transform">
-              PT
-            </div>
-            <span
-              className="text-xl font-semibold text-slate-900 tracking-tight"
-            >
-              PatrimoTrust
-            </span>
+          <Link href="/" className="inline-flex items-center group">
+            <Logo className="h-10" />
           </Link>
         </div>
 

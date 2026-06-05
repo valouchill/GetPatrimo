@@ -49,7 +49,7 @@ async function fetchDocument(
 ): Promise<PublicDocumentResponse | null> {
   try {
     const hdrs = await headers();
-    const host = hdrs.get('host') || 'doc2loc.com';
+    const host = hdrs.get('host') || 'getpatrimo.com';
     const proto = hdrs.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
 
@@ -80,7 +80,7 @@ function getCategoryLabel(category?: string | null): string {
 }
 
 export const metadata = {
-  title: 'Document sécurisé — PatrimoTrust',
+  title: 'Document sécurisé — getpatrimo',
   description: 'Consultez un aperçu scellé et filigrané d’une pièce du passeport locataire.',
 };
 
@@ -121,7 +121,7 @@ export default async function PublicDocumentPage({
             </div>
             <div className="min-w-0">
               <p className="font-serif text-lg font-bold text-emerald-900">
-                PatrimoTrust
+                getpatrimo
               </p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Document locataire scellé
@@ -232,7 +232,7 @@ export default async function PublicDocumentPage({
             Document scellé · Toute consultation est tracée pour la sécurité du candidat
           </p>
           <p className="mt-1 font-semibold uppercase tracking-[0.18em]">
-            PatrimoTrust · doc2loc.com
+            getpatrimo · getpatrimo.com
           </p>
         </footer>
       </main>

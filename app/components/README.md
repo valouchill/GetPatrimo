@@ -1,6 +1,6 @@
-# Composant PatrimoTrustGauge
+# Composant GetPatrimoGauge
 
-Composant React Luxe-Tech pour afficher le score PatrimoTrust™ avec une jauge semi-circulaire animée.
+Composant React Luxe-Tech pour afficher le score getpatrimo avec une jauge semi-circulaire animée.
 
 ## Installation
 
@@ -12,11 +12,11 @@ Le composant utilise les dépendances suivantes (déjà installées dans le proj
 ## Utilisation
 
 ```tsx
-import PatrimoTrustGauge from "./components/PatrimoTrustGauge";
+import GetPatrimoGauge from "./components/GetPatrimoGauge";
 
 function MyComponent() {
   return (
-    <PatrimoTrustGauge 
+    <GetPatrimoGauge 
       score={85} 
       isLoading={false} 
     />
@@ -69,4 +69,4 @@ function MyComponent() {
 
 ## Exemple
 
-Voir `PatrimoTrustGauge.example.tsx` pour des exemples d'utilisation.
+Voir `GetPatrimoGauge.example.tsx` pour des exemples d'utilisation.

@@ -31,8 +31,8 @@ export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   await sendEmail({
     to: (tenant as any).email,
     subject: `Rappel : loyer en attente — ${periodLabel}`,
-    text: `Bonjour ${tenantName},\n\nVotre loyer pour ${periodLabel} reste en attente (${due.toFixed(2)} €).\n\nMerci de régulariser votre situation.\n\nCordialement,\nPatrimoTrust`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;"><p>Bonjour ${tenantName},</p><p>Votre loyer pour <strong>${periodLabel}</strong> reste en attente : <strong>${due.toFixed(2)} €</strong>.</p><p>Merci de régulariser votre situation.</p><p style="color:#64748B;font-size:13px;">PatrimoTrust</p></div>`,
+    text: `Bonjour ${tenantName},\n\nVotre loyer pour ${periodLabel} reste en attente (${due.toFixed(2)} €).\n\nMerci de régulariser votre situation.\n\nCordialement,\ngetpatrimo`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;"><p>Bonjour ${tenantName},</p><p>Votre loyer pour <strong>${periodLabel}</strong> reste en attente : <strong>${due.toFixed(2)} €</strong>.</p><p>Merci de régulariser votre situation.</p><p style="color:#64748B;font-size:13px;">getpatrimo</p></div>`,
   });
 
   await Payment.updateOne(

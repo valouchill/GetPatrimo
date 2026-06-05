@@ -40,7 +40,7 @@ export async function GET(
     const proto = request.headers.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL ||
       (host ? `${proto === 'https' ? 'https' : 'http'}://${host}` : '') ||
-      'https://doc2loc.com';
+      'https://getpatrimo.com';
 
     const passport = buildPassportViewModel({
       application: shouldTrack

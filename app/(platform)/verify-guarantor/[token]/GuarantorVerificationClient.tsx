@@ -48,7 +48,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
   const [verificationMode, setVerificationMode] = useState<VerificationMode>('choice');
   const [diditFailed, setDiditFailed] = useState(false);
   
-  // Audit PatrimoTrust
+  // Audit getpatrimo
   const [auditDocuments, setAuditDocuments] = useState<AuditDocument[]>([]);
   const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
   const [auditResult, setAuditResult] = useState<{
@@ -341,7 +341,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
             </h1>
             
             <p className="text-slate-600 text-lg max-w-lg mx-auto">
-              <strong>{guarantorInfo?.tenantName}</strong> a besoin de votre garantie pour sécuriser sa candidature PatrimoTrust™.
+              <strong>{guarantorInfo?.tenantName}</strong> a besoin de votre garantie pour sécuriser sa candidature getpatrimo.
             </p>
           </div>
 
@@ -358,7 +358,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                   <ExclamationTriangleIcon className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
                   <div>
                     <p className="text-amber-800 font-medium mb-2">
-                      🧠 Conseil de l&apos;Expert PatrimoTrust
+                      🧠 Conseil de l&apos;Expert getpatrimo
                     </p>
                     <p className="text-amber-700 text-sm leading-relaxed">
                       La certification instantanée Didit est temporairement indisponible. 
@@ -422,7 +422,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                     )}
                   </button>
 
-                  {/* Option Audit PatrimoTrust (Fallback) */}
+                  {/* Option Audit getpatrimo (Fallback) */}
                   <button
                     onClick={switchToAuditMode}
                     className="group overflow-hidden rounded-2xl border-2 border-slate-200 bg-white p-5 text-left transition-all hover:border-blue-300 hover:shadow-lg sm:p-8"
@@ -432,7 +432,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                         <DocumentMagnifyingGlassIcon className="w-8 h-8 text-blue-600" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Audit Documentaire PatrimoTrust</h3>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Audit Documentaire getpatrimo</h3>
                         <p className="mb-4 break-words text-sm text-slate-600">
                           Vérification par analyse croisée de vos documents officiels (CNI, avis d&apos;imposition).
                           <strong className="text-slate-800"> +30 points PatrimoMeter</strong>
@@ -499,7 +499,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
               </motion.div>
             )}
 
-            {/* Mode Audit PatrimoTrust */}
+            {/* Mode Audit getpatrimo */}
             {verificationMode === 'audit' && (
               <motion.div
                 key="audit"
@@ -513,7 +513,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                     <DocumentMagnifyingGlassIcon className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-slate-800">Audit Documentaire PatrimoTrust</h2>
+                    <h2 className="text-xl font-bold text-slate-800">Audit Documentaire getpatrimo</h2>
                     <p className="text-slate-500 text-sm">Vérification par analyse croisée des documents</p>
                   </div>
                 </div>
@@ -616,7 +616,7 @@ export default function GuarantorVerificationClient({ token }: { token: string }
                       ) : (
                         <>
                           <DocumentMagnifyingGlassIcon className="w-5 h-5" />
-                          <span>Lancer l&apos;Audit PatrimoTrust</span>
+                          <span>Lancer l&apos;Audit getpatrimo</span>
                         </>
                       )}
                     </button>

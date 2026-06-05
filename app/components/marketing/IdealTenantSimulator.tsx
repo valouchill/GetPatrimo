@@ -5,7 +5,7 @@
  *
  * Le visiteur saisit le loyer charges comprises de son bien (slider + champ).
  * Un mini-algorithme déterministe calcule, en temps réel, le « profil exigé »
- * par l'IA PatrimoTrust pour viser le statut PLATINUM, présenté comme un
+ * par l'IA getpatrimo pour viser le statut PLATINUM, présenté comme un
  * rapport financier haut de gamme. Conversion via CTA vers l'inscription.
  *
  * Règles (loyer = L) :
@@ -154,7 +154,7 @@ export default function IdealTenantSimulator() {
                   Rapport IA · profil exigé
                 </span>
                 <span className="font-serif text-xs font-semibold text-slate-400">
-                  PatrimoTrust™
+                  getpatrimo
                 </span>
               </div>
 
@@ -243,7 +243,7 @@ export default function IdealTenantSimulator() {
               />
             </Link>
             <p className="mt-3 text-center text-xs text-slate-400">
-              Simulation indicative. PatrimoTrust reste un outil d’aide à la décision.
+              Simulation indicative. GetPatrimo reste un outil d’aide à la décision.
             </p>
           </div>
         </motion.div>

@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import AccessCodeClient from './AccessCodeClient';
 
 export const metadata = {
-  title: 'Accéder à ma candidature · PatrimoTrust',
+  title: 'Accéder à ma candidature · getpatrimo',
   description:
     'Saisissez le code reçu de votre propriétaire pour déposer votre dossier locataire en toute sécurité.',
 };

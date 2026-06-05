@@ -123,7 +123,7 @@ export function OwnerShell({ children }: OwnerShellProps): React.ReactElement {
             </div>
             <div className="flex-1">
               <div className="font-serif text-base font-bold tracking-tight text-slate-950">
-                PatrimoTrust™
+                getpatrimo
               </div>
               <div className="mt-0.5 inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">
                 Propriétaire

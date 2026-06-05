@@ -33,7 +33,7 @@ import { ContractsSelector } from './ContractsSelector';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Baux & Contrats · PatrimoTrust',
+  title: 'Baux & Contrats · getpatrimo',
   description:
     'Préparez vos contrats de bail à partir des dossiers sélectionnés.',
 };

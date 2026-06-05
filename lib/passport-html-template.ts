@@ -109,7 +109,7 @@ export function buildPassportHtml({
   const rejectedCount = data.documentCoverage.counts.rejectedDocuments;
 
   // Marketing
-  const signupUrl = escapeHtml(ownerSignupUrl || data.marketing?.ownerSignupUrl || 'https://doc2loc.com/auth/register?role=owner');
+  const signupUrl = escapeHtml(ownerSignupUrl || data.marketing?.ownerSignupUrl || 'https://getpatrimo.com/auth/register?role=owner');
 
   // Verdict & forensic
   const auditStatus = data.documentCoverage.counts.rejectedDocuments === 0 && certifiedCount > 0
@@ -151,7 +151,7 @@ export function buildPassportHtml({
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Passeport Locatif Certifié - PatrimoTrust</title>
+    <title>Passeport Locatif Certifié - getpatrimo</title>
     <style>
         @page {
             size: A4;
@@ -164,7 +164,7 @@ export function buildPassportHtml({
                 color: #64748b;
             }
             @bottom-left {
-                content: "PatrimoTrust © 2026 • Document de Synthèse Confidentiel et Infalsifiable";
+                content: "getpatrimo © 2026 • Document de Synthèse Confidentiel et Infalsifiable";
                 font-family: 'Helvetica Neue', Arial, sans-serif;
                 font-size: 8pt;
                 color: #64748b;
@@ -395,7 +395,7 @@ export function buildPassportHtml({
         <table class="w-full">
             <tr>
                 <td>
-                    <div class="brand-name">PatrimoTrust</div>
+                    <div class="brand-name">getpatrimo</div>
                     <div class="document-title">Passeport Locatif Certifié</div>
                 </td>
                 <td style="text-align: right; vertical-align: middle;">
@@ -556,7 +556,7 @@ export function buildPassportHtml({
                 <td style="width: 75%; padding-right: 20px;">
                     <div class="marketing-title">${escapeHtml(MARKETING.ownerCta.title)}</div>
                     <div class="marketing-text">
-                        Ce Passeport Locatif a été généré via l'écosystème <strong>PatrimoTrust</strong>. Ne passez plus vos week-ends à trier des dossiers suspects ou à rédiger des baux complexes. Partagez votre lien <strong>Sésame</strong> unique sur LeBonCoin, laissez notre IA traquer la fraude pour vous, et contractualisez en 3 clics avec notre module de bail automatisé.
+                        Ce Passeport Locatif a été généré via l'écosystème <strong>getpatrimo</strong>. Ne passez plus vos week-ends à trier des dossiers suspects ou à rédiger des baux complexes. Partagez votre lien <strong>Sésame</strong> unique sur LeBonCoin, laissez notre IA traquer la fraude pour vous, et contractualisez en 3 clics avec notre module de bail automatisé.
                     </div>
                     <div>
                         <a href="${signupUrl}" class="marketing-button">${escapeHtml(MARKETING.ownerCta.primary)}</a>

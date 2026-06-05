@@ -21,7 +21,7 @@ test('extractPDFMetadata returns embedded PDF metadata', async () => {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.addPage([300, 200]);
   pdfDoc.setTitle('Bulletin de salaire');
-  pdfDoc.setAuthor('Doc2Loc');
+  pdfDoc.setAuthor('getpatrimo');
   pdfDoc.setCreator('PayFit');
   pdfDoc.setProducer('Adobe PDF Library');
   pdfDoc.setCreationDate(new Date('2025-01-15T10:00:00.000Z'));
@@ -31,7 +31,7 @@ test('extractPDFMetadata returns embedded PDF metadata', async () => {
   const metadata = await extractPDFMetadata(Buffer.from(bytes));
 
   assert.equal(metadata.title, 'Bulletin de salaire');
-  assert.equal(metadata.author, 'Doc2Loc');
+  assert.equal(metadata.author, 'getpatrimo');
   assert.equal(metadata.creator, 'PayFit');
   assert.equal(metadata.producer, 'Adobe PDF Library');
   assert.equal(metadata.pageCount, 1);

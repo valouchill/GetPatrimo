@@ -297,7 +297,7 @@
     .guarantor-badge{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
     .guarantor-badge.visale{background:#DBEAFE;color:#1E40AF}
     .guarantor-badge.physical{background:#E0E7FF;color:#3730A3}
-    .guarantor-badge.patrimotrust{background:linear-gradient(135deg,#D1FAE5,#A7F3D0);color:#065F46}
+    .guarantor-badge.getpatrimo{background:linear-gradient(135deg,#D1FAE5,#A7F3D0);color:#065F46}
     .guarantor-details{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .guarantor-detail{display:flex;flex-direction:column;gap:4px}
     .guarantor-detail-label{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:0.1em}
@@ -2581,7 +2581,7 @@
       .share-pad-copy-btn{width:100%;justify-content:center}
     }
     
-    /* PatrimoTrust™ Scan View */
+    /* getpatrimo Scan View */
     .slide-over-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:2000;display:none;opacity:0;transition:opacity 0.3s ease}
     .slide-over-backdrop.open{display:block;opacity:1}
     .slide-over{position:fixed;top:0;right:0;bottom:0;width:90%;max-width:1200px;background:var(--white);box-shadow:-10px 0 30px rgba(0,0,0,0.2);z-index:2001;transform:translateX(100%);transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);display:flex;flex-direction:column}
@@ -2591,7 +2591,7 @@
     .slide-over-docs{padding:32px;overflow-y:auto;border-right:1px solid var(--slate-border)}
     .slide-over-analysis{padding:32px;overflow-y:auto;background:var(--white)}
     
-    /* PatrimoTrust Score Badge */
+    /* getpatrimo Score Badge */
     .trust-score-badge{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--white);box-shadow:var(--shadow)}
     .trust-score-circle{transform:rotate(-90deg);width:100%;height:100%}
     .trust-score-circle circle{fill:none;stroke-width:4;stroke-linecap:round}
@@ -2599,7 +2599,7 @@
     .trust-score-value{stroke:var(--emerald);stroke-dasharray:176;stroke-dashoffset:176;transition:stroke-dashoffset 1s ease-out}
     .trust-score-text{position:absolute;font-size:18px;font-weight:700;color:var(--navy)}
     
-    /* PatrimoTrust Gauge - Jauge Semi-Circulaire Luxe-Tech */
+    /* getpatrimo Gauge - Jauge Semi-Circulaire Luxe-Tech */
     .patrimo-gauge-container{position:relative;width:280px;height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto}
     .patrimo-gauge-svg{overflow:visible}
     .patrimo-gauge-track{fill:none;stroke:rgb(51,65,85);stroke-width:16;stroke-opacity:0.15;stroke-linecap:round}
@@ -3021,7 +3021,7 @@
     </div>
   </div>
 
-  <!-- PatrimoTrust™ Scan View Slide-Over -->
+  <!-- getpatrimo Scan View Slide-Over -->
   <div id="scanBackdrop" class="slide-over-backdrop" onclick="closeScanView()"></div>
   <div id="scanSlideOver" class="slide-over">
     <div class="slide-over-header">
@@ -3042,16 +3042,16 @@
       
       <!-- Colonne Analyse -->
       <div class="slide-over-analysis">
-        <!-- Jauge PatrimoTrust™ -->
+        <!-- Jauge getpatrimo -->
         <div style="margin-bottom:32px;padding:24px;background:var(--slate-bg);border-radius:16px;text-align:center">
-          <div id="patrimoTrustGaugeContainer"></div>
+          <div id="getPatrimoGaugeContainer"></div>
         </div>
         
         <!-- AI Insight Box -->
         <div id="scanInsightBox" class="ai-insight-box">
           <div class="ai-insight-header">
             <i data-lucide="sparkles" style="width:20px;height:20px"></i>
-            <span>Analyse PatrimoTrust™</span>
+            <span>Analyse getpatrimo</span>
           </div>
           <div id="scanInsightText" style="font-size:14px;color:var(--text);line-height:1.6;position:relative;z-index:1">
             Analyse en attente...
@@ -3085,7 +3085,7 @@
       <div class="deep-analysis-header">
         <h2>
           <i data-lucide="scan-search" style="width:28px;height:28px"></i>
-          Analyse IA PatrimoTrust™
+          Analyse IA getpatrimo
         </h2>
         <button class="deep-analysis-close" onclick="closeDeepAnalysis()">
           <i data-lucide="x" style="width:24px;height:24px"></i>
@@ -3116,7 +3116,7 @@
           <div id="aiVerdictBlock" class="ai-verdict-block" style="display:none">
             <div class="ai-verdict-header">
               <i data-lucide="sparkles" class="ai-verdict-icon"></i>
-              <div class="ai-verdict-title">L'œil de PatrimoTrust™</div>
+              <div class="ai-verdict-title">L'œil de getpatrimo</div>
             </div>
             <div class="ai-verdict-content" id="aiVerdictContent">
               <!-- Contenu généré dynamiquement -->
@@ -4141,7 +4141,7 @@
                 ${integrity.auditStatus === 'sovereign' || integrity.auditStatus === 'verified' ? `
                   <div class="sovereign-top-certified">
                     <i data-lucide="shield-check"></i>
-                    Dossier certifié par l'IA PatrimoTrust™
+                    Dossier certifié par l'IA getpatrimo
                   </div>
                 ` : `
                   <div style="font-size:12px;color:#D97706;display:flex;align-items:center;gap:6px;margin-top:6px">
@@ -4197,7 +4197,7 @@
               <div class="expert-verdict-header">
                 <div class="expert-verdict-icon">🤖</div>
                 <div>
-                  <div class="expert-verdict-title">Avis de l'Expert PatrimoTrust™</div>
+                  <div class="expert-verdict-title">Avis de l'Expert getpatrimo</div>
                   <div class="expert-verdict-subtitle">Analyse automatisée du dossier</div>
                 </div>
               </div>
@@ -4242,7 +4242,7 @@
                     <i data-lucide="shield"></i>
                     Garantie Locative
                   </div>
-                  <span class="guarantor-badge ${cand.guarantorType === 'VISALE' ? 'visale' : 'patrimotrust'}">${cand.guarantorType || 'PatrimoTrust'}</span>
+                  <span class="guarantor-badge ${cand.guarantorType === 'VISALE' ? 'visale' : 'getpatrimo'}">${cand.guarantorType || 'getpatrimo'}</span>
                 </div>
                 <div class="guarantor-details">
                   <div class="guarantor-detail">
@@ -4284,7 +4284,7 @@
                 <div class="sovereign-top-metric-value">
                   🛡️ Éligible
                 </div>
-                <div class="sovereign-top-metric-sub">Garantie PatrimoTrust™</div>
+                <div class="sovereign-top-metric-sub">Garantie getpatrimo</div>
               </div>
             </div>
             
@@ -5069,7 +5069,7 @@
                 <div class="audit-verdict-header">
                   <div class="audit-verdict-icon">✨</div>
                   <div>
-                    <div class="audit-verdict-title">Verdict de l'Expert PatrimoTrust™</div>
+                    <div class="audit-verdict-title">Verdict de l'Expert getpatrimo</div>
                     <div class="audit-verdict-subtitle">Analyse certifiée par intelligence artificielle</div>
                   </div>
                 </div>
@@ -5090,7 +5090,7 @@
                         <div class="integrity-report-label">
                           ${fraudRisk.level === 'high' ? 'Rapport d\'Anomalies Critiques' : 'Points de Vigilance Détectés'}
                         </div>
-                        <div class="integrity-report-sublabel">Sentinelle d'Intégrité PatrimoTrust™</div>
+                        <div class="integrity-report-sublabel">Sentinelle d'Intégrité getpatrimo</div>
                       </div>
                     </div>
                     <div class="audit-ref">${fraudRisk.auditId}</div>
@@ -6505,7 +6505,7 @@
         <div class="vault-verdict">
           <div class="vault-verdict-header">
             <span class="vault-verdict-icon">✨</span>
-            <span class="vault-verdict-title">Verdict de l'Expert PatrimoTrust™</span>
+            <span class="vault-verdict-title">Verdict de l'Expert getpatrimo</span>
           </div>
           <div class="vault-verdict-text">"${expertVerdict}"</div>
         </div>
@@ -6702,7 +6702,7 @@
       
       // Generate watermark pattern
       const ownerName = 'PROPRIÉTAIRE'; // In production, use real owner name
-      const watermarkText = `CERTIFIÉ PATRIMOTRUST • CONSULTATION PAR ${ownerName} • NE PAS DIFFUSER • ${new Date().toLocaleDateString('fr-FR')}`;
+      const watermarkText = `CERTIFIÉ GETPATRIMO • CONSULTATION PAR ${ownerName} • NE PAS DIFFUSER • ${new Date().toLocaleDateString('fr-FR')}`;
       
       let watermarkHtml = '';
       for(let i = 0; i < 15; i++) {
@@ -7278,7 +7278,7 @@
           </div>
                 <div class="guarantee-card" data-guarantee="physique">
                   <div class="guarantee-title">Caution physique</div>
-                  <div class="guarantee-subtitle">Garant certifié PatrimoTrust™.</div>
+                  <div class="guarantee-subtitle">Garant certifié getpatrimo.</div>
             </div>
             </div>
               <div id="visaleFields" style="margin-top:12px">
@@ -7289,7 +7289,7 @@
             </div>
               <div id="guarantorCard" style="margin-top:12px;display:none">
                 <div class="guarantor-card">
-                  <div class="guarantor-badge"><i data-lucide="shield-check"></i> PatrimoTrust™ Certifié</div>
+                  <div class="guarantor-badge"><i data-lucide="shield-check"></i> getpatrimo Certifié</div>
                   <div class="studio-grid">
                     <div class="studio-field">
                       <label>Garant</label>
@@ -9185,7 +9185,7 @@
       const breakdown = currentDeepAnalysisCand.scoring?.breakdown || [];
       
       // Rendre la jauge
-      renderPatrimoTrustGauge(score, false, gaugeContainer);
+      renderGetPatrimoGauge(score, false, gaugeContainer);
       
       // Générer le verdict AI
       const verdict = generateAIVerdict(score, breakdown);
@@ -9302,9 +9302,9 @@
     loadProperty();
   </script>
   
-  <!-- PatrimoTrust™ Scan View Functions -->
+  <!-- getpatrimo Scan View Functions -->
   <script>
-    // ===== PATRIMOTRUST™ SCAN VIEW =====
+    // ===== GETPATRIMO SCAN VIEW =====
     let currentScanCand = null;
 
     async function openScanView(candId){
@@ -9350,13 +9350,13 @@
 
     async function triggerAnalysis(candId){
       const insightText = document.getElementById("scanInsightText");
-      if(insightText) insightText.textContent = "Analyse IA PatrimoTrust™ en cours... ⏳";
+      if(insightText) insightText.textContent = "Analyse IA getpatrimo en cours... ⏳";
       
       const r = await apiJson(`/api/candidatures/${candId}/analyze-trust`, { method: 'POST' });
       if(r.ok){
         currentScanCand.trustAnalysis = r.data;
         renderScanView(currentScanCand);
-        toast("Analyse PatrimoTrust™ terminée ✅", true);
+        toast("Analyse getpatrimo terminée ✅", true);
       } else {
         toast("Erreur lors de l'analyse", false);
       }
@@ -9380,8 +9380,8 @@
       if(phase1.workflowDecision) verdictBits.push(phase1.workflowDecision);
       document.getElementById("scanStatus").textContent = verdictBits.join(' • ');
       
-      // Rendre la jauge PatrimoTrust™ (version vanilla JS)
-      renderPatrimoTrustGauge(score, false);
+      // Rendre la jauge getpatrimo (version vanilla JS)
+      renderGetPatrimoGauge(score, false);
 
       // Documents
       const docsContainer = document.getElementById("scanDocsList");
@@ -9542,11 +9542,11 @@
     }
 
     /**
-     * PatrimoTrustGauge - Version JavaScript Vanilla
-     * Jauge semi-circulaire Luxe-Tech pour afficher le score PatrimoTrust™
+     * GetPatrimoGauge - Version JavaScript Vanilla
+     * Jauge semi-circulaire Luxe-Tech pour afficher le score getpatrimo
      */
-    function renderPatrimoTrustGauge(score, isLoading, containerElement) {
-      const container = containerElement || document.getElementById("patrimoTrustGaugeContainer");
+    function renderGetPatrimoGauge(score, isLoading, containerElement) {
+      const container = containerElement || document.getElementById("getPatrimoGaugeContainer");
       if (!container) return;
 
       // Dimensions
@@ -9606,7 +9606,7 @@
             <div class="patrimo-gauge-loading"></div>
           ` : `
             <div class="patrimo-gauge-score" id="patrimoGaugeScore">0</div>
-            <div class="patrimo-gauge-label">Score PatrimoTrust™</div>
+            <div class="patrimo-gauge-label">Score getpatrimo</div>
           `}
         </div>
       `;

@@ -1115,7 +1115,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                 Lien Sésame candidat
               </div>
               <p className="mb-4 text-sm leading-6 text-slate-600">
-                Partagez ce lien unique pour permettre aux candidats de déposer leur dossier directement sur ce bien. Chaque candidature est analysée automatiquement par l&apos;IA PatrimoTrust.
+                Partagez ce lien unique pour permettre aux candidats de déposer leur dossier directement sur ce bien. Chaque candidature est analysée automatiquement par l&apos;IA getpatrimo.
               </p>
               <code className="block break-all rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-sm text-slate-700 mb-4">
                 {typeof window !== 'undefined'

@@ -67,7 +67,7 @@ async function fetchDossier(
   try {
     // Construction de l'URL absolue côté server (Next.js Server Component)
     const hdrs = await headers();
-    const host = hdrs.get('host') || 'doc2loc.com';
+    const host = hdrs.get('host') || 'getpatrimo.com';
     const proto = hdrs.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
 
@@ -98,7 +98,7 @@ function getCategoryLabel(category: string): string {
 }
 
 export const metadata = {
-  title: 'Passeport Locatif — PatrimoTrust',
+  title: 'Passeport Locatif — getpatrimo',
   description:
     'Consultez les pièces sécurisées du dossier candidat. Inscription gratuite pour accéder à l\'intégralité.',
 };
@@ -145,7 +145,7 @@ export default async function PublicDossierPage({
             </div>
             <div className="min-w-0">
               <p className="font-serif text-lg font-bold text-emerald-900">
-                PatrimoTrust
+                getpatrimo
               </p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Passeport Locatif Certifié
@@ -285,7 +285,7 @@ export default async function PublicDossierPage({
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-emerald-100 sm:text-base">
               Plus de dossiers incomplets. Plus de pièces à vérifier
-              manuellement. Vos candidats passent par PatrimoTrust avant
+              manuellement. Vos candidats passent par getpatrimo avant
               d&apos;arriver sur votre bureau — vous ne consultez que les profils
               déjà notés, certifiés et scellés.
             </p>
@@ -311,7 +311,7 @@ export default async function PublicDossierPage({
             candidat
           </p>
           <p className="mt-1 font-semibold uppercase tracking-[0.18em]">
-            PatrimoTrust · doc2loc.com
+            getpatrimo · getpatrimo.com
           </p>
         </footer>
       </main>

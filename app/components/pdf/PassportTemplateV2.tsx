@@ -113,7 +113,7 @@ export interface PassportTemplateV2Props {
   /** URL d'inscription owner (UTM-taggée) — CTA d'acquisition (fin d'annexe). */
   signupUrl: string;
 
-  /** Domaine pour le footer (ex: "doc2loc.com") */
+  /** Domaine pour le footer (ex: "getpatrimo.com") */
   brandDomain: string;
 }
 
@@ -127,7 +127,7 @@ export const PASSPORT_V2_CSS = `
   margin: 14mm 15mm;
   background-color: #ffffff;
   @bottom-left {
-    content: var(--footer-left, "PatrimoTrust © 2026 • Document Confidentiel et Infalsifiable");
+    content: var(--footer-left, "getpatrimo © 2026 • Document Confidentiel et Infalsifiable");
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 7.5pt;
     color: #94a3b8;
@@ -324,7 +324,7 @@ export function PassportTemplateV2({
     <html lang="fr">
       <head>
         <meta charSet="UTF-8" />
-        <title>Passeport Locatif Certifié — PatrimoTrust</title>
+        <title>Passeport Locatif Certifié — getpatrimo</title>
         <style dangerouslySetInnerHTML={{ __html: PASSPORT_V2_CSS }} />
       </head>
       <body
@@ -341,7 +341,7 @@ export function PassportTemplateV2({
             <tbody>
               <tr>
                 <td>
-                  <div className="brand-name">PatrimoTrust</div>
+                  <div className="brand-name">getpatrimo</div>
                   <div className="document-title">Passeport Locatif Certifié</div>
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
@@ -544,7 +544,7 @@ export function PassportTemplateV2({
               <tr>
                 <td>
                   <div className="brand-name" style={{ fontSize: '15pt' }}>
-                    PatrimoTrust
+                    getpatrimo
                   </div>
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>

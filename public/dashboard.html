@@ -790,8 +790,8 @@
       // Détecte fraude
       const hasFraud = sc.total === 0 || (sc.alerts && sc.alerts.some(a => a.type === 'critical'));
       
-      // Badge PatrimoTrust™ si score >= 95%
-      const hasPatrimoTrust = total !== null && total >= 95;
+      // Badge getpatrimo si score >= 95%
+      const hasGetPatrimo = total !== null && total >= 95;
       
       // Charge le rapport de fiabilité
       let reliabilityReport = null;
@@ -808,7 +808,7 @@
         <div style="margin-bottom:24px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-size:18px;font-weight:700;color:var(--navy)">${esc(name)}</div>
-            ${hasPatrimoTrust ? '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:20px;font-size:12px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:16px;height:16px"></i><span>PatrimoTrust™</span></div>' : ''}
+            ${hasGetPatrimo ? '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:20px;font-size:12px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:16px;height:16px"></i><span>getpatrimo</span></div>' : ''}
           </div>
           <div style="font-size:14px;color:var(--muted);margin-bottom:4px">${esc(c.email||"—")}</div>
           <div style="font-size:13px;color:var(--muted)">${esc(c.propertyName||"Bien")} • ${esc(c.propertyAddress||"")}</div>
@@ -1173,7 +1173,7 @@
       $("candidaturesBody").innerHTML = candidatures.map(c => {
         const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
         const score = c.scoring?.total || 0;
-        const hasPatrimoTrust = score >= 95;
+        const hasGetPatrimo = score >= 95;
         const sc = c.scoring || {};
         const total = sc.total !== undefined ? sc.total : null;
         const grade = sc.grade || "—";
@@ -1203,7 +1203,7 @@
             <td>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                 ${total !== null ? `<span class="score-badge">${total}/100 (${esc(grade)})</span>` : "—"}
-                ${hasPatrimoTrust ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:12px;font-size:10px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:12px;height:12px"></i><span>PatrimoTrust™</span></span>' : ''}
+                ${hasGetPatrimo ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:12px;font-size:10px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:12px;height:12px"></i><span>getpatrimo</span></span>' : ''}
                 ${hasFraud ? '<span class="fraud-alert">🚩 Fraude</span>' : ''}
               </div>
             </td>

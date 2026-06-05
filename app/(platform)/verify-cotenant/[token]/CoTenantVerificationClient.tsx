@@ -110,7 +110,7 @@ export default function CoTenantVerificationClient({ token }: { token: string })
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-900">
             <ShieldCheck className="h-6 w-6 text-amber-400" aria-hidden="true" />
           </span>
-          <p className="mt-4 font-serif text-lg font-semibold text-emerald-900">PatrimoTrust™</p>
+          <p className="mt-4 font-serif text-lg font-semibold text-emerald-900">getpatrimo</p>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Colocation — Certification d’identité
           </p>
@@ -173,7 +173,7 @@ export default function CoTenantVerificationClient({ token }: { token: string })
             <div className="flex flex-col gap-5 text-center">
               <p className="text-sm leading-relaxed text-slate-600">
                 {fullName ? `Bonjour ${fullName}, vous` : 'Vous'} avez été invité(e) à rejoindre une{' '}
-                <span className="font-semibold text-emerald-900">colocation</span> sur PatrimoTrust™.
+                <span className="font-semibold text-emerald-900">colocation</span> sur getpatrimo.
                 Certifiez votre identité en moins de 30 secondes.
               </p>
               <ul className="mx-auto space-y-2 text-left text-sm text-slate-600">

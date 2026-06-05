@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * <LandingClient> — Landing Page officielle PatrimoTrust (V1).
+ * <LandingClient> — Landing Page officielle getpatrimo (V1).
  *
  * Objectif CRO : maximiser les inscriptions (création de lien gratuit).
  * Direction artistique : « Banque Privée de l'immobilier » — fonds clairs,
@@ -199,7 +199,7 @@ function DashboardMockup() {
           <span className="h-3 w-3 rounded-full bg-amber-300" />
           <span className="h-3 w-3 rounded-full bg-emerald-300" />
           <span className="ml-3 text-xs font-medium text-slate-400">
-            patrimotrust.fr · tableau de bord
+            getpatrimo.com · tableau de bord
           </span>
         </div>
 
@@ -542,7 +542,7 @@ export default function LandingClient() {
         <div className="mx-auto max-w-6xl">
           <Reveal className="mx-auto max-w-2xl text-center">
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-              Pourquoi PatrimoTrust
+              Pourquoi getpatrimo
             </span>
             <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900 sm:text-4xl md:text-5xl">
               Trois certitudes avant de signer.
@@ -598,7 +598,7 @@ export default function LandingClient() {
                 'Conforme à la réglementation en vigueur',
               ]}
             >
-              Une fois votre locataire choisi, PatrimoTrust génère un bail conforme
+              Une fois votre locataire choisi, getpatrimo génère un bail conforme
               à la norme ALUR, pré-rempli avec les données vérifiées du dossier.
               Plus de copier-coller, plus d’erreurs.
             </Pillar>
@@ -741,11 +741,11 @@ export default function LandingClient() {
                   <ShieldCheck className="h-5 w-5 text-amber-400" aria-hidden="true" />
                 </span>
                 <span className="font-serif text-lg font-semibold text-emerald-900">
-                  PatrimoTrust™
+                  getpatrimo
                 </span>
               </div>
               <p className="mt-4 text-sm leading-relaxed text-slate-500">
-                PatrimoTrust est un outil d’aide à la décision. Le propriétaire reste
+                GetPatrimo est un outil d’aide à la décision. Le propriétaire reste
                 seul décisionnaire de la sélection de son locataire.
               </p>
             </div>
@@ -781,7 +781,7 @@ export default function LandingClient() {
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-slate-100 pt-6 text-xs text-slate-400 sm:flex-row">
-            <p>© {new Date().getFullYear()} PatrimoTrust. Tous droits réservés.</p>
+            <p>© {new Date().getFullYear()} getpatrimo. Tous droits réservés.</p>
             <p className="flex items-center gap-1.5">
               <Lock className="h-3.5 w-3.5" aria-hidden="true" />
               Données chiffrées · Hébergement en France · RGPD

@@ -77,7 +77,7 @@ app.use(helmet({
 }));
 
 // --- Securite : CORS ---
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://doc2loc.com,https://www.doc2loc.com').split(',').map(s => s.trim());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://getpatrimo.com,https://www.getpatrimo.com').split(',').map(s => s.trim());
 app.use(cors({
   origin: function (origin, callback) {
     // Requêtes sans Origin (curl, server-to-server, mobile natif) :
@@ -867,7 +867,7 @@ app.post('/api/documents/email/:id', auth, async (req,res)=>{
     const pdfBuffer = await createPdfBuffer(p, t, u);
  
     await transporter.sendMail({
-      from: process.env.MAIL_FROM || '"Doc2Loc" <no-reply@doc2loc.com>',
+      from: process.env.MAIL_FROM || '"getpatrimo" <no-reply@getpatrimo.com>',
       to: t.email,
       subject: 'Quittance de loyer - ' + (p.name || ''),
       text: `Bonjour ${t.firstName||''},\n\nVeuillez trouver ci-joint votre quittance de loyer.\n\nCordialement,\n${u?.firstName || 'Votre Bailleur'}`,
@@ -1021,7 +1021,7 @@ app.post('/api/reminders/tenant/:tenantId', auth, async (req,res)=>{
     const text = `Bonjour ${t.firstName||''},\n\nPetit rappel concernant votre location${p?.name ? " (“"+p.name+"”)" : ""}.\n\nCordialement,\n${u?.firstName || 'Votre bailleur'}`;
  
     await transporter.sendMail({
-      from: process.env.MAIL_FROM || '"Doc2Loc" <no-reply@doc2loc.com>',
+      from: process.env.MAIL_FROM || '"getpatrimo" <no-reply@getpatrimo.com>',
       to, subject, text
     });
  

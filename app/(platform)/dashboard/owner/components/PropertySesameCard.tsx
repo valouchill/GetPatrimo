@@ -24,7 +24,7 @@ export interface PropertySesameCardProps {
 function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string): string | null {
   if (!applyToken) return null;
   const origin = baseUrl
-    || (typeof window !== "undefined" ? window.location.origin : "https://doc2loc.com");
+    || (typeof window !== "undefined" ? window.location.origin : "https://getpatrimo.com");
   return `${origin}/apply/${applyToken}`;
 }
 
@@ -37,7 +37,7 @@ function truncateMiddle(url: string, max = 56): string {
 
 /**
  * Card premium présentant les 2 démarches pour qu'un locataire dépose son
- * dossier sur PatrimoTrust :
+ * dossier sur getpatrimo :
  *   A — Partage du lien direct (LeBonCoin, WhatsApp, email)
  *   B — Code d'accès à saisir sur getpatrimo.com/acces
  *

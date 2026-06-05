@@ -220,7 +220,7 @@ const ApplicationSchema = new mongoose.Schema({
   ownerNotes: { type: String },
   pipelineStage: { type: String, enum: ['received', 'reviewing', 'shortlisted', 'selected'], default: 'received' },
 
-  // Passeport PatrimoTrust™ — partage viral (lien unique, QR, stats visibilité)
+  // Passeport getpatrimo — partage viral (lien unique, QR, stats visibilité)
   passportSlug: { type: String, sparse: true, unique: true, trim: true },
   passportViewCount: { type: Number, default: 0 },
   passportShareCount: { type: Number, default: 0 },

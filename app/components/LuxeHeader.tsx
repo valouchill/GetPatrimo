@@ -1,5 +1,6 @@
 import Link from "next/link";
 import UserMenu from "./UserMenu";
+import { Logo } from "./Logo";
 
 export default function LuxeHeader() {
   return (
@@ -7,9 +8,7 @@ export default function LuxeHeader() {
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="min-w-0 flex items-center gap-4">
           <div className="min-w-0 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-xs font-semibold text-white">
-              GP
-            </div>
+            <Logo className="h-9" />
             <nav className="hidden items-center gap-6 md:flex">
               <Link
                 href="/patrimoine"

@@ -169,7 +169,7 @@ function appendUtm(url, params) {
  * Tous les liens sont taggés `utm_source=passport_pdf` pour analytics.
  */
 function buildMarketingLinks({ baseUrl, slug, shareUrl, candidateFirstName, propertyName }) {
-  const base = getBaseUrl(baseUrl) || 'https://doc2loc.com';
+  const base = getBaseUrl(baseUrl) || 'https://getpatrimo.com';
   const utmBase = {
     utm_source: 'passport_pdf',
     utm_medium: 'pdf',

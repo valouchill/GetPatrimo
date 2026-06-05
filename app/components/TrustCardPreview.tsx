@@ -16,7 +16,7 @@ export default function TrustCardPreview({ applyUrl, privilegeCode }: TrustCardP
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shortDomain = 'doc2loc.com';
+  const shortDomain = 'getpatrimo.com';
   const shortPath = `/p/${privilegeCode}`;
   const shortLinkDisplay = `${shortDomain}${shortPath}`;
   const shortLinkFull = `https://${shortLinkDisplay}`;
@@ -40,7 +40,7 @@ export default function TrustCardPreview({ applyUrl, privilegeCode }: TrustCardP
         cacheBust: true,
       });
       const link = document.createElement('a');
-      link.download = `patrimotrust-acces-${privilegeCode}.png`;
+      link.download = `getpatrimo-acces-${privilegeCode}.png`;
       link.href = dataUrl;
       link.click();
     } catch (e) {
@@ -81,7 +81,7 @@ export default function TrustCardPreview({ applyUrl, privilegeCode }: TrustCardP
               className="text-amber-400/90 text-[10px] font-bold uppercase tracking-[0.25em]"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              PatrimoTrust™
+              getpatrimo
             </p>
             <p
               className="text-amber-400 text-sm font-semibold mt-0.5"

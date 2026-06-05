@@ -108,7 +108,7 @@ export async function sendCoTenantInvitation(params: {
     const initiatorName = initiator?.firstName && initiator?.lastName
       ? `${initiator.firstName} ${initiator.lastName}`
       : initiator?.email || 'Un colocataire';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://doc2loc.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://getpatrimo.com';
     const verificationUrl = `${baseUrl}/verify-cotenant/${invitationToken}`;
 
     const emailSent = await sendCoTenantInvitationEmail(
@@ -156,12 +156,12 @@ async function sendCoTenantInvitationEmail(
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;"><tr><td align="center">
     <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);">
       <tr><td style="padding:40px 40px 20px;text-align:center;border-bottom:2px solid #064E3B;">
-        <h1 style="margin:0;color:#064E3B;font-size:28px;font-weight:700;font-family:'Playfair Display',serif;">PatrimoTrust™</h1>
+        <h1 style="margin:0;color:#064E3B;font-size:28px;font-weight:700;font-family:'Playfair Display',serif;">getpatrimo</h1>
         <p style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;">Colocation — Certification d'identité</p>
       </td></tr>
       <tr><td style="padding:40px;">
         <p style="margin:0 0 20px;color:#0F172A;font-size:16px;line-height:1.6;">Bonjour ${coTenantName},</p>
-        <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.7;"><strong>${initiatorName}</strong> vous invite à rejoindre sa <strong>colocation</strong> sur PatrimoTrust™ et à certifier votre identité.</p>
+        <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.7;"><strong>${initiatorName}</strong> vous invite à rejoindre sa <strong>colocation</strong> sur getpatrimo et à certifier votre identité.</p>
         <p style="margin:0 0 30px;color:#334155;font-size:15px;line-height:1.7;">Cette vérification eIDAS (via Didit) prend moins de 30 secondes et renforce le dossier commun de la colocation auprès du propriétaire.</p>
         <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:30px 0;">
           <a href="${verificationUrl}" style="display:inline-block;padding:16px 40px;background:#064E3B;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase;">Certifier mon identité (Didit)</a>
@@ -169,17 +169,17 @@ async function sendCoTenantInvitationEmail(
         <p style="margin:20px 0 0;color:#64748b;font-size:12px;line-height:1.6;">Si vous n'êtes pas concerné par cette colocation, vous pouvez ignorer cet email.</p>
       </td></tr>
       <tr><td style="padding:30px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px;">
-        <p style="margin:0;color:#64748b;font-size:11px;text-align:center;line-height:1.6;">PatrimoTrust™ — Certification immobilière<br>Email envoyé à ${coTenantEmail}</p>
+        <p style="margin:0;color:#64748b;font-size:11px;text-align:center;line-height:1.6;">getpatrimo — Certification immobilière<br>Email envoyé à ${coTenantEmail}</p>
       </td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
 
     await transporter.sendMail({
-      from: `"PatrimoTrust™" <${process.env.BREVO_FROM_EMAIL || 'noreply@doc2loc.com'}>`,
+      from: `"getpatrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@getpatrimo.com'}>`,
       to: coTenantEmail,
-      subject: `Colocation PatrimoTrust™ — ${initiatorName} vous invite à certifier votre identité`,
-      text: `Bonjour ${coTenantName},\n\n${initiatorName} vous invite à rejoindre sa colocation sur PatrimoTrust™ et à certifier votre identité (eIDAS via Didit, < 30s).\n\nLien : ${verificationUrl}\n\nPatrimoTrust™`,
+      subject: `Colocation getpatrimo — ${initiatorName} vous invite à certifier votre identité`,
+      text: `Bonjour ${coTenantName},\n\n${initiatorName} vous invite à rejoindre sa colocation sur getpatrimo et à certifier votre identité (eIDAS via Didit, < 30s).\n\nLien : ${verificationUrl}\n\ngetpatrimo`,
       html: emailHtml,
     });
     return true;

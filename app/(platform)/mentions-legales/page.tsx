@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Mentions légales — PatrimoTrust',
+  title: 'Mentions légales — getpatrimo',
 };
 
 export default function MentionsLegales() {

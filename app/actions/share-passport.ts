@@ -61,7 +61,7 @@ export async function sharePassportByEmail(
     });
     
     // Construire l'URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://doc2loc.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://getpatrimo.com';
     const passportUrl = `${baseUrl}/p/${slug}`;
     const verifyUrl = passportUrl;
     
@@ -170,7 +170,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dossier de candidature certifié - PatrimoTrust™</title>
+  <title>Dossier de candidature certifié - getpatrimo</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -182,7 +182,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
           <tr>
             <td style="background: linear-gradient(135deg, #1A1A2E 0%, #0F172A 100%); padding: 40px; text-align: center;">
               <h1 style="margin: 0; color: #D4AF37; font-size: 28px; font-weight: 700; letter-spacing: 2px;">
-                PatrimoTrust™
+                getpatrimo
               </h1>
               <p style="margin: 10px 0 0; color: #94A3B8; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase;">
                 Standard de Confiance Immobilier
@@ -215,7 +215,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
               </p>
               
               <p style="margin: 0 0 30px; color: #334155; font-size: 15px; line-height: 1.7;">
-                Pour vous faire gagner un temps précieux et sécuriser votre mise en location, ce candidat a fait <strong>auditer son dossier par PatrimoTrust™</strong>, le standard de confiance immobilier.
+                Pour vous faire gagner un temps précieux et sécuriser votre mise en location, ce candidat a fait <strong>auditer son dossier par getpatrimo</strong>, le standard de confiance immobilier.
               </p>
               
               ${data.personalMessage ? `
@@ -295,7 +295,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
           <tr>
             <td style="padding: 30px 40px; background-color: #0F172A; text-align: center;">
               <p style="margin: 0 0 8px; color: #D4AF37; font-size: 14px; font-weight: 600;">
-                L'Expert PatrimoTrust™
+                L'Expert getpatrimo
               </p>
               <p style="margin: 0; color: #64748B; font-size: 12px; line-height: 1.6;">
                 La technologie au service de votre patrimoine
@@ -310,7 +310,7 @@ async function sendPassportShareEmail(data: EmailData): Promise<boolean> {
           <tr>
             <td style="padding: 0 20px; text-align: center;">
               <p style="margin: 0; color: #94A3B8; font-size: 11px; line-height: 1.6;">
-                Cet email vous a été envoyé par ${data.tenantName} via PatrimoTrust™.<br>
+                Cet email vous a été envoyé par ${data.tenantName} via getpatrimo.<br>
                 Vous recevez ce message car un candidat souhaite partager son dossier avec vous.
               </p>
             </td>
@@ -329,7 +329,7 @@ ${recipientGreeting}
 
 Vous avez reçu une candidature de la part de ${data.tenantName} pour votre bien immobilier.
 
-Pour vous faire gagner un temps précieux et sécuriser votre mise en location, ce candidat a fait auditer son dossier par PatrimoTrust™, le standard de confiance immobilier.
+Pour vous faire gagner un temps précieux et sécuriser votre mise en location, ce candidat a fait auditer son dossier par getpatrimo, le standard de confiance immobilier.
 
 ${data.personalMessage ? `Message personnel: "${data.personalMessage}"\n` : ''}
 
@@ -344,12 +344,12 @@ Consulter le dossier complet : ${data.verifyUrl}
 En un clic, accédez aux pièces justificatives sans téléchargement lourd et en totale conformité avec la Loi Alur.
 
 Cordialement,
-L'Expert PatrimoTrust™
+L'Expert getpatrimo
 La technologie au service de votre patrimoine
     `;
     
     await transporter.sendMail({
-      from: `"PatrimoTrust™" <${process.env.BREVO_FROM_EMAIL || 'noreply@doc2loc.com'}>`,
+      from: `"getpatrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@getpatrimo.com'}>`,
       to: data.recipientEmail,
       subject: `🛡️ Dossier de candidature certifié : ${data.tenantName} — Niveau ${data.grade}`,
       text: emailText,
@@ -406,7 +406,7 @@ export async function notifyPassportViewed(
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Votre Passeport a été consulté - PatrimoTrust™</title>
+  <title>Votre Passeport a été consulté - getpatrimo</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -430,7 +430,7 @@ export async function notifyPassportViewed(
                 </p>
               </div>
               <p style="margin: 0; color: #64748B; font-size: 12px;">
-                PatrimoTrust™ — Votre succès locatif, notre mission
+                getpatrimo — Votre succès locatif, notre mission
               </p>
             </td>
           </tr>
@@ -443,7 +443,7 @@ export async function notifyPassportViewed(
     `;
     
     await transporter.sendMail({
-      from: `"PatrimoTrust™" <${process.env.BREVO_FROM_EMAIL || 'noreply@doc2loc.com'}>`,
+      from: `"getpatrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@getpatrimo.com'}>`,
       to: tenantEmail,
       subject: `🎉 Bonne nouvelle ${tenantName} ! Un propriétaire consulte votre Passeport`,
       html: emailHtml,

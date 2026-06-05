@@ -1,4 +1,4 @@
-/** Schéma PropertyData pour l'Agent conversationnel PatrimoTrust */
+/** Schéma PropertyData pour l'Agent conversationnel getpatrimo */
 export type EtiquetteDPE = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 export interface PropertyData {

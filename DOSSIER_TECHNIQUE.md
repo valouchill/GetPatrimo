@@ -1,4 +1,4 @@
-# Dossier technique — Plateforme doc2loc / PatrimoTrust / GetPatrimo
+# Dossier technique — Plateforme doc2loc / getpatrimo / GetPatrimo
 
 Documentation technique complète de la plateforme de gestion locative.
 
@@ -131,7 +131,7 @@ Documentation technique complète de la plateforme de gestion locative.
 │   │   ├── ConditionalMain.tsx
 │   │   ├── LuxeHeader.tsx
 │   │   ├── PassportPDF.tsx
-│   │   ├── PatrimoTrustGauge.tsx
+│   │   ├── GetPatrimoGauge.tsx
 │   │   ├── SecuritySettingsModal.tsx
 │   │   ├── SolvencyAnalysis.tsx
 │   │   ├── UnifiedTunnelHeader.tsx

@@ -175,7 +175,7 @@ export function MoveInInventoryPDFDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.eyebrow}>PatrimoTrust · Etat des lieux</Text>
+        <Text style={styles.eyebrow}>getpatrimo · Etat des lieux</Text>
         <Text style={styles.title}>Etat des lieux d&apos;entree</Text>
         <Text style={styles.subtitle}>
           Modele vierge premium pour la remise des cles, la constatation de l&apos;etat du logement

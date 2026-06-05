@@ -15,7 +15,7 @@ import { NotificationsArchiveClient } from './NotificationsArchiveClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Centre de notifications · PatrimoTrust",
+  title: "Centre de notifications · getpatrimo",
   description:
     "Historique des Rapports de l'Auditeur IA neuro-symbolique.",
 };

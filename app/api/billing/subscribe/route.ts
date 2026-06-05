@@ -78,7 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const baseUrl =
       process.env.NEXTAUTH_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
-      'https://doc2loc.com';
+      'https://getpatrimo.com';
 
     const stripe = getStripeClient();
 

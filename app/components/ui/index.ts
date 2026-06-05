@@ -1,5 +1,5 @@
 /**
- * PatrimoTrust — Composants UI partagés "Banque Privée"
+ * getpatrimo — Composants UI partagés "Banque Privée"
  *
  * Source unique pour les primitives UI réutilisables.
  * Voir /opt/doc2loc/DESIGN_SYSTEM.md pour la doc complète.

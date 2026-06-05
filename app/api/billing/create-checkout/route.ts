@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://doc2loc.com';
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://getpatrimo.com';
 
     const stripe = getStripe();
     const successTarget = `${baseUrl}/dashboard/owner/property/${propertyId}?tab=candidates&checkout=success`;

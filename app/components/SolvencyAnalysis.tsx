@@ -6,7 +6,7 @@ import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon } from '@heroico
 import { calculateSolvency, SolvencyCalculationResult } from '@/app/actions/calculate-solvency';
 
 interface SolvencyAnalysisProps {
-  totalCertifiedIncome: number; // Revenu mensuel total certifié du Passeport PatrimoTrust
+  totalCertifiedIncome: number; // Revenu mensuel total certifié du Passeport getpatrimo
   rentAmount: number; // Montant du loyer de l'annonce
   profile: 'STUDENT' | 'SALARIED' | 'INDEPENDENT' | 'RETIRED' | 'UNKNOWN';
   guarantorIncome?: number;
@@ -214,7 +214,7 @@ export default function SolvencyAnalysis({
             <SparklesIcon className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1">
-            <h5 className="text-xs font-bold text-navy mb-1">Conseil Expert PatrimoTrust™</h5>
+            <h5 className="text-xs font-bold text-navy mb-1">Conseil Expert getpatrimo</h5>
             <p className="text-[11px] text-slate-600 leading-relaxed">
               {result.expertAdvice}
             </p>

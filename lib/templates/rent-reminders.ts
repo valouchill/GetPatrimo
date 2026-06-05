@@ -16,7 +16,7 @@ Si votre paiement a déjà été effectué, veuillez ne pas tenir compte de ce r
 Dans le cas contraire, nous vous remercions de bien vouloir procéder au règlement dans les meilleurs délais.
 
 Cordialement,
-Votre bailleur — via PatrimoTrust`,
+Votre bailleur — via getpatrimo`,
   },
 
   formal: {
@@ -33,7 +33,7 @@ Nous vous demandons de régulariser cette situation dans un délai de 8 jours à
 À défaut, nous serons contraints d'engager les démarches prévues au contrat de bail.
 
 Cordialement,
-Votre bailleur — via PatrimoTrust`,
+Votre bailleur — via getpatrimo`,
   },
 
   formal_notice: {
@@ -54,7 +54,7 @@ Nous vous recommandons vivement de prendre contact avec nous pour trouver une so
 Ce courrier vaut mise en demeure au sens de l'article 1231-5 du Code civil.
 
 Cordialement,
-Votre bailleur — via PatrimoTrust`,
+Votre bailleur — via getpatrimo`,
   },
 
   critical_alert: {
@@ -77,7 +77,7 @@ Actions recommandées :
 4. Signaler à la CAF si le locataire est allocataire
 5. Engager une procédure de résiliation du bail si nécessaire
 
-PatrimoTrust — Alerte automatique`,
+getpatrimo — Alerte automatique`,
   },
 } as const;
 

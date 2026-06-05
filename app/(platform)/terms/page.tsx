@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Conditions générales d\'utilisation — PatrimoTrust',
+  title: 'Conditions générales d\'utilisation — getpatrimo',
 };
 
 export default function Terms() {
@@ -11,14 +11,14 @@ export default function Terms() {
 
       <p className="text-sm text-slate-500 mb-8">
         Les présentes conditions générales d&apos;utilisation (ci-après « CGU ») régissent l&apos;accès
-        et l&apos;utilisation de la plateforme PatrimoTrust, éditée par GetPatrimo SAS.
+        et l&apos;utilisation de la plateforme getpatrimo, éditée par GetPatrimo SAS.
       </p>
 
       <section className="space-y-8 text-slate-700 leading-relaxed">
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Objet</h2>
           <p>
-            PatrimoTrust est une plateforme de gestion locative en ligne permettant aux propriétaires
+            GetPatrimo est une plateforme de gestion locative en ligne permettant aux propriétaires
             bailleurs de gérer leurs biens immobiliers, leurs baux, leurs locataires et les documents
             associés. Les présentes CGU définissent les droits et obligations des utilisateurs dans le
             cadre de l&apos;utilisation du service.

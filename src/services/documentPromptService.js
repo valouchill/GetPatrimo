@@ -28,7 +28,7 @@ function getExtractionPrompt(candidateStatus, candidateName, diditIdentity, docu
     ? `\n\nDOCUMENT GARANT: Ce document appartient au GARANT du locataire. Pour toute pièce d'identité (CNI ou Passeport), tu DOIS extraire les lignes MRZ (zone machine-readable en bas du document) dans trust_and_security: mrz_line1, mrz_line2, et pour une CNI française (format TD1) mrz_line3. Chaque ligne doit contenir exactement les caractères lus (sans espaces superflus, 30 caractères pour CNI, 44 pour passeport). Si la MRZ est illisible ou absente, laisse mrz_line1/2/3 à null et mets needs_human_review: true.`
     : '';
 
-  return `Tu es un EXPERT DOCUMENTAIRE BIENVEILLANT pour PatrimoTrust, une plateforme immobilière Wealth-Tech française.
+  return `Tu es un EXPERT DOCUMENTAIRE BIENVEILLANT pour getpatrimo, une plateforme immobilière Wealth-Tech française.
 
 ═══════════════════════════════════════════════════════════════
 PHILOSOPHIE: "BIENVEILLANCE SÉCURITAIRE"

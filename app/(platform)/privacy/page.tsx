@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Politique de confidentialité — PatrimoTrust',
+  title: 'Politique de confidentialité — getpatrimo',
 };
 
 export default function Privacy() {

@@ -12,7 +12,7 @@
 import { LeasePreparationPage } from '../components/LeasePreparationPage';
 
 export const metadata = {
-  title: 'Préparation de bail · PatrimoTrust',
+  title: 'Préparation de bail · getpatrimo',
   description:
     'Téléchargez le modèle ALUR officiel et reportez les informations du dossier en un clic.',
 };
