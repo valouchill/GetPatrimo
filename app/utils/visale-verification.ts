@@ -139,3 +139,93 @@ export function generateVisaleAlert(
   }
   return null;
 }
+
+export interface VisaleCoherenceResult {
+  numeroPresent: boolean;
+  numeroFormatPlausible: boolean;
+  /** Visa expiré (date de validité passée) — null si date absente/illisible. */
+  isExpired: boolean | null;
+  /** Le plafond garanti couvre le loyer demandé — null si loyer inconnu. */
+  loyerCovers: boolean | null;
+  alerts: string[];
+  status:
+    | 'A_VERIFIER_SUR_VISALE'
+    | 'VISA_EXPIRE'
+    | 'PLAFOND_INSUFFISANT'
+    | 'NUMERO_MANQUANT'
+    | 'FORMAT_INATTENDU';
+  advice: string;
+}
+
+/**
+ * Vérification de COHÉRENCE d'un visa Visale.
+ *
+ * Le visa Visale ne porte PAS de sceau 2D-Doc : son authenticité se vérifie sur
+ * visale.fr (numéro de visa + nom du bénéficiaire), puis via la SIGNATURE du contrat
+ * de cautionnement (« le visa seul ne constitue pas la garantie »). On automatise
+ * ici les seuls contrôles automatisables (format du n°, validité, plafond ≥ loyer)
+ * et on guide le bailleur vers la vérification officielle.
+ *
+ * Aucune pénalité de fraude : expiration / non-couverture sont des informations de
+ * garantie, pas des falsifications. La concordance du NOM du bénéficiaire vs l'identité
+ * du dossier est traitée par le module de concordance d'identité.
+ */
+export function verifyVisaleCoherence(
+  visaleData: VisaleData,
+  ctx: { rentAmount?: number | null; today?: Date } = {}
+): VisaleCoherenceResult {
+  const alerts: string[] = [];
+  const numero = String(visaleData?.numero_visa || '').trim();
+  const numeroPresent = numero.length > 0;
+  // Format officiel : « V » suivi de chiffres (ex: V123456789).
+  const numeroFormatPlausible = /^V\s?\d[\d\s]{5,}$/i.test(numero);
+  if (!numeroPresent) {
+    alerts.push('⚠️ Numéro de visa Visale non détecté — vérification impossible sans lui.');
+  } else if (!numeroFormatPlausible) {
+    alerts.push(`⚠️ Numéro de visa au format inattendu (« ${numero} ») — à confirmer sur visale.fr.`);
+  }
+
+  const today = ctx.today || new Date();
+  let isExpired: boolean | null = null;
+  const validity = String(visaleData?.date_validite || '').trim();
+  const validityMatch = validity.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (validityMatch) {
+    const d = new Date(`${validityMatch[1]}-${validityMatch[2]}-${validityMatch[3]}T23:59:59`);
+    if (!Number.isNaN(d.getTime())) {
+      isExpired = d.getTime() < today.getTime();
+      if (isExpired) {
+        alerts.push(`❌ Visa Visale expiré le ${validity} — la garantie ne peut plus être activée.`);
+      }
+    }
+  }
+
+  let loyerCovers: boolean | null = null;
+  const rent = Number(ctx.rentAmount || 0);
+  const plafond = Number(visaleData?.loyer_maximum_garanti || 0);
+  if (rent > 0 && plafond > 0) {
+    loyerCovers = plafond >= rent;
+    if (!loyerCovers) {
+      alerts.push(
+        `⚠️ Loyer demandé (${rent.toLocaleString('fr-FR')} €) supérieur au plafond garanti Visale ` +
+          `(${plafond.toLocaleString('fr-FR')} €) — la garantie ne couvrirait pas. Garant complémentaire recommandé.`
+      );
+    }
+  }
+
+  const status: VisaleCoherenceResult['status'] = !numeroPresent
+    ? 'NUMERO_MANQUANT'
+    : isExpired
+      ? 'VISA_EXPIRE'
+      : loyerCovers === false
+        ? 'PLAFOND_INSUFFISANT'
+        : !numeroFormatPlausible
+          ? 'FORMAT_INATTENDU'
+          : 'A_VERIFIER_SUR_VISALE';
+
+  const advice =
+    "ℹ️ Le visa Visale n'est pas une preuve de garantie en soi. Pour activer la couverture, " +
+    `vérifiez ce visa sur visale.fr (numéro${numeroPresent ? ` ${numero}` : ''} + nom du locataire) ` +
+    'puis signez le contrat de cautionnement Action Logement.';
+
+  return { numeroPresent, numeroFormatPlausible, isExpired, loyerCovers, alerts, status, advice };
+}
