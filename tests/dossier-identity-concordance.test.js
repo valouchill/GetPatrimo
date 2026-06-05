@@ -52,6 +52,20 @@ test('mismatch vs Didit — fiche de paie d’un tiers (malus 30 critique, doc f
   assert.equal(f.severity, 'critical');
 });
 
+test('Didit vérifié — la pièce d’identité n’est PAS pénalisée même si son OCR diffère', () => {
+  const res = evaluateDossierIdentityConcordance({
+    diditStatus: 'verified',
+    diditIdentity: DIDIT,
+    documents: [
+      buildDoc({ id: 'id1', type: 'CARTE_IDENTITE', ownerName: 'Jean MARTAN' }), // OCR ≠ Didit
+      buildDoc({ id: 'pay1', type: 'BULLETIN_SALAIRE', ownerName: 'Jean MARTIN' }), // concorde
+    ],
+  });
+  assert.equal(res.matches, true);
+  assert.equal(res.scoreMalus, 0);
+  assert.equal(res.flaggedDocumentIds.length, 0);
+});
+
 test('fallback cross-doc quand Didit absent — ID vs avis', () => {
   const res = evaluateDossierIdentityConcordance({
     diditStatus: 'idle',
@@ -154,7 +168,7 @@ test('accents + prénoms d’usage', () => {
   const accents = evaluateDossierIdentityConcordance({
     diditStatus: 'verified',
     diditIdentity: DIDIT,
-    documents: [buildDoc({ id: 'id1', type: 'CARTE_IDENTITE', ownerName: 'Jéan MARTÎN' })],
+    documents: [buildDoc({ id: 'id1', type: 'BULLETIN_SALAIRE', ownerName: 'Jéan MARTÎN' })],
   });
   assert.equal(accents.matches, true);
 

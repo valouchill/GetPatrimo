@@ -32,3 +32,17 @@ export const VerifyOtpSchema = z.object({
   }).optional(),
   passportSlug: z.string().optional(),
 });
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('Email invalide'),
+});
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1, 'Lien de réinitialisation manquant'),
+  password: z.string()
+    .min(12, 'Le mot de passe doit contenir au moins 12 caractères')
+    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins 1 minuscule')
+    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins 1 majuscule')
+    .regex(/\d/, 'Le mot de passe doit contenir au moins 1 chiffre')
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Le mot de passe doit contenir au moins 1 caractère spécial'),
+});

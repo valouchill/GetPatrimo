@@ -185,6 +185,11 @@ function evaluateDossierIdentityConcordance(input = {}) {
       if (hasUsableIdentity(anchor)) {
         const anchorName = `${anchor.firstName || ''} ${anchor.lastName || ''}`.trim();
         for (const c of docs) {
+          // Didit a vérifié l'identité (ancre forte) : la pièce d'identité elle-même
+          // n'est PAS pénalisée pour un écart OCR / nom d'usage — Didit fait déjà foi.
+          // Le recoupement des AUTRES pièces (revenus, avis, Visale) vs l'identité
+          // vérifiée reste actif → anti-fraude inter-documents intact.
+          if (anchorStrong && c.kind === 'identity') continue;
           const cmp = compareIdentityToExpected(c.identity, anchor);
           if (cmp.comparable) comparedAny = true;
           if (cmp.comparable && !cmp.matches) {
