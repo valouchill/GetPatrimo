@@ -335,6 +335,15 @@ export default function LoginPage() {
                     </button>
                   </div>
 
+                  <div className="flex justify-end -mt-1">
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                    >
+                      Mot de passe oublié ?
+                    </Link>
+                  </div>
+
                   {error && (
                     <motion.p
                       initial={{ opacity: 0, y: -4 }}
