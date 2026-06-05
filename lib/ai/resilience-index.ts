@@ -100,7 +100,7 @@ export type GradeInfo = LevelInfo;
 
 /**
  * Calcule l'Indice de Résilience final 0-100 selon les règles métier
- * getpatrimo V2 (algorithme défensif).
+ * Maison Patrimo V2 (algorithme défensif).
  *
  * Pondération : financialStability×4 + documentAuthenticity×4 + professionalReliability×2
  *   Max théorique : 10×4 + 10×4 + 10×2 = 100

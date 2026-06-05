@@ -79,7 +79,7 @@ export async function sendGuarantorInvitation(
       : tenantInfo?.email || 'Le candidat';
 
     // Construire l'URL de vérification
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://getpatrimo.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://maisonpatrimo.com';
     const verificationUrl = `${baseUrl}/verify-guarantor/${invitationToken}`;
 
     // Envoyer l'email d'invitation
@@ -144,7 +144,7 @@ async function sendGuarantorInvitationEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invitation Garant - getpatrimo</title>
+  <title>Invitation Garant - Maison Patrimo</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -155,7 +155,7 @@ async function sendGuarantorInvitationEmail(
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 2px solid #0F172A;">
               <h1 style="margin: 0; color: #0F172A; font-size: 28px; font-weight: 700; font-family: 'Playfair Display', serif;">
-                getpatrimo
+                Maison Patrimo
               </h1>
               <p style="margin: 8px 0 0; color: #64748b; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;">
                 Certification Garant Souverain
@@ -171,7 +171,7 @@ async function sendGuarantorInvitationEmail(
               </p>
               
               <p style="margin: 0 0 20px; color: #334155; font-size: 15px; line-height: 1.7;">
-                <strong>${tenantName}</strong> a besoin de votre garantie pour sécuriser sa candidature getpatrimo.
+                <strong>${tenantName}</strong> a besoin de votre garantie pour sécuriser sa candidature Maison Patrimo.
               </p>
               
               <p style="margin: 0 0 30px; color: #334155; font-size: 15px; line-height: 1.7;">
@@ -204,7 +204,7 @@ async function sendGuarantorInvitationEmail(
           <tr>
             <td style="padding: 30px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;">
               <p style="margin: 0; color: #64748b; font-size: 11px; text-align: center; line-height: 1.6;">
-                getpatrimo - Plateforme de certification immobilière<br>
+                Maison Patrimo - Plateforme de certification immobilière<br>
                 Cet email a été envoyé à ${guarantorEmail}
               </p>
             </td>
@@ -220,7 +220,7 @@ async function sendGuarantorInvitationEmail(
     const emailText = `
 Bonjour ${guarantorName},
 
-${tenantName} a besoin de votre garantie pour sécuriser sa candidature getpatrimo.
+${tenantName} a besoin de votre garantie pour sécuriser sa candidature Maison Patrimo.
 
 Pour certifier votre identité et activer la Garantie Souveraine, merci de suivre notre protocole sécurisé via Didit. Cette certification prend moins de 30 secondes.
 
@@ -229,11 +229,11 @@ Lien de certification : ${verificationUrl}
 Pourquoi certifier ?
 La certification Didit garantit votre identité sans stockage de vos documents sensibles. Elle permet d'activer la Garantie Souveraine qui ajoute +30 points au PatrimoMeter™ du locataire.
 
-getpatrimo - Plateforme de certification immobilière
+Maison Patrimo - Plateforme de certification immobilière
     `;
 
     await transporter.sendMail({
-      from: `"getpatrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@getpatrimo.com'}>`,
+      from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
       to: guarantorEmail,
       subject: `Invitation Garant - ${tenantName} a besoin de votre garantie`,
       text: emailText,

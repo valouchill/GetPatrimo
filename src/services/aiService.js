@@ -1,4 +1,4 @@
-// Service IA pour l'extraction de données et détection de fraude documentaire (GetPatrimo)
+// Service IA pour l'extraction de données et détection de fraude documentaire (Maison Patrimo)
 const fs = require('fs');
 const path = require('path');
 const { pickBestDocumentNetIncome } = require('../utils/financialExtraction');
@@ -555,7 +555,7 @@ async function generateCandidatureInsight(candidature, property) {
     const warnings = [];
     
     if (scoring.total >= 70) {
-      strengths.push('Score getpatrimo élevé');
+      strengths.push('Score Maison Patrimo élevé');
     }
     if (scoring.ratio >= 3.0) {
       strengths.push('Ratio loyer/revenus excellent');
@@ -568,7 +568,7 @@ async function generateCandidatureInsight(candidature, property) {
     }
     
     if (scoring.total < 40) {
-      warnings.push('Score getpatrimo faible');
+      warnings.push('Score Maison Patrimo faible');
     }
     if (scoring.ratio < 2.5) {
       warnings.push('Ratio loyer/revenus fragile');
@@ -593,7 +593,7 @@ async function generateCandidatureInsight(candidature, property) {
     const income = Number(candidature.monthlyNetIncome || 0);
     const ratio = scoring.ratio || (income > 0 ? income / (rent + charges || 1) : 0);
     
-    const prompt = `Tu es un expert en analyse de dossiers locatifs pour GetPatrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
+    const prompt = `Tu es un expert en analyse de dossiers locatifs pour Maison Patrimo, une plateforme Wealth-Tech de gestion locative sécurisée par IA.
 
 Analyse ce dossier candidature et génère un insight professionnel en français avec :
 1. 2-4 points forts (bullet points concis)
@@ -601,7 +601,7 @@ Analyse ce dossier candidature et génère un insight professionnel en français
 3. Un résumé en 1-2 phrases
 
 DONNÉES DU DOSSIER :
-- Score getpatrimo: ${scoring.total || 0}/100 (Grade: ${scoring.grade || 'N/A'})
+- Score Maison Patrimo: ${scoring.total || 0}/100 (Grade: ${scoring.grade || 'N/A'})
 - Ratio loyer/revenus: ${ratio.toFixed(2)}
 - Revenus nets mensuels: ${income.toFixed(2)}€
 - Loyer + charges: ${(rent + charges).toFixed(2)}€

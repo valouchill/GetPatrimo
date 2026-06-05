@@ -71,7 +71,7 @@ function recomputeApplicationScore(application, { propertyRentAmount = 0, fallba
   application.tunnel.chapterStates = computedPatrimometer.chapterStates;
 
   const passportBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://getpatrimo.com';
+    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://maisonpatrimo.com';
   const passportView = buildPassportViewModel({
     application: {
       _id: application._id,

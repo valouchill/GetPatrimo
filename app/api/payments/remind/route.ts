@@ -91,7 +91,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://getpatrimo.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://maisonpatrimo.com';
 
     if (isEmailConfigured() && recipient) {
       try {
@@ -101,7 +101,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           text: emailBody + `\n\n---\nSe désinscrire : ${baseUrl}/api/user/unsubscribe`,
           html: `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;">
             <div style="background:linear-gradient(135deg,#F97316,#EA580C);padding:20px 24px;border-radius:12px 12px 0 0;">
-              <h2 style="color:white;margin:0;font-size:18px;">getpatrimo</h2>
+              <h2 style="color:white;margin:0;font-size:18px;">Maison Patrimo</h2>
             </div>
             <div style="padding:24px;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 12px 12px;">
               ${emailBody.replace(/\n/g, '<br/>')}

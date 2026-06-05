@@ -114,7 +114,7 @@ test('owner insights mark a strong dossier as clear and lease-ready', () => {
       address: 'Paris',
       name: 'Appartement Rivoli',
     },
-    baseUrl: 'https://getpatrimo.com',
+    baseUrl: 'https://maisonpatrimo.com',
     isSealed: false,
   });
 
@@ -142,7 +142,7 @@ test('owner insights keep a dossier in review when secondary pieces remain under
       address: 'Lyon',
       name: 'Quai de Saone',
     },
-    baseUrl: 'https://getpatrimo.com',
+    baseUrl: 'https://maisonpatrimo.com',
     isSealed: false,
   });
 
@@ -169,7 +169,7 @@ test('owner insights block lease readiness when identity is not verified and cor
       address: 'Marseille',
       name: 'Residence Sud',
     },
-    baseUrl: 'https://getpatrimo.com',
+    baseUrl: 'https://maisonpatrimo.com',
     isSealed: false,
   });
 
@@ -216,7 +216,7 @@ test('owner insights rebuild monthly income from certified payslips when the sto
       address: 'Nantes',
       name: 'Place Royale',
     },
-    baseUrl: 'https://getpatrimo.com',
+    baseUrl: 'https://maisonpatrimo.com',
     isSealed: false,
   });
 

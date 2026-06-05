@@ -10,7 +10,7 @@
 import { CandidateDossierDemo } from '@/app/components/audit/CandidateDossier';
 
 export const metadata = {
-  title: 'Démo · Dossier Candidat — getpatrimo',
+  title: 'Démo · Dossier Candidat — Maison Patrimo',
 };
 
 export default function CandidateDossierDemoPage() {

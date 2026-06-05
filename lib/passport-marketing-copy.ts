@@ -7,7 +7,7 @@
  *
  * Audience cible : propriétaires prospects (non-clients) qui reçoivent le PDF
  * d'un candidat. L'objectif est de leur donner envie de centraliser TOUS leurs
- * dossiers via la plateforme getpatrimo pour la tranquillité (anti-fraude)
+ * dossiers via la plateforme Maison Patrimo pour la tranquillité (anti-fraude)
  * et la qualité (ne pas passer à côté du meilleur dossier).
  */
 
@@ -44,7 +44,7 @@ export const MARKETING = {
   ownerCta: {
     eyebrow: 'Vous êtes propriétaire ?',
     title: 'Recevez vos candidatures déjà auditées.',
-    body: 'Plus de dossiers incomplets. Plus de pièces à vérifier manuellement. Vos candidats passent par getpatrimo avant d\'arriver sur votre bureau — vous ne consultez que les profils déjà notés, certifiés et scellés.',
+    body: 'Plus de dossiers incomplets. Plus de pièces à vérifier manuellement. Vos candidats passent par Maison Patrimo avant d\'arriver sur votre bureau — vous ne consultez que les profils déjà notés, certifiés et scellés.',
     primary: 'Créer mon Coffre-Fort gratuit',
     secondary: 'Vérifier ce passeport en ligne',
     subline: 'Gratuit · sans carte bancaire · 2 minutes',
@@ -79,13 +79,13 @@ export const MARKETING = {
   legal: 'Document de synthèse — ne contient aucune pièce brute. Toute modification documentaire ou nouvelle analyse peut faire évoluer son état.',
 
   /** Domaine officiel */
-  domain: 'getpatrimo.com',
+  domain: 'maisonpatrimo.com',
 } as const;
 
 /** Liens hardcodés (URLs construites côté serveur via viewModel.marketing) */
 export const PASSPORT_LINKS = {
   /** Catch-all home si l'URL spécifique n'est pas disponible */
-  homepage: 'https://getpatrimo.com',
+  homepage: 'https://maisonpatrimo.com',
 } as const;
 
 export type PassportMarketingCopy = typeof MARKETING;

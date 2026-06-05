@@ -236,7 +236,7 @@ async function acceptCandidature(req, res) {
                   </p>
                   <p style="color: #64748B; line-height: 1.6;">
                     Cordialement,<br>
-                    <strong style="color: #0F172A;">L'équipe GetPatrimo</strong>
+                    <strong style="color: #0F172A;">L'équipe Maison Patrimo</strong>
                   </p>
                 </div>
               `
@@ -329,7 +329,7 @@ async function rejectCandidature(req, res) {
         html: `
           <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8FAFC">
             <div style="background:#0F172A;color:#fff;padding:24px;border-radius:12px 12px 0 0">
-              <h1 style="margin:0;font-size:24px">GetPatrimo</h1>
+              <h1 style="margin:0;font-size:24px">Maison Patrimo</h1>
             </div>
             <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px">
               <h2 style="color:#0F172A;margin-bottom:16px">Bonjour ${cand.firstName || 'Madame, Monsieur'},</h2>
@@ -344,7 +344,7 @@ async function rejectCandidature(req, res) {
               </p>
               <p style="color:#64748B;line-height:1.6;margin-top:24px;margin-bottom:0">
                 Cordialement,<br>
-                L'équipe GetPatrimo
+                L'équipe Maison Patrimo
               </p>
             </div>
           </div>
@@ -532,7 +532,7 @@ async function toggleShortlist(req, res) {
 }
 
 /**
- * Lance l'analyse getpatrimo sur une candidature
+ * Lance l'analyse Maison Patrimo sur une candidature
  */
 async function runTrustAnalysis(req, res) {
   try {

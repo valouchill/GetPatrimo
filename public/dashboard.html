@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GetPatrimo — Dashboard</title>
+  <title>Maison Patrimo — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -535,7 +535,7 @@
 <body>
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">GetPatrimo</div>
+    <div class="sidebar-logo">Maison Patrimo</div>
     <nav class="sidebar-nav">
       <a href="/dashboard.html" class="nav-item active" data-page="dashboard" id="navDashboard">
         <i data-lucide="layout-dashboard"></i>
@@ -790,8 +790,8 @@
       // Détecte fraude
       const hasFraud = sc.total === 0 || (sc.alerts && sc.alerts.some(a => a.type === 'critical'));
       
-      // Badge getpatrimo si score >= 95%
-      const hasGetPatrimo = total !== null && total >= 95;
+      // Badge Maison Patrimo si score >= 95%
+      const hasMaisonPatrimo = total !== null && total >= 95;
       
       // Charge le rapport de fiabilité
       let reliabilityReport = null;
@@ -808,7 +808,7 @@
         <div style="margin-bottom:24px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-size:18px;font-weight:700;color:var(--navy)">${esc(name)}</div>
-            ${hasGetPatrimo ? '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:20px;font-size:12px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:16px;height:16px"></i><span>getpatrimo</span></div>' : ''}
+            ${hasMaisonPatrimo ? '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:20px;font-size:12px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:16px;height:16px"></i><span>Maison Patrimo</span></div>' : ''}
           </div>
           <div style="font-size:14px;color:var(--muted);margin-bottom:4px">${esc(c.email||"—")}</div>
           <div style="font-size:13px;color:var(--muted)">${esc(c.propertyName||"Bien")} • ${esc(c.propertyAddress||"")}</div>
@@ -816,7 +816,7 @@
         
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px">
           <div style="padding:16px;background:#F8FAFC;border-radius:8px;border:1px solid var(--slate-border)">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Score GetPatrimo</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Score Maison Patrimo</div>
             <div style="font-size:28px;font-weight:800;color:var(--navy)">${total !== null ? total : "—"}/100</div>
             <div style="font-size:14px;color:var(--muted);margin-top:4px">Grade: <strong style="color:var(--navy)">${esc(grade)}</strong></div>
             ${hasFraud ? '<div style="margin-top:8px"><span style="padding:4px 10px;background:#FEE2E2;color:#991B1B;border-radius:6px;font-size:11px;font-weight:700">🚩 Alerte Fraude</span></div>' : ''}
@@ -1173,7 +1173,7 @@
       $("candidaturesBody").innerHTML = candidatures.map(c => {
         const name = ((c.firstName||"") + " " + (c.lastName||"")).trim() || "Candidat";
         const score = c.scoring?.total || 0;
-        const hasGetPatrimo = score >= 95;
+        const hasMaisonPatrimo = score >= 95;
         const sc = c.scoring || {};
         const total = sc.total !== undefined ? sc.total : null;
         const grade = sc.grade || "—";
@@ -1203,7 +1203,7 @@
             <td>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                 ${total !== null ? `<span class="score-badge">${total}/100 (${esc(grade)})</span>` : "—"}
-                ${hasGetPatrimo ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:12px;font-size:10px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:12px;height:12px"></i><span>getpatrimo</span></span>' : ''}
+                ${hasMaisonPatrimo ? '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:linear-gradient(135deg,var(--emerald),#059669);border-radius:12px;font-size:10px;font-weight:700;color:#fff"><i data-lucide="shield-check" style="width:12px;height:12px"></i><span>Maison Patrimo</span></span>' : ''}
                 ${hasFraud ? '<span class="fraud-alert">🚩 Fraude</span>' : ''}
               </div>
             </td>

@@ -89,7 +89,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                 </div>
               </motion.div>
 
-              <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-[0.4em] mb-3">getpatrimo • Certification 2026</p>
+              <p className="text-emerald-600 text-[10px] font-bold uppercase tracking-[0.4em] mb-3">Maison Patrimo • Certification 2026</p>
 
               {/* Titre Serif - Style Banque Privée */}
               <h2 id="onboarding-modal-title" className="text-2xl md:text-3xl text-slate-900 mb-3 leading-tight" style={{ fontFamily: 'Georgia, "Playfair Display", serif' }}>
@@ -216,7 +216,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                   </svg>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Vos données sont <span className="font-semibold">chiffrées de bout en bout</span> et protégées par le <span className="font-semibold">secret professionnel getpatrimo</span>. Conforme Loi Alur 2026.
+                  Vos données sont <span className="font-semibold">chiffrées de bout en bout</span> et protégées par le <span className="font-semibold">secret professionnel Maison Patrimo</span>. Conforme Loi Alur 2026.
                 </p>
               </motion.div>
 

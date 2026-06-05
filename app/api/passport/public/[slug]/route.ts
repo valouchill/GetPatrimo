@@ -44,7 +44,7 @@ export async function GET(
     const proto = request.headers.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL ||
       (host ? `${proto === 'https' ? 'https' : 'http'}://${host}` : '') ||
-      'https://getpatrimo.com';
+      'https://maisonpatrimo.com';
     const passport = buildPassportViewModel({
       application: shouldTrack
         ? { ...(app as any), passportViewCount: Number((app as any).passportViewCount || 0) + 1, passportLastViewedAt: new Date() }

@@ -44,8 +44,8 @@ async function createTextPdf(filePath, title, lines) {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   pdfDoc.setTitle(title);
-  pdfDoc.setAuthor('getpatrimo Healthcheck');
-  pdfDoc.setCreator('getpatrimo Healthcheck');
+  pdfDoc.setAuthor('Maison Patrimo Healthcheck');
+  pdfDoc.setCreator('Maison Patrimo Healthcheck');
   pdfDoc.setProducer('pdf-lib');
   pdfDoc.setCreationDate(new Date());
   pdfDoc.setModificationDate(new Date());

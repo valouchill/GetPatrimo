@@ -190,7 +190,7 @@ async function sendMagicLink(req, res) {
     try {
       await sendEmail({
         to: email,
-        subject: '🔐 Lien de connexion GetPatrimo',
+        subject: '🔐 Lien de connexion Maison Patrimo',
         html: `
           <!DOCTYPE html>
           <html lang="fr">
@@ -212,11 +212,11 @@ async function sendMagicLink(req, res) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>GetPatrimo</h1>
+                <h1>Maison Patrimo</h1>
               </div>
               <div class="content">
                 <h2 style="margin-top: 0; color: #0F172A; font-size: 20px; font-weight: 600;">Connexion sécurisée</h2>
-                <p style="color: #64748B; margin-bottom: 24px;">Cliquez sur le bouton ci-dessous pour vous connecter à votre compte GetPatrimo. Ce lien est valide pendant 15 minutes.</p>
+                <p style="color: #64748B; margin-bottom: 24px;">Cliquez sur le bouton ci-dessous pour vous connecter à votre compte Maison Patrimo. Ce lien est valide pendant 15 minutes.</p>
                 <div style="text-align: center;">
                   <a href="${magicLink}" class="button">Se connecter</a>
                 </div>
@@ -225,7 +225,7 @@ async function sendMagicLink(req, res) {
                 <p style="color: #64748B; font-size: 12px; margin-top: 24px;">Si vous n'avez pas demandé ce lien, ignorez cet email.</p>
               </div>
               <div class="footer">
-                <p style="margin: 0;">© GetPatrimo - Gestion locative sécurisée par IA</p>
+                <p style="margin: 0;">© Maison Patrimo - Gestion locative sécurisée par IA</p>
               </div>
             </div>
           </body>
@@ -283,7 +283,7 @@ async function forgotPassword(req, res) {
     try {
       await sendEmail({
         to: email,
-        subject: '🔒 Réinitialisation de votre mot de passe GetPatrimo',
+        subject: '🔒 Réinitialisation de votre mot de passe Maison Patrimo',
         html: `
           <!DOCTYPE html>
           <html lang="fr">
@@ -307,7 +307,7 @@ async function forgotPassword(req, res) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>GetPatrimo</h1>
+                <h1>Maison Patrimo</h1>
               </div>
               <div class="content">
                 <h2 style="margin-top: 0; color: #0F172A; font-size: 20px; font-weight: 600;">Réinitialisation de mot de passe</h2>
@@ -322,7 +322,7 @@ async function forgotPassword(req, res) {
                 <p class="link" style="font-size: 12px;">${resetLink}</p>
               </div>
               <div class="footer">
-                <p style="margin: 0;">© GetPatrimo - Gestion locative sécurisée par IA</p>
+                <p style="margin: 0;">© Maison Patrimo - Gestion locative sécurisée par IA</p>
               </div>
             </div>
           </body>

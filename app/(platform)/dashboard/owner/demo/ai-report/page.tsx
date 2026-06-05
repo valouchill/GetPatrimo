@@ -9,7 +9,7 @@
 import { CandidateAiReportDemo } from '@/app/components/audit/CandidateAiReport';
 
 export const metadata = {
-  title: 'Démo · Analyse IA du Candidat — getpatrimo',
+  title: 'Démo · Analyse IA du Candidat — Maison Patrimo',
 };
 
 export default function AiReportDemoPage() {

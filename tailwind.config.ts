@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 /**
- * getpatrimo — Design Tokens "Banque Privée de l'Immobilier"
+ * Maison Patrimo — Design Tokens "Banque Privée de l'Immobilier"
  *
  * Palette officielle (manifeste produit) :
  *   - Or Brossé (amber-500)        → CTA majeurs, accents premium

@@ -1,4 +1,4 @@
-# État des lieux — Plateforme getpatrimo / doc2loc
+# État des lieux — Plateforme Maison Patrimo / doc2loc
 
 ## 1. Chemins et utilités
 
@@ -114,7 +114,7 @@
 | `/opt/doc2loc/app/components/ConditionalMain.tsx` | Main conditionnel |
 | `/opt/doc2loc/app/components/BailInstant.tsx` | Bail instantané |
 | `/opt/doc2loc/app/components/CertificationScoreBar.tsx` | Barre score certification |
-| `/opt/doc2loc/app/components/GetPatrimoGauge.tsx` | Jauge getpatrimo |
+| `/opt/doc2loc/app/components/MaisonPatrimoGauge.tsx` | Jauge Maison Patrimo |
 | `/opt/doc2loc/app/components/AIFeedbackBubble.tsx` | Bulle feedback IA |
 | `/opt/doc2loc/app/components/PassportPDF.tsx` | PDF Passport |
 | `/opt/doc2loc/app/components/SolvencyAnalysis.tsx` | Analyse solvabilité |
@@ -197,7 +197,7 @@ Résultat annonce + loyer
 
 | Fonctionnalité | État |
 |----------------|------|
-| Agent IA conversationnel (Expert getpatrimo) | ✅ |
+| Agent IA conversationnel (Expert Maison Patrimo) | ✅ |
 | Streaming SSE (token par token) | ✅ |
 | Mémoire (historique messages) | ✅ |
 | Auto-correction (contradiction silencieuse) | ✅ |

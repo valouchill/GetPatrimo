@@ -194,7 +194,7 @@ export default function TenantDashboardClient({
                 <ShieldCheckIcon className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-navy">getpatrimo</h1>
+                <h1 className="text-lg font-bold text-navy">Maison Patrimo</h1>
                 <p className="text-xs text-slate-500">Espace Locataire</p>
               </div>
             </div>
@@ -365,7 +365,7 @@ export default function TenantDashboardClient({
               status={app?.guarantor?.status === 'CERTIFIED' || app?.guarantor?.status === 'AUDITED' ? 'certified' : 'pending'}
               description={
                 app?.guarantor?.status === 'CERTIFIED' ? 'Certifié Didit' :
-                app?.guarantor?.status === 'AUDITED' ? 'Audité getpatrimo' :
+                app?.guarantor?.status === 'AUDITED' ? 'Audité Maison Patrimo' :
                 'Non configuré'
               }
               points={

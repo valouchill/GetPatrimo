@@ -4,17 +4,17 @@ import SessionProvider from "./providers/SessionProvider";
 import { NotificationProvider } from "./hooks/useNotification";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://getpatrimo.com'),
-  title: "GetPatrimo — Gestion locative sécurisée par IA",
+  metadataBase: new URL('https://maisonpatrimo.com'),
+  title: "Maison Patrimo — Gestion locative sécurisée par IA",
   description: "Votre patrimoine mérite une gestion d'exception.",
-  applicationName: 'getpatrimo',
+  applicationName: 'Maison Patrimo',
   icons: {
     icon: '/icon.svg',
     shortcut: '/icon.svg',
     apple: '/icon.svg',
   },
   openGraph: {
-    siteName: 'getpatrimo',
+    siteName: 'Maison Patrimo',
     locale: 'fr_FR',
     type: 'website',
   },

@@ -9,7 +9,7 @@
 import { CandidaturesStackViewDemo } from '@/app/components/audit/CandidaturesStackView';
 
 export const metadata = {
-  title: 'Démo · Stack Candidatures — getpatrimo',
+  title: 'Démo · Stack Candidatures — Maison Patrimo',
 };
 
 export default function CandidaturesStackDemoPage() {

@@ -37,7 +37,7 @@ export async function POST() {
     }
 
     const stripe = getStripe();
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://getpatrimo.com';
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://maisonpatrimo.com';
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,

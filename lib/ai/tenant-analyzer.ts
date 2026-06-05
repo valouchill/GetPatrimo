@@ -77,7 +77,7 @@ function getOpenAIClient(): OpenAI {
 
 // ─── Prompt builder ──────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Tu es un auditeur forensic de dossiers locatifs pour getpatrimo,
+const SYSTEM_PROMPT = `Tu es un auditeur forensic de dossiers locatifs pour Maison Patrimo,
 plateforme haut de gamme façon banque privée. Ton rôle : analyser le dossier
 fourni et produire une analyse structurée OBJECTIVE et FACTUELLE.
 

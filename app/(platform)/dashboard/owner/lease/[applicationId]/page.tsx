@@ -30,7 +30,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Préparation de bail · getpatrimo',
+  title: 'Préparation de bail · Maison Patrimo',
   description:
     'Téléchargez le modèle ALUR et reportez les informations du dossier en un clic.',
 };

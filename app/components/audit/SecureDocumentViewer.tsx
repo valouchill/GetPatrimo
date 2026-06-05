@@ -233,7 +233,7 @@ export function SecureDocumentViewer({
 
   // Horodatage défensif inclus dans le watermark pour traçabilité
   const finalWatermark = React.useMemo(() => {
-    return watermarkText || 'CONFIDENTIEL · GETPATRIMO · AUDIT STRICT';
+    return watermarkText || 'CONFIDENTIEL · MAISON PATRIMO · AUDIT STRICT';
   }, [watermarkText]);
 
   const finalIdentity = React.useMemo(() => {
@@ -390,7 +390,7 @@ export function SecureDocumentViewer({
             <footer className="flex flex-shrink-0 items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-2.5 sm:px-6 sm:py-3">
               <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                 <Lock className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
-                Filigrane forensic actif · Traçabilité getpatrimo
+                Filigrane forensic actif · Traçabilité Maison Patrimo
               </p>
               <p className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 sm:inline">
                 {finalIdentity}

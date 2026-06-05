@@ -120,7 +120,7 @@ export async function createTenantAccount(
     await application.save();
 
     // Envoyer l'email de bienvenue avec Magic Link
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://getpatrimo.com';
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://maisonpatrimo.com';
     const magicLinkUrl = `${baseUrl}/auth/magic-link?token=${magicToken}&email=${encodeURIComponent(email)}`;
     const dashboardUrl = `${baseUrl}/dashboard/tenant`;
 
@@ -129,8 +129,8 @@ export async function createTenantAccount(
     try {
       await transporter.sendMail({
         to: email,
-        from: process.env.MAIL_FROM || 'getpatrimo <no-reply@getpatrimo.com>',
-        subject: `🎉 Bienvenue ${firstName} - Votre espace getpatrimo est créé`,
+        from: process.env.MAIL_FROM || 'Maison Patrimo <no-reply@maisonpatrimo.com>',
+        subject: `🎉 Bienvenue ${firstName} - Votre espace Maison Patrimo est créé`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -141,14 +141,14 @@ export async function createTenantAccount(
           <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px;">
             <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
               <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">getpatrimo</h1>
+                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">Maison Patrimo</h1>
                 <p style="color: #10b981; margin: 8px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">✓ Compte créé avec succès</p>
               </div>
               
               <div style="padding: 40px 32px;">
                 <h2 style="color: #0f172a; margin: 0 0 16px 0; font-size: 20px;">Bienvenue ${firstName} ! 👋</h2>
                 <p style="color: #64748b; line-height: 1.6; margin: 0 0 24px 0;">
-                  Votre espace getpatrimo est maintenant créé. Vous pouvez revenir à votre dossier à tout moment en cliquant sur le bouton ci-dessous.
+                  Votre espace Maison Patrimo est maintenant créé. Vous pouvez revenir à votre dossier à tout moment en cliquant sur le bouton ci-dessous.
                 </p>
                 
                 <a href="${magicLinkUrl}" style="display: block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: 700; font-size: 14px; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
@@ -168,14 +168,14 @@ export async function createTenantAccount(
               <div style="background: #f8fafc; padding: 20px 32px; border-top: 1px solid #e2e8f0;">
                 <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center;">
                   Ce lien expire dans 7 jours. Conservez cet email précieusement.<br/>
-                  © getpatrimo - Dossier Locataire Souverain
+                  © Maison Patrimo - Dossier Locataire Souverain
                 </p>
               </div>
             </div>
           </body>
           </html>
         `,
-        text: `Bienvenue ${firstName} ! Votre espace getpatrimo est créé. Accédez-y ici : ${magicLinkUrl}`,
+        text: `Bienvenue ${firstName} ! Votre espace Maison Patrimo est créé. Accédez-y ici : ${magicLinkUrl}`,
       });
 
       return {

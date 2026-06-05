@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Conditions générales d\'utilisation — getpatrimo',
+  title: 'Conditions générales d\'utilisation — Maison Patrimo',
 };
 
 export default function Terms() {
@@ -11,14 +11,14 @@ export default function Terms() {
 
       <p className="text-sm text-slate-500 mb-8">
         Les présentes conditions générales d&apos;utilisation (ci-après « CGU ») régissent l&apos;accès
-        et l&apos;utilisation de la plateforme getpatrimo, éditée par GetPatrimo SAS.
+        et l&apos;utilisation de la plateforme Maison Patrimo, éditée par Maison Patrimo SAS.
       </p>
 
       <section className="space-y-8 text-slate-700 leading-relaxed">
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Objet</h2>
           <p>
-            GetPatrimo est une plateforme de gestion locative en ligne permettant aux propriétaires
+            Maison Patrimo est une plateforme de gestion locative en ligne permettant aux propriétaires
             bailleurs de gérer leurs biens immobiliers, leurs baux, leurs locataires et les documents
             associés. Les présentes CGU définissent les droits et obligations des utilisateurs dans le
             cadre de l&apos;utilisation du service.
@@ -30,7 +30,7 @@ export default function Terms() {
           <p>
             L&apos;inscription sur la plateforme implique l&apos;acceptation pleine et entière des
             présentes CGU. L&apos;utilisateur reconnaît en avoir pris connaissance et s&apos;engage à les
-            respecter. GetPatrimo SAS se réserve le droit de modifier les CGU à tout moment.
+            respecter. Maison Patrimo SAS se réserve le droit de modifier les CGU à tout moment.
             L&apos;utilisateur sera informé de toute modification par email ou notification dans
             l&apos;application.
           </p>
@@ -44,7 +44,7 @@ export default function Terms() {
             identifiants de connexion et de toute activité réalisée depuis son compte.
           </p>
           <p className="mt-2">
-            GetPatrimo SAS se réserve le droit de suspendre ou supprimer un compte en cas de
+            Maison Patrimo SAS se réserve le droit de suspendre ou supprimer un compte en cas de
             non-respect des présentes CGU, sans préjudice de tout dommage et intérêt.
           </p>
         </div>
@@ -77,13 +77,13 @@ export default function Terms() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">6. Responsabilité</h2>
           <p>
-            GetPatrimo SAS met à disposition un outil de gestion et ne se substitue pas au
+            Maison Patrimo SAS met à disposition un outil de gestion et ne se substitue pas au
             propriétaire bailleur dans ses obligations légales. L&apos;utilisateur reste seul
             responsable du respect de la réglementation applicable à ses baux et à la gestion de ses
             biens.
           </p>
           <p className="mt-2">
-            GetPatrimo SAS ne saurait être tenue responsable des dommages directs ou indirects
+            Maison Patrimo SAS ne saurait être tenue responsable des dommages directs ou indirects
             résultant de l&apos;utilisation ou de l&apos;impossibilité d&apos;utiliser le service,
             notamment en cas d&apos;interruption, de dysfonctionnement ou de perte de données.
           </p>

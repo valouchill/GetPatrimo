@@ -8,7 +8,7 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function calculateGetPatrimoScore(applicationData = {}) {
+function calculateMaisonPatrimoScore(applicationData = {}) {
   const property = applicationData.property || {};
   const candidature = applicationData.candidature || {};
   const monthlyNetIncome = Number(applicationData.monthlyNetIncome || candidature.monthlyNetIncome || 0);
@@ -267,7 +267,7 @@ module.exports = {
   analyzeCandidatureTrust,
   autoPurgeRGPD,
   buildPhase1Audit: buildPhase1AuditBundle,
-  calculateGetPatrimoScore,
+  calculateMaisonPatrimoScore,
   deleteCandidateData,
   generateReliabilityReport,
   runPhase1Audit,

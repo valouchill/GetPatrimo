@@ -48,15 +48,15 @@ test('resolveGuarantorWebhookUrl defaults to the dedicated guarantor webhook', (
   assert.equal(
     resolveGuarantorWebhookUrl({
       configuredGuarantorWebhookUrl: '',
-      origin: 'https://getpatrimo.com/',
+      origin: 'https://maisonpatrimo.com/',
     }),
-    'https://getpatrimo.com/api/webhooks/didit/guarantor'
+    'https://maisonpatrimo.com/api/webhooks/didit/guarantor'
   );
 
   assert.equal(
     resolveGuarantorWebhookUrl({
       configuredGuarantorWebhookUrl: 'https://hooks.example.com/didit/guarantor',
-      origin: 'https://getpatrimo.com/',
+      origin: 'https://maisonpatrimo.com/',
     }),
     'https://hooks.example.com/didit/guarantor'
   );

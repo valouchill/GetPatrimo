@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GetPatrimo — Contractualisation</title>
+  <title>Maison Patrimo — Contractualisation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -280,14 +280,14 @@
     .compliance-meter-status.ready{color:var(--emerald);font-weight:500}
     .compliance-meter-status.ready i{color:var(--emerald)}
     @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-    /* Documents Fournis par GetPatrimo */
-    .getpatrimo-provided-section{background:linear-gradient(135deg,rgba(16,185,129,0.05),rgba(16,185,129,0.02));border-left:4px solid var(--emerald);border-radius:var(--radius);padding:20px;margin-bottom:24px}
-    .getpatrimo-provided-header{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:400;color:var(--navy);margin-bottom:16px;letter-spacing:-0.01em}
-    .getpatrimo-provided-header i{color:var(--emerald);width:20px;height:20px}
-    .getpatrimo-provided-items{display:flex;flex-direction:column;gap:12px}
-    .getpatrimo-provided-item{display:flex;align-items:center;gap:10px;padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--slate-border)}
-    .getpatrimo-provided-item i{color:var(--emerald);width:20px;height:20px;flex-shrink:0}
-    .getpatrimo-provided-item span{font-size:14px;color:var(--text);font-weight:400}
+    /* Documents Fournis par Maison Patrimo */
+    .Maison Patrimo-provided-section{background:linear-gradient(135deg,rgba(16,185,129,0.05),rgba(16,185,129,0.02));border-left:4px solid var(--emerald);border-radius:var(--radius);padding:20px;margin-bottom:24px}
+    .Maison Patrimo-provided-header{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:400;color:var(--navy);margin-bottom:16px;letter-spacing:-0.01em}
+    .Maison Patrimo-provided-header i{color:var(--emerald);width:20px;height:20px}
+    .Maison Patrimo-provided-items{display:flex;flex-direction:column;gap:12px}
+    .Maison Patrimo-provided-item{display:flex;align-items:center;gap:10px;padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--slate-border)}
+    .Maison Patrimo-provided-item i{color:var(--emerald);width:20px;height:20px;flex-shrink:0}
+    .Maison Patrimo-provided-item span{font-size:14px;color:var(--text);font-weight:400}
     /* Guide des Documents */
     .documents-guide-section{background:var(--white);border:2px solid var(--slate-border);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow)}
     .documents-guide-header{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:400;color:var(--navy);margin-bottom:20px;letter-spacing:-0.01em;padding-bottom:16px;border-bottom:2px solid var(--slate-border)}
@@ -2145,7 +2145,7 @@
           
           // Update progress
           if(progressFill) progressFill.style.width = progress + '%';
-          if(progressText) progressText.textContent = `Analyse getpatrimo : ${file.name}...`;
+          if(progressText) progressText.textContent = `Analyse Maison Patrimo : ${file.name}...`;
           
           // Simulate AI analysis (OCR mock)
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -3866,7 +3866,7 @@
                 <div style="font-size:18px;font-weight:600;color:var(--navy)">${cand.firstName || ''} ${cand.lastName || ''}</div>
                 <div style="width:50px;height:50px;border-radius:50%;background:${scoreColor};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px">${score}</div>
               </div>
-              <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Score getpatrimo: <strong style="color:${scoreColor}">${rating}</strong></div>
+              <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Score Maison Patrimo: <strong style="color:${scoreColor}">${rating}</strong></div>
               <div style="font-size:13px;color:var(--muted)">📧 ${cand.email || 'N/A'}</div>
               <button class="btn btn-emerald" style="width:100%;margin-top:16px" onclick="event.stopPropagation();selectCandidate('${cand._id || cand.id}')">
                 <i data-lucide="check"></i>
@@ -4352,7 +4352,7 @@
         `;
       } else if (type === 'physical') {
         const guarantor = leasingJourney.data.guarantee.guarantor || {};
-        // Essaie de récupérer les infos du garant depuis getpatrimo si disponible
+        // Essaie de récupérer les infos du garant depuis Maison Patrimo si disponible
         const candidate = leasingJourney.data.candidate;
         const guarantorFromTrust = candidate?.guarantor || {};
         
@@ -4407,7 +4407,7 @@
             ${guarantorFromTrust.firstName ? `
               <div style="margin-top:16px;padding:12px;background:var(--white);border-radius:8px;border-left:4px solid var(--emerald);font-size:13px;color:var(--muted)">
                 <i data-lucide="info" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px"></i>
-                Informations pré-remplies depuis l'analyse getpatrimo
+                Informations pré-remplies depuis l'analyse Maison Patrimo
               </div>
             ` : ''}
           </div>

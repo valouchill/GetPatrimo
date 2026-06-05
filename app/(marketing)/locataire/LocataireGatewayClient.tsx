@@ -88,13 +88,13 @@ export default function LocataireGatewayClient() {
           <Link
             href="/"
             className="inline-flex items-center gap-2"
-            aria-label="Retour à l'accueil getpatrimo"
+            aria-label="Retour à l'accueil Maison Patrimo"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-900">
               <ShieldCheck className="h-5 w-5 text-amber-400" aria-hidden="true" />
             </span>
             <span className="font-serif text-xl font-semibold tracking-tight text-emerald-900">
-              getpatrimo
+              Maison Patrimo
             </span>
           </Link>
           <Link
@@ -113,7 +113,7 @@ export default function LocataireGatewayClient() {
             Espace Locataire
           </span>
           <h1 className="mt-5 font-serif text-3xl font-bold leading-tight text-emerald-900 sm:text-4xl md:text-5xl">
-            Bienvenue sur l’Espace Locataire getpatrimo
+            Bienvenue sur l’Espace Locataire Maison Patrimo
           </h1>
           <p className="mt-4 text-lg text-slate-600">
             Comment pouvons-nous vous aider aujourd’hui&nbsp;?
@@ -243,7 +243,7 @@ export default function LocataireGatewayClient() {
         {/* ── Pied de page léger ── */}
         <footer className="mt-10 flex flex-col items-center gap-2 py-6 text-center text-xs text-slate-400">
           <p>
-            Vos données sont chiffrées et hébergées en France. GetPatrimo est un
+            Vos données sont chiffrées et hébergées en France. Maison Patrimo est un
             outil d’aide à la décision.
           </p>
           <Link

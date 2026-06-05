@@ -1,5 +1,5 @@
 /**
- * Lexique produit getpatrimo — terminologie officielle "Banque Privée de l'Immobilier".
+ * Lexique produit Maison Patrimo — terminologie officielle "Banque Privée de l'Immobilier".
  *
  * Source unique de vérité pour tous les composants UI :
  * pas de chaînes brutes "score", "audit", "passeport" dans les composants.

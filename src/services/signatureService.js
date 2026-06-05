@@ -134,7 +134,7 @@ function generateTenantSignatureEmail(lease, property, signatureLink) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>GetPatrimo</h1>
+          <h1>Maison Patrimo</h1>
         </div>
         <div class="content">
           <h2>Signature de votre bail de location</h2>
@@ -147,7 +147,7 @@ function generateTenantSignatureEmail(lease, property, signatureLink) {
           <p>Ce lien est valide pendant 7 jours.</p>
         </div>
         <div class="footer">
-          <p>GetPatrimo - Gestion locative sécurisée par IA</p>
+          <p>Maison Patrimo - Gestion locative sécurisée par IA</p>
         </div>
       </div>
     </body>
@@ -176,7 +176,7 @@ function generateGuarantorSignatureEmail(lease, property, signatureLink) {
     <body>
       <div class="container">
         <div class="header">
-          <h1>GetPatrimo</h1>
+          <h1>Maison Patrimo</h1>
         </div>
         <div class="content">
           <h2>Signature de l'acte de cautionnement</h2>
@@ -189,7 +189,7 @@ function generateGuarantorSignatureEmail(lease, property, signatureLink) {
           <p>Ce lien est valide pendant 7 jours.</p>
         </div>
         <div class="footer">
-          <p>GetPatrimo - Gestion locative sécurisée par IA</p>
+          <p>Maison Patrimo - Gestion locative sécurisée par IA</p>
         </div>
       </div>
     </body>

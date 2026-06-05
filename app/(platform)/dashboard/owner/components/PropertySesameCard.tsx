@@ -24,7 +24,7 @@ export interface PropertySesameCardProps {
 function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string): string | null {
   if (!applyToken) return null;
   const origin = baseUrl
-    || (typeof window !== "undefined" ? window.location.origin : "https://getpatrimo.com");
+    || (typeof window !== "undefined" ? window.location.origin : "https://maisonpatrimo.com");
   return `${origin}/apply/${applyToken}`;
 }
 
@@ -37,9 +37,9 @@ function truncateMiddle(url: string, max = 56): string {
 
 /**
  * Card premium présentant les 2 démarches pour qu'un locataire dépose son
- * dossier sur getpatrimo :
+ * dossier sur Maison Patrimo :
  *   A — Partage du lien direct (LeBonCoin, WhatsApp, email)
- *   B — Code d'accès à saisir sur getpatrimo.com/acces
+ *   B — Code d'accès à saisir sur maisonpatrimo.com/acces
  *
  * Mise en valeur dans la modale fiche bien (PropertyDetailModal).
  */
@@ -195,7 +195,7 @@ export function PropertySesameCard({
           <p className="mt-2 text-[11px] leading-snug text-slate-500">
             Idéal en <strong>face-à-face</strong> ou par <strong>téléphone</strong>.
             Dictez ce code, le locataire le saisit sur{" "}
-            <span className="font-semibold text-emerald-700">getpatrimo.com/acces</span>.
+            <span className="font-semibold text-emerald-700">maisonpatrimo.com/acces</span>.
           </p>
           <div className="mt-3 flex items-center justify-center rounded-card bg-emerald-50 px-3 py-3 ring-1 ring-emerald-200">
             <KeyRound className="mr-2 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />

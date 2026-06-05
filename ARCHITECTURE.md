@@ -1,8 +1,8 @@
-# Architecture MVC - GetPatrimo
+# Architecture MVC - Maison Patrimo
 
 ## Structure du projet
 
-Le projet GetPatrimo a été refactorisé selon une architecture MVC (Model-View-Controller) professionnelle.
+Le projet Maison Patrimo a été refactorisé selon une architecture MVC (Model-View-Controller) professionnelle.
 
 ### Arborescence
 

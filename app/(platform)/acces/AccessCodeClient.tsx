@@ -86,7 +86,7 @@ export default function AccessCodeClient() {
             className="inline-flex items-center gap-2 text-slate-500 transition-colors hover:text-slate-700"
           >
             <Building2 className="h-4 w-4" aria-hidden="true" />
-            <span className="text-sm font-semibold">getpatrimo</span>
+            <span className="text-sm font-semibold">Maison Patrimo</span>
           </Link>
         </div>
 

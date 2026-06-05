@@ -1,4 +1,4 @@
-// Service de scoring objectif (GetPatrimo / getpatrimo V1.2)
+// Service de scoring objectif (Maison Patrimo / Maison Patrimo V1.2)
 //
 // Critères métier alignés sur les standards français de location :
 //  - Pilier 1 Solvabilité (50 pts)  : taux d'effort ≤ 33% + reste-à-vivre seuils région

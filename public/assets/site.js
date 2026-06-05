@@ -40,8 +40,8 @@
       }catch(_){}
 
       // fallback : mailto
-      const to = 'contact@getpatrimo.com';
-      const subject = encodeURIComponent('Lead getpatrimo');
+      const to = 'contact@maisonpatrimo.com';
+      const subject = encodeURIComponent('Lead Maison Patrimo');
       const body = encodeURIComponent(`Bonjour,\n\nEmail: ${email}\nSource: ${source}\nUTM: ${localStorage.getItem('utm')||''}\n`);
       window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
     });

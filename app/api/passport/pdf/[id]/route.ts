@@ -49,7 +49,7 @@ export async function GET(
     const proto = request.headers.get('x-forwarded-proto') || 'https';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL ||
       (host ? `${proto}://${host}` : '') ||
-      'https://getpatrimo.com';
+      'https://maisonpatrimo.com';
 
     let slug = (app as any).passportSlug;
     if (!slug) {
@@ -85,7 +85,7 @@ export async function GET(
       ownerSignupUrl: passport.marketing?.ownerSignupUrl,
     });
 
-    const fileName = `Passeport_GetPatrimo_${passport.hero.fullName || 'Dossier'}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const fileName = `Passeport_MaisonPatrimo_${passport.hero.fullName || 'Dossier'}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

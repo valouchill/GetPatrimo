@@ -85,7 +85,7 @@ function AuditTrail({
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <span className="text-xl">📋</span>
-              Rapport d&apos;Intégrité getpatrimo
+              Rapport d&apos;Intégrité Maison Patrimo
             </h3>
             <p className="text-slate-500 text-xs mt-1 font-mono">
               Référence : <span className="text-slate-400">{passportId}</span> | Certification : <span className="text-slate-400">{certificationDate}</span>
@@ -234,7 +234,7 @@ function AuditTrail({
               <span className="text-2xl">🤖</span>
             </div>
             <div>
-              <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">Conclusion de l&apos;Expert getpatrimo</p>
+              <p className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">Conclusion de l&apos;Expert Maison Patrimo</p>
               <p className="text-white text-sm leading-relaxed">
                 &quot;Ce dossier a passé notre protocole d&apos;audit complet. 
                 {events.some(e => e.status === 'warning') 
@@ -254,7 +254,7 @@ function AuditTrail({
           className="mt-6 p-4 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 rounded-xl"
         >
           <p className="text-slate-400 text-xs text-center">
-            <span className="text-emerald-400 font-semibold">Cette rigueur d&apos;audit est incluse dans votre Protection getpatrimo.</span>
+            <span className="text-emerald-400 font-semibold">Cette rigueur d&apos;audit est incluse dans votre Protection Maison Patrimo.</span>
             <br />
             <span className="text-slate-500">Vous louez à un profil dont nous avons personnellement vérifié chaque détail.</span>
           </p>
@@ -419,7 +419,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
             <div className="absolute inset-2 border-4 border-amber-300/20 rounded-full" />
           </div>
           <p className="text-amber-400/80 text-sm uppercase tracking-[0.3em] font-medium">Vérification en cours</p>
-          <p className="text-slate-500 text-xs mt-2">Audit de conformité getpatrimo</p>
+          <p className="text-slate-500 text-xs mt-2">Audit de conformité Maison Patrimo</p>
         </motion.div>
       </div>
     );
@@ -462,7 +462,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
               <span className="text-slate-900 font-bold text-lg">P</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white tracking-wide">getpatrimo</h1>
+              <h1 className="text-lg font-bold text-white tracking-wide">Maison Patrimo</h1>
               <p className="text-[9px] text-slate-500 uppercase tracking-[0.2em]">Standard de Confiance Immobilier</p>
             </div>
           </div>
@@ -526,13 +526,13 @@ export default function VerifyLandingClient({ token }: { token: string }) {
               <p className="font-black text-xl" style={{ color: gradeStyle.color }}>
                 GRADE {data.grade} — {gradeStyle.label}
               </p>
-              <p className="text-slate-400 text-xs">Dossier audité par IA getpatrimo</p>
+              <p className="text-slate-400 text-xs">Dossier audité par IA Maison Patrimo</p>
             </div>
           </motion.div>
           
           <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            Vérifié par l&apos;IA getpatrimo le {data.certificationDate}
+            Vérifié par l&apos;IA Maison Patrimo le {data.certificationDate}
           </p>
         </motion.section>
 
@@ -682,7 +682,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                   </tr>
                   <tr>
                     <td className="py-4 px-4">
-                      <span className="text-white font-medium">Score getpatrimo</span>
+                      <span className="text-white font-medium">Score Maison Patrimo</span>
                     </td>
                     <td className="py-4 px-4">
                       <span className="font-bold text-lg" style={{ color: gradeStyle.color }}>
@@ -876,7 +876,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                         <span className="text-amber-400 text-xl">🔓</span>
                       </div>
                       <p className="text-white text-sm font-medium">Consulter l&apos;original</p>
-                      <p className="text-amber-400 text-xs">Certifié getpatrimo</p>
+                      <p className="text-amber-400 text-xs">Certifié Maison Patrimo</p>
                     </div>
                   </div>
                 </motion.div>
@@ -966,7 +966,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
                   Sécurisez ce loyer à 100%
                 </p>
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
-                  Garantie Loyers Impayés getpatrimo
+                  Garantie Loyers Impayés Maison Patrimo
                 </h3>
                 <p className="text-emerald-300/80 text-sm">
                   Ce dossier est éligible à notre <strong>GLI avec indemnisation sous 48h</strong>. 
@@ -1046,10 +1046,10 @@ export default function VerifyLandingClient({ token }: { token: string }) {
             <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
               <span className="text-slate-900 font-bold">P</span>
             </div>
-            <span className="text-amber-400 font-bold text-lg">getpatrimo</span>
+            <span className="text-amber-400 font-bold text-lg">Maison Patrimo</span>
           </div>
           <p className="text-slate-500 text-xs max-w-md mx-auto">
-            GetPatrimo est conforme à la Loi Alur et au RGPD. 
+            Maison Patrimo est conforme à la Loi Alur et au RGPD. 
             Toutes les données sont cryptées et certifiées par Audit Forensic.
           </p>
         </div>

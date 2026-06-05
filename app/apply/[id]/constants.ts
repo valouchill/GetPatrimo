@@ -43,7 +43,7 @@ export const ALL_CERTIFICATION_ITEMS: CertificationItem[] = Object.values(CERTIF
 
 // Messages de recommandation IA
 export const AI_MESSAGES: Record<string, string> = {
-  bourse: "L'IA getpatrimo suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire.",
+  bourse: "L'IA Maison Patrimo suggère d'ajouter votre avis d'attribution de bourse pour maximiser la confiance du propriétaire.",
   caf: "Une simulation CAF/APL renforce significativement la crédibilité de votre dossier auprès des bailleurs.",
   avis_imposition: "L'avis d'imposition confirme la cohérence de vos revenus annuels.",
   attestation_employeur: "L'attestation employeur (< 1 mois) est un critère clé pour sécuriser votre dossier.",
@@ -52,7 +52,7 @@ export const AI_MESSAGES: Record<string, string> = {
   bilan_n1: "Deux bilans récents ou une attestation URSSAF renforcent la transparence financière.",
   garant_salaires: "Les justificatifs de revenus du garant sont essentiels pour une certification complète.",
   motivation: "Une lettre de motivation personnalisée fait la différence et démontre votre sérieux.",
-  default: "Chaque document ajouté renforce votre Score de Confiance getpatrimo."
+  default: "Chaque document ajouté renforce votre Score de Confiance Maison Patrimo."
 };
 
 // --- Documents requis selon profil ---

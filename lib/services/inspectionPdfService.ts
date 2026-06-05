@@ -172,7 +172,7 @@ export async function generateInspectionPdf(inspection: Record<string, unknown>)
     // Footer
     doc.moveDown(1);
     doc.fontSize(8).fillColor('#94A3B8').text(
-      'Document généré par getpatrimo — Conforme au décret n°2016-382 du 30 mars 2016.',
+      'Document généré par Maison Patrimo — Conforme au décret n°2016-382 du 30 mars 2016.',
       { align: 'center' }
     );
 

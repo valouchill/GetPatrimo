@@ -52,7 +52,7 @@ export function WhyDiditTooltip({ isOpen, onClose }: { isOpen: boolean; onClose:
             <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
               <p className="font-semibold text-emerald-800 mb-1">🔒 Notre garantie Souveraine</p>
               <p className="text-emerald-700">
-                GetPatrimo ne stocke <span className="font-semibold">jamais</span> l&apos;image brute de votre pièce d&apos;identité ni vos données biométriques. Nous ne conservons que le <span className="font-semibold">certificat de validation chiffré</span>.
+                Maison Patrimo ne stocke <span className="font-semibold">jamais</span> l&apos;image brute de votre pièce d&apos;identité ni vos données biométriques. Nous ne conservons que le <span className="font-semibold">certificat de validation chiffré</span>.
               </p>
             </div>
           </div>

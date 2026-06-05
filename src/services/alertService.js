@@ -1,4 +1,4 @@
-// Service de génération de rapports de fraude pour les propriétaires (GetPatrimo)
+// Service de génération de rapports de fraude pour les propriétaires (Maison Patrimo)
 
 /**
  * Détermine le niveau de gravité d'une alerte de fraude
@@ -185,7 +185,7 @@ function generateFraudEmailHTML(report) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alerte Fraude - GetPatrimo</title>
+  <title>Alerte Fraude - Maison Patrimo</title>
 </head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#F8FAFC;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC;padding:20px;">
@@ -195,7 +195,7 @@ function generateFraudEmailHTML(report) {
           <!-- Header -->
           <tr>
             <td style="background-color:#0F172A;padding:24px;text-align:center;">
-              <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:700;">GetPatrimo</h1>
+              <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:700;">Maison Patrimo</h1>
               <p style="margin:8px 0 0;color:#94A3B8;font-size:14px;">Détection de fraude documentaire</p>
             </td>
           </tr>
@@ -272,7 +272,7 @@ function generateFraudEmailHTML(report) {
           <!-- Footer -->
           <tr>
             <td style="padding:24px;background-color:#F1F5F9;border-top:1px solid #E2E8F0;text-align:center;">
-              <p style="margin:0;color:#64748B;font-size:12px;">Cet email a été généré automatiquement par GetPatrimo</p>
+              <p style="margin:0;color:#64748B;font-size:12px;">Cet email a été généré automatiquement par Maison Patrimo</p>
               <p style="margin:8px 0 0;color:#64748B;font-size:12px;">Pour toute question, connectez-vous à votre tableau de bord.</p>
             </td>
           </tr>
@@ -292,7 +292,7 @@ function generateFraudEmailHTML(report) {
  */
 function generateFraudEmailText(report) {
   return `
-ALERTE FRAUDE - GetPatrimo
+ALERTE FRAUDE - Maison Patrimo
 ${'='.repeat(50)}
 
 ${report.title}
@@ -313,7 +313,7 @@ ${d.items.map(i => `  - ${i.label}: ${i.description}`).join('\n')}
 `).join('\n')}
 
 ---
-Cet email a été généré automatiquement par GetPatrimo
+Cet email a été généré automatiquement par Maison Patrimo
   `.trim();
 }
 
