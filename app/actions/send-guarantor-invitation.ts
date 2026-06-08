@@ -1,6 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
+import { sendMailWithRetry } from '@/lib/email-retry';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
 import mongoose from 'mongoose';
@@ -232,16 +233,14 @@ La certification Didit garantit votre identité sans stockage de vos documents s
 Maison Patrimo - Plateforme de certification immobilière
     `;
 
-    await transporter.sendMail({
+    const sent = await sendMailWithRetry(transporter, {
       from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
       to: guarantorEmail,
       subject: `Invitation Garant - ${tenantName} a besoin de votre garantie`,
       text: emailText,
       html: emailHtml,
-    });
-
-    console.log(`✅ Email d'invitation envoyé à ${guarantorEmail}`);
-    return true;
+    }, { label: 'invitation-garant' });
+    return sent;
   } catch (error) {
     console.error('Erreur envoi email garant:', error);
     return false;

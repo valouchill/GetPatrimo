@@ -1,6 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
+import { sendMailWithRetry } from '@/lib/email-retry';
 import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
@@ -175,14 +176,14 @@ async function sendCoTenantInvitationEmail(
   </td></tr></table>
 </body></html>`;
 
-    await transporter.sendMail({
+    const sent = await sendMailWithRetry(transporter, {
       from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
       to: coTenantEmail,
       subject: `Colocation Maison Patrimo — ${initiatorName} vous invite à certifier votre identité`,
       text: `Bonjour ${coTenantName},\n\n${initiatorName} vous invite à rejoindre sa colocation sur Maison Patrimo et à certifier votre identité (eIDAS via Didit, < 30s).\n\nLien : ${verificationUrl}\n\nMaison Patrimo`,
       html: emailHtml,
-    });
-    return true;
+    }, { label: 'invitation-colocataire' });
+    return sent;
   } catch (error) {
     console.error('Erreur envoi email colocataire:', error);
     return false;

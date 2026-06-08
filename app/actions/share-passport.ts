@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { sendMailWithRetry } from '@/lib/email-retry';
 import { METAL_DESCRIPTIONS } from '@/lib/product-lexicon';
 import { resolveResilienceScore } from '@/lib/resilience-score';
 
@@ -348,16 +349,15 @@ L'Expert Maison Patrimo
 La technologie au service de votre patrimoine
     `;
     
-    await transporter.sendMail({
+    const sent = await sendMailWithRetry(transporter, {
       from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
       to: data.recipientEmail,
       subject: `🛡️ Dossier de candidature certifié : ${data.tenantName} — Niveau ${data.grade}`,
       text: emailText,
       html: emailHtml,
-    });
-    
-    logger.info('Email de partage Passeport envoyé', { recipientEmail: data.recipientEmail });
-    return true;
+    }, { label: 'partage-passeport' });
+    if (sent) logger.info('Email de partage Passeport envoyé', { recipientEmail: data.recipientEmail });
+    return sent;
     
   } catch (error) {
     logger.error('Erreur envoi email partage passeport', { error: error instanceof Error ? error.message : error });
@@ -442,15 +442,14 @@ export async function notifyPassportViewed(
 </html>
     `;
     
-    await transporter.sendMail({
+    const sent = await sendMailWithRetry(transporter, {
       from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
       to: tenantEmail,
       subject: `🎉 Bonne nouvelle ${tenantName} ! Un propriétaire consulte votre Passeport`,
       html: emailHtml,
-    });
-    
-    logger.info('Notification vue passeport envoyée', { tenantEmail });
-    return true;
+    }, { label: 'notif-vue-passeport' });
+    if (sent) logger.info('Notification vue passeport envoyée', { tenantEmail });
+    return sent;
     
   } catch (error) {
     logger.error('Erreur notification vue passeport', { error: error instanceof Error ? error.message : error });
