@@ -135,7 +135,9 @@ async function analyzeDocumentViaApi(
         trust_and_security: { fraud_score: 0, forensic_alerts: [] },
       } as unknown as AnalysisV2Result;
     }
-    throw err;
+    throw new Error(
+      "Connexion interrompue pendant l'envoi. Vérifiez votre connexion Internet puis réessayez."
+    );
   } finally {
     clearTimeout(clientTimeout);
   }
@@ -147,10 +149,32 @@ async function analyzeDocumentViaApi(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Erreur ${response.status}`);
+    throw new Error(friendlyUploadError(response.status, errorData?.error));
   }
 
   return response.json();
+}
+
+/**
+ * Traduit un échec d'upload/analyse en message clair pour le locataire
+ * (distingue fichier trop lourd, rate-limit, session expirée, panne serveur…).
+ */
+function friendlyUploadError(status: number, serverError?: string): string {
+  switch (status) {
+    case 413:
+      return 'Fichier trop volumineux (max 25 Mo). Choisissez un fichier plus léger ou compressez-le.';
+    case 429:
+      return "Trop d'envois rapprochés. Patientez une minute puis réessayez.";
+    case 401:
+    case 403:
+      return 'Votre session a expiré. Rechargez la page puis réessayez.';
+    case 415:
+      return 'Format non supporté. Envoyez un fichier PDF, JPG ou PNG.';
+  }
+  if (status >= 500) {
+    return "Notre service d'analyse est momentanément indisponible. Réessayez dans un instant.";
+  }
+  return serverError || `L'analyse a échoué (code ${status}). Réessayez.`;
 }
 
 // --- Analysis rotating message ---
