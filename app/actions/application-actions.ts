@@ -1,8 +1,12 @@
 'use server';
 
 import { connectDiditDb } from '@/app/api/didit/db';
+import { cookies } from 'next/headers';
+import jwt from 'jsonwebtoken';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
+import IdentitySession from '@/models/IdentitySession';
+import Guarantor from '@/models/Guarantor';
  
 const { computeApplicationPatrimometer } = require('@/src/utils/applicationScoring');
  
@@ -25,6 +29,54 @@ async function resolvePropertyId(applyToken?: string): Promise<string | null> {
   if (!applyToken) return null;
   const property = await Property.findOne({ applyToken }).select('_id').lean() as { _id?: { toString(): string } } | null;
   return property?._id?.toString() || null;
+}
+
+/**
+ * Identité réellement vérifiée par Didit — SOURCE DE VÉRITÉ SERVEUR uniquement (jamais le client).
+ * (1) `IdentitySession` `CERTIFIEE` (posée par /api/didit/status APRÈS appel à l'API Didit), liée à
+ *     l'applyToken / sessionId ; OU (2) cookie signé `didit_verified` (flux OIDC, JWT_SECRET).
+ * Retourne l'identité vérifiée, ou null. Aucune de ces sources n'est falsifiable par le candidat.
+ */
+async function resolveServerVerifiedIdentity(
+  applyToken: string,
+  sessionId?: string
+): Promise<{ firstName: string; lastName: string; birthDate: string } | null> {
+  // (1) IdentitySession CERTIFIEE (par applyToken ou sessionId)
+  try {
+    const or: Array<Record<string, unknown>> = [{ applyToken }];
+    if (sessionId) or.unshift({ sessionId });
+    const sess = (await IdentitySession.findOne({ $or: or, identityStatus: 'CERTIFIEE' })
+      .sort({ verifiedAt: -1 })
+      .lean()) as { firstName?: string; lastName?: string; birthDate?: string } | null;
+    if (sess) {
+      return { firstName: sess.firstName || '', lastName: sess.lastName || '', birthDate: sess.birthDate || '' };
+    }
+  } catch {
+    /* ignore — on tente la source (2) */
+  }
+  // (2) Cookie signé `didit_verified`
+  try {
+    const token = (await cookies()).get('didit_verified')?.value;
+    const secret = process.env.JWT_SECRET;
+    if (token && secret) {
+      const claims = jwt.verify(token, secret) as {
+        firstName?: string;
+        lastName?: string;
+        birthDate?: string;
+        humanVerified?: boolean;
+      };
+      if (claims && claims.humanVerified) {
+        return {
+          firstName: claims.firstName || '',
+          lastName: claims.lastName || '',
+          birthDate: claims.birthDate || '',
+        };
+      }
+    }
+  } catch {
+    /* cookie absent / JWT invalide ou expiré */
+  }
+  return null;
 }
 
 /**
@@ -103,29 +155,43 @@ export async function saveApplicationProgress(
       application.profile.status = data.candidateStatus;
     }
 
-    if (data.diditStatus) {
-      application.didit.status = data.diditStatus;
-      if (data.diditStatus === 'VERIFIED') {
-        application.didit.verifiedAt = new Date();
-      }
-    }
-
+    // ── Identité Didit : SOURCE DE VÉRITÉ SERVEUR (jamais le client). ──
+    // Le candidat ne peut PAS s'auto-certifier : `VERIFIED` + identité proviennent exclusivement
+    // d'une IdentitySession CERTIFIEE (posée serveur après appel Didit) ou du cookie signé.
     if (data.diditSessionId) {
       application.didit.sessionId = data.diditSessionId;
     }
-
-    if (data.diditIdentity) {
-      application.didit.identityData = data.diditIdentity;
+    const verifiedIdentity = await resolveServerVerifiedIdentity(
+      applyToken,
+      data.diditSessionId || application.didit.sessionId
+    );
+    if (verifiedIdentity) {
+      application.didit.status = 'VERIFIED';
+      if (!application.didit.verifiedAt) application.didit.verifiedAt = new Date();
+      application.didit.identityData = verifiedIdentity;
+    } else if (application.didit.status !== 'VERIFIED' && data.diditStatus && data.diditStatus !== 'VERIFIED') {
+      // Statuts non sensibles (PENDING/loading) : reflétés pour l'UI, jamais d'élévation à VERIFIED.
+      application.didit.status = data.diditStatus;
     }
 
     if (data.documents) {
       application.documents = data.documents as typeof application.documents;
     }
 
+    // ── Statut garant : dérivé du modèle Guarantor SERVEUR (jamais le client). ──
     if (data.guarantorStatus) {
-      application.guarantor.status = data.guarantorStatus;
-      if (data.guarantorStatus === 'CERTIFIED' || data.guarantorStatus === 'AUDITED') {
-        application.guarantor.hasGuarantor = true;
+      const isCertClaim = data.guarantorStatus === 'CERTIFIED' || data.guarantorStatus === 'AUDITED';
+      if (isCertClaim) {
+        // Élévation CERTIFIED/AUDITED acceptée UNIQUEMENT si un garant est réellement certifié
+        // côté serveur (statut posé par /api/guarantor/{status,audit} après vérification Didit/audit).
+        const serverCertified = await Guarantor.exists({ applyToken, status: 'CERTIFIED' });
+        if (serverCertified) {
+          application.guarantor.status = data.guarantorStatus;
+          application.guarantor.hasGuarantor = true;
+        }
+        // sinon : élévation ignorée (pas de confiance au client).
+      } else {
+        application.guarantor.status = data.guarantorStatus;
       }
     }
 
@@ -148,7 +214,7 @@ export async function saveApplicationProgress(
 
     const computedPatrimometer = computeApplicationPatrimometer({
       candidateStatus: data.candidateStatus || application.profile.status,
-      diditStatus: data.diditStatus || application.didit.status,
+      diditStatus: application.didit.status,
       propertyRentAmount: data.propertyRentAmount,
       detectedIncome: derivedFinancialSummary.totalMonthlyIncome || data.detectedIncome,
       documents: data.documents || application.documents,
@@ -160,7 +226,7 @@ export async function saveApplicationProgress(
       guarantee: data.guarantee || application.guarantee || null,
       legacyGuarantor: {
         hasGuarantor: application.guarantor.hasGuarantor,
-        status: data.guarantorStatus || application.guarantor.status,
+        status: application.guarantor.status,
         certificationMethod: data.guarantorMethod || application.guarantor.certificationMethod,
       },
     });
@@ -192,16 +258,13 @@ export async function saveApplicationProgress(
       }
     }
 
-    const nextScore =
-      data.patrimometerScore !== undefined ? data.patrimometerScore : computedPatrimometer.score;
-    application.patrimometer.score = nextScore;
-    application.patrimometer.breakdown =
-      (data.patrimometerBreakdown as Record<string, unknown>) || computedPatrimometer.breakdown;
-    application.patrimometer.warnings = data.patrimometerWarnings || computedPatrimometer.warnings;
-    application.patrimometer.nextAction =
-      (data.patrimometerNextAction as Record<string, unknown>) || computedPatrimometer.nextAction;
-    application.patrimometer.chapterStates =
-      (data.patrimometerChapterStates as Record<string, unknown>) || computedPatrimometer.chapterStates;
+    // ── Score / grade / breakdown / warnings : TOUJOURS la valeur calculée SERVEUR (jamais le
+    // client). Le candidat ne peut ni gonfler son score, ni effacer ses propres alertes de fraude. ──
+    application.patrimometer.score = computedPatrimometer.score;
+    application.patrimometer.breakdown = computedPatrimometer.breakdown;
+    application.patrimometer.warnings = computedPatrimometer.warnings;
+    application.patrimometer.nextAction = computedPatrimometer.nextAction;
+    application.patrimometer.chapterStates = computedPatrimometer.chapterStates;
     application.patrimometer.grade = application.calculateGrade();
     application.patrimometer.lastCalculatedAt = new Date();
 
@@ -220,8 +283,7 @@ export async function saveApplicationProgress(
 
     // Mettre à jour le progrès et le statut
     application.tunnel.lastActiveAt = new Date();
-    application.tunnel.chapterStates =
-      (data.patrimometerChapterStates as Record<string, unknown>) || computedPatrimometer.chapterStates;
+    application.tunnel.chapterStates = computedPatrimometer.chapterStates;
     const passportBaseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXTAUTH_URL ||
@@ -242,15 +304,12 @@ export async function saveApplicationProgress(
           rentAmount: data.propertyRentAmount,
         },
         patrimometer: {
-          score: nextScore,
+          score: application.patrimometer.score,
           grade: application.patrimometer.grade,
-          breakdown:
-            (data.patrimometerBreakdown as Record<string, unknown>) || computedPatrimometer.breakdown,
-          warnings: data.patrimometerWarnings || computedPatrimometer.warnings,
-          nextAction:
-            (data.patrimometerNextAction as Record<string, unknown>) || computedPatrimometer.nextAction,
-          chapterStates:
-            (data.patrimometerChapterStates as Record<string, unknown>) || computedPatrimometer.chapterStates,
+          breakdown: computedPatrimometer.breakdown,
+          warnings: computedPatrimometer.warnings,
+          nextAction: computedPatrimometer.nextAction,
+          chapterStates: computedPatrimometer.chapterStates,
         },
         submittedAt: application.submittedAt,
         createdAt: application.createdAt,
