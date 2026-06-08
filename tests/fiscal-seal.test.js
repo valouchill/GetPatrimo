@@ -5,6 +5,7 @@ const {
   isFiscalSealEnabled,
   dataUrlToBuffer,
   runSealWrapper,
+  runSealWrapperDetailed,
   crossCheckFiscalSeal,
   analyzeFiscalSeal,
 } = require('../src/services/fiscalSealService');
@@ -91,4 +92,31 @@ test('runSealWrapper decodes + verifies a 2D-Doc image end-to-end', async (t) =>
   assert.match(String(seal.declarant1), /RETI PATRICK/);
   assert.equal(seal.algHint, 'P-256');
   assert.equal(typeof seal.signatureValid, 'boolean');
+});
+
+/* ─── A7 : une panne d'infra ne doit PLUS être confondue avec « pas de sceau » ─── */
+
+test('runSealWrapperDetailed signals UNAVAILABLE when the Python binary is missing', async () => {
+  // Binaire inexistant ⇒ spawn émet 'error' (ENOENT). Doit remonter UNAVAILABLE,
+  // et SURTOUT pas un null indistinguable d'« aucun sceau » (audit V1 — A7).
+  const r = await runSealWrapperDetailed(Buffer.from('xx'), {
+    pythonBin: '/nonexistent/python-xyz-does-not-exist',
+    scriptPath: '/tmp/none.py',
+  });
+  assert.equal(r.status, 'UNAVAILABLE');
+  assert.equal(r.seal, null);
+});
+
+test('runSealWrapperDetailed returns NO_SEAL on empty input (pas une panne)', async () => {
+  const r = await runSealWrapperDetailed(Buffer.alloc(0));
+  assert.equal(r.status, 'NO_SEAL');
+  assert.equal(r.seal, null);
+});
+
+test('runSealWrapper (legacy) still returns null on infra failure (contrat conservé)', async () => {
+  const seal = await runSealWrapper(Buffer.from('xx'), {
+    pythonBin: '/nonexistent/python-xyz-does-not-exist',
+    scriptPath: '/tmp/none.py',
+  });
+  assert.equal(seal, null);
 });

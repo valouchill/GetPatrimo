@@ -12,8 +12,11 @@
  * (@zxing/library échoue, zbar ne gère pas le DataMatrix) ; libdmtx est la
  * référence. On consolide donc décodage + vérif côté Python.
  *
- * Gated par FISCAL_SEAL_VERIFICATION_ENABLED. Fire-and-forget : ne lève jamais ;
- * renvoie null si désactivé / dépendances absentes / pas de sceau / erreur.
+ * Gated par FISCAL_SEAL_VERIFICATION_ENABLED. Fire-and-forget : ne lève jamais.
+ * Distingue désormais une panne d'infra (Python/déps absents, script planté, timeout)
+ * de l'absence de sceau : les pannes sont LOGGUÉES et signalées
+ * (analyzeFiscalSeal → { unavailable:true }) au lieu d'être avalées en silence,
+ * ce qui désactivait l'anti-fraude sans alerte (audit V1 — A7).
  *
  * Dépendances runtime (PROD) : Python + système libdmtx0 + pip pylibdmtx, Pillow,
  * fr_2ddoc_parser (+ pydantic, cryptography). Requires RELATIFS (convention du repo).
@@ -21,6 +24,7 @@
 
 const path = require('path');
 const { spawn } = require('child_process');
+const { logger } = require('../../lib/logger');
 
 const SEAL_TIMEOUT_MS = Number(process.env.FISCAL_SEAL_TIMEOUT_MS || 12000);
 
@@ -40,38 +44,81 @@ function dataUrlToBuffer(dataUrl) {
 }
 
 /**
- * Lance scripts/verify_2ddoc.py avec `input` (Buffer image OU chaîne 2D-Doc) sur stdin.
- * Renvoie l'objet sceau (JSON) si {ok:true}, sinon null. Ne lève jamais.
+ * Statut structuré de la vérification du sceau.
+ * @typedef {'OK'|'NO_SEAL'|'UNAVAILABLE'|'TIMEOUT'|'ERROR'} SealStatus
  */
-function runSealWrapper(input, opts = {}) {
+
+/**
+ * Lance scripts/verify_2ddoc.py avec `input` (Buffer image OU chaîne 2D-Doc) sur stdin.
+ * Ne lève jamais. Renvoie un statut STRUCTURÉ afin de ne plus confondre une panne
+ * d'infrastructure (Python/libdmtx absents, script planté, timeout) avec « pas de
+ * sceau » : ces pannes étaient avalées en silence (resolve(null)), désactivant
+ * l'anti-fraude sans aucune alerte (audit V1 — A7). Désormais : logguées + signalées.
+ * @returns {Promise<{status: SealStatus, seal: object|null}>}
+ */
+function runSealWrapperDetailed(input, opts = {}) {
   return new Promise((resolve) => {
     if (input == null || input.length === 0) {
-      resolve(null);
+      resolve({ status: 'NO_SEAL', seal: null });
       return;
     }
+    const python = opts.pythonBin || process.env.PYTHON_BIN || 'python3';
+    const script = opts.scriptPath || path.join(process.cwd(), 'scripts', 'verify_2ddoc.py');
+    let settled = false;
+    const finish = (r) => { if (!settled) { settled = true; resolve(r); } };
     try {
-      const python = opts.pythonBin || process.env.PYTHON_BIN || 'python3';
-      const script = opts.scriptPath || path.join(process.cwd(), 'scripts', 'verify_2ddoc.py');
       const child = spawn(python, [script], { timeout: SEAL_TIMEOUT_MS });
       let out = '';
+      let errOut = '';
       child.stdout.on('data', (d) => { out += d; });
-      child.stderr.on('data', () => {}); // warnings de la lib ignorés
-      child.on('error', () => resolve(null));
-      child.on('close', () => {
+      child.stderr.on('data', (d) => { errOut += d; }); // capturé pour diagnostic
+      child.on('error', (e) => {
+        // Le process n'a pas pu démarrer : binaire Python / dépendances absentes.
+        logger.error('[fiscalSeal] Python introuvable ou non lançable — vérification du sceau IMPOSSIBLE (déps libdmtx/pylibdmtx/fr_2ddoc_parser ?)', {
+          python,
+          error: e && e.message ? e.message : String(e),
+        });
+        finish({ status: 'UNAVAILABLE', seal: null });
+      });
+      child.on('close', (code, signal) => {
+        if (settled) return;
+        if (code === null) {
+          // Tué par signal — typiquement le timeout de spawn({ timeout }) → SIGTERM.
+          logger.warn('[fiscalSeal] script de vérification tué (timeout probable)', { signal, timeoutMs: SEAL_TIMEOUT_MS });
+          finish({ status: 'TIMEOUT', seal: null });
+          return;
+        }
+        if (code !== 0) {
+          logger.warn('[fiscalSeal] script de vérification en échec (code de sortie non nul)', { code, stderr: errOut.slice(0, 500) });
+          finish({ status: 'ERROR', seal: null });
+          return;
+        }
         try {
           const j = JSON.parse(String(out).trim());
-          resolve(j && j.ok ? j : null);
+          if (j && j.ok) finish({ status: 'OK', seal: j });
+          else finish({ status: 'NO_SEAL', seal: null }); // exécution propre, aucun sceau valide
         } catch {
-          resolve(null);
+          logger.warn('[fiscalSeal] sortie du script illisible (JSON invalide)', { sample: String(out).slice(0, 200), stderr: errOut.slice(0, 200) });
+          finish({ status: 'ERROR', seal: null });
         }
       });
       child.stdin.on('error', () => {});
       child.stdin.write(input);
       child.stdin.end();
-    } catch {
-      resolve(null);
+    } catch (e) {
+      logger.error('[fiscalSeal] échec lancement de la vérification du sceau', { error: e && e.message ? e.message : String(e) });
+      finish({ status: 'ERROR', seal: null });
     }
   });
+}
+
+/**
+ * Variante legacy : renvoie l'objet sceau si {ok:true}, sinon null. Ne lève jamais.
+ * Conserve le contrat historique ; délègue à runSealWrapperDetailed.
+ */
+async function runSealWrapper(input, opts = {}) {
+  const { seal } = await runSealWrapperDetailed(input, opts);
+  return seal;
 }
 
 /* ─────────────────────────────  Recoupement scellé ↔ OCR (pur)  ───────────────────────────── */
@@ -131,14 +178,22 @@ async function analyzeFiscalSeal({ images = [], ocr = {} } = {}) {
     for (const img of images) {
       const buf = dataUrlToBuffer(img);
       if (!buf) continue;
-      const seal = await runSealWrapper(buf);
-      if (!seal) continue;
-      const cross = crossCheckFiscalSeal(seal, ocr);
-      return { seal, cross };
+      const { status, seal } = await runSealWrapperDetailed(buf);
+      if (status === 'OK' && seal) {
+        const cross = crossCheckFiscalSeal(seal, ocr);
+        return { seal, cross };
+      }
+      if (status === 'UNAVAILABLE' || status === 'TIMEOUT' || status === 'ERROR') {
+        // Panne d'infra (déjà logguée) : inutile d'essayer les autres images, et on
+        // REMONTE l'indisponibilité pour que l'orchestrateur la trace (≠ « pas de sceau »).
+        return { seal: null, cross: null, unavailable: true, reason: status };
+      }
+      // status === 'NO_SEAL' → image suivante
     }
     return null;
-  } catch {
-    return null;
+  } catch (e) {
+    logger.error('[fiscalSeal] erreur inattendue dans analyzeFiscalSeal', { error: e && e.message ? e.message : String(e) });
+    return { seal: null, cross: null, unavailable: true, reason: 'ERROR' };
   }
 }
 
@@ -146,6 +201,7 @@ module.exports = {
   isFiscalSealEnabled,
   dataUrlToBuffer,
   runSealWrapper,
+  runSealWrapperDetailed,
   crossCheckFiscalSeal,
   analyzeFiscalSeal,
 };
