@@ -320,6 +320,11 @@ export async function POST(request: NextRequest) {
         } else {
           result.trust_and_security.forensic_alerts.push('ℹ️ Sceau fiscal 2D-Doc décodé mais signature non vérifiée — non bloquant.');
         }
+      } else if (fiscal && fiscal.unavailable) {
+        // Vérification du sceau IMPOSSIBLE (Python/déps absents, timeout, script en échec) :
+        // tracée explicitement (et logguée côté service) au lieu d'être confondue avec
+        // « pas de sceau » — sinon l'anti-fraude se désactivait en silence (audit V1 — A7).
+        result.trust_and_security.fiscal_seal_status = 'VERIFICATION_INDISPONIBLE';
       }
     }
 
