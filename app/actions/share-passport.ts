@@ -50,7 +50,7 @@ export async function sharePassportByEmail(
     let slug = appData.passportSlug;
     if (!slug) {
       const safeName = (profile.firstName || 'dossier').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 12);
-      const suffix = crypto.randomBytes(4).toString('hex');
+      const suffix = crypto.randomBytes(8).toString('hex'); // 64 bits — anti-énumération du slug public
       slug = safeName + '-' + suffix;
       await Application.findByIdAndUpdate(applicationId, { passportSlug: slug });
     }

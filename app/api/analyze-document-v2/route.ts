@@ -100,6 +100,14 @@ export async function POST(request: NextRequest) {
     }
 
     const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+    // Rejeter AVANT de charger le fichier en mémoire (anti-OOM / DoS) : `file.size` est connu
+    // dès le parsing multipart, sans lire le corps.
+    const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 Mo
+    if (typeof file.size === 'number' && file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ error: 'Fichier trop volumineux (maximum 25 Mo).' }, { status: 413 });
+    }
+
     const buffer = toStableBuffer(await file.arrayBuffer());
     const fileSizeMB = file.size / (1024 * 1024);
 
