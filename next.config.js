@@ -34,6 +34,23 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
         ],
       },
+      {
+        // Invitations tokenisées garant : le token figure dans l'URL → on coupe le
+        // Referer et le cache pour éviter toute fuite (audit V1 — A10).
+        source: '/verify-guarantor/:token*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+        ],
+      },
+      {
+        // Invitations tokenisées colocataire (même raison — A10).
+        source: '/verify-cotenant/:token*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+        ],
+      },
     ];
   },
   images: {
