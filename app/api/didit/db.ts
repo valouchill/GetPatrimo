@@ -30,7 +30,18 @@ export async function connectDiditDb() {
   }
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGO_URI);
+    cached.promise = mongoose
+      .connect(MONGO_URI, {
+        serverSelectionTimeoutMS: 10_000, // échec rapide si le cluster est injoignable (évite que les routes pendent)
+        socketTimeoutMS: 45_000,
+        maxPoolSize: 10,
+      })
+      .catch((err) => {
+        // Réinitialiser la promesse pour permettre une nouvelle tentative au prochain appel
+        // (sinon une connexion échouée resterait définitivement « rejected » en cache).
+        if (cached) cached.promise = null;
+        throw err;
+      });
   }
   cached.conn = await cached.promise;
   return cached.conn;

@@ -313,9 +313,17 @@ async function analyzeWithVision(images, prompt, openaiApiKey, pdfMetadata, didi
   try {
     rawResult = JSON.parse(resultText);
   } catch {
-    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      rawResult = JSON.parse(jsonMatch[0]);
+    // Tolérance : retirer d'éventuelles clôtures markdown ```json … ``` puis extraire l'objet
+    // du premier '{' au dernier '}'.
+    const cleaned = resultText.replace(/```(?:json)?/gi, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      try {
+        rawResult = JSON.parse(cleaned.slice(start, end + 1));
+      } catch {
+        throw new Error('Réponse IA non parsable en JSON');
+      }
     } else {
       throw new Error('Réponse IA non parsable en JSON');
     }

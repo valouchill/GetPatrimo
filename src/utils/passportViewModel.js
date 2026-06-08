@@ -203,7 +203,7 @@ function buildPassportSlug(firstName = 'dossier') {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 12) || 'dossier';
-  const suffix = crypto.randomBytes(4).toString('hex');
+  const suffix = crypto.randomBytes(8).toString('hex'); // 64 bits — anti-énumération du slug public
   return `${safeName}-${suffix}`;
 }
 
