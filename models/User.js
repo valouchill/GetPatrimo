@@ -43,6 +43,9 @@ const UserSchema = new mongoose.Schema({
   adminPromotedAt: { type: Date },
   adminPromotedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
+  // Suppression RGPD (soft-delete / anonymisation — art. 17)
+  deletedAt: { type: Date },
+
   usage: {
     receipts: {
       month: { type: String, default: '' }, // YYYY-MM
