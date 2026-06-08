@@ -4130,6 +4130,18 @@ export default function ApplyClient({ token }: { token: string }) {
                     <p className="text-xs text-slate-400 mt-2 text-right">{presentationText.length}/500</p>
                   </div>
 
+                  {/* Bandeau de Réassurance — dépôt sécurisé (Trust Banner) */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center shadow-sm">
+                    <div className="bg-amber-100 p-3 rounded-full flex-shrink-0">
+                      <LockIcon className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <div className="text-emerald-950 text-sm leading-relaxed">
+                      <h3 className="font-bold text-base mb-1">Dépôt de documents sécurisé par Maison Patrimo.</h3>
+                      <p className="mb-1">Vos données personnelles sont traitées avec la plus grande confidentialité et stockées sur des serveurs sécurisés conformes au RGPD. La collecte de ces documents est indispensable pour l&apos;analyse de votre dossier de location, dans le respect de votre vie privée.</p>
+                      <p className="font-semibold mt-2">Vous pouvez déposer vos pièces en toute sérénité.</p>
+                    </div>
+                  </div>
+
                   {/* Zone de dépôt intelligent */}
                   <div
                     className="relative group border-2 border-dashed border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white rounded-xl md:rounded-[2.5rem] p-8 md:p-16 flex flex-col items-center justify-center transition-all hover:border-emerald-400 cursor-pointer overflow-hidden"
