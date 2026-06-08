@@ -9,9 +9,7 @@ const {
   updateProfile,
   changePassword,
   sendMagicLink,
-  verifyMagicLink,
-  forgotPassword,
-  resetPassword
+  verifyMagicLink
 } = require('../controllers/authController');
 
 // Routes publiques
@@ -19,8 +17,8 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/magic-link', sendMagicLink);
 router.post('/magic-link/verify', verifyMagicLink);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+// /forgot-password & /reset-password : flux Express obsolète (remplacé par les routes
+// App Router app/api/auth/{forgot,reset}-password) — retiré (audit V1).
 
 // Routes protégées
 router.get('/profile', auth, getProfile);
