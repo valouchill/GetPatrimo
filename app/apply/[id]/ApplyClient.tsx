@@ -1386,8 +1386,7 @@ export default function ApplyClient({ token }: { token: string }) {
   const triggerAutoSave = useCallback(async () => {
     if (!userEmail || !token) return;
     
-    try {
-      const result = await saveApplicationProgress(userEmail, token, {
+    const payload = {
         currentStep,
         profile: {
           firstName: formData.firstName,
@@ -1443,13 +1442,22 @@ export default function ApplyClient({ token }: { token: string }) {
         guarantee: scoringSnapshot.guarantee,
         propertyRentAmount: property?.rentAmount,
         detectedIncome: detectedIncome ?? undefined,
-      });
-      if (result?.success && result.applicationId) {
-        setApplicationId(result.applicationId);
+    };
+    // A3 — un retry sur échec transitoire (réseau) pour éviter de perdre la saisie du locataire.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const result = await saveApplicationProgress(userEmail, token, payload);
+        if (result?.success && result.applicationId) {
+          setApplicationId(result.applicationId);
+        }
+        return;
+      } catch (error) {
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        } else {
+          console.error('Échec de la sauvegarde automatique (après nouvelle tentative)', error);
+        }
       }
-      console.log('✅ Dossier sauvegardé automatiquement');
-    } catch (error) {
-      console.error('Erreur auto-save:', error);
     }
   }, [userEmail, token, currentStep, formData, candidateStatus, presentationText, diditStatus, diditSessionId, diditIdentity, uploadedFiles, guarantorCertified, guarantorInvitationSent, guarantorCertificationMethod, score, scoringSnapshot, property?.rentAmount, detectedIncome]);
 
@@ -2640,7 +2648,17 @@ export default function ApplyClient({ token }: { token: string }) {
 
   useEffect(() => {
     if (!diditSessionId) return;
+    let elapsed = 0;
+    const STEP_MS = 2500;
+    const MAX_POLL_MS = 5 * 60 * 1000; // 5 min : au-delà on arrête le polling (anti spinner infini + fuite de requêtes)
     const interval = setInterval(async () => {
+      elapsed += STEP_MS;
+      if (elapsed >= MAX_POLL_MS) {
+        clearInterval(interval);
+        // Repasser en 'idle' (sauf si déjà vérifié) pour débloquer l'UI et permettre une relance.
+        setDiditStatus(prev => (prev === 'verified' ? prev : 'idle'));
+        return;
+      }
       try {
         const res = await fetch(`/api/didit/status?sessionId=${encodeURIComponent(diditSessionId)}`);
         if (!res.ok) return;
