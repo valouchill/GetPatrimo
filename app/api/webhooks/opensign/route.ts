@@ -16,20 +16,20 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const secret = process.env.OPENSIGN_WEBHOOK_SECRET;
 
-    // HMAC signature verification (if configured)
-    if (secret) {
-      const signature = request.headers.get('x-opensign-signature');
-      if (signature) {
-        const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-        const valid = crypto.timingSafeEqual(
-          Buffer.from(computed),
-          Buffer.from(signature)
-        );
-        if (!valid) {
-          logger.warn('[opensign-webhook] Invalid HMAC signature');
-          return NextResponse.json({ error: 'Signature invalide' }, { status: 401 });
-        }
-      }
+    // Sécurité (revue V1 — S17) : HMAC OBLIGATOIRE. Sans secret configuré, ou sans
+    // signature valide, on rejette — sinon un attaquant pourrait forger un event
+    // « bail signé ».
+    if (!secret) {
+      logger.error('[opensign-webhook] OPENSIGN_WEBHOOK_SECRET non configuré — webhook rejeté');
+      return NextResponse.json({ error: 'Webhook non configuré' }, { status: 503 });
+    }
+    const signature = request.headers.get('x-opensign-signature') || '';
+    const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    const sigBuf = Buffer.from(signature);
+    const cmpBuf = Buffer.from(computed);
+    if (sigBuf.length !== cmpBuf.length || !crypto.timingSafeEqual(sigBuf, cmpBuf)) {
+      logger.warn('[opensign-webhook] Signature HMAC absente ou invalide — rejeté');
+      return NextResponse.json({ error: 'Signature invalide' }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody);
