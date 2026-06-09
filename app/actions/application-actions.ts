@@ -51,26 +51,28 @@ async function resolvePropertyId(applyToken?: string): Promise<string | null> {
 
 /**
  * Identité réellement vérifiée par Didit — SOURCE DE VÉRITÉ SERVEUR uniquement (jamais le client).
- * (1) `IdentitySession` `CERTIFIEE` (posée par /api/didit/status APRÈS appel à l'API Didit), liée à
- *     l'applyToken / sessionId ; OU (2) cookie signé `didit_verified` (flux OIDC, JWT_SECRET).
+ * (1) `IdentitySession` `CERTIFIEE` (posée par /api/didit/status APRÈS appel à l'API Didit),
+ *     résolue par le `sessionId` PROPRE au candidat (jamais par l'applyToken, partagé entre
+ *     candidats — revue V1 S4) ; OU (2) cookie signé `didit_verified` (flux OIDC, JWT_SECRET).
  * Retourne l'identité vérifiée, ou null. Aucune de ces sources n'est falsifiable par le candidat.
  */
 async function resolveServerVerifiedIdentity(
-  applyToken: string,
   sessionId?: string
 ): Promise<{ firstName: string; lastName: string; birthDate: string } | null> {
-  // (1) IdentitySession CERTIFIEE (par applyToken ou sessionId)
-  try {
-    const or: Array<Record<string, unknown>> = [{ applyToken }];
-    if (sessionId) or.unshift({ sessionId });
-    const sess = (await IdentitySession.findOne({ $or: or, identityStatus: 'CERTIFIEE' })
-      .sort({ verifiedAt: -1 })
-      .lean()) as { firstName?: string; lastName?: string; birthDate?: string } | null;
-    if (sess) {
-      return { firstName: sess.firstName || '', lastName: sess.lastName || '', birthDate: sess.birthDate || '' };
+  // (1) IdentitySession CERTIFIEE — UNIQUEMENT par sessionId (sécurité, revue V1 — S4).
+  // L'applyToken est PARTAGÉ par tous les candidats d'une même annonce : matcher dessus
+  // laissait un candidat hériter la certification Didit d'un autre. Le sessionId est le
+  // secret propre à CE candidat (obtenu en lançant SA propre vérification Didit).
+  if (sessionId) {
+    try {
+      const sess = (await IdentitySession.findOne({ sessionId, identityStatus: 'CERTIFIEE' })
+        .lean()) as { firstName?: string; lastName?: string; birthDate?: string } | null;
+      if (sess) {
+        return { firstName: sess.firstName || '', lastName: sess.lastName || '', birthDate: sess.birthDate || '' };
+      }
+    } catch {
+      /* ignore — on tente la source (2) */
     }
-  } catch {
-    /* ignore — on tente la source (2) */
   }
   // (2) Cookie signé `didit_verified`
   try {
@@ -183,7 +185,6 @@ export async function saveApplicationProgress(
       application.didit.sessionId = data.diditSessionId;
     }
     const verifiedIdentity = await resolveServerVerifiedIdentity(
-      applyToken,
       data.diditSessionId || application.didit.sessionId
     );
     if (verifiedIdentity) {
