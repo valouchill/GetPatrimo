@@ -151,6 +151,42 @@ test('garant — recoupement croisé intra-sujet (noms garant non stockés)', ()
   assert.equal(ok.matches, true);
 });
 
+test('garant CERTIFIÉ Didit — ancre forte : mismatch revenu = critique, pièce d’ID non pénalisée', () => {
+  const guarantorOne = {
+    firstName: 'Paul',
+    lastName: 'Durand',
+    status: 'CERTIFIED',
+    identityVerification: { status: 'CERTIFIEE' },
+  };
+  const res = evaluateDossierIdentityConcordance({
+    guarantorOne,
+    documents: [
+      // ID du garant (OCR approximatif) : NON pénalisée — ancre Didit forte (skip, comme le locataire).
+      buildDoc({ id: 'g-id', type: 'CARTE_IDENTITE', subjectType: 'GUARANTOR', subjectSlot: 1, ownerName: 'P DURAND' }),
+      // Fiche de paie d’un TIERS → mismatch CRITIQUE (malus 30, et non 18 « warning »).
+      buildDoc({ id: 'g-pay', type: 'BULLETIN_SALAIRE', subjectType: 'GUARANTOR', subjectSlot: 1, ownerName: 'Marie CLAIRE' }),
+    ],
+  });
+  assert.equal(res.matches, false);
+  assert.equal(res.scoreMalus, 30); // critique (parité locataire), pas 18
+  assert.equal(res.findings.some((f) => f.docId === 'g-id'), false); // ID vérifiée non pénalisée
+  const pay = res.findings.find((f) => f.docId === 'g-pay');
+  assert.ok(pay && pay.severity === 'critical');
+});
+
+test('garant NON vérifié — comportement inchangé (recoupement croisé, pas d’ancre forte)', () => {
+  const guarantorOne = { firstName: 'Paul', lastName: 'Durand', status: 'PENDING' };
+  const res = evaluateDossierIdentityConcordance({
+    guarantorOne,
+    documents: [
+      buildDoc({ id: 'g-id', type: 'CARTE_IDENTITE', subjectType: 'GUARANTOR', subjectSlot: 1, ownerName: 'Paul DURAND' }),
+      buildDoc({ id: 'g-pay', type: 'BULLETIN_SALAIRE', subjectType: 'GUARANTOR', subjectSlot: 1, ownerName: 'Paul DURAND' }),
+    ],
+  });
+  // Garant non certifié + docs cohérents entre eux → pas de flag (cross-doc OK).
+  assert.equal(res.matches, true);
+});
+
 test('Visale — le nom du certificat doit concorder avec le locataire principal', () => {
   const ko = evaluateDossierIdentityConcordance({
     diditStatus: 'verified',
