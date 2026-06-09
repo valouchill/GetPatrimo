@@ -227,8 +227,16 @@ app.use('/uploads', async (req, res, next) => {
 // -------------------- Servir les fichiers uploads (EDL PDFs, quittances, etc.)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   etag: false,
-  setHeaders: (res) => {
+  setHeaders: (res, filePath) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Sécurité (re-audit V1 — N6) : tout ce qui n'est pas une image/PDF connue est servi
+    // en TÉLÉCHARGEMENT forcé (anti stored-XSS via polyglotte .html servi inline).
+    const ext = path.extname(filePath).toLowerCase();
+    if (!['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext)) {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'attachment');
+    }
   },
 }));
 
