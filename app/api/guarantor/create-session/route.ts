@@ -39,6 +39,13 @@ export async function POST(request: NextRequest) {
       lastName?: string;
       slot?: number | string;
     };
+    // Sécurité (revue V1 — S9) : endpoint public + mongoSanitize est Express-only →
+    // on rejette tout champ non-string (anti-injection d'opérateur NoSQL).
+    for (const [k, v] of Object.entries({ invitationToken, applyToken, candidatureId, email })) {
+      if (v != null && typeof v !== 'string') {
+        return NextResponse.json({ error: `Paramètre invalide: ${k}` }, { status: 400 });
+      }
+    }
     const effectiveApplyToken = applyToken || candidatureId;
     const normalizedSlot = normalizeSlot(slot) || 1;
     logger.info('[GUARANTOR CREATE-SESSION] Tokens', { invitationToken, applyToken: effectiveApplyToken });
