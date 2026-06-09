@@ -265,10 +265,13 @@ export async function POST(request: NextRequest) {
     if (session?.applyToken) {
       const property = await Property.findOne({ applyToken: session.applyToken });
       if (property) {
+        // Sécurité (revue V1 — S26) : échapper les métacaractères regex (les noms
+        // viennent de la vérification Didit) — évite ReDoS / sur-correspondance.
+        const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const cand = await Candidature.findOne({
           property: property._id,
-          firstName: new RegExp(`^${firstName}$`, 'i'),
-          lastName: new RegExp(`^${lastName}$`, 'i')
+          firstName: new RegExp(`^${escRe(String(firstName || ''))}$`, 'i'),
+          lastName: new RegExp(`^${escRe(String(lastName || ''))}$`, 'i')
         }).sort({ createdAt: -1 });
 
         if (cand) {
