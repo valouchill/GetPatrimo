@@ -15,6 +15,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, atouts });
   } catch (e) {
     logger.error('owner-tunnel scan-vision', { error: e instanceof Error ? e.message : e });
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 });
+    return NextResponse.json({ error: 'Une erreur est survenue. Réessayez.' }, { status: 500 });
   }
 }

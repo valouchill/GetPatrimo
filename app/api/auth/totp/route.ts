@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import { checkRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 
  
@@ -21,6 +22,12 @@ async function getOTPAuth() {
  * Body: { action: 'setup' | 'enable' | 'disable' | 'verify', code?: string }
  */
 export const POST = withErrorHandler(async (request: NextRequest) => {
+  // Sécurité (revue V1 — S27) : plafond dédié sur cette route 2FA sensible (en plus du
+  // globalLimiter Express 20/min) — anti-brute-force des codes.
+  const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  if (!checkRateLimit(`totp:${ip}`, { windowMs: 60_000, max: 10 }).allowed) {
+    return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une minute.' }, { status: 429 });
+  }
   const session = await getServerSession(authOptions as Record<string, unknown>);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });

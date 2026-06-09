@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     logger.error("owner-tunnel agent", { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Erreur agent" },
+      { error: 'Une erreur est survenue. Réessayez.' },
       { status: 500 }
     );
   }
