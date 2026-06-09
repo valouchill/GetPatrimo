@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const images = Array.isArray(body?.images) ? (body.images as string[]) : [];
     if (images.length === 0) return NextResponse.json({ error: 'Aucune image' }, { status: 400 });
+    // Sécurité (revue V1 — S6) : borne le nombre d'images/requête (coût OpenAI Vision).
+    if (images.length > 8) return NextResponse.json({ error: "Trop d'images (max 8 par requête)." }, { status: 413 });
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY manquante' }, { status: 500 });
     const atouts = await scanVision(images, apiKey);
