@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       email: normalizedEmail,
       token: magicToken,
+      requires2fa: Boolean(user.totpEnabled),
     });
   } catch (e) {
     logger.error('[verify-otp]', { error: e instanceof Error ? e.message : e });
