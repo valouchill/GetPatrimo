@@ -213,7 +213,6 @@ export async function GET(
     }));
 
     const profile = (application as any).profile || {};
-    const candidateName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
     const resilience = resolveResilienceScore(application);
 
     return NextResponse.json(
@@ -223,9 +222,9 @@ export async function GET(
         category,
         candidate: {
           firstName: profile.firstName || null,
-          // V2 : on n'expose PAS le nom complet du candidat avant inscription
+          // Sécurité (revue V1 — S19) : on n'expose PAS le nom complet avant inscription
+          // (le champ `fullName` fuitait l'identité du candidat sur cet endpoint public).
           lastInitial: profile.lastName ? `${profile.lastName[0]}.` : null,
-          fullName: candidateName, // utilisé côté serveur uniquement
         },
         score: resilience.score,
         grade: resilience.level,
