@@ -1299,16 +1299,10 @@ app.post('/api/public/lead', async (req,res)=>{
   }
 });
 
-// -------------------- WEBHOOKS: OpenSign
-app.post('/api/webhooks/opensign', async (req, res) => {
-  try {
-    const { handleOpenSignWebhook } = require('./src/controllers/webhookController');
-    return await handleOpenSignWebhook(req, res);
-  } catch (error) {
-    logger.error('Erreur webhook OpenSign', { error: error?.message || error });
-    return res.status(200).json({ success: false, error: error.message }); // Répond 200 pour éviter les retries
-  }
-});
+// -------------------- WEBHOOKS: OpenSign — géré par la route Next.js
+// app/api/webhooks/opensign/route.ts (HMAC OBLIGATOIRE — revue V1 S17). L'ancienne
+// route Express inline (sans vérif HMAC réelle, body non parsé ici) a été retirée pour
+// ne pas court-circuiter la route Next durcie.
 
 // -------------------- CRON: Vérification diagnostics périmés (quotidien)
 // Vérifie tous les jours à 9h00 les diagnostics qui expirent ou sont périmés
