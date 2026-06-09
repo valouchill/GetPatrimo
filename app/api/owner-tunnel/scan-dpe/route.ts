@@ -21,6 +21,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, dpe });
   } catch (e) {
     logger.error('owner-tunnel scan-dpe', { error: e instanceof Error ? e.message : e });
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Erreur scan DPE' }, { status: 500 });
+    return NextResponse.json({ error: "Erreur lors de l'analyse du DPE." }, { status: 500 });
   }
 }
