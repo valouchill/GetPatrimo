@@ -49,6 +49,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 2FA (revue V1 — S10) : étape de second facteur après mot de passe / code email.
+  const [twoFa, setTwoFa] = useState<{ email: string; token: string; role?: string } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+
   const maskedEmail = otpEmail
     ? otpEmail.replace(/^(.{2})(.*)(@.*)$/, (_m, a, b, c) => a + b.replace(/./g, '·') + c)
     : '';
@@ -111,6 +115,13 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Connexion impossible.');
+        setLoading(false);
+        return;
+      }
+
+      if (data.requires2fa) {
+        // Compte avec 2FA : on demande le code TOTP avant d'ouvrir la session.
+        setTwoFa({ email: data.email, token: data.token, role: data.role });
         setLoading(false);
         return;
       }
@@ -182,6 +193,12 @@ export default function LoginPage() {
           return;
         }
 
+        if (data.requires2fa) {
+          setTwoFa({ email: data.email, token: data.token });
+          setLoading(false);
+          return;
+        }
+
         setOtpStep('unlocking');
         cleanupStaleCookies();
 
@@ -209,6 +226,35 @@ export default function LoginPage() {
     [otpEmail],
   );
 
+  // ── 2FA : finalise la connexion avec le code TOTP / de secours ──
+  const completeTotpSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!twoFa || totpCode.trim().length < 6) return;
+    setLoading(true);
+    setError(null);
+    try {
+      cleanupStaleCookies();
+      const result = await withLoginTimeout(
+        signIn('magic-fast', {
+          email: twoFa.email,
+          token: twoFa.token,
+          totpCode: totpCode.trim(),
+          redirect: false,
+        }),
+      );
+      if (result?.ok) {
+        redirectByRole(twoFa.role);
+      } else {
+        setError('Code de vérification invalide. Réessayez.');
+        setTotpCode('');
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(loginErrorMessage(err));
+      setLoading(false);
+    }
+  };
+
   const handleResend = async () => {
     setError(null);
     setLoading(true);
@@ -232,6 +278,68 @@ export default function LoginPage() {
   };
 
   const showToggle = otpStep === 'email'; // cacher le toggle pendant flow OTP avancé
+
+  // 2FA (revue V1 — S10) : écran dédié de saisie du second facteur.
+  if (twoFa) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-amber-100/30 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-slate-200/40 rounded-full blur-3xl" />
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative w-full max-w-md"
+        >
+          <div className="text-center mb-8">
+            <Link href="/" className="inline-flex items-center">
+              <Logo className="h-10" />
+            </Link>
+          </div>
+          <div className="bg-white/90 backdrop-blur-xl p-10 rounded-3xl shadow-2xl shadow-slate-200/60 border border-slate-100">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-amber-500" />
+              </div>
+              <h1 className="font-serif text-xl font-semibold text-slate-900">Vérification en deux étapes</h1>
+            </div>
+            <p className="text-sm text-slate-500 mb-6">
+              Saisissez le code à 6 chiffres de votre application d&apos;authentification, ou un code de secours.
+            </p>
+            <form onSubmit={completeTotpSignIn} className="space-y-4">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\s/g, ''))}
+                placeholder="Code de vérification"
+                className="w-full text-center tracking-[0.3em] text-lg py-3 rounded-xl border border-slate-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
+              />
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading || totpCode.trim().length < 6}
+                className="w-full py-3 rounded-xl bg-emerald-900 text-white font-medium disabled:opacity-50 hover:bg-emerald-800 transition-colors"
+              >
+                {loading ? 'Vérification…' : 'Vérifier'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTwoFa(null); setTotpCode(''); setError(null); }}
+                className="w-full text-sm text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-4 h-4" /> Retour
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">

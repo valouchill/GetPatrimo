@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       email,
       token: magicToken,
       role: user.role || 'owner',
+      requires2fa: Boolean(user.totpEnabled),
     });
   } catch (err) {
     logger.error('[login-password]', { error: err instanceof Error ? err.message : err });

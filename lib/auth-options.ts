@@ -1,6 +1,7 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import bcrypt from 'bcryptjs';
+import { verifyUserTotp } from '@/lib/totp-verify';
 
 import clientPromise from '@/lib/mongodb-client';
 import { connectDiditDb } from '@/app/api/didit/db';
@@ -17,6 +18,7 @@ const providers: any[] = [
     credentials: {
       email: { label: 'Email', type: 'email' },
       token: { label: 'Token', type: 'text' },
+      totpCode: { label: 'Code 2FA', type: 'text' },
       impersonatorEmail: { label: 'ImpersonatorEmail', type: 'text' },
     },
     async authorize(credentials) {
@@ -31,6 +33,21 @@ const providers: any[] = [
         if (!user) return null;
         const tokenValid = await bcrypt.compare(credentials.token, user.magicSignInToken);
         if (!tokenValid) return null;
+
+        // Sécurité (revue V1 — S10) : 2e facteur imposé si la 2FA est activée sur le
+        // compte (sauf impersonation superadmin, qui n'a pas le TOTP de la cible).
+        // Désactivable en urgence via TOTP_ENFORCEMENT_ENABLED=false (sans redeploy).
+        const isImpersonation = !!String(credentials.impersonatorEmail || '').trim();
+        if (
+          process.env.TOTP_ENFORCEMENT_ENABLED !== 'false' &&
+          !isImpersonation &&
+          user.totpEnabled &&
+          user.totpSecret
+        ) {
+          const okTotp = await verifyUserTotp(user, (credentials as { totpCode?: string }).totpCode);
+          if (!okTotp) return null; // token NON consommé → l'utilisateur peut réessayer avec un code
+        }
+
         await User.findByIdAndUpdate(user._id, {
           $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1 },
         });
