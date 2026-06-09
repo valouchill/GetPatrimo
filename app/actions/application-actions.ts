@@ -3,6 +3,8 @@
 import { connectDiditDb } from '@/app/api/didit/db';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
 import IdentitySession from '@/models/IdentitySession';
@@ -15,6 +17,22 @@ const { buildPassportViewModel } = require('@/src/utils/passportViewModel');
 const { deriveApplicationFinancialProfile } = require('@/src/utils/financialExtraction');
  
 const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
+
+/**
+ * Sécurité (revue V1 — S3) : ces server actions reçoivent `userEmail` en argument
+ * mais sont des endpoints POST publics. On exige une session authentifiée dont
+ * l'email correspond — sinon un appelant pourrait lire/écrire le dossier d'autrui.
+ */
+async function assertSessionOwns(userEmail: string | undefined | null): Promise<boolean> {
+  if (!userEmail) return false;
+  try {
+    const session: any = await getServerSession(authOptions as any);
+    const sessionEmail: string | undefined = session?.user?.email?.toLowerCase();
+    return !!sessionEmail && sessionEmail === userEmail.toLowerCase();
+  } catch {
+    return false;
+  }
+}
 
 function withResolvedResilience(application: unknown) {
   if (!application || typeof application !== 'object') return application;
@@ -116,10 +134,13 @@ export async function saveApplicationProgress(
   }
 ) {
   try {
+    if (!(await assertSessionOwns(userEmail))) {
+      return { success: false, error: 'Non autorisé' };
+    }
     await connectDiditDb();
 
     // Trouver ou créer l'application
-    let application = await Application.findOne({ 
+    let application = await Application.findOne({
       userEmail: userEmail.toLowerCase(),
       applyToken 
     });
@@ -370,9 +391,12 @@ export async function saveApplicationProgress(
  */
 export async function getApplication(userEmail: string, applyToken?: string) {
   try {
+    if (!(await assertSessionOwns(userEmail))) {
+      return { success: false, error: 'Non autorisé' };
+    }
     await connectDiditDb();
 
-    const query: { userEmail: string; applyToken?: string } = { 
+    const query: { userEmail: string; applyToken?: string } = {
       userEmail: userEmail.toLowerCase() 
     };
     if (applyToken) {
@@ -402,9 +426,12 @@ export async function getApplication(userEmail: string, applyToken?: string) {
  */
 export async function getUserApplications(userEmail: string) {
   try {
+    if (!(await assertSessionOwns(userEmail))) {
+      return { success: false, applications: [] };
+    }
     await connectDiditDb();
 
-    const applications = await Application.find({ 
+    const applications = await Application.find({
       userEmail: userEmail.toLowerCase() 
     })
       .populate('property', 'name address rentAmount')
@@ -431,6 +458,10 @@ export async function submitApplication(applicationId: string) {
     const application = await Application.findById(applicationId);
     if (!application) {
       return { success: false, error: 'Candidature introuvable' };
+    }
+
+    if (!(await assertSessionOwns((application as { userEmail?: string }).userEmail))) {
+      return { success: false, error: 'Non autorisé' };
     }
 
     if (!application.property && application.applyToken) {
@@ -466,6 +497,9 @@ export async function submitApplication(applicationId: string) {
  */
 export async function applyPassportToProperty(userEmail: string, propertyCode: string) {
   try {
+    if (!(await assertSessionOwns(userEmail))) {
+      return { success: false, error: 'Non autorisé' };
+    }
     await connectDiditDb();
     const code = String(propertyCode || '').trim().toUpperCase();
     if (!/^PT-\d{5}-[A-Z0-9]{4}$/.test(code)) {

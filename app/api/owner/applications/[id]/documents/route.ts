@@ -140,16 +140,19 @@ export async function GET(
 
     // Validation ownership : la property doit appartenir au session.user
     const property = await Property.findById((app as any).property)
-      .select('owner')
+      .select('user')
       .lean();
 
     if (!property) {
       return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
     }
 
+    // Sécurité (revue V1 — S2) : le champ propriétaire est `user` (pas `owner`,
+    // qui n'existe pas → le garde-fou précédent ne se déclenchait jamais).
+    // Fail-closed : refuser si pas d'utilisateur OU si le bien ne lui appartient pas.
     const userId = (session as any)?.user?.id || (session as any)?.user?._id;
-    const propertyOwner = String((property as any).owner || '');
-    if (userId && propertyOwner && String(userId) !== propertyOwner) {
+    const propertyOwner = String((property as any).user || '');
+    if (!userId || propertyOwner !== String(userId)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 

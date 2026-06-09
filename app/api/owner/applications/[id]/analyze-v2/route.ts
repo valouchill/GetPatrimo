@@ -237,16 +237,17 @@ export async function POST(
     const property = await Property.findById(
       (app as any).property as unknown,
     ).select(
-      'owner rentAmount tier dossiersQuota dossiersAnalyzedCount analyzedApplicationIds overageReportedCount stripeUsageItemId stripeSubscriptionId managed',
+      'user rentAmount tier dossiersQuota dossiersAnalyzedCount analyzedApplicationIds overageReportedCount stripeUsageItemId stripeSubscriptionId managed',
     );
 
     if (!property) {
       return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
     }
 
+    // Sécurité (revue V1 — S2) : propriétaire = `user` ; fail-closed.
     const userId = (session as any)?.user?.id || (session as any)?.user?._id;
-    const propertyOwner = String((property as any).owner || '');
-    if (userId && propertyOwner && String(userId) !== propertyOwner) {
+    const propertyOwner = String((property as any).user || '');
+    if (!userId || propertyOwner !== String(userId)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
@@ -409,16 +410,17 @@ export async function GET(
     }
 
     const property = await Property.findById((app as any).property as unknown)
-      .select('owner')
+      .select('user')
       .lean();
 
     if (!property) {
       return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
     }
 
+    // Sécurité (revue V1 — S2) : propriétaire = `user` ; fail-closed.
     const userId = (session as any)?.user?.id || (session as any)?.user?._id;
-    const propertyOwner = String((property as any).owner || '');
-    if (userId && propertyOwner && String(userId) !== propertyOwner) {
+    const propertyOwner = String((property as any).user || '');
+    if (!userId || propertyOwner !== String(userId)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
