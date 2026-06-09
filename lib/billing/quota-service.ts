@@ -172,29 +172,36 @@ export async function consumeAnalysisQuota(
     };
   }
 
-  // Décompte du dossier distinct
-  const ids = (property.analyzedApplicationIds || []).map(String);
-  if (!ids.includes(String(applicationId))) {
-    ids.push(String(applicationId));
+  // Décompte ATOMIQUE du dossier distinct (revue V1 — S12) : évite double-compte /
+  // sous-compte en analyses concurrentes. Filtre `$ne` + `$addToSet` = idempotent par
+  // dossier ; `$inc` atomique = pas de « last-writer-wins » sur le compteur.
+
+  const PropertyModel = require('@/models/Property');
+  const appIdStr = String(applicationId);
+  const propId = (property as { _id: unknown })._id;
+  const updated = await PropertyModel.findOneAndUpdate(
+    { _id: propId, analyzedApplicationIds: { $ne: appIdStr } },
+    { $inc: { dossiersAnalyzedCount: 1 }, $addToSet: { analyzedApplicationIds: appIdStr } },
+    { new: true },
+  ).lean();
+
+  // updated === null ⇒ dossier déjà compté (course concurrente ou ré-analyse) :
+  // on ne recompte pas et on ne refacture pas le dépassement.
+  if (!updated) {
+    return { mode, used: Number(property.dossiersAnalyzedCount || 0), quota, overageBilled: false };
   }
-  property.analyzedApplicationIds = ids;
-  property.dossiersAnalyzedCount = Number(property.dossiersAnalyzedCount || 0) + 1;
 
   let overageBilled = false;
   if (mode === 'OVERAGE') {
     overageBilled = await reportOverageToStripe(property, 1);
     if (overageBilled) {
-      property.overageReportedCount =
-        Number(property.overageReportedCount || 0) + 1;
+      await PropertyModel.updateOne({ _id: propId }, { $inc: { overageReportedCount: 1 } });
     }
   }
 
-  property.markModified?.('analyzedApplicationIds');
-  await property.save?.();
-
   return {
     mode,
-    used: property.dossiersAnalyzedCount,
+    used: Number((updated as { dossiersAnalyzedCount?: number }).dossiersAnalyzedCount || 0),
     quota,
     overageBilled,
   };
