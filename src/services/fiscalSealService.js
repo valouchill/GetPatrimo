@@ -89,7 +89,8 @@ function runSealWrapperDetailed(input, opts = {}) {
           return;
         }
         if (code !== 0) {
-          logger.warn('[fiscalSeal] script de vérification en échec (code de sortie non nul)', { code, stderr: errOut.slice(0, 500) });
+          // S23 : ne pas logger le contenu brut (peut contenir des valeurs scellées) — métadonnées seules.
+          logger.warn('[fiscalSeal] script de vérification en échec (code de sortie non nul)', { code, stderrBytes: errOut.length });
           finish({ status: 'ERROR', seal: null });
           return;
         }
@@ -98,7 +99,8 @@ function runSealWrapperDetailed(input, opts = {}) {
           if (j && j.ok) finish({ status: 'OK', seal: j });
           else finish({ status: 'NO_SEAL', seal: null }); // exécution propre, aucun sceau valide
         } catch {
-          logger.warn('[fiscalSeal] sortie du script illisible (JSON invalide)', { sample: String(out).slice(0, 200), stderr: errOut.slice(0, 200) });
+          // S23 : pas de contenu brut (valeurs 2D-Doc possibles) — tailles seules.
+          logger.warn('[fiscalSeal] sortie du script illisible (JSON invalide)', { outBytes: String(out).length, stderrBytes: errOut.length });
           finish({ status: 'ERROR', seal: null });
         }
       });
