@@ -39,6 +39,11 @@ export const GET = withErrorHandler(async (
 
   if (!inspection) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
 
+  // Sécurité (re-audit V1 — N4 IDOR) : l'inspection doit appartenir à l'utilisateur.
+  if (String((inspection as { user?: unknown }).user) !== String((session.user as { id?: string }).id)) {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  }
+
   return NextResponse.json({ success: true, data: inspection });
 });
 

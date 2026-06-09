@@ -42,6 +42,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Sécurité (re-audit V1 — N2 IDOR) : la candidature doit appartenir à l'utilisateur.
+    if (String(candidature.user) !== String(session.user.id)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
     // Convertir les documents de la candidature au format attendu
     const documents = (candidature.docs || []).map((doc: any) => ({
       type: doc.type || 'autre',

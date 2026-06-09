@@ -42,6 +42,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Si un leaseId spécifique est fourni
   if (result.data.leaseId) {
+    // Sécurité (re-audit V1 — N3 IDOR) : le bail doit appartenir à l'utilisateur.
+    const Lease = require('@/models/Lease');
+    const lease = await Lease.findById(result.data.leaseId).select('user').lean();
+    if (!lease || String((lease as { user?: unknown }).user) !== String((user as { _id?: unknown })._id)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
     const genResult = await generateMonthlyPayments(result.data.leaseId);
     return NextResponse.json({ success: true, data: genResult });
   }

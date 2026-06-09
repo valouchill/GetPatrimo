@@ -54,6 +54,10 @@ export async function GET(request: NextRequest) {
           { status: 404 }
         );
       }
+      // Sécurité (re-audit V1 — N2 IDOR) : la candidature doit appartenir à l'utilisateur.
+      if (String(candidature.user) !== String(session.user.id)) {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+      }
       const property: any = await Property.findById(candidature.property).lean();
       if (!property) {
         return NextResponse.json(
@@ -77,6 +81,10 @@ export async function GET(request: NextRequest) {
           { error: 'Bien introuvable' },
           { status: 404 }
         );
+      }
+      // Sécurité (re-audit V1 — N2 IDOR) : le bien doit appartenir à l'utilisateur.
+      if (String((property as any).user) !== String(session.user.id)) {
+        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
       }
       const rawDocs = await Document.find({ property: propertyId });
       documents = rawDocs.map((d: any) => ({
