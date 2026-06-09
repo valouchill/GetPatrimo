@@ -242,7 +242,9 @@ export async function POST(request: NextRequest) {
     }
   }
   
-  const humanVerified = Boolean(idVerification.status === 'Approved' || identity.human_verified || payload?.human_verified || true);
+  // Sécurité (re-audit V1 — N7) : ne PAS forcer humanVerified à true (le « || true »
+  // rendait le signal de vérification humaine toujours vrai). Dérivé du résultat réel.
+  const humanVerified = Boolean(idVerification.status === 'Approved' || identity.human_verified || payload?.human_verified);
 
   try {
     await connectDiditDb();

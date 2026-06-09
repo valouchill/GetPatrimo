@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         firstName: verification.firstName || '',
         lastName: verification.lastName || '',
         birthDate: verification.birthDate || '',
-        humanVerified: verification.humanVerified || true,
+        humanVerified: Boolean(verification.humanVerified),
       });
     }
     

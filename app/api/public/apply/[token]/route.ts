@@ -19,7 +19,11 @@ export async function GET(
     }
 
     await connectDiditDb();
-    const property = await Property.findOne({ applyToken: token }).lean();
+    // Sécurité (re-audit V1 — N5) : endpoint PUBLIC → on EXCLUT les champs internes
+    // (Stripe, propriétaire, quota) ; on ne renvoie que l'info publique du bien.
+    const property = await Property.findOne({ applyToken: token })
+      .select('-stripeCustomerId -stripeSubscriptionId -stripeUsageItemId -user -managed -tier -dossiersQuota -dossiersAnalyzedCount -analyzedApplicationIds -overageReportedCount -acceptedTenantId -__v')
+      .lean();
 
     if (!property) {
       return NextResponse.json({ msg: 'Lien invalide' }, { status: 404 });
@@ -29,7 +33,7 @@ export async function GET(
   } catch (error: any) {
     logger.error('GET /api/public/apply/[token]', { error: error instanceof Error ? error.message : error });
     return NextResponse.json(
-      { msg: 'Erreur serveur', error: error?.message || 'unknown_error' },
+      { msg: 'Erreur serveur' },
       { status: 500 }
     );
   }
