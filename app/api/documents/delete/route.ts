@@ -55,7 +55,9 @@ export async function DELETE(request: NextRequest) {
     // Protection contre le path traversal
     const uploadsDir = path.resolve(process.cwd(), 'uploads');
     const resolvedPath = path.resolve(filePath);
-    if (!resolvedPath.startsWith(uploadsDir)) {
+    // Sécurité (revue V1 — S16) : containment strict avec path.sep (sinon un dossier
+    // frère « uploads_evil/ » passe le startsWith).
+    if (resolvedPath !== uploadsDir && !resolvedPath.startsWith(uploadsDir + path.sep)) {
       return NextResponse.json({ error: 'Chemin non autorise' }, { status: 403 });
     }
 

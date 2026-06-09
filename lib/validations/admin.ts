@@ -89,7 +89,14 @@ export const PaymentPatchSchema = z.object({
   paidAmount: z.number().min(0).optional(),
   note: z.string().max(2000).optional(),
   paymentMethod: z.enum(['VIREMENT', 'CHEQUE', 'ESPECES', 'PRELEVEMENT', 'AUTRE']).optional(),
-  receiptUrl: z.string().max(500).optional(),
+  // Sécurité (revue V1 — S28) : contraindre le chemin pour empêcher la traversée
+  // (le reçu est ensuite path.join(cwd, receiptUrl) puis servi).
+  receiptUrl: z
+    .string()
+    .max(500)
+    .regex(/^\/?uploads\/receipts\//, 'Le reçu doit pointer vers uploads/receipts/')
+    .refine((v) => !v.includes('..'), 'Chemin de reçu invalide')
+    .optional(),
   amounts: z.object({
     rentHC: z.number().min(0).optional(),
     charges: z.number().min(0).optional(),
