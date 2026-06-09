@@ -128,6 +128,19 @@ app.use('/api/auth/verify-otp', loginLimiter);
 app.use('/api/auth/forgot-password', loginLimiter);
 app.use('/api/auth/reset-password', loginLimiter);
 
+// --- Securite (revue V1 — S6) : plafond plus strict sur le funnel PUBLIC owner-tunnel
+// (routes IA OpenAI coûteuses). S'ajoute au globalLimiter (/api/, 20/min) qui les couvre
+// déjà ; ce limiter dédié réduit l'abus de coût. NB prod : compléter par un rate-limit
+// edge (Cloudflare/WAF) + CAPTCHA — le store express-rate-limit est par-instance.
+const ownerTunnelLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requetes. Patientez une minute puis reessayez.' },
+});
+app.use('/api/owner-tunnel', ownerTunnelLimiter);
+
 // --- Logging minimal ---
 app.use((req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
