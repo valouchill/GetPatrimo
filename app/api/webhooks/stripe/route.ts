@@ -13,12 +13,6 @@ function getStripe() {
   });
 }
 
-/** Idempotency: check if this Stripe event was already processed. */
-async function isEventProcessed(eventId: string): Promise<boolean> {
-  const existing = await Event.findOne({ type: 'STRIPE_WEBHOOK', 'meta.stripeEventId': eventId }).lean();
-  return !!existing;
-}
-
 async function markEventProcessed(eventId: string, eventType: string) {
   await Event.create({
     type: 'STRIPE_WEBHOOK',
@@ -158,27 +152,38 @@ export async function POST(request: NextRequest) {
   try {
     await connectDiditDb();
 
-    // Idempotency check — skip already-processed events
-    if (await isEventProcessed(event.id)) {
-      logger.info(`[stripe-webhook] Event ${event.id} déjà traité, ignoré.`);
-      return NextResponse.json({ received: true });
+    // Idempotence ATOMIQUE (revue V1 — S11) : on « réserve » l'event en insérant son
+    // marqueur D'ABORD (index unique partiel). Un doublon (E11000) ⇒ déjà traité.
+    try {
+      await markEventProcessed(event.id, event.type);
+    } catch (err: unknown) {
+      if ((err as { code?: number })?.code === 11000) {
+        logger.info(`[stripe-webhook] Event ${event.id} déjà traité, ignoré.`);
+        return NextResponse.json({ received: true });
+      }
+      throw err;
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
-      case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-        break;
-      default:
-        logger.info(`[stripe-webhook] Event non géré: ${event.type}`);
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+        case 'invoice.payment_failed':
+          await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+        default:
+          logger.info(`[stripe-webhook] Event non géré: ${event.type}`);
+      }
+    } catch (handlerErr) {
+      // Le traitement a échoué : on RETIRE le marqueur pour que Stripe réessaie
+      // (sinon l'event serait perdu, marqué « traité » sans l'avoir été).
+      await Event.deleteOne({ type: 'STRIPE_WEBHOOK', 'meta.stripeEventId': event.id }).catch(() => {});
+      throw handlerErr;
     }
-
-    await markEventProcessed(event.id, event.type);
   } catch (e) {
     logger.error('[stripe-webhook] Erreur traitement', { error: e instanceof Error ? e.message : e });
     // Return 500 so Stripe retries

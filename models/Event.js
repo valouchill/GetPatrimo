@@ -13,7 +13,13 @@ const EventSchema = new mongoose.Schema(
 
 EventSchema.index({ property: 1, type: 1 });
 EventSchema.index({ user: 1, createdAt: -1 });
-EventSchema.index({ type: 1, 'meta.stripeEventId': 1 }); // Stripe webhook idempotency
+// Stripe webhook idempotency (revue V1 — S11) : unicité ATOMIQUE du marqueur d'event.
+// Index partiel → ne contraint que les events Stripe (meta.stripeEventId présent),
+// pas les autres types d'Event. Permet l'« insert-first » comme verrou anti-doublon.
+EventSchema.index(
+  { 'meta.stripeEventId': 1 },
+  { unique: true, partialFilterExpression: { 'meta.stripeEventId': { $exists: true } } },
+);
 
 // Éviter la recompilation du modèle dans Next.js
 module.exports = mongoose.models.Event || mongoose.model('Event', EventSchema);

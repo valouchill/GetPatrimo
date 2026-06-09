@@ -62,6 +62,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
     }
 
+    // Sécurité (revue V1 — S15) : empêcher une double-souscription pour un même bien
+    // (abonnements concurrents → double facturation + subscriptions orphelines).
+    if (property.managed && property.stripeSubscriptionId) {
+      return NextResponse.json(
+        { error: 'Ce bien a déjà un abonnement actif. Gérez-le depuis votre espace facturation.', code: 'ALREADY_SUBSCRIBED' },
+        { status: 409 },
+      );
+    }
+
     const { base, metered } = getTierPriceIds(tier);
     if (!base || !metered) {
       logger.error('[subscribe] Price IDs manquants', { tier, base: !!base, metered: !!metered });
@@ -115,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (e: any) {
     logger.error('[subscribe]', { error: e instanceof Error ? e.message : e });
     return NextResponse.json(
-      { error: e?.message || 'Erreur lors de la création de la session.' },
+      { error: 'Erreur lors de la création de la session.' },
       { status: 500 },
     );
   }
