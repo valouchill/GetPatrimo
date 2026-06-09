@@ -234,6 +234,18 @@ export async function saveApplicationProgress(
     application.financialSummary.incomeSource = derivedFinancialSummary.incomeSource;
     application.financialSummary.perSlot = derivedFinancialSummary.perSlot || [];
 
+    // Garants : on passe les enregistrements Guarantor (nom Didit-vérifié + statut) pour
+    // ancrer la concordance des docs garant sur leur identité KYC (parité avec le locataire).
+    let guarantorOne: unknown = null;
+    let guarantorTwo: unknown = null;
+    try {
+      const guarantorRecords = (await Guarantor.find({ applyToken })
+        .select('firstName lastName status identityVerification slot')
+        .lean()) as unknown as Array<Record<string, unknown>>;
+      guarantorOne = guarantorRecords.find((g) => Number(g.slot) !== 2) || null;
+      guarantorTwo = guarantorRecords.find((g) => Number(g.slot) === 2) || null;
+    } catch { /* best-effort — ne bloque jamais le scoring */ }
+
     const computedPatrimometer = computeApplicationPatrimometer({
       candidateStatus: data.candidateStatus || application.profile.status,
       diditStatus: application.didit.status,
@@ -245,6 +257,8 @@ export async function saveApplicationProgress(
       // Concordance d'identité (anti-fraude inter-documents) : ancre Didit + profil.
       profile: application.profile,
       diditIdentity: application.didit?.identityData || null,
+      guarantorOne,
+      guarantorTwo,
       guarantee: data.guarantee || application.guarantee || null,
       legacyGuarantor: {
         hasGuarantor: application.guarantor.hasGuarantor,

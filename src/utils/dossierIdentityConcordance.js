@@ -25,6 +25,15 @@ function isConcordanceEnabled() {
   return process.env.IDENTITY_CONCORDANCE_ENABLED === 'true';
 }
 
+// Parité anti-fraude (revue V1) : un garant vérifié Didit a son nom stocké = nom KYC
+// → on peut l'utiliser comme ancre FORTE (mismatch critique + sa pièce d'ID non sur-scrutée).
+function isGuarantorDiditVerified(g) {
+  if (!g) return false;
+  const status = String(g.status || '').toUpperCase();
+  const ivStatus = String((g.identityVerification && g.identityVerification.status) || '').toUpperCase();
+  return status === 'CERTIFIED' || ivStatus === 'CERTIFIEE';
+}
+
 // Barème (échelle phase1AuditService, capé sur l'échelle 0-100 du patrimomètre).
 const MALUS_CRITICAL = 30; // mismatch impliquant l'ID / l'ancre Didit (fraude forte)
 const MALUS_WARNING = 18; // mismatch sur un justificatif de revenu, ancre faible
@@ -173,7 +182,15 @@ function evaluateDossierIdentityConcordance(input = {}) {
         // Colocataire : SA propre identité (jamais le locataire principal).
         anchor = buildExpectedIdentityTarget({ subjectType: 'tenant', subjectSlot: slot, tenant, coTenants });
       } else if (subjectType === 'guarantor') {
-        anchor = buildExpectedIdentityTarget({ subjectType: 'guarantor', subjectSlot: slot, guarantorOne, guarantorTwo });
+        // Parité anti-fraude (revue V1) : si CE garant est vérifié Didit, son nom stocké
+        // EST le nom KYC → ancre FORTE comme le locataire (mismatch revenu = critique, et
+        // sa propre pièce d'ID vérifiée n'est pas sur-scrutée). Sinon → recoupement croisé
+        // intra-garant (branche `else` plus bas), comportement inchangé.
+        const g = slot === 2 ? guarantorTwo : guarantorOne;
+        if (isGuarantorDiditVerified(g)) {
+          anchor = buildExpectedIdentityTarget({ subjectType: 'guarantor', subjectSlot: slot, guarantorOne, guarantorTwo });
+          anchorStrong = true;
+        }
       } else if (subjectType === 'visale') {
         // La pièce Visale doit porter le nom du locataire principal (ancre slot 1).
         if (tenantAnchor) {
