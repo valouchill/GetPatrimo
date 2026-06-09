@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import { ownerOwnsApplication } from '@/lib/application-access';
 
  
 const User = require('@/models/User');
@@ -38,6 +39,11 @@ export const PATCH = withErrorHandler(async (
 
   const application = await Application.findById(id);
   if (!application) return NextResponse.json({ error: 'Candidature introuvable' }, { status: 404 });
+
+  // Sécurité (revue V1 — S7) : la candidature doit relever d'un bien de l'utilisateur.
+  if (!(await ownerOwnsApplication(application, user._id))) {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  }
 
   application.pipelineStage = stage;
   if (stage === 'selected') {

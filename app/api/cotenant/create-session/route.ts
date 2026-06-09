@@ -29,6 +29,13 @@ export async function POST(request: NextRequest) {
   try {
     await connectDiditDb();
     const { invitationToken, applyToken, applicationId, email, firstName, lastName, slot } = body;
+    // Sécurité (revue V1 — S9) : rejeter tout champ non-string (anti-injection NoSQL ;
+    // mongoSanitize ne couvre pas les routes App Router).
+    for (const [k, v] of Object.entries({ invitationToken, applyToken, applicationId, email })) {
+      if (v != null && typeof v !== 'string') {
+        return NextResponse.json({ error: `Paramètre invalide: ${k}` }, { status: 400 });
+      }
+    }
     const normalizedSlot = normalizeSlot(slot) || 2;
 
     let coTenant;
