@@ -174,6 +174,43 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'app', 'icon.svg'));
 });
 
+// -------------------- Sécurité (revue V1 — S1) : /uploads exige une session valide.
+// Les fichiers sous uploads/ (signatures, quittances, EDL, documents de bien, pièces
+// de candidature) sont sensibles → on refuse l'accès anonyme. Les chargements in-app
+// (même origine : <img>/<iframe> des dashboards) portent le cookie de session NextAuth,
+// donc restent fonctionnels. Les quittances sont envoyées en PIÈCE JOINTE (pas de lien
+// /uploads public). cookieName/secureCookie sont passés explicitement (mêmes valeurs
+// que auth-options, dérivées de NODE_ENV) pour ne pas dépendre de l'auto-détection.
+// Escape hatch : UPLOADS_AUTH_ENABLED=false neutralise la garde sans redeploy.
+const { getToken: getNextAuthToken } = require('next-auth/jwt');
+const { parse: parseCookieHeader } = require('cookie');
+const UPLOADS_AUTH_ENABLED = process.env.UPLOADS_AUTH_ENABLED !== 'false';
+const UPLOADS_IS_PROD = process.env.NODE_ENV === 'production';
+const UPLOADS_COOKIE_NAME = UPLOADS_IS_PROD
+  ? '__Secure-next-auth.session-token'
+  : 'next-auth.session-token';
+app.use('/uploads', async (req, res, next) => {
+  if (!UPLOADS_AUTH_ENABLED) return next();
+  try {
+    if (!req.cookies && req.headers.cookie) {
+      req.cookies = parseCookieHeader(req.headers.cookie);
+    }
+    const token = await getNextAuthToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: UPLOADS_COOKIE_NAME,
+      secureCookie: UPLOADS_IS_PROD,
+    });
+    if (token) return next();
+    if (req.headers.cookie) {
+      logger.warn('[uploads-auth] cookie présent mais session non résolue', { path: req.path });
+    }
+  } catch (err) {
+    logger.error('[uploads-auth] échec vérification session', { error: err && err.message ? err.message : String(err) });
+  }
+  return res.status(401).json({ error: 'Authentification requise pour accéder à ce fichier.' });
+});
+
 // -------------------- Servir les fichiers uploads (EDL PDFs, quittances, etc.)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   etag: false,
