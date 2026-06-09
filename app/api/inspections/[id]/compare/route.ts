@@ -33,6 +33,10 @@ export const GET = withErrorHandler(async (
     .lean();
 
   if (!exitInspection) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
+  // Sécurité (re-audit V1 — N4 IDOR) : l'inspection doit appartenir à l'utilisateur.
+  if (String((exitInspection as { user?: unknown }).user) !== String((session.user as { id?: string }).id)) {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  }
   if (exitInspection.type !== 'EXIT') {
     return NextResponse.json({ error: 'Seul un EDL de sortie peut être comparé' }, { status: 400 });
   }

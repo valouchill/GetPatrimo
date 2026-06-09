@@ -27,12 +27,17 @@ export async function GET(
     const { id } = await params;
     
     // Trouver la propriété
-    const property = await Property.findById(id).select('_id title address applyToken').lean();
+    const property = await Property.findById(id).select('_id title address applyToken user').lean();
     if (!property) {
       return NextResponse.json(
         { error: 'Propriété introuvable' },
         { status: 404 }
       );
+    }
+
+    // Sécurité (re-audit V1 — N1 IDOR) : le bien doit appartenir à l'utilisateur.
+    if (String((property as any).user) !== String(session.user.id)) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
     if ((property as any).applyToken) {

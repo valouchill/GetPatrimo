@@ -27,6 +27,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const user = await User.findOne({ email: (session.user as { email: string }).email }).lean();
   if (!user) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
+  // Sécurité (re-audit V1 — N3 IDOR) : le bail doit appartenir à l'utilisateur.
+  const Lease = require('@/models/Lease');
+  const lease = await Lease.findById(result.data.leaseId).select('user').lean();
+  if (!lease || String((lease as { user?: unknown }).user) !== String((user as { _id?: unknown })._id)) {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  }
+
   const regResult = await calculateRegularization(result.data.leaseId, result.data.realCharges, result.data.year);
   return NextResponse.json({ success: true, data: regResult });
 });
