@@ -78,10 +78,10 @@ export function PricingClient(): React.ReactElement {
             Une offre pour chaque bien
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            Payez uniquement pour les biens que vous mettez en location.
-            L&rsquo;analyse IA anti-fraude est incluse selon votre forfait —
-            au-delà, chaque dossier supplémentaire est facturé{' '}
-            <strong className="text-emerald-900">0,49 €</strong>.
+            Payez une seule fois par bien mis en location, sans abonnement.
+            L&rsquo;analyse IA anti-fraude est incluse selon l&rsquo;offre choisie —
+            au-delà du quota, il suffit de{' '}
+            <strong className="text-emerald-900">racheter une offre</strong>.
           </p>
         </header>
 
@@ -125,7 +125,7 @@ export function PricingClient(): React.ReactElement {
                     {formatTierPrice(t.priceEur)}
                   </span>
                   {t.priceEur > 0 && (
-                    <span className="text-xs text-slate-500">/ mois</span>
+                    <span className="text-xs text-slate-500">paiement unique</span>
                   )}
                 </div>
                 <p className="mb-5 text-xs font-semibold uppercase tracking-wide text-amber-700">
@@ -192,7 +192,7 @@ export function PricingClient(): React.ReactElement {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 <tr>
-                  <td className="px-5 py-3 text-slate-600">Prix mensuel</td>
+                  <td className="px-5 py-3 text-slate-600">Prix (paiement unique)</td>
                   {TIER_ORDER.map((tierId) => (
                     <td key={tierId} className="px-5 py-3 text-center font-semibold text-slate-900">
                       {formatTierPrice(TIERS[tierId].priceEur)}
@@ -208,12 +208,10 @@ export function PricingClient(): React.ReactElement {
                   ))}
                 </tr>
                 <tr>
-                  <td className="px-5 py-3 text-slate-600">Dépassement / dossier</td>
+                  <td className="px-5 py-3 text-slate-600">Au-delà du quota</td>
                   {TIER_ORDER.map((tierId) => (
                     <td key={tierId} className="px-5 py-3 text-center text-slate-700">
-                      {TIERS[tierId].overagePriceEur > 0
-                        ? `+${formatTierPrice(TIERS[tierId].overagePriceEur)}`
-                        : '—'}
+                      {TIERS[tierId].quota > 0 ? 'Rachat d’offre' : '—'}
                     </td>
                   ))}
                 </tr>

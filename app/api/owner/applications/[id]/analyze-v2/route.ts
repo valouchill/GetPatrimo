@@ -261,12 +261,14 @@ export async function POST(
       { enforced: isEnabled('BILLING_ENFORCED') },
     );
     if (!quotaCheck.allowed) {
-      // FREE → 402 Payment Required : il faut souscrire une offre.
+      // 402 Payment Required : FREE (souscrire) ou quota épuisé (racheter, one-time).
+      const quotaExceeded = quotaCheck.reason === 'QUOTA_EXCEEDED';
       return NextResponse.json(
         {
-          error:
-            "L'analyse IA n'est pas incluse dans l'offre Gratuite. Souscrivez une offre pour analyser ce dossier.",
-          code: 'PAYMENT_REQUIRED',
+          error: quotaExceeded
+            ? `Quota d'analyses épuisé pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre pour analyser de nouveaux dossiers.`
+            : "L'analyse IA n'est pas incluse dans l'offre Gratuite. Souscrivez une offre pour analyser ce dossier.",
+          code: quotaExceeded ? 'QUOTA_EXCEEDED' : 'PAYMENT_REQUIRED',
           tier: quotaCheck.tier,
           quota: quotaCheck.quota,
           used: quotaCheck.used,

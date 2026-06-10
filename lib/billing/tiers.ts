@@ -74,7 +74,7 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
       '25 analyses IA incluses',
       'Indice de Résilience neuro-symbolique',
       'Trust-List anti-fraude (Forensic)',
-      'Dépassement : +0,49€ / dossier',
+      'Paiement unique, sans abonnement',
     ],
   },
   PREMIUM: {
@@ -91,7 +91,7 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
       '100 analyses IA incluses',
       'Tout l’Essentiel',
       'Passeport Locatif PDF premium',
-      'Dépassement : +0,49€ / dossier',
+      'Paiement unique, sans abonnement',
     ],
     highlighted: true,
   },
@@ -109,7 +109,7 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
       '250 analyses IA incluses',
       'Tout l’Analyse IA',
       'Priorité de traitement',
-      'Dépassement : +0,49€ / dossier',
+      'Paiement unique, sans abonnement',
     ],
   },
 };

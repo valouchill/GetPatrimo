@@ -1,23 +1,17 @@
 /**
- * POST /api/billing/subscribe — Souscription d'une offre Pay-per-Listing.
+ * POST /api/billing/subscribe — Achat d'une offre Pay-per-Listing (one-time).
  *
  * Body : { propertyId: string, tier: 'ESSENTIAL'|'PREMIUM'|'MAX' }
  *
- * Crée une Stripe Checkout Session en mode "subscription" avec UN line item :
- *   1. Le forfait de base (Price récurrent, licensed, quantity 1)
+ * Crée une Stripe Checkout Session en mode "payment" (PAIEMENT UNIQUE) avec UN
+ * line item : l'offre achetée (Price one-time). Pas d'abonnement, pas de
+ * récurrence : l'achat débloque un quota fixe d'analyses IA pour ce bien.
  *
- * Le dépassement de quota (+0,49€/dossier) n'est PAS un line item d'abonnement :
- * il est facturé via des "invoice items" posés sur le client à la consommation
- * (cf. lib/billing/quota-service.ts → reportOverageToStripe), donc ajouté à la
- * prochaine facture de l'abonnement.
+ * Au-delà du quota : PLAFOND DUR (racheter une offre) — aucune facturation à
+ * l'usage (cf. lib/billing/quota-service.ts).
  *
- * Le webhook checkout.session.completed finalise : tier, dossiersQuota,
- * stripeCustomerId, stripeSubscriptionId.
- *
- * Stratégie retenue : Subscription (forfait) + invoice items (à l'usage).
- * Justification : carte enregistrée → dépassement facturé sans friction en fin
- * de cycle, réconciliation Stripe native, pas de gestion de solde côté app.
- * Cf. docs/BILLING.md (rapport méthode).
+ * Le webhook checkout.session.completed finalise : managed, tier, dossiersQuota,
+ * stripeCustomerId. Cf. docs/BILLING.md (rapport méthode).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -94,31 +88,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const stripe = getStripeClient();
 
+    const metadata = {
+      propertyId,
+      userId: session.user.id,
+      tier,
+      quota: String(quotaForTier(tier)),
+    };
+
     const checkoutSession = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer_email: property.stripeCustomerId ? undefined : session.user.email,
-      customer: property.stripeCustomerId || undefined,
+      mode: 'payment',
+      // On rattache (ou crée) un client Stripe pour conserver l'historique de
+      // paiement + alimenter Property.stripeCustomerId via le webhook.
+      ...(property.stripeCustomerId
+        ? { customer: property.stripeCustomerId }
+        : { customer_email: session.user.email, customer_creation: 'always' as const }),
       line_items: [
-        // Forfait de base (licensed) — quantité fixe. Le dépassement n'est PAS un
-        // line item d'abonnement : il est facturé via invoice items à la conso
-        // (cf. lib/billing/quota-service.ts).
+        // L'offre achetée (Price one-time). Un seul achat = un quota fixe.
         { price: base, quantity: 1 },
       ],
       success_url: `${baseUrl}/dashboard/owner/property/${propertyId}?tab=candidates&checkout=success`,
       cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
-      metadata: {
-        propertyId,
-        userId: session.user.id,
-        tier,
-        quota: String(quotaForTier(tier)),
-      },
-      subscription_data: {
-        metadata: {
-          propertyId,
-          userId: session.user.id,
-          tier,
-        },
-      },
+      metadata,
+      payment_intent_data: { metadata },
       payment_method_types: ['card'],
       locale: 'fr',
     });
