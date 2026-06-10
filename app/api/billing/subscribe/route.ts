@@ -3,17 +3,20 @@
  *
  * Body : { propertyId: string, tier: 'ESSENTIAL'|'PREMIUM'|'MAX' }
  *
- * Crée une Stripe Checkout Session en mode "subscription" avec DEUX line items :
+ * Crée une Stripe Checkout Session en mode "subscription" avec UN line item :
  *   1. Le forfait de base (Price récurrent, licensed, quantity 1)
- *   2. Le tarif au dépassement (Price metered, 0,49€/unité — facturé à l'usage
- *      via createUsageRecord depuis le quota-service)
+ *
+ * Le dépassement de quota (+0,49€/dossier) n'est PAS un line item d'abonnement :
+ * il est facturé via des "invoice items" posés sur le client à la consommation
+ * (cf. lib/billing/quota-service.ts → reportOverageToStripe), donc ajouté à la
+ * prochaine facture de l'abonnement.
  *
  * Le webhook checkout.session.completed finalise : tier, dossiersQuota,
- * stripeUsageItemId (l'item metered de l'abonnement).
+ * stripeCustomerId, stripeSubscriptionId.
  *
- * Stratégie retenue : Subscription + Metered Billing (vs achat de crédits).
- * Justification : carte enregistrée → dépassement facturé sans friction,
- * réconciliation Stripe native, pas de gestion de solde côté app.
+ * Stratégie retenue : Subscription (forfait) + invoice items (à l'usage).
+ * Justification : carte enregistrée → dépassement facturé sans friction en fin
+ * de cycle, réconciliation Stripe native, pas de gestion de solde côté app.
  * Cf. docs/BILLING.md (rapport méthode).
  */
 
@@ -71,9 +74,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { base, metered } = getTierPriceIds(tier);
-    if (!base || !metered) {
-      logger.error('[subscribe] Price IDs manquants', { tier, base: !!base, metered: !!metered });
+    const { base } = getTierPriceIds(tier);
+    if (!base) {
+      logger.error('[subscribe] Price ID de base manquant', { tier, base: !!base });
       return NextResponse.json(
         {
           error:
@@ -96,10 +99,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       customer_email: property.stripeCustomerId ? undefined : session.user.email,
       customer: property.stripeCustomerId || undefined,
       line_items: [
-        // Forfait de base (licensed) — quantité fixe
+        // Forfait de base (licensed) — quantité fixe. Le dépassement n'est PAS un
+        // line item d'abonnement : il est facturé via invoice items à la conso
+        // (cf. lib/billing/quota-service.ts).
         { price: base, quantity: 1 },
-        // Dépassement (metered) — PAS de quantity (usage reporté à la conso)
-        { price: metered },
       ],
       success_url: `${baseUrl}/dashboard/owner/property/${propertyId}?tab=candidates&checkout=success`,
       cancel_url: `${baseUrl}/pricing?checkout=cancelled`,

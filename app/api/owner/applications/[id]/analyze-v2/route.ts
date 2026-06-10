@@ -237,7 +237,7 @@ export async function POST(
     const property = await Property.findById(
       (app as any).property as unknown,
     ).select(
-      'user rentAmount tier dossiersQuota dossiersAnalyzedCount analyzedApplicationIds overageReportedCount stripeUsageItemId stripeSubscriptionId managed',
+      'user rentAmount tier dossiersQuota dossiersAnalyzedCount analyzedApplicationIds overageReportedCount stripeCustomerId stripeSubscriptionId managed',
     );
 
     if (!property) {
