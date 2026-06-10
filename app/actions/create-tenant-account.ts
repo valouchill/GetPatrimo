@@ -98,15 +98,10 @@ export async function createTenantAccount(
       phoneVerifiedAt: new Date(),
     };
 
-    // Mettre à jour le statut Didit si fourni
-    if (diditIdentity) {
-      application.didit = {
-        ...application.didit,
-        status: 'VERIFIED',
-        verifiedAt: new Date(),
-        identityData: diditIdentity,
-      };
-    }
+    // Sécurité (re-audit V1 — 3e passe) : NE PAS poser didit.status='VERIFIED' à partir
+    // de l'identité FOURNIE PAR LE CLIENT (forge de certification). Le statut Didit est
+    // dérivé serveur par saveApplicationProgress (resolveServerVerifiedIdentity) et reste
+    // intact ici — createTenantAccount ne touche plus au champ didit.
 
     application.tunnel.lastActiveAt = new Date();
     await application.save();

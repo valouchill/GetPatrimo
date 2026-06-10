@@ -1,6 +1,9 @@
 'use server';
 
 import crypto from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
+import { userCanAccessApplicationPassport } from '@/lib/passport-access';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
@@ -38,7 +41,15 @@ export async function sharePassportByEmail(
     if (!app) {
       return { success: false, error: 'Candidature introuvable' };
     }
-    
+
+    // Sécurité (re-audit V1 — 3e passe) : sans cette garde, un tiers connaissant l'ObjectId
+    // d'AUTRUI pouvait forger un slug public 64 bits + se faire envoyer le passeport de la
+    // victime (IDOR d'exfiltration). Même autorisation que l'API d'affichage du passeport.
+    const session = await getServerSession(authOptions as any);
+    if (!session || !(await userCanAccessApplicationPassport(app as any, session as any))) {
+      return { success: false, error: 'Non autorisé' };
+    }
+
     const appData = app as any;
     const profile = appData.profile || {};
     const didit = appData.didit || {};
@@ -377,7 +388,13 @@ export async function notifyPassportViewed(
     
     const app = await Application.findById(applicationId).lean();
     if (!app) return false;
-    
+
+    // Sécurité (re-audit V1 — 3e passe) : même garde d'autorisation que le partage.
+    const session = await getServerSession(authOptions as any);
+    if (!session || !(await userCanAccessApplicationPassport(app as any, session as any))) {
+      return false;
+    }
+
     const appData = app as any;
     const tenantEmail = appData.userEmail;
     const tenantName = appData.profile?.firstName || 'Candidat';

@@ -1,9 +1,9 @@
 'use server';
 
 import { connectDiditDb } from '@/app/api/didit/db';
+import { getSessionEmail } from '@/lib/server-action-auth';
 import User from '@/models/User';
 import Property from '@/models/Property';
-import Application from '@/models/Application';
 import crypto from 'crypto';
 
 const MAGIC_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -13,8 +13,6 @@ export type FastOnboardingPayload = {
   surfaceM2: number;
   rentAmount: number;
   email: string;
-  /** Slug du passeport (Cheval de Troie) — si fourni, on associe l'Application au nouveau bien */
-  passportSlug?: string;
 };
 
 export type FastOnboardingResult =
@@ -23,7 +21,7 @@ export type FastOnboardingResult =
 
 /**
  * Traite l'onboarding Fast-Track : crée ou récupère l'utilisateur, crée le bien,
- * génère un token Magic Auth. Optionnellement associe une Application (passeport) au bien.
+ * génère un token Magic Auth.
  */
 export async function processFastOnboarding(
   payload: FastOnboardingPayload
@@ -31,10 +29,18 @@ export async function processFastOnboarding(
   try {
     await connectDiditDb();
 
-    const { address, surfaceM2, rentAmount, email, passportSlug } = payload;
+    const { address, surfaceM2, rentAmount, email } = payload;
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !address || !rentAmount) {
       return { ok: false, error: 'Email, adresse et loyer sont requis.' };
+    }
+
+    // Sécurité (re-audit V1 — 3e passe) : exiger une session dont l'email correspond
+    // (sinon : création de compte/bien + écrasement de magic-token pour un email
+    // arbitraire). Le bloc passportSlug→ACCEPTED (forge d'acceptation bailleur) est retiré.
+    const sessionEmail = await getSessionEmail();
+    if (!sessionEmail || sessionEmail !== normalizedEmail) {
+      return { ok: false, error: 'Non autorisé.' };
     }
 
     let user = await User.findOne({ email: normalizedEmail }).lean();
@@ -68,18 +74,6 @@ export async function processFastOnboarding(
       surfaceM2: surfaceM2 ? Number(surfaceM2) : null,
       status: 'AVAILABLE',
     });
-
-    if (passportSlug) {
-      await Application.findOneAndUpdate(
-        { passportSlug },
-        {
-          property: property._id,
-          status: 'ACCEPTED',
-          ownerDecision: 'ACCEPTED',
-          viewedByOwnerAt: new Date(),
-        }
-      );
-    }
 
     return {
       ok: true,
