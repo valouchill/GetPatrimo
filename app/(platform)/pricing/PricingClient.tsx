@@ -1,20 +1,21 @@
 'use client';
 
 /**
- * <PricingClient> — Tableau tarifaire "Pay-per-Listing" Maison Patrimo.
+ * <PricingClient> — Tableau tarifaire "Pay-per-Listing" Maison Patrimo (achat one-time).
  *
- * Charte banque privée : émeraude + or, cartes aérées, offre PREMIUM
- * mise en avant. CTAs spécifiques par offre (cf. TIERS[*].cta).
+ * Charte banque privée : émeraude + or, offre PREMIUM mise en avant.
  *
- * - FREE / paid CTA : si un propertyId est passé en query (?property=...),
- *   le clic souscrit cette offre pour ce bien (POST /api/billing/subscribe).
- *   Sinon, redirige vers l'inscription owner.
+ * Flux d'achat (robuste, pensé conversion) :
+ *  - lien in-app avec `?property=ID` → achat direct de l'offre pour ce bien.
+ *  - owner connecté sans bien ciblé → sélecteur de bien (1 bien = achat direct ;
+ *    0 bien → invite à en créer un).
+ *  - visiteur déconnecté → inscription owner, retour automatique sur /pricing.
  */
 
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Building2, Check, Loader2, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 import {
   TIER_ORDER,
   TIERS,
@@ -22,29 +23,29 @@ import {
   type PropertyTier,
 } from '@/lib/billing/tiers';
 
-export function PricingClient(): React.ReactElement {
+export type PricingProperty = { id: string; label: string };
+
+export interface PricingClientProps {
+  authenticated?: boolean;
+  properties?: PricingProperty[];
+}
+
+export function PricingClient({
+  authenticated = false,
+  properties = [],
+}: PricingClientProps): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const propertyId = searchParams.get('property');
+  const urlPropertyId = searchParams.get('property');
   const [busyTier, setBusyTier] = React.useState<PropertyTier | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [pickerTier, setPickerTier] = React.useState<PropertyTier | null>(null);
+  const [needProperty, setNeedProperty] = React.useState(false);
 
-  const handleCta = React.useCallback(
-    async (tier: PropertyTier): Promise<void> => {
+  const startCheckout = React.useCallback(
+    async (propertyId: string, tier: PropertyTier): Promise<void> => {
       setError(null);
-      // FREE → création de lien gratuite (inscription / dashboard)
-      if (tier === 'FREE') {
-        router.push(propertyId ? '/dashboard/owner' : '/auth/register?role=owner');
-        return;
-      }
-      // Offre payante sans bien ciblé → inscription d'abord
-      if (!propertyId) {
-        router.push(
-          `/auth/register?role=owner&intent=subscribe&tier=${tier}`,
-        );
-        return;
-      }
-      // Souscription Stripe pour le bien ciblé
+      setPickerTier(null);
       setBusyTier(tier);
       try {
         const res = await fetch('/api/billing/subscribe', {
@@ -54,7 +55,7 @@ export function PricingClient(): React.ReactElement {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data?.url) {
-          throw new Error(data?.error || 'Souscription impossible.');
+          throw new Error(data?.error || 'Paiement impossible. Réessayez.');
         }
         window.location.href = data.url as string;
       } catch (err) {
@@ -62,26 +63,62 @@ export function PricingClient(): React.ReactElement {
         setBusyTier(null);
       }
     },
-    [propertyId, router],
+    [],
+  );
+
+  const handleCta = React.useCallback(
+    (tier: PropertyTier): void => {
+      setError(null);
+      setNeedProperty(false);
+
+      // Offre gratuite → espace owner (connecté) ou inscription.
+      if (tier === 'FREE') {
+        router.push(authenticated ? '/dashboard/owner' : '/auth/register?role=owner');
+        return;
+      }
+
+      // Lien in-app ciblant déjà un bien → achat direct.
+      if (urlPropertyId) {
+        void startCheckout(urlPropertyId, tier);
+        return;
+      }
+
+      // Visiteur déconnecté → inscription, retour sur /pricing.
+      if (!authenticated) {
+        router.push('/auth/register?role=owner&callbackUrl=%2Fpricing');
+        return;
+      }
+
+      // Connecté : choisir le bien à débloquer.
+      if (properties.length === 0) {
+        setNeedProperty(true);
+        return;
+      }
+      if (properties.length === 1) {
+        void startCheckout(properties[0].id, tier);
+        return;
+      }
+      setPickerTier(tier);
+    },
+    [authenticated, properties, urlPropertyId, router, startCheckout],
   );
 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         {/* Header */}
-        <header className="mb-12 text-center">
+        <header className="mb-10 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-800">
             <Sparkles className="h-3 w-3" aria-hidden="true" />
-            Tarifs · Paiement par logement
+            Tarifs · Paiement unique par logement
           </div>
           <h1 className="font-serif text-3xl leading-tight text-emerald-900 sm:text-5xl">
-            Une offre pour chaque bien
+            Sécurisez votre mise en location
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            Payez une seule fois par bien mis en location, sans abonnement.
-            L&rsquo;analyse IA anti-fraude est incluse selon l&rsquo;offre choisie —
-            au-delà du quota, il suffit de{' '}
-            <strong className="text-emerald-900">racheter une offre</strong>.
+            Un <strong className="text-emerald-900">paiement unique par bien</strong>, sans
+            abonnement. L’analyse IA anti-fraude et l’Indice de Résilience sont inclus selon
+            l’offre choisie — au-delà du quota, il suffit de racheter une offre.
           </p>
         </header>
 
@@ -91,6 +128,24 @@ export function PricingClient(): React.ReactElement {
             className="mx-auto mb-8 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700"
           >
             {error}
+          </div>
+        )}
+
+        {needProperty && (
+          <div className="mx-auto mb-8 max-w-lg rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-center">
+            <p className="text-sm font-semibold text-amber-900">
+              Ajoutez d’abord un bien à votre espace
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              Les offres s’achètent pour un logement précis. Créez votre bien, puis revenez
+              choisir une offre.
+            </p>
+            <Link
+              href="/dashboard/owner"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Ajouter un bien
+            </Link>
           </div>
         )}
 
@@ -241,14 +296,72 @@ export function PricingClient(): React.ReactElement {
         </section>
 
         {/* Réassurance */}
-        <footer className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-slate-500">
+        <footer className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-          Paiement sécurisé Stripe · Résiliable à tout moment ·{' '}
+          Paiement unique sécurisé par Stripe · Sans abonnement · Sans engagement ·{' '}
           <Link href="/" className="font-semibold text-emerald-900 hover:underline">
-            Retour à l&rsquo;accueil
+            Retour à l’accueil
           </Link>
         </footer>
       </div>
+
+      {/* Sélecteur de bien (owner avec plusieurs biens) */}
+      {pickerTier && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choisir un bien"
+          onClick={() => setPickerTier(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="font-serif text-lg font-semibold text-emerald-900">
+                Pour quel bien ?
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPickerTier(null)}
+                aria-label="Fermer"
+                className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-slate-600">
+              Offre <strong className="text-emerald-900">{TIERS[pickerTier].label}</strong> —{' '}
+              {formatTierPrice(TIERS[pickerTier].priceEur)}, paiement unique.
+            </p>
+            <ul className="max-h-72 space-y-2 overflow-y-auto">
+              {properties.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => startCheckout(p.id, pickerTier)}
+                    disabled={busyTier !== null}
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-800 transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Building2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate">{p.label}</span>
+                    {busyTier !== null ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-slate-400" aria-hidden="true" />
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/dashboard/owner"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:underline"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Ajouter un nouveau bien
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
