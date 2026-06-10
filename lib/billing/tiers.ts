@@ -134,6 +134,14 @@ export function isPaidTier(tier: PropertyTier): boolean {
   return tier !== 'FREE';
 }
 
+/** Retourne le tier le plus élevé des deux (selon TIER_ORDER) — utilisé au rachat
+ *  pour ne jamais faire régresser le niveau d'offre du bien. */
+export function higherTier(a: unknown, b: unknown): PropertyTier {
+  const ta = normalizeTier(a);
+  const tb = normalizeTier(b);
+  return TIER_ORDER.indexOf(ta) >= TIER_ORDER.indexOf(tb) ? ta : tb;
+}
+
 /** Formate un prix euro à la française (19,90 €). */
 export function formatTierPrice(priceEur: number): string {
   if (priceEur === 0) return 'Gratuit';
