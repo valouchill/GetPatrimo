@@ -54,6 +54,10 @@ export interface PortfolioAsset {
   pendingApplications: number;
   /** Lien Sésame à copier (URL complète à partager) */
   sesameLink: string;
+  /** Offre souscrite (Pay-per-Listing) + quota d'analyses IA */
+  tier?: 'FREE' | 'ESSENTIAL' | 'PREMIUM' | 'MAX';
+  dossiersQuota?: number;
+  dossiersAnalyzedCount?: number;
 }
 
 export interface PropertiesPortfolioProps {
@@ -158,6 +162,12 @@ function KpiTile({
   );
 }
 
+const TIER_LABELS: Record<string, string> = {
+  ESSENTIAL: 'Essentiel',
+  PREMIUM: 'Analyse IA',
+  MAX: 'Analyse IA Max',
+};
+
 // ─── Sub-component : PropertyAssetCard ──────────────────────────────────────
 
 export interface PropertyAssetCardProps {
@@ -178,6 +188,20 @@ export function PropertyAssetCard({
   const StatusIcon = statusStyle.icon;
   const hasPending = asset.pendingApplications > 0;
   const hasSelectedTenant = asset.statusLabel.toLowerCase().includes('locataire retenu');
+
+  // Offre & quota d'analyses IA (Pay-per-Listing one-time).
+  const tier = asset.tier ?? 'FREE';
+  const isPaidTier = tier !== 'FREE';
+  const quota = asset.dossiersQuota ?? 0;
+  const used = asset.dossiersAnalyzedCount ?? 0;
+  const quotaPct = quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+  const quotaExhausted = isPaidTier && used >= quota;
+  const quotaBarColor = quotaExhausted
+    ? 'bg-red-500'
+    : quotaPct >= 90
+    ? 'bg-amber-500'
+    : 'bg-emerald-500';
+  const tierLabel = TIER_LABELS[tier] ?? tier;
 
   const handleCopy = React.useCallback(async () => {
     try {
@@ -291,6 +315,49 @@ export function PropertyAssetCard({
           )}
         </div>
       </div>
+
+      {/* ─── Offre & quota d'analyses IA ──────────────────────────────────── */}
+      {isPaidTier ? (
+        <div className="mx-6 mb-4 rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-800">
+              Offre {tierLabel}
+            </span>
+            <span className="text-xs font-semibold text-slate-700">
+              {used} / {quota}{' '}
+              <span className="font-normal text-slate-500">analysés</span>
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white ring-1 ring-amber-100">
+            <div
+              className={`h-full rounded-full transition-all ${quotaBarColor}`}
+              style={{ width: `${quotaPct}%` }}
+              role="progressbar"
+              aria-valuenow={used}
+              aria-valuemin={0}
+              aria-valuemax={quota}
+            />
+          </div>
+          {quotaExhausted && (
+            <a
+              href={`/pricing?property=${asset.id}`}
+              className="mt-1.5 inline-block text-[11px] font-bold text-red-700 hover:underline"
+            >
+              Quota épuisé — racheter une offre →
+            </a>
+          )}
+        </div>
+      ) : (
+        <div className="mx-6 mb-4 flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <span className="text-[11px] text-slate-500">Analyse IA non activée</span>
+          <a
+            href={`/pricing?property=${asset.id}`}
+            className="text-[11px] font-bold text-emerald-800 hover:underline"
+          >
+            Activer une offre →
+          </a>
+        </div>
+      )}
 
       {/* ─── Actions : Sésame + Gérer ─────────────────────────────────────── */}
       <div className="mt-auto flex flex-col gap-2 px-6 pb-6">

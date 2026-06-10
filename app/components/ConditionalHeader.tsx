@@ -28,6 +28,11 @@ export default function ConditionalHeader() {
   if (pathname?.includes('/contract')) {
     return null;
   }
+  // /pricing (page publique « Tarifs & Offres ») : header marketing cohérent —
+  // pas le LuxeHeader legacy (liens morts /patrimoine, /messages, /dashboard-luxe.html).
+  if (pathname === '/pricing') {
+    return <LandingHeader />;
+  }
 
   return <LuxeHeader />;
 }
