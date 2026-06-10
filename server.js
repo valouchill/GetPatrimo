@@ -103,10 +103,11 @@ app.use(mongoSanitize());
 // --- Performance : compression gzip/brotli ---
 app.use(compression());
 
-// --- Securite : rate limiting global (20 req/min par IP) ---
+// --- Securite : rate limiting global (120 req/min par IP) ---
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 requetes par IP par minute
+  max: 120, // 120 req/min par IP (un dashboard + polling notifications en consomme bcp ;
+            // les routes coûteuses ont leur propre limite plus stricte)
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requetes, reessayez plus tard.' },

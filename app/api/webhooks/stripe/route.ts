@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { logger } from '@/lib/server-logger';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { higherTier } from '@/lib/billing/tiers';
 
 const Property = require('@/models/Property');
 const User = require('@/models/User');
@@ -40,15 +41,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     update.stripeSubscriptionId = session.subscription as string;
   }
 
-  // V8.0 — Pay-per-Listing : applique l'offre + le quota acheté.
+  // V8.0 — Pay-per-Listing (one-time) : un rachat CUMULE les crédits restants au
+  // lieu de les écraser. On lit l'état courant pour additionner le quota et garder le
+  // niveau le plus élevé. Les analyses déjà faites (dossiersAnalyzedCount /
+  // analyzedApplicationIds) ne sont JAMAIS réinitialisées ni recomptées.
   if (tier) {
-    update.tier = tier;
-    update.dossiersQuota = Number(quota || 0);
-    // Nouvel achat → on repart sur un compteur propre (quota frais).
-    update.dossiersAnalyzedCount = 0;
-    update.analyzedApplicationIds = [];
-    update.overageReportedCount = 0;
-    // Modèle one-time : quota fixe, plafond dur au-delà (pas de facturation à l'usage).
+    const current = (await Property.findById(propertyId)
+      .select('tier dossiersQuota')
+      .lean()) as { tier?: string; dossiersQuota?: number } | null;
+    const newPackQuota = Number(quota || 0);
+    update.tier = higherTier(current?.tier, tier);
+    update.dossiersQuota = Number(current?.dossiersQuota || 0) + newPackQuota;
   }
 
   await Property.findByIdAndUpdate(propertyId, update);

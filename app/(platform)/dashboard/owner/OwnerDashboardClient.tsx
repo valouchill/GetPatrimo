@@ -39,6 +39,7 @@ import { PropertyTable } from './components/PropertyTable';
 import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { OwnerCandidatesStack } from './components/OwnerCandidatesStack';
 import { PropertiesPortfolio, type PortfolioAsset, type AssetStatus } from '@/app/components/audit';
+import { PricingTiers } from '../../pricing/PricingTiers';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -637,6 +638,23 @@ export default function OwnerDashboardClient() {
               onManage={(id) => setPropertyModalId(id)}
             />
 
+          </motion.div>
+        )}
+
+        {/* ─ TARIFS & OFFRES (onglet interne → menu latéral conservé) ─ */}
+        {page === 'tarifs' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <PricingTiers
+              variant="embedded"
+              authenticated
+              properties={biens.map((b) => ({
+                id: b.id,
+                label: b.label,
+                tier: b.tier,
+                dossiersQuota: b.dossiersQuota,
+                dossiersAnalyzedCount: b.dossiersAnalyzedCount,
+              }))}
+            />
           </motion.div>
         )}
 
