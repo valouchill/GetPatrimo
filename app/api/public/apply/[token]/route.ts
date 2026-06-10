@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import Property from '@/models/Property';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    // Anti-abus/scraping (pré-lancement) : endpoint public d'apply. Borne par IP.
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    if (!checkRateLimit(`public-apply:${ip}`, { windowMs: 60_000, max: 60 }).allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+    }
     const { token } = await params;
 
     // Passeport Locatif universel (codeless) : auto-candidature sans bien.
