@@ -108,7 +108,7 @@ export function PremiumSectionHeader({
     >
       <div className="min-w-0 max-w-3xl space-y-3">
         {eyebrow ? <PremiumEyebrow>{eyebrow}</PremiumEyebrow> : null}
-        <h2 className="max-w-full text-balance font-serif text-3xl tracking-tight text-slate-950 sm:text-4xl">
+        <h2 className="max-w-full text-balance font-serif text-3xl tracking-tight text-emerald-900 sm:text-4xl">
           {title}
         </h2>
         {description ? (
@@ -283,7 +283,7 @@ export function EmptyState({
           {icon}
         </div>
       ) : null}
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <h3 className="font-serif text-lg font-semibold text-emerald-900">{title}</h3>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">{description}</p>
       {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </div>

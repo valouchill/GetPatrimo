@@ -477,7 +477,7 @@ export default function OwnerDashboardClient() {
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
+                  <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">
                     Bonjour{userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase()}${userEmail.split('@')[0].slice(1)}` : ''}
                   </h1>
                   <p className="mt-1 text-sm text-slate-500">
@@ -570,7 +570,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">
                   Candidatures
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
@@ -687,7 +687,7 @@ export default function OwnerDashboardClient() {
         {page === 'depot' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-8">
-              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Nouvel actif</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">Nouvel actif</h1>
               <p className="mt-1 text-sm text-slate-500">Ajoutez un bien à votre portefeuille Maison Patrimo</p>
             </div>
             <NouvelActifForm onDone={() => { refresh(); go('biens'); }} />
@@ -698,7 +698,7 @@ export default function OwnerDashboardClient() {
         {page === 'baux' && isEnabled('LEASES') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
-              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Baux &amp; Signatures</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">Baux &amp; Signatures</h1>
               <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Renouvellement · Résiliation</p>
             </div>
             <BauxPanel
@@ -728,7 +728,7 @@ export default function OwnerDashboardClient() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">Gestion locative</h1>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">Gestion locative</h1>
                 <p className="mt-1 text-sm text-slate-500">Suivi des locataires actifs</p>
               </div>
               <Btn variant="primary" className="gap-2" onClick={() => setShowAddManagement(true)}>
@@ -831,7 +831,7 @@ export default function OwnerDashboardClient() {
         {page === 'edl' && isEnabled('EDL') && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-6">
-              <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">États des lieux</h1>
+              <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">États des lieux</h1>
               <p className="mt-1 text-sm text-slate-500">Entrées &amp; sorties · Pièce par pièce · Compteurs · Comparaison</p>
             </div>
             <EdlPanel />

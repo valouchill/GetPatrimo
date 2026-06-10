@@ -423,7 +423,7 @@ function Pillar({
         <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
           {eyebrow}
         </span>
-        <h3 className="mt-3 font-serif text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
+        <h3 className="mt-3 font-serif text-3xl font-bold leading-tight text-emerald-900 sm:text-4xl">
           {title}
         </h3>
         <p className="mt-4 text-lg leading-relaxed text-slate-600">{children}</p>
@@ -467,7 +467,7 @@ export default function LandingClient() {
           </Reveal>
 
           <Reveal delay={0.08}>
-            <h1 className="mt-6 font-serif text-4xl font-bold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+            <h1 className="mt-6 font-serif text-4xl font-bold leading-[1.1] tracking-tight text-emerald-900 sm:text-5xl md:text-6xl">
               Ne laissez plus la fraude
               <br className="hidden sm:block" />{' '}
               <span className="text-emerald-900">dicter vos choix locatifs.</span>
@@ -544,7 +544,7 @@ export default function LandingClient() {
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
               Pourquoi Maison Patrimo
             </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900 sm:text-4xl md:text-5xl">
+            <h2 className="mt-3 font-serif text-3xl font-bold text-emerald-900 sm:text-4xl md:text-5xl">
               Trois certitudes avant de signer.
             </h2>
             <p className="mt-4 text-lg text-slate-600">
@@ -613,7 +613,7 @@ export default function LandingClient() {
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
               Tarifs
             </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900 sm:text-4xl md:text-5xl">
+            <h2 className="mt-3 font-serif text-3xl font-bold text-emerald-900 sm:text-4xl md:text-5xl">
               Payez à la mise en location.
             </h2>
             <p className="mt-4 text-lg text-slate-600">
@@ -637,7 +637,7 @@ export default function LandingClient() {
                       {plan.badge}
                     </span>
                   )}
-                  <h3 className="font-serif text-xl font-bold text-slate-900">
+                  <h3 className="font-serif text-xl font-bold text-emerald-900">
                     {plan.name}
                   </h3>
                   <div className="mt-3 flex items-baseline gap-1">

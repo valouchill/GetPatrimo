@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth-options';
 import Stripe from 'stripe';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
-import { isEnabled } from '@/lib/features';
 
 const User = require('@/models/User');
 
@@ -16,11 +15,8 @@ function getStripe() {
 
 export async function POST() {
   try {
-    // V1 — paywall désactivé, pas de portail Stripe
-    if (!isEnabled('OWNER_PAYWALL')) {
-      return NextResponse.json({ error: 'Not available' }, { status: 404 });
-    }
-
+    // Portail de facturation Stripe : ouvert à tout client ayant un stripeCustomerId
+    // (vérifié plus bas). Nécessite que le Customer Portal soit activé dans le dashboard Stripe.
     const session: any = await getServerSession(authOptions as any);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });

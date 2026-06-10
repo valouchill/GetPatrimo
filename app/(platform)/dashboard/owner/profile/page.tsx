@@ -305,6 +305,7 @@ export default function ProfilePage() {
 
   // Billing
   const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   // GDPR
   const [exportLoading, setExportLoading] = useState(false);
@@ -425,12 +426,20 @@ export default function ProfilePage() {
   // ── Billing portal ──
   const handlePortal = async () => {
     setPortalLoading(true);
+    setPortalError(null);
     try {
       const res = await fetch('/api/billing/portal', { method: 'POST' });
-      const json = await res.json();
-      if (json.url) window.location.href = json.url;
-      else setPortalLoading(false);
-    } catch { setPortalLoading(false); }
+      const json = await res.json().catch(() => ({}));
+      if (json.url) {
+        window.location.href = json.url;
+        return;
+      }
+      setPortalError(json.error || 'Portail de facturation indisponible pour le moment.');
+      setPortalLoading(false);
+    } catch {
+      setPortalError('Erreur réseau. Réessayez.');
+      setPortalLoading(false);
+    }
   };
 
   // ── GDPR export ──
@@ -728,6 +737,12 @@ export default function ProfilePage() {
                     <><ExternalLink className="w-3.5 h-3.5" /> Gérer ma facturation</>
                   )}
                 </button>
+              )}
+
+              {portalError && (
+                <p className="mt-2 text-center text-[11px] font-medium text-red-300">
+                  {portalError}
+                </p>
               )}
 
               <p className="text-[11px] text-slate-500 text-center mt-4">
