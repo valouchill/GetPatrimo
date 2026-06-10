@@ -6,6 +6,7 @@ import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
 import Application from '@/models/Application';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { actionRateLimited } from '@/lib/action-rate-limit';
 
 /**
  * Server Action — invite un colocataire (slot 2-4) à certifier son identité.
@@ -26,6 +27,12 @@ export async function sendCoTenantInvitation(params: {
 }): Promise<{ success: boolean; token?: string; error?: string }> {
   const { applyToken, applicationId, coTenantEmail, slot, firstName, lastName, profile, initiator } = params;
   try {
+    // Anti-abus (re-audit V1) : action login-less qui envoie un email via le domaine.
+    // Borne par IP + applyToken pour empêcher le spam / phishing en masse.
+    if (await actionRateLimited('cotenant-invite', applyToken)) {
+      return { success: false, error: 'Trop de demandes. Réessayez dans quelques minutes.' };
+    }
+
     await connectDiditDb();
 
     const property = await Property.findOne({ applyToken });

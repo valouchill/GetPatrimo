@@ -1,6 +1,7 @@
 'use server';
 
 import { connectDiditDb } from '@/app/api/didit/db';
+import { actionRateLimited } from '@/lib/action-rate-limit';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
 import nodemailer from 'nodemailer';
@@ -42,6 +43,12 @@ export async function createTenantAccount(
   }
 ): Promise<CreateAccountResult> {
   try {
+    // Anti-abus (re-audit V1) : création de compte + magic-link login-less.
+    // Borne par IP + email cible pour empêcher le spam de comptes / l'email-bombing.
+    if (await actionRateLimited('tenant-account', contactInfo.email, { ipMax: 5, keyMax: 5 })) {
+      return { success: false, error: 'Trop de demandes. Réessayez dans quelques minutes.' };
+    }
+
     await connectDiditDb();
 
     const email = contactInfo.email.toLowerCase().trim();
