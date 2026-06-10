@@ -577,13 +577,18 @@ export interface LatePaymentInfo {
 /**
  * Identifie les paiements en retard (>5 jours) et retourne la liste.
  */
-export async function checkLatePayments(): Promise<LatePaymentInfo[]> {
+export async function checkLatePayments(ownerId: string): Promise<LatePaymentInfo[]> {
   await connectDiditDb();
 
   const now = new Date();
   const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
 
+  // Sécurité (re-audit V1 — 3e passe) : TOUJOURS borner au propriétaire courant.
+  // Sans ce filtre, un bailleur authentifié pouvait relancer/muter les paiements
+  // d'AUTRES bailleurs (IDOR cross-tenant) en passant un paymentId arbitraire.
+  if (!ownerId) return [];
   const latePayments = await Payment.find({
+    owner: ownerId,
     status: 'PENDING',
     createdAt: { $lt: fiveDaysAgo },
   })

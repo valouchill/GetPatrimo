@@ -48,7 +48,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   if (!user) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
   const targetPaymentId = result.data.paymentId;
-  const allLatePayments = await checkLatePayments();
+  const allLatePayments = await checkLatePayments(String(user._id));
   const latePayments = targetPaymentId
     ? allLatePayments.filter((lp) => lp.paymentId === targetPaymentId)
     : allLatePayments;
