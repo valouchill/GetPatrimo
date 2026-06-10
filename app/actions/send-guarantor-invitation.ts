@@ -6,6 +6,7 @@ import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
 import mongoose from 'mongoose';
 import { connectDiditDb } from '@/app/api/didit/db';
+import { actionRateLimited } from '@/lib/action-rate-limit';
 
 /**
  * Server Action pour envoyer une invitation au garant
@@ -29,6 +30,12 @@ export async function sendGuarantorInvitation(
   error?: string;
 }> {
   try {
+    // Anti-abus (re-audit V1) : action login-less qui envoie un email via le domaine.
+    // Borne par IP + applyToken pour empêcher le spam / phishing en masse.
+    if (await actionRateLimited('guarantor-invite', applyToken)) {
+      return { success: false, error: 'Trop de demandes. Réessayez dans quelques minutes.' };
+    }
+
     // Connexion à la base de données
     await connectDiditDb();
 
