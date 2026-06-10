@@ -116,7 +116,7 @@ export async function sendCoTenantInvitation(params: {
     const initiatorName = initiator?.firstName && initiator?.lastName
       ? `${initiator.firstName} ${initiator.lastName}`
       : initiator?.email || 'Un colocataire';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://maisonpatrimo.com';
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://doc2loc.com';
     const verificationUrl = `${baseUrl}/verify-cotenant/${invitationToken}`;
 
     const emailSent = await sendCoTenantInvitationEmail(
@@ -184,7 +184,7 @@ async function sendCoTenantInvitationEmail(
 </body></html>`;
 
     const sent = await sendMailWithRetry(transporter, {
-      from: `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'noreply@maisonpatrimo.com'}>`,
+      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@doc2loc.com'}>`,
       to: coTenantEmail,
       subject: `Colocation Maison Patrimo — ${initiatorName} vous invite à certifier votre identité`,
       text: `Bonjour ${coTenantName},\n\n${initiatorName} vous invite à rejoindre sa colocation sur Maison Patrimo et à certifier votre identité (eIDAS via Didit, < 30s).\n\nLien : ${verificationUrl}\n\nMaison Patrimo`,
