@@ -227,6 +227,23 @@ export default function Privacy() {
             par rôle, journalisation des accès, sauvegardes chiffrées.
           </p>
         </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">9. Décisions automatisées et profilage (art. 22 RGPD)</h2>
+          <p>
+            Pour aider le propriétaire à évaluer un dossier de candidature, notre service produit un
+            <strong> Indice de Résilience</strong> et une analyse anti-fraude générés en partie par des
+            traitements automatisés, dont un modèle d&apos;intelligence artificielle. Ces résultats
+            constituent une <strong>aide à la décision</strong> : la sélection finale du locataire est
+            prise par le propriétaire, et non de façon entièrement automatisée.
+          </p>
+          <p className="mt-2">
+            Conformément à l&apos;article 22 du RGPD, vous disposez du droit d&apos;obtenir une
+            <strong> intervention humaine</strong>, d&apos;exprimer votre point de vue et de contester
+            le résultat d&apos;une analyse automatisée vous concernant. Pour exercer ces droits,
+            contactez notre DPO (coordonnées au point 1).
+          </p>
+        </div>
       </section>
 
       <div className="mt-12 pt-6 border-t border-slate-200 text-sm text-slate-500">

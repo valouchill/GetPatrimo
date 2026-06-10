@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
  
@@ -8,6 +9,11 @@ const { normalizeSlot } = require('@/src/utils/guarantorDidit');
 
 /** Crée une session Didit pour un colocataire (clone de guarantor/create-session). */
 export async function POST(request: NextRequest) {
+  // Anti-abus (pré-lancement) : création de session KYC colocataire (public). Borne par IP.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (!checkRateLimit(`cotenant-session:${ip}`, { windowMs: 60_000, max: 10 }).allowed) {
+    return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+  }
   let body: {
     invitationToken?: string;
     applyToken?: string;

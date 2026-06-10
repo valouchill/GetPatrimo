@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
  
@@ -14,6 +15,11 @@ const {
  * Utilise la même logique que la session locataire mais enregistre dans Guarantor
  */
 export async function POST(request: NextRequest) {
+  // Anti-abus (pré-lancement) : création de session KYC garant (endpoint public). Borne par IP.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (!checkRateLimit(`guarantor-session:${ip}`, { windowMs: 60_000, max: 10 }).allowed) {
+    return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+  }
   // Lire le body une seule fois au début
   let body: { invitationToken?: string; applyToken?: string; email?: string; firstName?: string; lastName?: string; slot?: number | string };
   try {

@@ -28,6 +28,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import Application from '@/models/Application';
 import { resolveResilienceScore } from '@/lib/resilience-score';
 
@@ -117,6 +118,11 @@ export async function GET(
   { params }: { params: Promise<{ slug: string; docType: string }> },
 ) {
   try {
+    // Anti-scraping (pré-lancement) : endpoint public de consultation de pièces. Borne par IP.
+    const rlIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    if (!checkRateLimit(`public-dossier:${rlIp}`, { windowMs: 60_000, max: 60 }).allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+    }
     await connectDiditDb();
 
     const { slug, docType } = await params;
