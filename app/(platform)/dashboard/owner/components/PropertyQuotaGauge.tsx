@@ -48,11 +48,11 @@ export function PropertyQuotaGauge({
               Offre Gratuite
             </p>
             <h3 className="mt-0.5 font-serif text-base font-semibold text-emerald-900">
-              Activez l&rsquo;analyse IA anti-fraude
+              Essai gratuit : 3 analyses IA offertes
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Vous recevez et stockez les dossiers. Pour lancer l&rsquo;Indice de
-              Résilience et la Trust-List Forensic, souscrivez une offre.
+              Votre compte gratuit inclut 3 analyses IA anti-fraude (au total) pour tester
+              le service. Au-delà, souscrivez une offre.
             </p>
             <Link
               href={`/pricing?property=${propertyId}`}

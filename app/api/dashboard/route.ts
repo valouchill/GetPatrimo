@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
+import { FREE_TRIAL_LIMIT } from '@/lib/billing/tiers';
 
  
 const User = require('@/models/User');
@@ -194,6 +195,15 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         occupiedProperties,
         activeLeasesCount,
       },
+      // Essai gratuit (compteur au niveau du COMPTE) + a-t-il au moins une offre payante.
+      freeTrial: {
+        used: Number((user as { freeAnalysesUsed?: number }).freeAnalysesUsed || 0),
+        limit: FREE_TRIAL_LIMIT,
+      },
+      hasPaidProperty: properties.some(
+        (p: { tier?: string; managed?: boolean }) =>
+          (p.tier && p.tier !== 'FREE') || p.managed === true,
+      ),
       alerts,
       recentEvents,
     },

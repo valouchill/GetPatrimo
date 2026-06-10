@@ -691,8 +691,7 @@ export default function ProfilePage() {
                   </div>
                   {usagePercent >= 90 && (
                     <p className="mt-2 text-[11px] text-amber-300">
-                      Quota presque atteint — les prochains dossiers seront
-                      facturés 0,49 € / unité.
+                      Quota presque atteint — pensez à racheter une offre pour continuer.
                     </p>
                   )}
                 </div>
@@ -732,8 +731,7 @@ export default function ProfilePage() {
               )}
 
               <p className="text-[11px] text-slate-500 text-center mt-4">
-                Paiement par logement · Dépassement 0,49 € / dossier ·
-                Résiliable à tout moment
+                Paiement unique par logement · Sans abonnement
               </p>
             </div>
 

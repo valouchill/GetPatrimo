@@ -252,7 +252,9 @@ export function PricingTiers({
                   )}
                 </div>
                 <p className="mb-5 text-xs font-semibold uppercase tracking-wide text-amber-700">
-                  {t.quota > 0
+                  {tierId === 'FREE'
+                    ? '3 analyses IA d’essai offertes'
+                    : t.quota > 0
                     ? `${t.quota} analyses IA incluses`
                     : 'Aucune analyse IA'}
                 </p>

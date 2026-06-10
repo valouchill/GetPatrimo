@@ -41,17 +41,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     update.stripeSubscriptionId = session.subscription as string;
   }
 
-  // V8.0 — Pay-per-Listing (one-time) : un rachat CUMULE les crédits restants au
-  // lieu de les écraser. On lit l'état courant pour additionner le quota et garder le
-  // niveau le plus élevé. Les analyses déjà faites (dossiersAnalyzedCount /
-  // analyzedApplicationIds) ne sont JAMAIS réinitialisées ni recomptées.
+  // V8.0 — Pay-per-Listing (one-time). Deux cas :
+  //  - 1er achat depuis FREE → quota FRAIS (les analyses d'essai gratuites, décomptées
+  //    au niveau du COMPTE, ne grèvent pas le quota payé du bien).
+  //  - rachat payant→payant → CUMUL des crédits restants + niveau le plus élevé ;
+  //    les analyses déjà faites ne sont jamais recomptées.
   if (tier) {
     const current = (await Property.findById(propertyId)
       .select('tier dossiersQuota')
       .lean()) as { tier?: string; dossiersQuota?: number } | null;
     const newPackQuota = Number(quota || 0);
+    const wasFree = !current?.tier || current.tier === 'FREE';
     update.tier = higherTier(current?.tier, tier);
-    update.dossiersQuota = Number(current?.dossiersQuota || 0) + newPackQuota;
+    if (wasFree) {
+      update.dossiersQuota = newPackQuota;
+      update.dossiersAnalyzedCount = 0;
+      update.analyzedApplicationIds = [];
+    } else {
+      update.dossiersQuota = Number(current?.dossiersQuota || 0) + newPackQuota;
+    }
   }
 
   await Property.findByIdAndUpdate(propertyId, update);

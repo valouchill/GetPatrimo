@@ -23,6 +23,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import Application from '@/models/Application';
 import Property from '@/models/Property';
+import User from '@/models/User';
 import { runFullAnalysis } from '@/lib/ai/tenant-analyzer';
 import type { AnalysisInputType } from '@/lib/ai/analysis-schema';
 import {
@@ -30,6 +31,7 @@ import {
   consumeAnalysisQuota,
   type QuotaProperty,
 } from '@/lib/billing/quota-service';
+import { FREE_TRIAL_LIMIT } from '@/lib/billing/tiers';
 import { isEnabled } from '@/lib/features';
 
 const COOLDOWN_MS = 30_000;
@@ -251,23 +253,28 @@ export async function POST(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
+    // Essai gratuit au niveau du COMPTE : compteur du propriétaire (plafond FREE_TRIAL_LIMIT).
+    const ownerUser = (await User.findById(propertyOwner)
+      .select('freeAnalysesUsed')
+      .lean()) as { freeAnalysesUsed?: number } | null;
+    const accountFreeUsed = Number(ownerUser?.freeAnalysesUsed || 0);
+
     // ─── V8.0 — Garde-fou Pay-per-Listing ──────────────────────────────
     // Vérifie l'offre du bien AVANT de lancer l'analyse (économise un
-    // appel OpenAI si FREE / non autorisé).
-    // V8.0 — enforcement piloté par le flag BILLING_ENFORCED (soft par défaut)
+    // appel OpenAI si essai épuisé / non autorisé). Enforcement piloté par BILLING_ENFORCED.
     const quotaCheck = checkAnalysisAllowed(
       property as unknown as QuotaProperty,
       id,
-      { enforced: isEnabled('BILLING_ENFORCED') },
+      { enforced: isEnabled('BILLING_ENFORCED'), accountFreeUsed },
     );
     if (!quotaCheck.allowed) {
-      // 402 Payment Required : FREE (souscrire) ou quota épuisé (racheter, one-time).
+      // 402 : essai gratuit du compte épuisé (souscrire) ou quota payant épuisé (racheter).
       const quotaExceeded = quotaCheck.reason === 'QUOTA_EXCEEDED';
       return NextResponse.json(
         {
           error: quotaExceeded
             ? `Quota d'analyses épuisé pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre pour analyser de nouveaux dossiers.`
-            : "L'analyse IA n'est pas incluse dans l'offre Gratuite. Souscrivez une offre pour analyser ce dossier.",
+            : `Vos ${quotaCheck.quota} analyses d'essai gratuites sont épuisées. Souscrivez une offre pour continuer à analyser vos dossiers.`,
           code: quotaExceeded ? 'QUOTA_EXCEEDED' : 'PAYMENT_REQUIRED',
           tier: quotaCheck.tier,
           quota: quotaCheck.quota,
@@ -292,11 +299,24 @@ export async function POST(
     let quotaConsumption: Awaited<ReturnType<typeof consumeAnalysisQuota>> | null =
       null;
     try {
-      quotaConsumption = await consumeAnalysisQuota(
-        property as unknown as QuotaProperty,
-        id,
-        quotaCheck.mode || 'WITHIN_QUOTA',
-      );
+      if (quotaCheck.mode === 'FREE_TRIAL') {
+        // Essai gratuit : décompte ATOMIQUE au niveau du COMPTE (borné à FREE_TRIAL_LIMIT)
+        // + dédup du dossier sur le bien (re-analyse ultérieure gratuite).
+        await User.updateOne(
+          { _id: propertyOwner, freeAnalysesUsed: { $lt: FREE_TRIAL_LIMIT } },
+          { $inc: { freeAnalysesUsed: 1 } },
+        );
+        await Property.updateOne(
+          { _id: (property as any)._id, analyzedApplicationIds: { $ne: id } },
+          { $addToSet: { analyzedApplicationIds: id } },
+        );
+      } else {
+        quotaConsumption = await consumeAnalysisQuota(
+          property as unknown as QuotaProperty,
+          id,
+          quotaCheck.mode || 'WITHIN_QUOTA',
+        );
+      }
     } catch (quotaErr) {
       logger.error('analyze-v2 quota consume failed', {
         applicationId: id,

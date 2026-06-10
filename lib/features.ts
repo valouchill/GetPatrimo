@@ -24,7 +24,7 @@ export const FEATURES_V1_DEFAULTS = {
   //  - true : HARD — FREE → 402 Payment Required. À activer une fois les
   //    Price IDs Stripe configurés.
   //    Override prod : NEXT_PUBLIC_FEATURES_V1='{"BILLING_ENFORCED":true}'
-  BILLING_ENFORCED: false,
+  BILLING_ENFORCED: true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES_V1_DEFAULTS;
