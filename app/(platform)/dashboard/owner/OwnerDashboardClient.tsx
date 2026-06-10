@@ -61,6 +61,16 @@ export default function OwnerDashboardClient() {
     if (tabParam && tabParam !== page) setPage(tabParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabParam]);
+  // Retour de paiement Stripe : la Property est activée par le webhook, qui peut
+  // arriver juste après le redirect. On rafraîchit une fois en léger différé pour
+  // afficher l'offre + le quota à jour sur la carte du bien.
+  const checkoutSuccess = searchParams?.get('checkout') === 'success';
+  useEffect(() => {
+    if (!checkoutSuccess) return;
+    const t = setTimeout(() => { refresh(); }, 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutSuccess]);
   const [selBienId, setSelBienId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -573,6 +583,13 @@ export default function OwnerDashboardClient() {
         {/* ─ MES BIENS ─ */}
         {page === 'biens' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {checkoutSuccess && (
+              <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                <span aria-hidden="true">✓</span>
+                Paiement reçu — votre offre s’active à l’instant. Le quota d’analyses IA de
+                votre bien apparaît sur sa carte ci-dessous.
+              </div>
+            )}
             {/* V5.5 — Vue "Portefeuille d'Actifs" Banque Privée.
                 Remplace l'ancien design tableau + grille mixte par un seul
                 composant <PropertiesPortfolio> cohérent avec le reste de l'UI
@@ -611,6 +628,9 @@ export default function OwnerDashboardClient() {
                   statusLabel: hasSelection ? 'Locataire retenu' : b.leaseStatusLabel || statusLabel[status],
                   pendingApplications: pending,
                   sesameLink,
+                  tier: b.tier,
+                  dossiersQuota: b.dossiersQuota,
+                  dossiersAnalyzedCount: b.dossiersAnalyzedCount,
                 };
               })}
               onAdd={() => go('depot')}

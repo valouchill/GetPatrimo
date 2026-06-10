@@ -106,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // L'offre achetée (Price one-time). Un seul achat = un quota fixe.
         { price: base, quantity: 1 },
       ],
-      success_url: `${baseUrl}/dashboard/owner/property/${propertyId}?tab=candidates&checkout=success`,
+      success_url: `${baseUrl}/dashboard/owner?tab=biens&checkout=success`,
       cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
       metadata,
       payment_intent_data: { metadata },
