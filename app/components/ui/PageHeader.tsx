@@ -31,7 +31,7 @@ export function PageHeader({
             {eyebrow}
           </p>
         )}
-        <h1 className="font-serif text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="font-serif text-2xl font-bold tracking-tight text-emerald-900 sm:text-3xl">
           {title}
         </h1>
         {description && (
@@ -73,7 +73,7 @@ export function SectionHeader({
             {eyebrow}
           </p>
         )}
-        <h2 className="font-serif text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+        <h2 className="font-serif text-lg font-bold tracking-tight text-emerald-900 sm:text-xl">
           {title}
         </h2>
         {description && (

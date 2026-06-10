@@ -137,7 +137,7 @@ export function PricingTiers({
             <Sparkles className="h-3 w-3" aria-hidden="true" />
             Tarifs · Paiement unique par logement
           </div>
-          <h1 className="font-serif text-3xl leading-tight text-emerald-900 sm:text-5xl">
+          <h1 className="font-serif text-3xl font-bold leading-tight text-emerald-900 sm:text-5xl">
             Sécurisez votre mise en location
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
@@ -292,78 +292,6 @@ export function PricingTiers({
             );
           })}
         </div>
-
-        {/* Tableau comparatif détaillé */}
-        <section className="mt-16">
-          <h2 className="mb-6 text-center font-serif text-2xl text-emerald-900">
-            Comparatif détaillé
-          </h2>
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/60">
-                  <th className="px-5 py-4 text-left font-semibold text-slate-500">
-                    Caractéristique
-                  </th>
-                  {TIER_ORDER.map((tierId) => (
-                    <th
-                      key={tierId}
-                      className="px-5 py-4 text-center font-serif text-base font-semibold text-emerald-900"
-                    >
-                      {TIERS[tierId].label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="px-5 py-3 text-slate-600">Prix (paiement unique)</td>
-                  {TIER_ORDER.map((tierId) => (
-                    <td key={tierId} className="px-5 py-3 text-center font-semibold text-slate-900">
-                      {formatTierPrice(TIERS[tierId].priceEur)}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-slate-600">Analyses IA incluses</td>
-                  {TIER_ORDER.map((tierId) => (
-                    <td key={tierId} className="px-5 py-3 text-center font-semibold text-slate-900">
-                      {TIERS[tierId].quota || '—'}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-slate-600">Au-delà du quota</td>
-                  {TIER_ORDER.map((tierId) => (
-                    <td key={tierId} className="px-5 py-3 text-center text-slate-700">
-                      {TIERS[tierId].quota > 0 ? 'Rachat d’offre' : '—'}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-slate-600">Trust-List anti-fraude</td>
-                  {TIER_ORDER.map((tierId) => (
-                    <td key={tierId} className="px-5 py-3 text-center">
-                      {tierId === 'FREE' ? (
-                        <span className="text-slate-300">—</span>
-                      ) : (
-                        <Check className="mx-auto h-4 w-4 text-emerald-600" aria-hidden="true" />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-slate-600">Coffre-fort documentaire</td>
-                  {TIER_ORDER.map((tierId) => (
-                    <td key={tierId} className="px-5 py-3 text-center">
-                      <Check className="mx-auto h-4 w-4 text-emerald-600" aria-hidden="true" />
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
 
         {/* Réassurance (page publique uniquement) */}
         {variant === 'page' && (

@@ -656,7 +656,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                 <StatusBadge tone="success" label="Locataire retenu" className="normal-case tracking-normal text-[11px] font-semibold" />
               )}
             </ActionBar>
-            <h1 className="break-words font-serif text-3xl tracking-tight text-slate-950 sm:text-4xl">
+            <h1 className="break-words font-serif text-3xl tracking-tight text-emerald-900 sm:text-4xl">
               {property.address || property.name || 'Actif'}
             </h1>
             <p className="mt-1.5 text-sm text-slate-500">
@@ -936,7 +936,7 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
                       Locataire retenu
                     </div>
-                    <h3 className="mt-2 font-serif text-3xl tracking-tight text-emerald-950">
+                    <h3 className="mt-2 font-serif text-3xl tracking-tight text-emerald-900">
                       {candidateName(ownerSelected)}
                     </h3>
                     <p className="mt-3 text-sm leading-7 text-emerald-900/85">
