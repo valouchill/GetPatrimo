@@ -4,38 +4,39 @@
  * Logique de vérification + consommation du quota d'analyses IA par bien.
  * Utilisé par la route POST /api/owner/applications/[id]/analyze-v2.
  *
+ * Modèle one-time : achat unique d'une offre (ESSENTIAL/PREMIUM/MAX) → quota fixe
+ * d'analyses IA par bien. Au-delà du quota : PLAFOND DUR (racheter une offre), pas
+ * de facturation à l'usage.
+ *
  * Flux :
  *   1. checkAnalysisAllowed(property, applicationId)
  *      - FREE                       → { allowed:false, reason:'FREE' } (HTTP 402)
  *      - déjà comptabilisé          → { allowed:true,  mode:'ALREADY_COUNTED' }
  *      - dans le quota              → { allowed:true,  mode:'WITHIN_QUOTA' }
- *      - dépassement (over quota)   → { allowed:true,  mode:'OVERAGE' }
+ *      - quota épuisé (enforced)    → { allowed:false, reason:'QUOTA_EXCEEDED' } (HTTP 402)
  *   2. (analyse réussie)
  *   3. consumeAnalysisQuota(property, applicationId, mode)
  *      - incrémente dossiersAnalyzedCount + ajoute l'app à analyzedApplicationIds
- *      - si OVERAGE : facture 1 unité à Stripe (invoice item, best-effort)
  *
- * On consomme APRÈS le succès de l'analyse pour ne jamais facturer un
+ * On consomme APRÈS le succès de l'analyse pour ne jamais décompter un
  * dossier dont l'analyse a échoué.
  */
 
 import 'server-only';
-import { getStripeClient } from '@/lib/admin-stripe';
 import { logger } from '@/lib/server-logger';
 import { effectiveQuota, effectiveTier, type PropertyTier } from './tiers';
 
 export type QuotaMode =
   | 'WITHIN_QUOTA'
-  | 'OVERAGE'
   | 'ALREADY_COUNTED'
   // V8.0 — mode SOFT : offre FREE autorisée car enforcement désactivé.
-  // Ne consomme PAS de quota, ne facture rien (suivi visuel uniquement).
+  // Ne consomme PAS de quota (suivi visuel uniquement).
   | 'SOFT_FREE';
 
 export interface QuotaCheck {
   allowed: boolean;
-  /** Renseigné si allowed=false (seul cas : 'FREE') */
-  reason?: 'FREE';
+  /** Si allowed=false : 'FREE' (offre gratuite) ou 'QUOTA_EXCEEDED' (quota épuisé) */
+  reason?: 'FREE' | 'QUOTA_EXCEEDED';
   /** Renseigné si allowed=true */
   mode?: QuotaMode;
   tier: PropertyTier;
@@ -98,75 +99,26 @@ export function checkAnalysisAllowed(
     return { allowed: true, mode: 'WITHIN_QUOTA', tier, quota, used };
   }
 
-  // Dépassement — autorisé mais facturé (metered)
-  return { allowed: true, mode: 'OVERAGE', tier, quota, used };
-}
-
-/** Prix unitaire du dépassement en centimes (0,49 € par défaut). */
-function overageUnitCents(): number {
-  const v = Number(process.env.OVERAGE_UNIT_CENTS);
-  return Number.isFinite(v) && v > 0 ? Math.round(v) : 49;
-}
-
-/**
- * Facture N unité(s) de dépassement à Stripe via un "invoice item" posé sur le
- * CLIENT : le montant est ajouté à la PROCHAINE facture de l'abonnement (modèle
- * forfait + à l'usage, facturé en fin de cycle — cf. docs/BILLING.md).
- * Best-effort : une erreur Stripe ne bloque jamais l'analyse (loggée).
- */
-async function reportOverageToStripe(
-  property: QuotaProperty,
-  quantity: number,
-): Promise<boolean> {
-  const customerId = property.stripeCustomerId;
-  if (!customerId) {
-    logger.warn('[quota] dépassement non facturé : stripeCustomerId absent', {
-      propertyId: String(property._id),
-    });
-    return false;
+  // Quota épuisé — modèle one-time : PLAFOND DUR (il faut racheter une offre).
+  if (opts.enforced) {
+    return { allowed: false, reason: 'QUOTA_EXCEEDED', tier, quota, used };
   }
-  const amount = overageUnitCents() * quantity;
-  try {
-    const stripe = getStripeClient();
-    await stripe.invoiceItems.create({
-      customer: customerId,
-      amount, // centimes ; ajouté à la prochaine facture du client
-      currency: 'eur',
-      description: `Dépassement de quota — ${quantity} dossier(s) analysé(s)`,
-      metadata: {
-        propertyId: String(property._id),
-        quantity: String(quantity),
-      },
-    });
-    logger.info('[quota] dépassement facturé à Stripe (invoice item)', {
-      propertyId: String(property._id),
-      customerId,
-      quantity,
-      amountCents: amount,
-    });
-    return true;
-  } catch (err) {
-    logger.error('[quota] échec facturation overage (invoiceItems.create)', {
-      propertyId: String(property._id),
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return false;
-  }
+  // Soft-launch (enforcement off) : on n'impose pas le plafond — suivi visuel only.
+  return { allowed: true, mode: 'WITHIN_QUOTA', tier, quota, used };
 }
 
 export interface QuotaConsumption {
   mode: QuotaMode;
   used: number;
   quota: number;
-  /** True si une unité de dépassement a été reportée à Stripe avec succès */
+  /** @deprecated modèle one-time : toujours false (plus de facturation à l'usage) */
   overageBilled: boolean;
 }
 
 /**
  * Consomme le quota après une analyse réussie. Persiste la Property.
- *  - ALREADY_COUNTED → no-op (le dossier était déjà décompté)
- *  - WITHIN_QUOTA / OVERAGE → +1 dossier distinct, push l'app id
- *  - OVERAGE → report Stripe + overageReportedCount++
+ *  - ALREADY_COUNTED / SOFT_FREE → no-op (pas de décompte)
+ *  - WITHIN_QUOTA → +1 dossier distinct, push l'app id
  */
 export async function consumeAnalysisQuota(
   property: QuotaProperty,
@@ -199,23 +151,15 @@ export async function consumeAnalysisQuota(
   ).lean();
 
   // updated === null ⇒ dossier déjà compté (course concurrente ou ré-analyse) :
-  // on ne recompte pas et on ne refacture pas le dépassement.
+  // on ne recompte pas.
   if (!updated) {
     return { mode, used: Number(property.dossiersAnalyzedCount || 0), quota, overageBilled: false };
-  }
-
-  let overageBilled = false;
-  if (mode === 'OVERAGE') {
-    overageBilled = await reportOverageToStripe(property, 1);
-    if (overageBilled) {
-      await PropertyModel.updateOne({ _id: propId }, { $inc: { overageReportedCount: 1 } });
-    }
   }
 
   return {
     mode,
     used: Number((updated as { dossiersAnalyzedCount?: number }).dossiersAnalyzedCount || 0),
     quota,
-    overageBilled,
+    overageBilled: false,
   };
 }

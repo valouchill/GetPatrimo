@@ -1,63 +1,49 @@
-# Pay-per-Listing — Facturation par bien (V8.0 · overage = invoice items)
+# Pay-per-Listing — Facturation par bien (V8.0 · achat one-time)
 
-Modèle économique : **forfait de base par bien + facturation au dépassement**
-(forfait Stripe Subscription + dépassement via *invoice items*). Chaque bien
-(`Property`) porte son propre quota d'analyses IA.
+Modèle économique : **achat unique d'une offre par bien** (paiement Stripe one-time).
+Chaque achat débloque un quota fixe d'analyses IA pour ce `Property`. Au-delà du quota :
+**plafond dur** (racheter une offre) — pas de facturation à l'usage.
 
 ## Grille tarifaire
 
-| Offre | Prix/mois | Analyses IA incluses | Dépassement |
+| Offre | Prix (paiement unique) | Analyses IA incluses | Au-delà du quota |
 |---|---|---|---|
 | **FREE** | 0 € | 0 (stockage seul) | — |
-| **ESSENTIAL** | 19,90 € | 25 | +0,49 € / dossier |
-| **PREMIUM** (Analyse IA) | 39,90 € | 100 | +0,49 € / dossier |
-| **MAX** (Analyse IA Max) | 59,90 € | 250 | +0,49 € / dossier |
+| **ESSENTIAL** | 19,90 € | 25 | Racheter une offre |
+| **PREMIUM** (Analyse IA) | 39,90 € | 100 | Racheter une offre |
+| **MAX** (Analyse IA Max) | 59,90 € | 250 | Racheter une offre |
 
 Source de vérité : `lib/billing/tiers.ts` (importable client + serveur).
 
 ---
 
-## Rapport méthode : à l'usage (invoice items) vs Achat de crédits
+## Rapport méthode : achat one-time + plafond dur
 
-**Méthode retenue : Stripe Subscription (forfait) + invoice items (à l'usage).**
+**Méthode retenue : Stripe Checkout `mode: payment` (paiement unique) + plafond dur au quota.**
 
-### Pourquoi facturer à l'usage (et pas un système de crédits) ?
+- Les offres sont des **achats ponctuels par bien** : on paie une fois pour débloquer
+  l'analyse IA d'une mise en location, pas un abonnement mensuel.
+- **Pas de facturation à l'usage** : au-delà du quota inclus, l'analyse est bloquée (HTTP 402)
+  et l'owner rachète une offre (ou monte de gamme). Aucune facture surprise.
+- Réconciliation Stripe native (paiements, TVA, exports). Pas de gestion de solde côté app.
 
-| Critère | À l'usage (invoice items) ✅ | Crédits (Top-up) |
-|---|---|---|
-| Friction au dépassement | Aucune (carte enregistrée, facturé en fin de cycle) | L'owner doit racheter des crédits → analyse bloquée entre-temps |
-| Réconciliation comptable | Native Stripe (factures, TVA, exports) | À gérer manuellement (solde, expiration, remboursements) |
-| Modèle mental | « Forfait + à l'usage » familier (téléphonie) | « Porte-monnaie » à recharger |
-| Risque d'impayé | Géré par Stripe (retries, dunning) | Risque de solde négatif si on autorise le découvert |
-| Complexité d'implémentation | Webhook + 1 `invoiceItems.create` par dépassement | Modèle de solde + transactions + idempotence maison |
-
-Le seul avantage des crédits (paiement 100 % anticipé, zéro risque d'impayé)
-est couvert par Stripe (dunning + suspension). Pour un produit « banque privée »
-où l'on ne veut pas bloquer un owner en plein closing de bail, **le sans-friction
-prime** → facturation à l'usage.
-
-> **Note d'archi (re-audit V1)** : l'implémentation initiale visait le *Metered
-> Billing* legacy (`subscriptionItems.createUsageRecord`), mais cette API a été
-> retirée du SDK Stripe v20 (et la création de prix `usage_type=metered` est
-> désactivée pour les nouveaux comptes). On facture donc le dépassement par
-> **invoice items** posés sur le client : même résultat (ajout à la facture de
-> fin de cycle), sans dépendre du metered legacy ni d'un *meter* à configurer.
+> **Historique (re-audit V1)** : l'implémentation initiale visait un *abonnement + metered
+> overage* (`subscriptionItems.createUsageRecord`, retiré du SDK v20), puis des *invoice
+> items*. Les offres étant finalement des **achats one-time**, ni l'abonnement ni les invoice
+> items (qui exigent une facture récurrente) ne s'appliquent → `mode: payment` + plafond dur.
 
 ### Architecture Stripe
 
-Chaque souscription comporte **1 line item** :
-1. **Prix de base** (`licensed`, `quantity: 1`) — le forfait mensuel
-   (19,90 / 39,90 / 59,90 €).
+Checkout `POST /api/billing/subscribe` en **`mode: payment`** (paiement unique) avec
+**1 line item** : l'offre achetée (Price `one_time`, 19,90 / 39,90 / 59,90 €).
+`customer_creation: 'always'` pour conserver le client + son historique de paiement.
 
-Le **dépassement** (0,49 €/dossier) n'est PAS un line item d'abonnement : à
-chaque dossier au-delà du quota, `reportOverageToStripe` (quota-service) appelle
-`stripe.invoiceItems.create({ customer, amount: 49, currency: 'eur' })` → le
-montant est ajouté à la **prochaine facture** de l'abonnement. Prix unitaire
-surchargeable par `OVERAGE_UNIT_CENTS` (défaut 49).
+Le webhook `checkout.session.completed` finalise :
+- `managed: true`, `tier`, `dossiersQuota` (quota acheté), compteur remis à zéro,
+- capture `Property.stripeCustomerId`.
 
-Le webhook `checkout.session.completed` :
-- applique `tier` + `dossiersQuota`,
-- capture `Property.stripeCustomerId` (cible des futurs invoice items).
+Au-delà du quota : `checkAnalysisAllowed` renvoie `reason: 'QUOTA_EXCEEDED'` (HTTP 402) quand
+l'enforcement est actif → l'app invite à racheter. Aucun appel Stripe à la consommation.
 
 ---
 
@@ -66,24 +52,21 @@ Le webhook `checkout.session.completed` :
 À créer dans le **Dashboard Stripe** (Produits → Prix), puis renseigner :
 
 ```bash
-# Forfaits de base (recurring, licensed) — SEULS prix à créer dans Stripe
-PRICE_ID_ESSENTIAL_BASE=price_xxx   # 19,90 €/mois
-PRICE_ID_PREMIUM_BASE=price_xxx     # 39,90 €/mois
-PRICE_ID_MAX_BASE=price_xxx         # 59,90 €/mois
-
-# Dépassement : facturé via invoice items (AUCUN prix Stripe à créer).
-# Prix unitaire en centimes, optionnel (défaut 49 = 0,49 €).
-OVERAGE_UNIT_CENTS=49
+# Offres (Price one-time / paiement unique) — SEULS prix à créer
+PRICE_ID_ESSENTIAL_BASE=price_xxx   # 19,90 €
+PRICE_ID_PREMIUM_BASE=price_xxx     # 39,90 €
+PRICE_ID_MAX_BASE=price_xxx         # 59,90 €
 
 # Clés Stripe
 STRIPE_SECRET_KEY=sk_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
 ```
 
-> **Note** : il n'y a plus de prix `metered` à configurer — le dépassement est
-> facturé en centimes via `invoiceItems.create`. Seuls les **3 prix de base**
-> `recurring` (licensed) sont nécessaires.
+> **Note** : chaque Price doit être créé en **One-time** (paiement unique), PAS « Recurring ».
+> `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` est inutile (checkout par redirection).
+
+Webhook Stripe → `/api/webhooks/stripe`, events : `checkout.session.completed`,
+`customer.subscription.deleted` (legacy), `invoice.payment_failed` (legacy).
 
 ---
 
@@ -92,40 +75,40 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
 `POST /api/owner/applications/[id]/analyze-v2` (le `TenantAnalysisService`) :
 
 1. Charge la `Property` liée au dossier.
-2. `checkAnalysisAllowed(property, applicationId)` :
-   - **FREE** → `402 Payment Required` (`code: PAYMENT_REQUIRED`, `pricingUrl`).
+2. `checkAnalysisAllowed(property, applicationId, { enforced })` :
+   - **FREE** → `402` (`code: PAYMENT_REQUIRED`, `pricingUrl`).
    - **Payant, dossier déjà compté** → `ALREADY_COUNTED` (re-analyse gratuite).
    - **Payant, dans le quota** → `WITHIN_QUOTA`.
-   - **Payant, au-delà** → `OVERAGE`.
+   - **Payant, quota épuisé** (enforced) → `402` (`code: QUOTA_EXCEEDED`) → racheter.
 3. (analyse IA) — uniquement si autorisé.
 4. `consumeAnalysisQuota(...)` **après succès** :
-   - +1 dossier distinct (`dossiersAnalyzedCount`, `analyzedApplicationIds`),
-   - si `OVERAGE` → `invoiceItems.create` sur le client (best-effort, loggé).
+   - +1 dossier distinct (`dossiersAnalyzedCount`, `analyzedApplicationIds`).
 
-> **Facturation par DOSSIER, pas par appel** : ré-analyser le même dossier ne
-> reconsomme pas de quota (`analyzedApplicationIds` déduplique). Cohérent avec
-> la limite « 1 ré-analyse / dossier » (V7.13).
+> `enforced` est piloté par le flag `BILLING_ENFORCED` (`lib/features.ts`). Tant qu'il est
+> `false` (soft-launch), aucune offre (FREE incluse) n'est bloquée — pratique avant le go-live.
 >
-> **On consomme après succès** : une analyse qui échoue ne décompte rien.
+> **Par DOSSIER, pas par appel** : ré-analyser le même dossier ne reconsomme pas de quota
+> (`analyzedApplicationIds` déduplique). **On consomme après succès** : une analyse qui
+> échoue ne décompte rien.
 
 ---
 
 ## Frontend
 
-- **Jauge** `PropertyQuotaGauge` (page détail bien) : « Dossiers analysés :
-  X / quota » + barre, badge d'alerte à ≥ 90 %, upsell sur dépassement.
-- **Upsell FREE** : `AnalysisV2Panel` affiche un encart « Voir les offres »
+- **Jauge** `PropertyQuotaGauge` (page détail bien) : « Dossiers analysés : X / quota » +
+  barre, badge « quota presque atteint » à ≥ 90 %, badge « quota épuisé → racheter » au-delà.
+- **Upsell FREE / quota épuisé** : `AnalysisV2Panel` affiche un encart « Voir les offres »
   sur 402 (au lieu d'une erreur brute).
-- **Page `/pricing`** : tableau comparatif 4 offres + CTAs spécifiques +
-  souscription Stripe (`POST /api/billing/subscribe`).
+- **Page `/pricing`** : tableau comparatif 4 offres (paiement unique) + CTAs →
+  `POST /api/billing/subscribe`.
 
 ---
 
 ## Limites connues / TODO
 
-- La facturation du dépassement est **best-effort** : si `stripeCustomerId` est
-  absent, le dépassement est autorisé mais non facturé (loggé en warn). À monitorer.
-- Pas encore de webhook `invoice.created` pour afficher le détail des
-  dépassements facturés dans l'app (Stripe les expose déjà côté portail).
-- Le changement d'offre (upgrade/downgrade) passe par une nouvelle Checkout :
-  un proration `subscriptions.update` serait plus élégant (itération future).
+- **Rachat** : un nouvel achat remet `dossiersAnalyzedCount` à 0 et applique le quota du tier
+  acheté (quota frais). Pas de cumul des quotas entre achats successifs (choix produit).
+- Le **paywall** `BILLING_ENFORCED` est `false` par défaut → à passer à `true` (défaut code +
+  rebuild) au go-live, sinon les FREE analysent gratuitement.
+- Paywall propriétaire récurrent (`OWNER_PAYWALL`, route `create-checkout`) : **désactivé**
+  (feature V2, encore en `mode: subscription` — à revoir si réactivé).

@@ -33,19 +33,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const update: Record<string, unknown> = {
     managed: true,
     stripeCustomerId: session.customer as string,
-    stripeSubscriptionId: session.subscription as string,
   };
+  // Modèle one-time (mode payment) : pas d'abonnement. On ne stocke un
+  // stripeSubscriptionId que s'il existe (rétro-compat abonnements legacy).
+  if (session.subscription) {
+    update.stripeSubscriptionId = session.subscription as string;
+  }
 
-  // V8.0 — Pay-per-Listing : applique l'offre + le quota inclus.
+  // V8.0 — Pay-per-Listing : applique l'offre + le quota acheté.
   if (tier) {
     update.tier = tier;
     update.dossiersQuota = Number(quota || 0);
-    // Nouvelle souscription → on repart sur un compteur propre.
+    // Nouvel achat → on repart sur un compteur propre (quota frais).
     update.dossiersAnalyzedCount = 0;
     update.analyzedApplicationIds = [];
     update.overageReportedCount = 0;
-    // Le dépassement est facturé via des invoice items posés sur le client
-    // (stripeCustomerId, capturé ci-dessus) — plus de subscription item "metered".
+    // Modèle one-time : quota fixe, plafond dur au-delà (pas de facturation à l'usage).
   }
 
   await Property.findByIdAndUpdate(propertyId, update);

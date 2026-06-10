@@ -5,8 +5,8 @@
  *
  * Affiche "Dossiers analysés : X / quota" + barre de progression.
  * - FREE                → encart upsell "Activez l'analyse IA"
- * - ≥ 90% du quota      → badge d'alerte "prochains dossiers facturés 0,49€"
- * - dépassement         → badge "facturation à l'usage active"
+ * - ≥ 90% du quota      → badge d'alerte "quota presque atteint"
+ * - quota épuisé        → badge "rachetez une offre" (plafond dur one-time)
  *
  * Charte banque privée : émeraude / ambre / rouge selon l'état.
  */
@@ -14,7 +14,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Sparkles, TrendingUp, Zap } from 'lucide-react';
-import { TIERS, OVERAGE_PRICE_EUR, type PropertyTier } from '@/lib/billing/tiers';
+import { TIERS, type PropertyTier } from '@/lib/billing/tiers';
 
 export interface PropertyQuotaGaugeProps {
   propertyId: string;
@@ -78,7 +78,6 @@ export function PropertyQuotaGauge({
     : isNearLimit
     ? 'bg-amber-500'
     : 'bg-emerald-500';
-  const overageUnits = Math.max(0, used - quota);
 
   return (
     <section
@@ -122,19 +121,17 @@ export function PropertyQuotaGauge({
           <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-red-800">
-              Quota dépassé — facturation à l&rsquo;usage active
+              Quota épuisé
             </p>
             <p className="mt-0.5 text-[11px] text-red-700">
-              {overageUnits} dossier{overageUnits > 1 ? 's' : ''} au-delà du
-              forfait, facturé{overageUnits > 1 ? 's' : ''}{' '}
-              {OVERAGE_PRICE_EUR.toFixed(2).replace('.', ',')} € / unité en fin
-              de cycle.
+              Vous avez utilisé toutes vos analyses incluses. Rachetez une offre
+              pour analyser de nouveaux dossiers sur ce bien.
             </p>
             <Link
               href={`/pricing?property=${propertyId}`}
               className="mt-1.5 inline-block text-[11px] font-bold text-red-800 underline hover:text-red-900"
             >
-              Upgrader mon offre →
+              Racheter une offre →
             </Link>
           </div>
         </div>
@@ -146,14 +143,14 @@ export function PropertyQuotaGauge({
               Quota presque atteint
             </p>
             <p className="mt-0.5 text-[11px] text-amber-700">
-              Les prochains dossiers seront facturés{' '}
-              {OVERAGE_PRICE_EUR.toFixed(2).replace('.', ',')} € / unité.
+              Pensez à racheter une offre avant épuisement pour continuer à
+              analyser de nouveaux dossiers.
             </p>
             <Link
               href={`/pricing?property=${propertyId}`}
               className="mt-1.5 inline-block text-[11px] font-bold text-amber-800 underline hover:text-amber-900"
             >
-              Upgrader mon offre →
+              Voir les offres →
             </Link>
           </div>
         </div>
