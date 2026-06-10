@@ -349,12 +349,12 @@ export function PropertyAssetCard({
         </div>
       ) : (
         <div className="mx-6 mb-4 flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <span className="text-[11px] text-slate-500">Analyse IA non activée</span>
+          <span className="text-[11px] text-slate-500">Analyse IA — essai gratuit du compte</span>
           <a
             href={`/pricing?property=${asset.id}`}
             className="text-[11px] font-bold text-emerald-800 hover:underline"
           >
-            Activer une offre →
+            Voir les offres →
           </a>
         </div>
       )}

@@ -56,6 +56,9 @@ const UserSchema = new mongoose.Schema({
   // Stripe
   stripeCustomerId: { type: String, default: '' },
 
+  // Essai gratuit : nb d'analyses IA consommées au niveau du COMPTE (plafond FREE_TRIAL_LIMIT).
+  freeAnalysesUsed: { type: Number, default: 0 },
+
   // Magic Auth — token à usage unique pour connexion sans mot de passe (Fast-Track)
   magicSignInToken: { type: String, default: '' },
   magicSignInExpiresAt: { type: Date },

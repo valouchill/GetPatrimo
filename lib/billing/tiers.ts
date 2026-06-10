@@ -57,7 +57,7 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
       'Lien de candidature illimité',
       'Réception et stockage des dossiers',
       'Coffre-fort documentaire sécurisé',
-      'Aucune analyse IA',
+      '3 analyses IA d’essai offertes',
     ],
   },
   ESSENTIAL: {
@@ -116,6 +116,9 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
 
 /** Ordre d'affichage canonique (gauche → droite sur la page pricing). */
 export const TIER_ORDER: PropertyTier[] = ['FREE', 'ESSENTIAL', 'PREMIUM', 'MAX'];
+
+/** Essai gratuit : nb d'analyses IA offertes au niveau du COMPTE (total, pas par bien). */
+export const FREE_TRIAL_LIMIT = 3;
 
 /** Type-guard : convertit une valeur inconnue en PropertyTier (défaut FREE). */
 export function normalizeTier(value: unknown): PropertyTier {

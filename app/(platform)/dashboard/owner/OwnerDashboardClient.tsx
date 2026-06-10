@@ -96,7 +96,9 @@ export default function OwnerDashboardClient() {
     kpis: { totalProperties: number; occupiedProperties: number; activeLeasesCount: number } | null;
     alerts: { id: string; severity: 'critical' | 'warning' | 'info'; message: string; actionLabel: string; actionTarget: string }[];
     recentEvents: { id: string; type: string; date: string; propertyLabel: string | null; meta: Record<string, unknown> }[];
-  }>({ financial: null, kpis: null, alerts: [], recentEvents: [] });
+    freeTrial?: { used: number; limit: number } | null;
+    hasPaidProperty?: boolean;
+  }>({ financial: null, kpis: null, alerts: [], recentEvents: [], freeTrial: null, hasPaidProperty: false });
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -427,6 +429,29 @@ export default function OwnerDashboardClient() {
         >
           <Menu className="h-5 w-5 text-slate-700" />
         </button>
+
+        {/* Essai gratuit (compte) — tant qu'aucune offre payante n'est souscrite */}
+        {dashData.freeTrial && !dashData.hasPaidProperty && (() => {
+          const { used, limit } = dashData.freeTrial;
+          const left = Math.max(0, limit - used);
+          return (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-900">
+                <strong>Essai gratuit</strong> — {Math.min(used, limit)}/{limit} analyses IA utilisées sur votre compte.{' '}
+                {left > 0
+                  ? `${left} restante${left > 1 ? 's' : ''}.`
+                  : 'Essai épuisé — souscrivez pour analyser sans limite.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => go('tarifs')}
+                className="shrink-0 rounded-lg bg-emerald-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
+              >
+                Voir les offres
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ─ DASHBOARD ─ V1.6 refonte orientée analyse candidat */}
         {page === 'dashboard' && (() => {

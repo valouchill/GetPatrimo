@@ -128,7 +128,7 @@ const PRICING = [
     features: [
       'Boîte de réception centralisée',
       '1 lien de candidature',
-      'Aucun dossier analysé par l’IA',
+      '3 dossiers analysés gratuitement',
       'Stockage chiffré · conforme RGPD',
     ],
     cta: 'Commencer',

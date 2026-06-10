@@ -8,7 +8,7 @@ Chaque achat débloque un quota fixe d'analyses IA pour ce `Property`. Au-delà 
 
 | Offre | Prix (paiement unique) | Analyses IA incluses | Au-delà du quota |
 |---|---|---|---|
-| **FREE** | 0 € | 0 (stockage seul) | — |
+| **FREE** | 0 € | 3 (essai gratuit, par compte) | Souscrire une offre |
 | **ESSENTIAL** | 19,90 € | 25 | Racheter une offre |
 | **PREMIUM** (Analyse IA) | 39,90 € | 100 | Racheter une offre |
 | **MAX** (Analyse IA Max) | 59,90 € | 250 | Racheter une offre |
@@ -75,17 +75,20 @@ Webhook Stripe → `/api/webhooks/stripe`, events : `checkout.session.completed`
 `POST /api/owner/applications/[id]/analyze-v2` (le `TenantAnalysisService`) :
 
 1. Charge la `Property` liée au dossier.
-2. `checkAnalysisAllowed(property, applicationId, { enforced })` :
-   - **FREE** → `402` (`code: PAYMENT_REQUIRED`, `pricingUrl`).
+2. `checkAnalysisAllowed(property, applicationId, { enforced, accountFreeUsed })` :
+   - **FREE, essai dispo** (< `FREE_TRIAL_LIMIT`=3 au niveau du COMPTE) → `FREE_TRIAL`.
+   - **FREE, essai épuisé** (enforced) → `402` (`code: PAYMENT_REQUIRED`, reason `FREE_TRIAL_EXHAUSTED`) → souscrire.
    - **Payant, dossier déjà compté** → `ALREADY_COUNTED` (re-analyse gratuite).
    - **Payant, dans le quota** → `WITHIN_QUOTA`.
    - **Payant, quota épuisé** (enforced) → `402` (`code: QUOTA_EXCEEDED`) → racheter.
 3. (analyse IA) — uniquement si autorisé.
-4. `consumeAnalysisQuota(...)` **après succès** :
-   - +1 dossier distinct (`dossiersAnalyzedCount`, `analyzedApplicationIds`).
+4. Décompte **après succès** :
+   - `FREE_TRIAL` → `User.freeAnalysesUsed += 1` (COMPTE, atomique borné) + dédup du dossier sur le bien.
+   - `WITHIN_QUOTA` → `consumeAnalysisQuota` (+1 par bien : `dossiersAnalyzedCount`, `analyzedApplicationIds`).
 
-> `enforced` est piloté par le flag `BILLING_ENFORCED` (`lib/features.ts`). Tant qu'il est
-> `false` (soft-launch), aucune offre (FREE incluse) n'est bloquée — pratique avant le go-live.
+> **Essai gratuit = 3 analyses PAR COMPTE** (`User.freeAnalysesUsed`, plafond `FREE_TRIAL_LIMIT`),
+> pas par bien. `enforced` est piloté par `BILLING_ENFORCED` (`lib/features.ts`, **`true`** en prod) ;
+> en soft-launch (`false`), FREE n'est pas bloqué.
 >
 > **Par DOSSIER, pas par appel** : ré-analyser le même dossier ne reconsomme pas de quota
 > (`analyzedApplicationIds` déduplique). **On consomme après succès** : une analyse qui
@@ -106,9 +109,10 @@ Webhook Stripe → `/api/webhooks/stripe`, events : `checkout.session.completed`
 
 ## Limites connues / TODO
 
-- **Rachat** : un nouvel achat remet `dossiersAnalyzedCount` à 0 et applique le quota du tier
-  acheté (quota frais). Pas de cumul des quotas entre achats successifs (choix produit).
-- Le **paywall** `BILLING_ENFORCED` est `false` par défaut → à passer à `true` (défaut code +
-  rebuild) au go-live, sinon les FREE analysent gratuitement.
+- **Rachat** : 1er achat depuis FREE → quota frais (les essais gratuits du compte ne le grèvent
+  pas) ; rachat payant→payant → **cumul** des crédits + niveau le plus élevé (`higherTier`), sans
+  recompter les analyses faites.
+- Le **paywall** `BILLING_ENFORCED` est **`true`** (activé). Le flag est inliné au build
+  (`NEXT_PUBLIC_FEATURES_V1`) → tout changement nécessite un rebuild.
 - Paywall propriétaire récurrent (`OWNER_PAYWALL`, route `create-checkout`) : **désactivé**
   (feature V2, encore en `mode: subscription` — à revoir si réactivé).

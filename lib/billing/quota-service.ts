@@ -24,19 +24,22 @@
 
 import 'server-only';
 import { logger } from '@/lib/server-logger';
-import { effectiveQuota, effectiveTier, type PropertyTier } from './tiers';
+import { effectiveQuota, effectiveTier, FREE_TRIAL_LIMIT, type PropertyTier } from './tiers';
 
 export type QuotaMode =
   | 'WITHIN_QUOTA'
   | 'ALREADY_COUNTED'
+  // Essai gratuit : analyse FREE décomptée au niveau du COMPTE (User.freeAnalysesUsed).
+  | 'FREE_TRIAL'
   // V8.0 — mode SOFT : offre FREE autorisée car enforcement désactivé.
   // Ne consomme PAS de quota (suivi visuel uniquement).
   | 'SOFT_FREE';
 
 export interface QuotaCheck {
   allowed: boolean;
-  /** Si allowed=false : 'FREE' (offre gratuite) ou 'QUOTA_EXCEEDED' (quota épuisé) */
-  reason?: 'FREE' | 'QUOTA_EXCEEDED';
+  /** Si allowed=false : 'QUOTA_EXCEEDED' (quota payant épuisé) ou 'FREE_TRIAL_EXHAUSTED'
+   *  (3 analyses d'essai du compte épuisées). */
+  reason?: 'QUOTA_EXCEEDED' | 'FREE_TRIAL_EXHAUSTED';
   /** Renseigné si allowed=true */
   mode?: QuotaMode;
   tier: PropertyTier;
@@ -71,25 +74,33 @@ export interface QuotaProperty {
 export function checkAnalysisAllowed(
   property: QuotaProperty,
   applicationId: string,
-  opts: { enforced?: boolean } = {},
+  opts: { enforced?: boolean; accountFreeUsed?: number } = {},
 ): QuotaCheck {
   // V8.0 — offre EFFECTIVE (grandfather les biens `managed` legacy en PREMIUM)
   const tier = effectiveTier(property);
   const quota = effectiveQuota(property);
   const used = Number(property.dossiersAnalyzedCount || 0);
+  const already = (property.analyzedApplicationIds || []).map(String);
 
-  // FREE — l'analyse IA n'est pas incluse.
+  // FREE — essai gratuit au niveau du COMPTE (3 analyses au TOTAL, pas par bien).
   if (tier === 'FREE') {
-    if (opts.enforced) {
-      // HARD : il faut souscrire une offre.
-      return { allowed: false, reason: 'FREE', tier, quota, used };
+    // Soft-launch (enforcement off) : autorisé sans blocage ni décompte.
+    if (!opts.enforced) {
+      return { allowed: true, mode: 'SOFT_FREE', tier, quota, used };
     }
-    // SOFT : autorisé (pas de blocage, pas de consommation).
-    return { allowed: true, mode: 'SOFT_FREE', tier, quota, used };
+    // Re-analyse d'un dossier déjà compté sur ce bien → gratuit.
+    if (already.includes(String(applicationId))) {
+      return { allowed: true, mode: 'ALREADY_COUNTED', tier, quota, used };
+    }
+    const freeUsed = Number(opts.accountFreeUsed || 0);
+    if (freeUsed < FREE_TRIAL_LIMIT) {
+      return { allowed: true, mode: 'FREE_TRIAL', tier, quota: FREE_TRIAL_LIMIT, used: freeUsed };
+    }
+    return { allowed: false, reason: 'FREE_TRIAL_EXHAUSTED', tier, quota: FREE_TRIAL_LIMIT, used: freeUsed };
   }
 
+  // ── Offre payante : quota PAR BIEN ──
   // Dossier déjà analysé/comptabilisé → pas de re-décompte (re-analyse libre)
-  const already = (property.analyzedApplicationIds || []).map(String);
   if (already.includes(String(applicationId))) {
     return { allowed: true, mode: 'ALREADY_COUNTED', tier, quota, used };
   }
@@ -128,7 +139,8 @@ export async function consumeAnalysisQuota(
   const quota = effectiveQuota(property);
 
   // SOFT_FREE (enforcement off) ou ALREADY_COUNTED → aucune consommation.
-  if (mode === 'ALREADY_COUNTED' || mode === 'SOFT_FREE') {
+  // FREE_TRIAL est décompté au niveau du COMPTE (analyze-v2), pas par bien → no-op ici.
+  if (mode === 'ALREADY_COUNTED' || mode === 'SOFT_FREE' || mode === 'FREE_TRIAL') {
     return {
       mode,
       used: Number(property.dossiersAnalyzedCount || 0),

@@ -328,11 +328,8 @@ export function AnalysisV2Panel({
         | AnalyzeV2Response
         | { error?: string; code?: string; pricingUrl?: string };
       if (!res.ok) {
-        // V8.0 — 402 : offre FREE → upsell au lieu d'une erreur brute
-        if (
-          res.status === 402 &&
-          (body as { code?: string }).code === 'PAYMENT_REQUIRED'
-        ) {
+        // 402 : essai gratuit épuisé OU quota payant épuisé → upsell (pas une erreur brute).
+        if (res.status === 402) {
           setPaymentRequired({
             message:
               (body as { error?: string }).error ||
