@@ -44,30 +44,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     update.dossiersAnalyzedCount = 0;
     update.analyzedApplicationIds = [];
     update.overageReportedCount = 0;
-
-    // Récupère le subscription item "metered" (Price usage_type=metered)
-    // pour cibler les futurs createUsageRecord (dépassements).
-    try {
-      const stripe = getStripe();
-      const sub = await stripe.subscriptions.retrieve(
-        session.subscription as string,
-      );
-      const meteredItem = sub.items.data.find(
-        (it) => it.price?.recurring?.usage_type === 'metered',
-      );
-      if (meteredItem) {
-        update.stripeUsageItemId = meteredItem.id;
-      } else {
-        logger.warn('[stripe-webhook] Aucun item metered trouvé sur la souscription', {
-          subscriptionId: session.subscription,
-        });
-      }
-    } catch (err) {
-      logger.error('[stripe-webhook] Échec récupération item metered', {
-        subscriptionId: session.subscription,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    // Le dépassement est facturé via des invoice items posés sur le client
+    // (stripeCustomerId, capturé ci-dessus) — plus de subscription item "metered".
   }
 
   await Property.findByIdAndUpdate(propertyId, update);

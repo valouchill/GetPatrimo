@@ -13,7 +13,7 @@
  *   2. (analyse réussie)
  *   3. consumeAnalysisQuota(property, applicationId, mode)
  *      - incrémente dossiersAnalyzedCount + ajoute l'app à analyzedApplicationIds
- *      - si OVERAGE : reporte 1 unité à Stripe (createUsageRecord, best-effort)
+ *      - si OVERAGE : facture 1 unité à Stripe (invoice item, best-effort)
  *
  * On consomme APRÈS le succès de l'analyse pour ne jamais facturer un
  * dossier dont l'analyse a échoué.
@@ -51,6 +51,7 @@ export interface QuotaProperty {
   dossiersAnalyzedCount?: number;
   analyzedApplicationIds?: string[];
   overageReportedCount?: number;
+  stripeCustomerId?: string;
   stripeUsageItemId?: string;
   stripeSubscriptionId?: string;
   managed?: boolean;
@@ -101,39 +102,51 @@ export function checkAnalysisAllowed(
   return { allowed: true, mode: 'OVERAGE', tier, quota, used };
 }
 
+/** Prix unitaire du dépassement en centimes (0,49 € par défaut). */
+function overageUnitCents(): number {
+  const v = Number(process.env.OVERAGE_UNIT_CENTS);
+  return Number.isFinite(v) && v > 0 ? Math.round(v) : 49;
+}
+
 /**
- * Reporte N unité(s) de dépassement à Stripe (Metered Billing).
+ * Facture N unité(s) de dépassement à Stripe via un "invoice item" posé sur le
+ * CLIENT : le montant est ajouté à la PROCHAINE facture de l'abonnement (modèle
+ * forfait + à l'usage, facturé en fin de cycle — cf. docs/BILLING.md).
  * Best-effort : une erreur Stripe ne bloque jamais l'analyse (loggée).
  */
 async function reportOverageToStripe(
   property: QuotaProperty,
   quantity: number,
 ): Promise<boolean> {
-  const usageItemId = property.stripeUsageItemId;
-  if (!usageItemId) {
-    logger.warn('[quota] dépassement non reporté : stripeUsageItemId absent', {
+  const customerId = property.stripeCustomerId;
+  if (!customerId) {
+    logger.warn('[quota] dépassement non facturé : stripeCustomerId absent', {
       propertyId: String(property._id),
     });
     return false;
   }
+  const amount = overageUnitCents() * quantity;
   try {
     const stripe = getStripeClient();
-    // L'API Stripe Metered Billing : createUsageRecord sur le subscription item
-    // "metered" (le Price ID au dépassement). action:'increment' cumule sur
-    // la période de facturation courante.
-    await (stripe as any).subscriptionItems.createUsageRecord(usageItemId, {
-      quantity,
-      action: 'increment',
-      timestamp: 'now',
+    await stripe.invoiceItems.create({
+      customer: customerId,
+      amount, // centimes ; ajouté à la prochaine facture du client
+      currency: 'eur',
+      description: `Dépassement de quota — ${quantity} dossier(s) analysé(s)`,
+      metadata: {
+        propertyId: String(property._id),
+        quantity: String(quantity),
+      },
     });
-    logger.info('[quota] dépassement reporté à Stripe', {
+    logger.info('[quota] dépassement facturé à Stripe (invoice item)', {
       propertyId: String(property._id),
-      usageItemId,
+      customerId,
       quantity,
+      amountCents: amount,
     });
     return true;
   } catch (err) {
-    logger.error('[quota] échec createUsageRecord', {
+    logger.error('[quota] échec facturation overage (invoiceItems.create)', {
       propertyId: String(property._id),
       error: err instanceof Error ? err.message : String(err),
     });
