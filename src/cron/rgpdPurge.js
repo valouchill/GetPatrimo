@@ -5,6 +5,8 @@
  * Règles de purge :
  * 1. Candidatures refusées > 3 mois : anonymisation des données personnelles
  * 2. Pièces d'identité des candidats non retenus : suppression immédiate après décision
+ * 2bis. Dossiers (Application) non retenus : purge complète (pièces + PII) 3 mois après
+ *       l'attribution du bien — AIPD §1.1 / plan d'action n°1
  * 3. Données biométriques Didit : suppression après vérification terminée
  * 4. Leads marketing sans interaction > 3 ans : suppression
  */
@@ -23,6 +25,7 @@ function createReport() {
     startedAt: new Date().toISOString(),
     candidaturesPurged: 0,
     identityDocsPurged: 0,
+    applicationsPurged: 0,
     diditDataPurged: 0,
     leadsPurged: 0,
     errors: [],
@@ -132,6 +135,68 @@ async function purgeNonSelectedIdentityDocs(report) {
 }
 
 /**
+ * 2bis. Purge complète des dossiers (Application) non retenus, 3 mois après l'attribution
+ * du bien (AIPD §1.1 : « suppression ≤ 3 mois après attribution »).
+ *
+ * L'étape 2 supprime les pièces d'identité IMMÉDIATEMENT après la décision ; ici, passé
+ * 3 mois, on supprime TOUTES les pièces restantes (avis d'imposition, bulletins, domicile —
+ * fichiers physiques inclus) + les PII du profil et l'identité Didit extraite.
+ * On conserve volontairement userEmail : c'est la clé du compte du candidat (ses autres
+ * candidatures et la suppression self-service de son compte couvrent ce reliquat).
+ */
+async function purgeNonSelectedApplications(report) {
+  const Application = require('../../models/Application');
+  const Property = require('../../models/Property');
+  const cutoffDate = new Date(Date.now() - THREE_MONTHS_MS);
+
+  const propertiesWithSelection = await Property.find({
+    acceptedTenantId: { $ne: null },
+  }).select('_id acceptedTenantId').lean();
+
+  for (const prop of propertiesWithSelection) {
+    const nonSelected = await Application.find({
+      property: prop._id,
+      _id: { $ne: prop.acceptedTenantId },
+      rgpdPurged: { $ne: true },
+      updatedAt: { $lt: cutoffDate },
+    });
+
+    for (const app of nonSelected) {
+      try {
+        await purgeCandidateFiles(app.documents || []);
+
+        await Application.updateOne(
+          { _id: app._id },
+          {
+            $set: {
+              documents: [],
+              'profile.firstName': '',
+              'profile.lastName': '',
+              'profile.phone': '',
+              'profile.presentationText': '',
+              financialSummary: {},
+              rgpdPurged: true,
+              rgpdPurgedAt: new Date(),
+            },
+            $unset: { 'didit.identityData': '' },
+          }
+        );
+
+        report.applicationsPurged += 1;
+        logger.info('[RGPD] Dossier non retenu purgé (3 mois post-attribution)', {
+          applicationId: app._id,
+          propertyId: prop._id,
+        });
+      } catch (err) {
+        const msg = `Erreur purge dossier ${app._id}: ${err.message}`;
+        report.errors.push(msg);
+        logger.error(`[RGPD] ${msg}`);
+      }
+    }
+  }
+}
+
+/**
  * 3. Purge des données biométriques Didit après vérification
  */
 async function purgeDiditBiometricData(report) {
@@ -224,6 +289,7 @@ async function runRGPDPurge() {
 
     await purgeRejectedCandidatures(report);
     await purgeNonSelectedIdentityDocs(report);
+    await purgeNonSelectedApplications(report);
     await purgeDiditBiometricData(report);
     await purgeInactiveLeads(report);
 

@@ -87,6 +87,17 @@ export default function Terms() {
             résultant de l&apos;utilisation ou de l&apos;impossibilité d&apos;utiliser le service,
             notamment en cas d&apos;interruption, de dysfonctionnement ou de perte de données.
           </p>
+          <p className="mt-2">
+            <strong>6.2 — Analyses assistées par intelligence artificielle.</strong> Les indicateurs
+            produits par le service (extraction de données, contrôles de cohérence documentaire,
+            signaux d&apos;alerte, scores) sont générés par des traitements automatisés et présentent un
+            caractère strictement <strong>indicatif</strong>. Ils constituent une aide à la décision :
+            ils ne produisent aucune décision automatique et ne dispensent pas l&apos;utilisateur
+            bailleur d&apos;une vérification humaine des pièces. La décision de retenir ou non une
+            candidature relève exclusivement de l&apos;utilisateur bailleur (art. 22 RGPD). Toute
+            personne concernée peut contester un résultat d&apos;analyse et obtenir un réexamen humain
+            dans les conditions décrites par la Politique de Confidentialité.
+          </p>
         </div>
 
         <div>

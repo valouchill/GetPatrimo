@@ -197,6 +197,25 @@ export async function saveApplicationProgress(
     }
 
     if (data.documents) {
+      // AIPD §2.3 (minimisation) — bornes serveur sur le payload documents : le client ne
+      // peut ni stocker un volume arbitraire en base, ni injecter d'URL exotiques. La nature
+      // des pièces reste bornée par l'enum du schéma (IDENTITY/INCOME/ADDRESS/GUARANTOR).
+      if (data.documents.length > 40) {
+        return { success: false, error: 'Nombre de pièces trop élevé (40 max).' };
+      }
+      for (const doc of data.documents) {
+        const url = doc.fileUrl || '';
+        // ~12 M caractères ≈ 9 Mo binaire : aucune pièce légitime (PDF/photo) au-delà.
+        if (url.length > 12_000_000) {
+          return { success: false, error: `Pièce trop volumineuse : ${doc.fileName || doc.id}` };
+        }
+        if (url && !/^(data:(application\/pdf|image\/(png|jpe?g|webp|heic|heif));|\/uploads\/|https?:\/\/)/i.test(url)) {
+          return { success: false, error: 'Format de pièce non autorisé (PDF ou image attendu).' };
+        }
+        if (typeof doc.fileName === 'string' && doc.fileName.length > 255) {
+          doc.fileName = doc.fileName.slice(0, 255);
+        }
+      }
       application.documents = data.documents as typeof application.documents;
     }
 

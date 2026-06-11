@@ -233,6 +233,14 @@ const ApplicationSchema = new mongoose.Schema({
   reanalyzeCount: { type: Number, default: 0 },
   lastReanalyzedAt: { type: Date },
 
+  // RGPD/AIPD — marqueurs de purge automatique (cron rgpdPurge). Déclarés explicitement :
+  // le schéma strict droppait silencieusement identityDocsPurged (même piège que V7.13),
+  // la purge retraitait donc les mêmes dossiers chaque nuit.
+  identityDocsPurged: { type: Boolean, default: false },
+  identityDocsPurgedAt: { type: Date },
+  rgpdPurged: { type: Boolean, default: false },
+  rgpdPurgedAt: { type: Date },
+
 }, { timestamps: true });
 
 // Index pour recherche rapide

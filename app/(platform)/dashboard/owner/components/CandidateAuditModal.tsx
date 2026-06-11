@@ -615,6 +615,14 @@ export function CandidateAuditModal({
               </div>
             </header>
 
+            {/* AIPD §2.4 / M9 — art. 22 RGPD : la sortie IA est une aide à la décision,
+                jamais une décision. Mention systématique sur l'écran où l'owner tranche. */}
+            <p className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-5 py-2 text-[11px] leading-snug text-slate-500 md:px-6">
+              Analyse générée par IA — <strong className="font-semibold text-slate-600">résultat indicatif</strong> nécessitant
+              votre vérification humaine des pièces. La décision de location vous appartient ; le candidat peut
+              signaler une erreur d&apos;analyse et obtenir un réexamen.
+            </p>
+
             {/* V7.12.1 — Banners metier (erreur + info "deja selectionne") */}
             {actionError && (
               <div
