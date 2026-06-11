@@ -40,7 +40,8 @@ ENV NODE_ENV=production \
     JWT_SECRET=$JWT_SECRET \
     NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
     MONGO_URI=$MONGO_URI \
-    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
 # ── Stage 2: Production ────────────────────────────────────────
