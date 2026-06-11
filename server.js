@@ -152,27 +152,19 @@ app.use((req, res, next) => {
 
 // Stripe webhook — migré vers app/api/webhooks/stripe/route.ts
 
-// Ne pas parser le body JSON pour les routes Next.js API (elles le font elles-mêmes)
+// Ne pas parser le body pour les routes Next.js API (elles lisent request.json()
+// elles-mêmes ; si Express consomme le flux d'abord, le handler Next PEND à jamais).
+// Liste UNIQUE partagée json+urlencoded — elle était dupliquée et /api/tenant/ +
+// /api/admin/ manquaient : POST /api/tenant/contest et les PATCH admin pendaient (504).
+const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
+const isNextSelfParsedRoute = (url) => NEXT_SELF_PARSED_PREFIXES.some((p) => url.startsWith(p));
+
 app.use((req, res, next) => {
-  // Routes Next.js API qui gèrent leur propre body
-  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
-  const isNextApiRoute = nextApiRoutes.some(route => req.url.startsWith(route));
-  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
-  if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
-
-  if (isNextApiRoute) {
-    return next(); // Skip express.json() pour les routes Next.js
-  }
-
+  if (isNextSelfParsedRoute(req.url)) return next();
   express.json({ limit: '1mb' })(req, res, next);
 });
-// urlencoded doit aussi skip les routes Next.js (sinon Express consomme le body
-// et Next.js hang en attendant un body déjà lu)
 app.use((req, res, next) => {
-  const nextApiRoutes = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/billing/', '/api/public/apply/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts'];
-  const nextAuthPaths = ['/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
-  if (nextAuthPaths.some(p => req.url.startsWith(p))) return next();
-  if (nextApiRoutes.some(route => req.url.startsWith(route))) return next();
+  if (isNextSelfParsedRoute(req.url)) return next();
   express.urlencoded({ limit: '1mb', extended: true })(req, res, next);
 });
 // Route explicite pour la contractualisation plein écran (fallback statique)
