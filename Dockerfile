@@ -32,10 +32,15 @@ COPY . .
 ARG JWT_SECRET=build-time-placeholder
 ARG NEXTAUTH_SECRET=build-time-placeholder
 ARG MONGO_URI=mongodb://127.0.0.1:27017/doc2loc-build
+# Sentry : le DSN doit être présent AU BUILD (withSentryConfig + inlining client).
+# Non-secret (clé d'envoi seulement). Passé via :
+#   --build-arg NEXT_PUBLIC_SENTRY_DSN="$(grep -E '^NEXT_PUBLIC_SENTRY_DSN=' /opt/doc2loc/.env | cut -d= -f2-)"
+ARG NEXT_PUBLIC_SENTRY_DSN=""
 ENV NODE_ENV=production \
     JWT_SECRET=$JWT_SECRET \
     NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
-    MONGO_URI=$MONGO_URI
+    MONGO_URI=$MONGO_URI \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 RUN npm run build
 
 # ── Stage 2: Production ────────────────────────────────────────
