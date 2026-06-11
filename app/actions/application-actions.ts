@@ -203,6 +203,7 @@ export async function saveApplicationProgress(
       if (data.documents.length > 40) {
         return { success: false, error: 'Nombre de pièces trop élevé (40 max).' };
       }
+      const { isForbiddenDocumentLabel } = require('@/src/services/visionAnalysisService');
       for (const doc of data.documents) {
         const url = doc.fileUrl || '';
         // ~12 M caractères ≈ 9 Mo binaire : aucune pièce légitime (PDF/photo) au-delà.
@@ -214,6 +215,13 @@ export async function saveApplicationProgress(
         }
         if (typeof doc.fileName === 'string' && doc.fileName.length > 255) {
           doc.fileName = doc.fileName.slice(0, 255);
+        }
+        // AIPD action n°12 — pièce interdite (décret n° 2015-1437) détectée par l'analyse :
+        // statut REJETÉ imposé côté serveur et CONTENU NON CONSERVÉ (minimisation).
+        const aiType = (doc.aiAnalysis as { documentType?: string } | undefined)?.documentType;
+        if (isForbiddenDocumentLabel(aiType) || isForbiddenDocumentLabel(doc.type)) {
+          doc.status = 'REJECTED';
+          doc.fileUrl = '';
         }
       }
       application.documents = data.documents as typeof application.documents;
