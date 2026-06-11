@@ -215,7 +215,12 @@ app.use('/uploads', async (req, res, next) => {
       cookieName: UPLOADS_COOKIE_NAME,
       secureCookie: UPLOADS_IS_PROD,
     });
-    if (token) return next();
+    if (token) {
+      // AIPD M4 — journalisation horodatée des accès aux pièces (traçabilité RGPD) :
+      // qui a consulté quel fichier, exploitable en cas d'incident ou de demande d'accès.
+      logger.info('[uploads-access] pièce consultée', { user: token.email || token.sub || 'session', path: req.path });
+      return next();
+    }
     if (req.headers.cookie) {
       logger.warn('[uploads-auth] cookie présent mais session non résolue', { path: req.path });
     }

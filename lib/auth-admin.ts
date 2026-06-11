@@ -12,6 +12,7 @@ const AdminAuditLog = require('@/models/AdminAuditLog');
 export type AdminRole = 'admin' | 'superadmin';
 
 export interface AdminUserLite {
+  totpEnabled?: boolean;
   _id: any;
   email: string;
   role: AdminRole;
@@ -52,12 +53,12 @@ export async function getSessionUser(): Promise<AdminUserLite> {
   let user: any = null;
   if (session?.user?.id) {
     user = await User.findById(session.user.id)
-      .select('email role firstName lastName suspended')
+      .select('email role firstName lastName suspended totpEnabled')
       .lean();
   }
   if (!user && session?.user?.email) {
     user = await User.findOne({ email: session.user.email })
-      .select('email role firstName lastName suspended')
+      .select('email role firstName lastName suspended totpEnabled')
       .lean();
   }
   if (!user?.email) {
@@ -78,7 +79,27 @@ export async function requireAdmin(): Promise<AdminUserLite> {
   if (user.role !== 'admin' && user.role !== 'superadmin') {
     throw new AdminHttpError(403, 'Accès refusé — admin requis', 'ADMIN_REQUIRED');
   }
+  assertAdminTotp(user);
   return user;
+}
+
+/**
+ * AIPD M3 — MFA obligatoire pour toute action d'administration. Un compte admin sans
+ * TOTP actif conserve ses accès « owner » mais doit activer la double authentification
+ * (profil → 2FA) avant d'administrer. Évite qu'un simple vol de mot de passe admin
+ * donne accès à l'ensemble des dossiers (pièces d'identité, avis fiscaux).
+ */
+function assertAdminTotp(user: AdminUserLite): void {
+  // Kill-switch d'urgence partagé avec l'enforcement TOTP du login (auth-options) :
+  // TOTP_ENFORCEMENT_ENABLED=false désactive l'exigence sans redéploiement.
+  if (process.env.TOTP_ENFORCEMENT_ENABLED === 'false') return;
+  if (!user.totpEnabled) {
+    throw new AdminHttpError(
+      403,
+      'Double authentification (2FA) requise pour l’administration — activez-la dans votre profil puis reconnectez-vous.',
+      'ADMIN_2FA_REQUIRED'
+    );
+  }
 }
 
 /**
@@ -89,6 +110,7 @@ export async function requireSuperadmin(): Promise<AdminUserLite> {
   if (user.role !== 'superadmin') {
     throw new AdminHttpError(403, 'Accès refusé — superadmin requis', 'SUPERADMIN_REQUIRED');
   }
+  assertAdminTotp(user);
   return user;
 }
 

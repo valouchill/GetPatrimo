@@ -3179,9 +3179,15 @@ export default function ApplyClient({ token }: { token: string }) {
               </span>
             </motion.button>
 
-            {/* Mention de sécurité */}
+            {/* Mention de sécurité + information de premier niveau (AIPD §2.5) :
+                affichée AVANT tout dépôt de pièce. Pas de surpromesse « bout en bout » :
+                chiffrement en transit (TLS) + analyse automatisée annoncée explicitement. */}
             <p className="text-center text-[10px] text-slate-400 mt-4">
-              🔒 Protocole conforme RGPD · Vos données sont chiffrées de bout en bout
+              🔒 Conforme RGPD · Données chiffrées en transit (TLS) · Vos pièces font l&apos;objet d&apos;une
+              analyse automatisée <strong>d&apos;aide à la décision</strong> — jamais de décision automatique.{' '}
+              <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-slate-600">
+                Vos droits
+              </a>
             </p>
           </div>
         </motion.div>
