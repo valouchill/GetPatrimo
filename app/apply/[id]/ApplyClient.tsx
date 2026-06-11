@@ -100,11 +100,14 @@ async function analyzeDocumentViaApi(
   diditIdentity?: { firstName?: string; lastName?: string; birthDate?: string },
   candidateName?: string,
   rentAmount?: number,
-  category?: 'identity' | 'resources' | 'guarantor'
+  category?: 'identity' | 'resources' | 'guarantor',
+  applyToken?: string
 ): Promise<AnalysisV2Result> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('originalFileName', file.name);
+  // Tunnel anonyme : le token légitime le candidat côté serveur (compte créé en fin de parcours).
+  if (applyToken) formData.append('applyToken', applyToken);
   if (category) formData.append('category', category);
   if (candidateStatus) formData.append('candidateStatus', candidateStatus);
   if (candidateName) formData.append('candidateName', candidateName);
@@ -2138,12 +2141,13 @@ export default function ApplyClient({ token }: { token: string }) {
           : undefined;
         
         const analysis = await analyzeDocumentViaApi(
-          file, 
-          candidateStatus, 
+          file,
+          candidateStatus,
           diditIdentity || undefined,
           fullCandidateName,
           property?.rentAmount, // Passer le loyer pour vérification Visale
-          category as 'identity' | 'resources' | 'guarantor'
+          category as 'identity' | 'resources' | 'guarantor',
+          token // tunnel anonyme : légitime la requête côté serveur
         );
         console.log('✅ Résultat analyse V2:', analysis);
 
@@ -4186,6 +4190,9 @@ export default function ApplyClient({ token }: { token: string }) {
                     <div className="text-emerald-950 text-sm leading-relaxed">
                       <h3 className="font-bold text-base mb-1">Dépôt de documents sécurisé par Maison Patrimo.</h3>
                       <p className="mb-1">Vos données personnelles sont traitées avec la plus grande confidentialité et stockées sur des serveurs sécurisés conformes au RGPD. La collecte de ces documents est indispensable pour l&apos;analyse de votre dossier de location, dans le respect de votre vie privée.</p>
+                      {/* AIPD §2.5 — information art. 22 au point de dépôt (en plus de l'écran d'accueil) */}
+                      <p className="mb-1">Vos pièces font l&apos;objet d&apos;une <strong>analyse automatisée d&apos;aide à la décision</strong> (cohérence, anti-fraude) — jamais d&apos;une décision automatique : la décision finale appartient au propriétaire, et vous pouvez{' '}
+                        <a href="/contestation" target="_blank" rel="noopener" className="underline hover:text-emerald-800">contester un résultat</a>.</p>
                       <p className="font-semibold mt-2">Vous pouvez déposer vos pièces en toute sérénité.</p>
                     </div>
                   </div>
