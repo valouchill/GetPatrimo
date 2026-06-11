@@ -70,5 +70,8 @@ module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
   ? withSentryConfig(nextConfig, {
       silent: true,
       hideSourceMaps: true,
+      // Pas d'upload de sourcemaps (aucun auth token) — et surtout : leur génération
+      // forcée par le plugin faisait exploser la heap webpack (OOM à ~2 Go au build).
+      sourcemaps: { disable: true },
     })
   : nextConfig;
