@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth-options';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { validateMRZ } from '@/app/actions/validate-mrz';
 import { logger } from '@/lib/server-logger';
+import { connectDiditDb } from '@/app/api/didit/db';
+import Property from '@/models/Property';
  
 const { buildCategoryMismatchMessage } = require('@/src/utils/documentCertificationRules');
  
@@ -53,9 +55,6 @@ if (typeof Promise.withResolvers === 'undefined') {
 export async function POST(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions as any);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
@@ -74,6 +73,22 @@ export async function POST(request: NextRequest) {
     const rentAmountStr = formData.get('rentAmount') as string | null;
     const rentAmount = rentAmountStr ? parseFloat(rentAmountStr) : undefined;
     const documentCategory = formData.get('category') as string | null;
+    const applyToken = formData.get('applyToken') as string | null;
+
+    // Auth : session OU tunnel candidat légitime. Le tunnel est ANONYME par conception
+    // (le compte n'est créé qu'en fin de parcours) — l'exigence stricte de session posée
+    // lors d'un durcissement renvoyait 401 sur chaque pièce du candidat (smoke test F2).
+    // L'accès anonyme reste borné : applyToken vérifié en base + rate-limit IP ci-dessus.
+    if (!session?.user) {
+      let tokenOk = false;
+      if (applyToken && /^[A-Za-z0-9_-]{6,128}$/.test(applyToken)) {
+        await connectDiditDb();
+        tokenOk = !!(await Property.exists({ applyToken }));
+      }
+      if (!tokenOk) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+      }
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
