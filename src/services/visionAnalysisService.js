@@ -102,9 +102,48 @@ function buildLegacyCompatibilityPayload(result, documentCategory) {
  * @param {string|null} fileName
  * @returns {object} NormalizedDocumentAnalysis
  */
+/**
+ * Pièces qu'un bailleur n'a pas le droit d'exiger (décret n° 2015-1437) — AIPD action n°12.
+ * Détection sur le type BRUT renvoyé par l'IA (avant inférence), car l'inférence par signaux
+ * peut rabattre un libellé inconnu vers AUTRE.
+ */
+const FORBIDDEN_DOC_LABEL = 'PIECE_INTERDITE';
+const FORBIDDEN_DOC_PATTERNS = /(piece[_\s]?interdite|relev[ée][^a-z]{0,3}(de[^a-z]{0,3})?compte|bancaire|bonne tenue de compte|m[ée]dical|carte vitale|s[ée]curit[ée] sociale|casier judiciaire|contrat de mariage|jugement de divorce)/i;
+
+function isForbiddenDocumentLabel(label) {
+  const t = String(label || '').trim();
+  if (!t) return false;
+  return t.toUpperCase() === FORBIDDEN_DOC_LABEL || FORBIDDEN_DOC_PATTERNS.test(t);
+}
+
+/** Neutralise une analyse portant sur une pièce interdite : aucune PII conservée. */
+function applyForbiddenDocumentPolicy(normalized) {
+  normalized.document_metadata.type = FORBIDDEN_DOC_LABEL;
+  normalized.document_metadata.owner_name = '';
+  normalized.document_metadata.is_owner_match = false;
+  normalized.financial_data.monthly_net_income = 0;
+  normalized.financial_data.extra_details = {};
+  normalized.trust_and_security.fraud_score = 0;
+  normalized.trust_and_security.extracted_fields = [];
+  normalized.trust_and_security.forensic_alerts = [
+    'Pièce non autorisée (décret n° 2015-1437) : un bailleur ne peut pas exiger ce document. Elle n\'est pas conservée.',
+  ];
+  normalized.ai_analysis = normalized.ai_analysis || {};
+  normalized.ai_analysis.expert_advice =
+    'Ce document (relevé bancaire, pièce médicale, casier judiciaire…) ne peut pas être exigé pour un dossier de location — il n\'est pas conservé. Fournissez uniquement les pièces demandées (identité, revenus, domicile).';
+  normalized.isForbiddenDocument = true;
+  return normalized;
+}
+
 function normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName) {
+  // Type BRUT (avant inférence par signaux) pour la détection des pièces interdites.
+  const rawAiType = rawResult?.document_metadata?.type || rawResult?.documentType || '';
   if (rawResult.document_metadata && rawResult.financial_data) {
     const normalized = rawResult;
+    if (isForbiddenDocumentLabel(rawAiType)) {
+      normalized.trust_and_security = normalized.trust_and_security || {};
+      return applyForbiddenDocumentPolicy(normalized);
+    }
 
     normalized.document_metadata.type = inferAnalysisDocumentTypeFromSignals({
       aiDocumentType: normalized.document_metadata.type,
@@ -336,5 +375,6 @@ module.exports = {
   normalizeAmount,
   buildLegacyCompatibilityPayload,
   normalizeAndValidateAnalysis,
+  isForbiddenDocumentLabel,
   analyzeWithVision,
 };

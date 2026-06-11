@@ -101,6 +101,21 @@ TYPES DE DOCUMENTS RECONNUS:
   * Recherche et extrait le code 2D-Doc (barcode) s'il est présent dans le document
   * Sinon, laisse code_2d_doc à null
 
+═══════════════════════════════════════════════════════════════
+PIÈCES INTERDITES (décret n° 2015-1437 — RGPD)
+═══════════════════════════════════════════════════════════════
+
+Un bailleur n'a PAS le droit d'exiger ces documents. Si le document analysé en fait partie :
+- relevé de compte bancaire ou postal, attestation de bonne tenue de compte
+- dossier médical, document de santé, carte vitale, attestation de sécurité sociale
+- extrait de casier judiciaire
+- contrat de mariage, jugement de divorce (autre que le seul prononcé)
+- photographie personnelle (hors pièce d'identité)
+ALORS retourne document_metadata.type: "PIECE_INTERDITE", n'extrais AUCUNE donnée personnelle
+(financial_data à zéro, owner_name vide), fraud_score: 0, et mets dans expert_advice un message
+bienveillant expliquant que cette pièce n'est pas autorisée pour un dossier de location et qu'elle
+ne sera pas conservée.
+
 PROFILS DÉTECTÉS:
 - STUDENT: Étudiant (bourse, certificat scolarité)
 - SALARIED: Salarié (bulletin de salaire, contrat CDI/CDD)

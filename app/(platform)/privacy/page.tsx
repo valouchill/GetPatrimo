@@ -241,7 +241,11 @@ export default function Privacy() {
             Conformément à l&apos;article 22 du RGPD, vous disposez du droit d&apos;obtenir une
             <strong> intervention humaine</strong>, d&apos;exprimer votre point de vue et de contester
             le résultat d&apos;une analyse automatisée vous concernant. Pour exercer ces droits,
-            contactez notre DPO (coordonnées au point 1).
+            utilisez le{' '}
+            <a href="/contestation" className="text-cobalt hover:underline">
+              formulaire de contestation
+            </a>{' '}
+            (réexamen humain tracé, réponse sous un mois) ou contactez notre DPO (coordonnées au point 1).
           </p>
         </div>
       </section>
