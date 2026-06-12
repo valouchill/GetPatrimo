@@ -142,17 +142,16 @@ function buildGuarantorLookupFilters({ invitationToken, sessionId, applyToken, e
     filters.push({ diditSessionId: normalizedSessionId });
   }
 
-  if (normalizedApplyToken) {
-    if (normalizedEmail && normalizedSlot) {
+  // Sécurité (pentest access-1/2, public-5) : un applyToken SEUL (partagé avec tous les
+  // candidats d'un bien) ne doit JAMAIS résoudre un garant/colocataire — sinon fuite de PII
+  // de tiers. On exige un identifiant propre à la personne : email (qu'on connaît parce qu'on
+  // l'a invitée) ou diditSessionId (déjà géré plus haut) / invitationToken (géré en amont
+  // dans la route). On retire le catch-all { applyToken } et le filtre { applyToken, slot }.
+  if (normalizedApplyToken && normalizedEmail) {
+    if (normalizedSlot) {
       filters.push({ applyToken: normalizedApplyToken, email: normalizedEmail, slot: normalizedSlot });
     }
-    if (normalizedEmail) {
-      filters.push({ applyToken: normalizedApplyToken, email: normalizedEmail });
-    }
-    if (normalizedSlot) {
-      filters.push({ applyToken: normalizedApplyToken, slot: normalizedSlot });
-    }
-    filters.push({ applyToken: normalizedApplyToken });
+    filters.push({ applyToken: normalizedApplyToken, email: normalizedEmail });
   }
 
   const seen = new Set();

@@ -83,6 +83,8 @@ export async function GET(request: NextRequest) {
         // Fallback: chercher la property et ensuite le garant
         property = await Property.findOne({ applyToken });
         if (property) {
+          // Sécurité (pentest access-1) : ne résoudre que via un email connu (jamais le bien
+          // seul ou le slot seul, qui matchent un garant tiers).
           const propertyFallbackFilters: Array<Record<string, unknown>> = [];
 
           if (email && normalizedSlot) {
@@ -91,10 +93,6 @@ export async function GET(request: NextRequest) {
           if (email) {
             propertyFallbackFilters.push({ property: property._id, email: email.toLowerCase() });
           }
-          if (normalizedSlot) {
-            propertyFallbackFilters.push({ property: property._id, slot: normalizedSlot });
-          }
-          propertyFallbackFilters.push({ property: property._id });
 
           for (const filter of propertyFallbackFilters) {
             guarantor = await Guarantor.findOne(filter);
