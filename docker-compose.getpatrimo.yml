@@ -2,8 +2,11 @@ services:
   getpatrimo:
     build: .
     container_name: getpatrimo-app
+    # Sécurité (pentest ChatGPT) : binder UNIQUEMENT sur localhost — nginx-proxy-manager
+    # atteint l'app par le réseau doc2loc-net (getpatrimo-app:3000), pas par le port hôte.
+    # Évite l'exposition publique de :3000 (contournement TLS/edge).
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env
     environment:
