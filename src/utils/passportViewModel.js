@@ -805,10 +805,15 @@ function buildPassportViewModel({
       identityVerified: didit.status === 'VERIFIED',
     },
     solvency: {
+      // Sécurité (pentest public-6/access-5) : l'audience PUBLIQUE ne reçoit que le revenu
+      // ARRONDI — les champs exacts sont omis (ils fuitaient le revenu mensuel précis du
+      // candidat sans authentification).
       monthlyIncome: publicIncome || 0,
-      exactMonthlyIncome: monthlyIncome || 0,
-      monthlyIncomeLabel: formatCurrency(publicIncome || monthlyIncome),
-      exactMonthlyIncomeLabel: formatCurrency(monthlyIncome),
+      monthlyIncomeLabel: formatCurrency((audience === 'public' ? publicIncome : monthlyIncome) || 0),
+      ...(audience !== 'public' ? {
+        exactMonthlyIncome: monthlyIncome || 0,
+        exactMonthlyIncomeLabel: formatCurrency(monthlyIncome),
+      } : {}),
       rentAmount,
       rentAmountLabel: formatCurrency(rentAmount),
       effortRate,

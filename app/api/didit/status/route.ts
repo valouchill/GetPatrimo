@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import IdentitySession from '@/models/IdentitySession';
 
 export async function GET(request: NextRequest) {
   const sessionId = request.nextUrl.searchParams.get('sessionId');
-  if (!sessionId) {
+  // Sécurité (pentest injection-3) : format strict (allowlist) — empêche l'injection de
+  // chemin dans les URLs de l'API Didit et borne l'oracle (pentest public-10).
+  if (!sessionId || !/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) {
     return NextResponse.json({ verified: false });
+  }
+  // Anti-abus (pentest public-10/injection-3) : la route interroge l'API Didit + renvoie un
+  // statut d'identité — borner par IP.
+  const rlIp = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
+  if (!checkRateLimit(`didit-status:${rlIp}`, { windowMs: 60_000, max: 30 }).allowed) {
+    return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
   }
 
   try {
