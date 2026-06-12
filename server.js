@@ -393,13 +393,8 @@ app.get('/health', async (req, res) => {
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   const status = mongoStatus === 'connected' ? 'healthy' : 'degraded';
   const code = status === 'healthy' ? 200 : 503;
-  res.status(code).json({
-    status,
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    mongo: mongoStatus,
-    version: process.env.npm_package_version || '1.0.0',
-  });
+  // Sécurité (pentest config-9) : payload minimal — pas de version/uptime exposés publiquement.
+  res.status(code).json({ status, mongo: mongoStatus });
 });
  
 // -------------------- Auth middleware
@@ -504,7 +499,8 @@ const candidatureStorage = multer.diskStorage({
 });
 const candidatureUpload = multer({
   storage: candidatureStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  // Sécurité (pentest config-8) : bornes agrégées anti-DoS (taille/nb de fichiers/champs).
+  limits: { fileSize: 10 * 1024 * 1024, files: 10, fields: 30, fieldSize: 1 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ok = ['application/pdf', 'image/png', 'image/jpeg'].includes(file.mimetype);
     if(!ok) return cb(new Error('Type de fichier non autorisé'));
@@ -1278,39 +1274,23 @@ app.get('/apply/:token', (req, res, next) => {
 app.get('/api/public/check-token/:token', async (req, res) => {
   try {
     const token = req.params.token || '';
-    const prop = await Property.findOne({ applyToken: token });
-    if (!prop) {
-      // Liste quelques tokens existants pour diagnostic (masqués partiellement)
-      const allProps = await Property.find({}, { applyToken: 1, name: 1, _id: 1 }).limit(10);
-      const tokens = allProps.map(p => ({
-        id: String(p._id),
-        name: p.name || '—',
-        tokenPreview: p.applyToken ? `${p.applyToken.slice(0, 8)}...${p.applyToken.slice(-4)}` : 'NONE'
-      }));
-      return res.status(404).json({ 
-        found: false, 
-        msg: 'Token introuvable',
-        tokenLength: token.length,
-        existingTokens: tokens
-      });
-    }
-    return res.json({ 
-      found: true, 
-      propertyId: String(prop._id),
-      propertyName: prop.name,
-      tokenMatch: true 
-    });
+    // Sécurité (pentest config-2/public-2) : ne JAMAIS énumérer les biens d'autrui ni
+    // divulguer d'aperçu de token. Réponse réduite à un strict booléen pour le token fourni.
+    const prop = await Property.exists({ applyToken: token });
+    return res.json({ found: !!prop });
   } catch (error) {
     logger.error('Erreur check-token', { error: error?.message || error });
-    return res.status(500).json({ msg: 'Erreur serveur', error: error.message });
+    return res.status(500).json({ msg: 'Erreur serveur' });
   }
 });
 
 // -------------------- PUBLIC: Routes pour Pack Sérénité Location
 // Récupère un bien par son ID (sans authentification)
-app.get('/api/public/property/:propertyId', async (req, res) => {
+app.get('/api/public/property/:propertyId', ownerTunnelLimiter, async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.propertyId);
+    // Sécurité (pentest config-6) : ne plus exposer un bien par ObjectId brut énumérable.
+    // On exige le applyToken SECRET (le paramètre de route porte désormais le token).
+    const prop = await Property.findOne({ applyToken: req.params.propertyId });
     if (!prop) {
       return res.status(404).json({ msg: "Bien introuvable" });
     }
@@ -1338,7 +1318,7 @@ app.get('/api/public/property/:propertyId', async (req, res) => {
 // Soumet une candidature via propertyId (Pack Sérénité Location)
 // Note: Cette route utilise la logique du contrôleur publicController
 // Pour simplifier, on importe directement les fonctions nécessaires
-app.post('/api/public/property/:propertyId/apply', candidatureUpload.array('documents', 10), async (req, res) => {
+app.post('/api/public/property/:propertyId/apply', ownerTunnelLimiter, candidatureUpload.array('documents', 10), async (req, res) => {
   try {
     // Valider les magic bytes de chaque fichier uploadé
     if (req.files && Array.isArray(req.files)) {
