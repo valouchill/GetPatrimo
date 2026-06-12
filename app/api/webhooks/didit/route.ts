@@ -287,13 +287,17 @@ export async function POST(request: NextRequest) {
           }
           cand.trustAnalysis.status = 'VALIDATED';
           cand.trustAnalysis.checks = cand.trustAnalysis.checks || [];
-          cand.trustAnalysis.checks.push({
-            id: 'didit_identity',
-            label: 'Identité certifiée Didit',
-            status: 'PASS',
-            details: 'Identité confirmée via Didit',
-            metadata: { firstName, lastName, birthDate, humanVerified }
-          });
+          // Sécurité (pentest webhooks-3) : idempotence — un event signé rejoué ne doit pas
+          // empiler plusieurs fois le check didit_identity.
+          if (!cand.trustAnalysis.checks.some((c: any) => c && c.id === 'didit_identity')) {
+            cand.trustAnalysis.checks.push({
+              id: 'didit_identity',
+              label: 'Identité certifiée Didit',
+              status: 'PASS',
+              details: 'Identité confirmée via Didit',
+              metadata: { firstName, lastName, birthDate, humanVerified }
+            });
+          }
           cand.identityVerification = {
             status: 'CERTIFIEE',
             provider: 'didit',

@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
 
     await connectDiditDb();
 
+    // Sécurité (pentest recent-6) : garde-fou PERSISTANT (le rate-limit en mémoire est remis à
+    // zéro à chaque redémarrage). Borne le spam de contestations/emails DPO sur 1h en base.
+    const oneHourAgo = new Date(Date.now() - 3_600_000);
+    const recent = await Contestation.countDocuments({ userEmail: email, createdAt: { $gte: oneHourAgo } });
+    if (recent >= 5) {
+      return NextResponse.json({ error: 'Trop de demandes. Réessayez dans une heure.' }, { status: 429 });
+    }
+
     // Rattacher au dossier : celui fourni (s'il appartient bien au candidat), sinon le plus récent.
     let applicationId: string | null = null;
     const rawAppId = String((body as { applicationId?: unknown }).applicationId || '');

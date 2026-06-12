@@ -140,8 +140,17 @@ function normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName) {
   const rawAiType = rawResult?.document_metadata?.type || rawResult?.documentType || '';
   if (rawResult.document_metadata && rawResult.financial_data) {
     const normalized = rawResult;
-    if (isForbiddenDocumentLabel(rawAiType)) {
-      normalized.trust_and_security = normalized.trust_and_security || {};
+    normalized.trust_and_security = normalized.trust_and_security || {};
+    // Sécurité (pentest recent-2) : contrôle serveur INDÉPENDANT du label IA. Si le texte
+    // extrait trahit une pièce interdite (relevé bancaire, casier…) — même si l'IA ne l'a
+    // pas étiquetée PIECE_INTERDITE (prompt-injection possible) — on applique la politique.
+    const extractedTextBlob = [
+      normalized.document_metadata && normalized.document_metadata.suggested_file_name,
+      normalized.document_metadata && normalized.document_metadata.owner_name,
+      normalized.ai_analysis && normalized.ai_analysis.expert_advice,
+      normalized.ai_analysis && normalized.ai_analysis.improvement_tip,
+    ].filter(Boolean).join(' ');
+    if (isForbiddenDocumentLabel(rawAiType) || FORBIDDEN_DOC_PATTERNS.test(extractedTextBlob)) {
       return applyForbiddenDocumentPolicy(normalized);
     }
 

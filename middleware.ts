@@ -85,6 +85,13 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  // Sécurité (pentest injection-2) : les routes /api/owner-tunnel/* sont des proxys LLM
+  // (GPT-4o) qui étaient accessibles SANS authentification → abus de coût / proxy gratuit.
+  // Le funnel concierge est déjà réservé aux connectés → aucune régression UX.
+  if (!token && pathname.startsWith('/api/owner-tunnel/')) {
+    return applySecurityHeaders(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), pathname);
+  }
+
   if (token && isAuthRoute) {
     return applySecurityHeaders(NextResponse.redirect(new URL('/dashboard/owner', request.url)), pathname);
   }

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions as any);
 
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean).pop() || 'unknown'; // pentest config-1/recent-5 : dernier hop
     const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de requêtes, réessayez dans 1 minute.' }, { status: 429 });
