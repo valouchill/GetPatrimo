@@ -66,6 +66,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
+  // Sécurité (pentest ChatGPT P2) : vérifier aussi que le bail appartient au même bailleur
+  // ET au même bien — sinon on pouvait rattacher un bail tiers connu et fuiter son locataire
+  // via le populate des vues d'inspection.
+  const lease = await Lease.findOne({ _id: leaseId, property: propertyId, user: user._id }).select('_id').lean();
+  if (!lease) {
+    return NextResponse.json({ error: 'Bail non autorisé pour ce bien' }, { status: 403 });
+  }
+
   const inspection = await Inspection.create({
     user: user._id,
     property: propertyId,

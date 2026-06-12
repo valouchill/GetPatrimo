@@ -8,8 +8,10 @@ import { getPagination } from '@/lib/pagination';
 
  
 const User = require('@/models/User');
- 
+
 const Payment = require('@/models/Payment');
+
+const Lease = require('@/models/Lease');
 
 /**
  * GET /api/payments?leaseId=X&year=Y&status=Z
@@ -30,6 +32,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const status = searchParams.get('status');
 
   if (leaseId) {
+    // Sécurité (pentest ChatGPT P1 — IDOR) : getPaymentHistory filtrait par leaseId SANS
+    // vérifier la propriété → un bailleur lisait l'historique de paiement d'un bail tiers.
+    // On exige que le bail appartienne à l'appelant avant toute lecture.
+    const lease = await Lease.findById(leaseId).select('user').lean();
+    if (!lease || String((lease as { user: unknown }).user) !== String(user._id)) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+    }
     const payments = await getPaymentHistory(leaseId, {
       year: year ? Number(year) : undefined,
       status: status || undefined,

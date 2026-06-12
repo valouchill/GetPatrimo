@@ -17,25 +17,10 @@ export async function GET() {
   const status = allHealthy ? 'healthy' : 'degraded';
   const code = allHealthy ? 200 : 503;
 
+  // Sécurité (pentest ChatGPT P2/P3) : payload public minimal — pas de version/node/mémoire
+  // ni d'inventaire des services configurés (réduisait la surface de reconnaissance).
   return NextResponse.json(
-    {
-      status,
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor(process.uptime()),
-      version: process.env.npm_package_version || '1.0.0',
-      node: process.version,
-      memory: {
-        rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
-        heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-      },
-      services: {
-        mongo: mongoStatus,
-        openai: checks.openai ? 'configured' : 'missing',
-        stripe: checks.stripe ? 'configured' : 'missing',
-        email: checks.email ? 'configured' : 'missing',
-        sentry: checks.sentry ? 'configured' : 'not configured',
-      },
-    },
+    { status, mongo: mongoStatus },
     { status: code, headers: { 'Cache-Control': 'no-store' } }
   );
 }

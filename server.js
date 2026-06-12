@@ -91,7 +91,10 @@ app.use(cors({
     if (ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
     }
-    callback(new Error('CORS non autorise'));
+    // Sécurité (pentest ChatGPT P3) : refus PROPRE (pas d'en-têtes CORS) au lieu d'un throw
+    // qui remontait en 500. La requête aboutit côté serveur ; le navigateur bloque l'accès
+    // cross-origin faute d'en-tête Access-Control-Allow-Origin.
+    callback(null, false);
   },
   credentials: true,
   maxAge: 3600,
@@ -344,6 +347,24 @@ const staticMiddleware = express.static('public', {
     res.setHeader('Expires', '0');
   }
 });
+// Sécurité (pentest ChatGPT P2) : neutraliser les pages HTML legacy (anciens parcours JWT
+// localStorage/x-auth-token, UI admin) encore servies par express.static('public').
+const LEGACY_HTML_BLOCKLIST = new Set([
+  '/admin-leads.html', '/dashboard-luxe.html', '/login.html', '/login-luxe.html',
+  '/register.html', '/register-luxe.html', '/property-luxe.html',
+]);
+const LEGACY_LUXE_ROUTES = new Set(['/dashboard-luxe', '/login-luxe', '/register-luxe', '/property-luxe']);
+app.use((req, res, next) => {
+  if (LEGACY_HTML_BLOCKLIST.has(req.path) || LEGACY_LUXE_ROUTES.has(req.path)) {
+    // Rediriger les parcours auth vers le flux Next sécurisé, 410 pour le reste.
+    if (req.path.includes('login')) return res.redirect(302, '/auth/login');
+    if (req.path.includes('register')) return res.redirect(302, '/auth/register');
+    if (req.path.includes('dashboard')) return res.redirect(302, '/dashboard/owner');
+    return res.status(410).send('Cette page n\'est plus disponible.');
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   // Routes Next.js : ne pas servir de fichier statique, laisser Next.js handler gérer
   if (req.path.startsWith('/auth/') ||
