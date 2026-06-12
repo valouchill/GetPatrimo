@@ -16,7 +16,9 @@ const {
  */
 export async function POST(request: NextRequest) {
   // Anti-abus (pré-lancement) : création de session KYC garant (endpoint public). Borne par IP.
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  // Sécurité (pentest public-7/config-1) : on prend le DERNIER hop du X-Forwarded-For (ajouté
+  // par NPM) — le premier élément est contrôlé par le client (rotation d'IP pour contourner).
+  const ip = request.headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean).pop() || 'unknown';
   if (!checkRateLimit(`guarantor-session:${ip}`, { windowMs: 60_000, max: 10 }).allowed) {
     return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
   }
@@ -139,9 +141,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Sécurité (pentest public-7) : quota DUR par bien sur les sessions KYC Didit (facturées),
+    // vérifié AVANT l'appel Didit — anti-DoS de coût via création anonyme en masse.
+    const quotaKey = `guarantor-kyc-quota:${guarantor.applyToken || 'unknown'}`;
+    if (!checkRateLimit(quotaKey, { windowMs: 86_400_000, max: 15 }).allowed) {
+      return NextResponse.json({ error: 'Quota de vérifications atteint pour ce dossier. Réessayez demain.' }, { status: 429 });
+    }
+
     // Récupérer le token du garant
     const guarantorToken = guarantor.invitationToken || invitationToken;
-    
+
     // Appeler l'API Didit pour créer une session
     const diditResponse = await fetch('https://verification.didit.me/v2/session', {
       method: 'POST',

@@ -11,7 +11,7 @@ const User = require('@/models/User');
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = req.headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean).pop() || 'unknown'; // pentest config-1 : dernier hop
     const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });

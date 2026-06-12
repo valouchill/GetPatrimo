@@ -85,7 +85,9 @@ function normalizeDiditSessionPayload(payload) {
 
 async function fetchDiditSessionVerification(sessionId, apiKey) {
   const normalizedSessionId = normalizeValue(sessionId);
-  if (!normalizedSessionId || !apiKey) {
+  // Sécurité (pentest injection-3) : format strict du sessionId avant interpolation dans les
+  // URLs de l'API Didit (anti-injection de chemin).
+  if (!normalizedSessionId || !apiKey || !/^[A-Za-z0-9_-]{8,128}$/.test(String(normalizedSessionId))) {
     return null;
   }
 

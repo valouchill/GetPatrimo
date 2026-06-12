@@ -71,17 +71,12 @@ function escapeRegExp(value: string) {
 }
 
 function buildLegacyPassportExpr(slug: string) {
-  const match = /^PT-\d{4}-([A-F0-9]{6,24})$/i.exec(slug);
+  // Sécurité (pentest public-9) : n'autoriser le repli legacy QUE pour les 24 hex EXACTS d'un
+  // ObjectId (plus de suffixe partiel devinable). On reconstruit une égalité indexée sur _id
+  // au lieu d'un scan $regexMatch.
+  const match = /^PT-\d{4}-([A-Fa-f0-9]{24})$/.exec(slug);
   if (!match) return null;
-  return {
-    $expr: {
-      $regexMatch: {
-        input: { $toString: '$_id' },
-        regex: `${escapeRegExp(match[1])}$`,
-        options: 'i',
-      },
-    },
-  };
+  return { _id: match[1].toLowerCase() };
 }
 
 function mapStatusToAudit(status?: string, flagged?: boolean): string {
