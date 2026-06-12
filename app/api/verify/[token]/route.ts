@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import Application from '@/models/Application';
 import '@/models/Property';
 import { notifyPassportViewed } from '@/app/actions/share-passport';
@@ -16,6 +17,11 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    // Sécurité (pentest ChatGPT P2) : endpoint public, borne par IP (anti-scraping/spam).
+    const rlIp = request.headers.get('x-forwarded-for')?.split(',').map((s) => s.trim()).filter(Boolean).pop() || 'unknown';
+    if (!checkRateLimit(`verify:${rlIp}`, { windowMs: 60_000, max: 30 }).allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+    }
     await connectDiditDb();
     const { token } = await params;
 
