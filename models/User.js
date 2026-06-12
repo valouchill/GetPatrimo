@@ -62,6 +62,13 @@ const UserSchema = new mongoose.Schema({
   // Magic Auth — token à usage unique pour connexion sans mot de passe (Fast-Track)
   magicSignInToken: { type: String, default: '' },
   magicSignInExpiresAt: { type: Date },
+  // Sécurité (pentest auth-1) : marqueur SERVEUR d'impersonation. Posé UNIQUEMENT par la
+  // route admin impersonate ; c'est lui (jamais un champ client) qui autorise le saut du
+  // 2e facteur dans authorize(). Un magic token issu de login-password n'a pas ce champ.
+  magicSignInImpersonatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  // Sécurité (pentest auth-3) : nonce du dernier token de reset émis → reset à usage unique
+  // (le JWT de reset embarque ce jti ; effacé après usage).
+  passwordResetJti: { type: String, default: '' },
 
   // Email preferences (RGPD art. 21 — droit d'opposition)
   emailPreferences: {

@@ -17,6 +17,21 @@ async function getOTPAuth() {
   return { TOTP, Secret };
 }
 
+/** Valide un code TOTP courant (ou un backup code) contre le secret actif de l'utilisateur. */
+async function verifyCurrentTotp(user: any, code: unknown): Promise<boolean> {
+  if (!code || !user.totpSecret) return false;
+  const { TOTP, Secret } = await getOTPAuth();
+  const totp = new TOTP({
+    issuer: 'Maison Patrimo', label: user.email, algorithm: 'SHA1', digits: 6, period: 30,
+    secret: Secret.fromBase32(user.totpSecret),
+  });
+  if (totp.validate({ token: String(code), window: 1 }) !== null) return true;
+  for (const hashed of user.totpBackupCodes || []) {
+    if (await bcrypt.compare(String(code), hashed)) return true;
+  }
+  return false;
+}
+
 /**
  * POST /api/auth/totp — Setup or verify TOTP
  * Body: { action: 'setup' | 'enable' | 'disable' | 'verify', code?: string }
@@ -45,6 +60,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const { TOTP, Secret } = await getOTPAuth();
 
   if (action === 'setup') {
+    // Sécurité (pentest auth-6) : si une 2FA est DÉJÀ active, exiger une re-preuve du
+    // facteur courant avant de régénérer le secret (sinon un session hijack désactive
+    // silencieusement la 2FA de la victime). Symétrique de l'action 'disable'.
+    if (user.totpEnabled && user.totpSecret) {
+      const okCurrent = await verifyCurrentTotp(user, code);
+      if (!okCurrent) {
+        return NextResponse.json({ error: 'Code 2FA actuel requis pour reconfigurer la double authentification' }, { status: 400 });
+      }
+    }
     // Generate a new TOTP secret
     const secret = new Secret({ size: 20 });
     const totp = new TOTP({

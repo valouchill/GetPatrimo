@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
     }
 
-    let decoded: { user?: { id?: string }; type?: string };
+    let decoded: { user?: { id?: string }; type?: string; jti?: string };
     try {
       decoded = jwt.verify(token, jwtSecret) as typeof decoded;
     } catch {
       return NextResponse.json({ error: INVALID }, { status: 400 });
     }
-    if (!decoded || decoded.type !== 'password_reset' || !decoded.user?.id) {
+    if (!decoded || decoded.type !== 'password_reset' || !decoded.user?.id || !decoded.jti) {
       return NextResponse.json({ error: INVALID }, { status: 400 });
     }
 
@@ -47,10 +47,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: INVALID }, { status: 400 });
     }
 
+    // Sécurité (pentest auth-3) : usage unique — le jti du token doit correspondre au nonce
+    // courant en base. Après une réinitialisation réussie (ou une nouvelle demande), il ne
+    // correspond plus → token rejouable invalidé.
+    if (!user.passwordResetJti || user.passwordResetJti !== decoded.jti) {
+      return NextResponse.json({ error: INVALID }, { status: 400 });
+    }
+
     // Le hook pre-save du modèle valide le mot de passe EN CLAIR uniquement ; comme
     // on stocke un hash bcrypt ($2…) il saute la validation — la complexité est donc
     // garantie par ResetPasswordSchema (Zod) ci-dessus.
     user.password = await bcrypt.hash(password, 12);
+    user.passwordResetJti = '';            // consommé → token désormais inutilisable
+    user.magicSignInToken = '';            // invalide tout magic token en vol
+    user.magicSignInImpersonatorId = null;
     await user.save();
 
     return NextResponse.json({ ok: true });
