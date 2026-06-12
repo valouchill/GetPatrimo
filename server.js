@@ -195,6 +195,56 @@ const UPLOADS_IS_PROD = process.env.NODE_ENV === 'production';
 const UPLOADS_COOKIE_NAME = UPLOADS_IS_PROD
   ? '__Secure-next-auth.session-token'
   : 'next-auth.session-token';
+
+// Sécurité (pentest files-3) : résout l'ensemble des utilisateurs LÉGITIMEMENT autorisés à
+// lire un fichier /uploads (propriétaire + locataire le cas échéant), en remontant le modèle
+// qui le référence (par basename, format-agnostique). Retourne null si le fichier n'est
+// rattaché à AUCUN enregistrement → l'appelant non-admin est refusé (sauf kill-switch).
+async function resolveUploadEntitledIds(reqPath) {
+  const path = require('path');
+  const base = path.basename(String(reqPath || '').replace(/^\/+/, ''));
+  if (!base || base === '.' || base === '..') return null;
+  const rx = new RegExp(base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
+  const ids = new Set();
+  const add = (v) => { if (v) ids.add(String(v)); };
+
+  const Document = require('./models/Document');
+  const d = await Document.findOne({ relPath: rx }).select('user').lean();
+  if (d) add(d.user);
+
+  const Payment = require('./models/Payment');
+  const p = await Payment.findOne({ receiptUrl: rx }).select('owner tenant').lean();
+  if (p) { add(p.owner); add(p.tenant); }
+
+  const Inspection = require('./models/Inspection');
+  const ins = await Inspection.findOne({ $or: [{ pdfUrl: rx }, { 'photos.url': rx }] }).select('user tenant').lean();
+  if (ins) { add(ins.user); add(ins.tenant); }
+
+  const Lease = require('./models/Lease');
+  const l = await Lease.findOne({ $or: [
+    { contractPdfPath: rx }, { annexesPdfPath: rx }, { edlPdfPath: rx },
+    { 'generatedDocuments.relPath': rx }, { 'edlData.rooms.photos.relPath': rx },
+  ] }).select('user').lean();
+  if (l) add(l.user);
+
+  const Candidature = require('./models/Candidature');
+  const c = await Candidature.findOne({ 'docs.relPath': rx }).select('user property').lean();
+  if (c) {
+    add(c.user);
+    if (c.property) {
+      const Property = require('./models/Property');
+      const prop = await Property.findById(c.property).select('user').lean();
+      if (prop) add(prop.user);
+    }
+  }
+
+  const UserM = require('./models/User');
+  const u = await UserM.findOne({ signatureUrl: rx }).select('_id').lean();
+  if (u) add(u._id);
+
+  return ids.size > 0 ? ids : null;
+}
+
 app.use('/uploads', async (req, res, next) => {
   if (!UPLOADS_AUTH_ENABLED) return next();
   try {
@@ -208,9 +258,31 @@ app.use('/uploads', async (req, res, next) => {
       secureCookie: UPLOADS_IS_PROD,
     });
     if (token) {
-      // AIPD M4 — journalisation horodatée des accès aux pièces (traçabilité RGPD) :
-      // qui a consulté quel fichier, exploitable en cas d'incident ou de demande d'accès.
-      logger.info('[uploads-access] pièce consultée', { user: token.email || token.sub || 'session', path: req.path });
+      // Sécurité (pentest files-3) : le gate ne faisait qu'AUTHENTIFIER — tout connecté
+      // pouvait lire le fichier de n'importe qui. On vérifie maintenant l'AUTORISATION par
+      // ressource : l'appelant doit être partie au fichier (propriétaire/locataire) ou admin.
+      // Kill-switch : UPLOADS_AUTHZ_ENFORCE=false (repli sur authentification seule).
+      const uid = String(token.id || token.sub || '');
+      const role = String(token.role || '');
+      const isAdmin = role === 'admin' || role === 'superadmin';
+      let allowed = isAdmin;
+      if (!allowed) {
+        try {
+          const entitled = await resolveUploadEntitledIds(req.path);
+          allowed = entitled === null
+            ? (process.env.UPLOADS_AUTHZ_ENFORCE === 'false') // non résolu → deny (sauf kill-switch)
+            : entitled.has(uid);
+        } catch (e) {
+          allowed = (process.env.UPLOADS_AUTHZ_ENFORCE === 'false');
+          logger.error('[uploads-authz] résolution échouée', { path: req.path, error: e && e.message ? e.message : String(e) });
+        }
+      }
+      if (!allowed && process.env.UPLOADS_AUTHZ_ENFORCE !== 'false') {
+        logger.warn('[uploads-authz] accès refusé (non propriétaire)', { user: token.email || uid, path: req.path });
+        return res.status(403).json({ error: "Vous n'êtes pas autorisé à accéder à ce fichier." });
+      }
+      // AIPD M4 — journalisation horodatée des accès aux pièces (traçabilité RGPD).
+      logger.info('[uploads-access] pièce consultée', { user: token.email || uid || 'session', path: req.path, authorized: allowed });
       return next();
     }
     if (req.headers.cookie) {

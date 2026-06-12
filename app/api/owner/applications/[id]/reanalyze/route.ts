@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { logger } from '@/lib/server-logger';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { safeUploadsPath } from '@/lib/safe-uploads-path';
 
  
 const { analyzeDocumentBuffer } = require('@/src/services/documentAnalysisService');
@@ -31,18 +32,10 @@ interface DocumentRecord {
   uploadedAt?: string;
 }
 
+// Sécurité (pentest files-2) : l'ancienne résolution renvoyait n'importe quel chemin absolu
+// sous /opt/doc2loc/ (dont .env) ou s'évadait via '../'. On confine strictement sous uploads/.
 function resolveLocalFilePath(fileUrl: string): string | null {
-  if (!fileUrl) return null;
-  // Cas 1 : URL absolue → on prend la dernière partie /uploads/...
-  const idx = fileUrl.indexOf('/uploads/');
-  if (idx >= 0) {
-    const rel = fileUrl.substring(idx + 1); // 'uploads/...'
-    return path.join('/opt/doc2loc', rel);
-  }
-  // Cas 2 : chemin relatif déjà
-  if (fileUrl.startsWith('/opt/doc2loc/')) return fileUrl;
-  if (fileUrl.startsWith('uploads/')) return path.join('/opt/doc2loc', fileUrl);
-  return null;
+  return safeUploadsPath(fileUrl);
 }
 
 function guessMimeType(fileName: string): string {
