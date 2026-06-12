@@ -4,6 +4,7 @@ import path from 'path';
 
 import { connectDiditDb } from '@/app/api/didit/db';
 import { withAdmin, logAdminAction, AdminHttpError } from '@/lib/auth-admin';
+import { safeUploadsPath } from '@/lib/safe-uploads-path';
 
  
 const Application = require('@/models/Application');
@@ -19,25 +20,17 @@ export const GET = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   if (!doc) throw new AdminHttpError(404, 'Document introuvable');
   if (!doc.fileUrl) throw new AdminHttpError(404, 'Fichier introuvable');
 
-  // fileUrl peut être une URL externe ou un chemin local
-  if (doc.fileUrl.startsWith('http://') || doc.fileUrl.startsWith('https://')) {
-    await logAdminAction({
-      actor: admin,
-      action: 'application.document_download',
-      targetType: 'Application',
-      targetId: id,
-      before: null,
-      after: { docId, fileUrl: doc.fileUrl, external: true },
-      req,
-    });
-    return NextResponse.redirect(doc.fileUrl);
+  // Sécurité (pentest files-5) : une pièce candidat ne doit JAMAIS être une URL externe
+  // arbitraire — l'ancien redirect était un open-redirect/SSRF. On refuse.
+  if (/^https?:\/\//i.test(String(doc.fileUrl))) {
+    throw new AdminHttpError(400, 'Source de pièce non autorisée');
   }
 
-  // Chemin local : résoudre depuis cwd
-  const relPath = doc.fileUrl.replace(/^\/+/, '');
-  const filePath = path.join(process.cwd(), relPath);
-  if (!fs.existsSync(filePath)) {
-    throw new AdminHttpError(404, 'Fichier introuvable sur disque');
+  // Sécurité (pentest files-1) : chemin local CONFINÉ sous uploads/ (fileUrl = donnée
+  // candidat → path traversal possible : ../../etc/passwd, /opt/doc2loc/.env, etc.).
+  const filePath = safeUploadsPath(doc.fileUrl);
+  if (!filePath) {
+    throw new AdminHttpError(404, 'Fichier introuvable');
   }
 
   const buffer = fs.readFileSync(filePath);
@@ -58,11 +51,13 @@ export const GET = withAdmin(async (req: NextRequest, ctx: any, admin) => {
     req,
   });
 
+  // Anti-injection d'en-tête : neutraliser guillemets/sauts de ligne dans le nom de fichier.
+  const safeName = String(doc.fileName || 'document').replace(/[\r\n"\\]/g, '_').slice(0, 120);
   return new NextResponse(buffer as any, {
     status: 200,
     headers: {
       'Content-Type': contentType,
-      'Content-Disposition': `inline; filename="${doc.fileName || 'document'}${ext}"`,
+      'Content-Disposition': `inline; filename="${safeName}${ext}"`,
       'Cache-Control': 'no-store',
     },
   });

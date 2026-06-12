@@ -210,7 +210,9 @@ export async function saveApplicationProgress(
         if (url.length > 12_000_000) {
           return { success: false, error: `Pièce trop volumineuse : ${doc.fileName || doc.id}` };
         }
-        if (url && !/^(data:(application\/pdf|image\/(png|jpe?g|webp|heic|heif));|\/uploads\/|https?:\/\/)/i.test(url)) {
+        // Sécurité (pentest files-5) : on n'accepte QUE data: (PDF/image) ou /uploads/ —
+        // plus d'URL externe http(s) (qui devenait un open-redirect/SSRF au download admin).
+        if (url && !/^(data:(application\/pdf|image\/(png|jpe?g|webp|heic|heif));|\/uploads\/)/i.test(url)) {
           return { success: false, error: 'Format de pièce non autorisé (PDF ou image attendu).' };
         }
         if (typeof doc.fileName === 'string' && doc.fileName.length > 255) {
