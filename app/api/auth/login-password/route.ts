@@ -30,7 +30,18 @@ export async function POST(req: NextRequest) {
     // Message générique pour éviter l'énumération d'emails
     const genericError = { error: 'Email ou mot de passe incorrect' };
 
+    // Sécurité (pentest auth-5) : égaliser le temps de réponse entre compte existant et
+    // inexistant — sans ce compare factice, l'absence de bcrypt révèle un compte inconnu
+    // (oracle de timing). DUMMY_HASH est un hash bcrypt valide d'une valeur quelconque.
+    const DUMMY_HASH = '$2a$12$n/fu1m215HBba48Y7Kjme.xlLgy1KOqpQoMENRx8Psvw2dxAPZzPW';
     if (!user || !user.password) {
+      await bcrypt.compare(password, DUMMY_HASH);
+      return NextResponse.json(genericError, { status: 401 });
+    }
+
+    if (user.suspended) {
+      // Compte suspendu : même message générique, pas de magic token émis.
+      await bcrypt.compare(password, DUMMY_HASH);
       return NextResponse.json(genericError, { status: 401 });
     }
 

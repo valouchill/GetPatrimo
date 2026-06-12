@@ -34,10 +34,32 @@ const providers: any[] = [
         const tokenValid = await bcrypt.compare(credentials.token, user.magicSignInToken);
         if (!tokenValid) return null;
 
-        // Sécurité (revue V1 — S10) : 2e facteur imposé si la 2FA est activée sur le
-        // compte (sauf impersonation superadmin, qui n'a pas le TOTP de la cible).
+        // Sécurité : un compte suspendu ne peut jamais ouvrir de session.
+        if (user.suspended) return null;
+
+        // Sécurité (pentest auth-1) : l'impersonation est dérivée du MARQUEUR SERVEUR
+        // `magicSignInImpersonatorId`, posé exclusivement par la route admin impersonate —
+        // JAMAIS du champ client `impersonatorEmail` (qui pouvait sauter la 2FA avec un
+        // simple magic token de login-password). On valide l'impersonateur depuis ce champ.
+        let impersonatedBy: string | null = null;
+        let isImpersonation = false;
+        if (user.magicSignInImpersonatorId) {
+          const impersonator = await User.findById(user.magicSignInImpersonatorId).select('role email').lean();
+          // L'impersonateur DOIT être superadmin, et la cible ne doit pas être admin/superadmin.
+          if (!impersonator || impersonator.role !== 'superadmin' || user.role === 'admin' || user.role === 'superadmin') {
+            // Marqueur incohérent : on le purge et on refuse.
+            await User.findByIdAndUpdate(user._id, {
+              $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1, magicSignInImpersonatorId: 1 },
+            });
+            return null;
+          }
+          isImpersonation = true;
+          impersonatedBy = impersonator.email;
+        }
+
+        // Sécurité (revue V1 — S10) : 2e facteur imposé si la 2FA est activée. Le saut n'est
+        // autorisé que pour une vraie impersonation superadmin (prouvée serveur ci-dessus).
         // Désactivable en urgence via TOTP_ENFORCEMENT_ENABLED=false (sans redeploy).
-        const isImpersonation = !!String(credentials.impersonatorEmail || '').trim();
         if (
           process.env.TOTP_ENFORCEMENT_ENABLED !== 'false' &&
           !isImpersonation &&
@@ -48,25 +70,10 @@ const providers: any[] = [
           if (!okTotp) return null; // token NON consommé → l'utilisateur peut réessayer avec un code
         }
 
+        // Consommation du token (+ marqueur d'impersonation) — usage unique.
         await User.findByIdAndUpdate(user._id, {
-          $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1 },
+          $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1, magicSignInImpersonatorId: 1 },
         });
-
-        // Impersonation : si impersonatorEmail fourni, valider qu'il s'agit d'un superadmin existant
-        let impersonatedBy: string | null = null;
-        const impersonatorEmail = String(credentials.impersonatorEmail || '').trim().toLowerCase();
-        if (impersonatorEmail) {
-          const impersonator = await User.findOne({ email: impersonatorEmail }).select('role').lean();
-          if (impersonator && impersonator.role === 'superadmin') {
-            // Empêche d'impersonate un admin/superadmin
-            if (user.role === 'admin' || user.role === 'superadmin') {
-              return null;
-            }
-            impersonatedBy = impersonatorEmail;
-          } else {
-            return null;
-          }
-        }
 
         return {
           id: String(user._id),

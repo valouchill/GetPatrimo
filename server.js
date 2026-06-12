@@ -331,12 +331,18 @@ app.get('/health', async (req, res) => {
 });
  
 // -------------------- Auth middleware
-function auth(req, res, next){
+async function auth(req, res, next){
   const token = req.header('x-auth-token');
   if(!token) return res.status(401).json({ msg:'Pas de token, autorisation refusée' });
   try{
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded.user;
+    // Sécurité (pentest auth-2) : un JWT 24h émis avant suspension restait valide. On
+    // relit `suspended` en base (routes Express legacy, faible trafic) pour l'invalider.
+    if (req.user && req.user.id) {
+      const u = await User.findById(req.user.id).select('suspended').lean();
+      if (!u || u.suspended) return res.status(403).json({ msg:'Compte suspendu ou introuvable.' });
+    }
     return next();
   }catch(e){
     return res.status(401).json({ msg:'Token non valide' });
@@ -589,11 +595,19 @@ app.post('/api/auth/login', async (req,res)=>{
   try{
     const { email, password } = req.body || {};
     const u = await User.findOne({ email: String(email||'').toLowerCase().trim() });
-    if(!u) return res.status(400).json({ msg:'Identifiants invalides' });
- 
+    if(!u || !u.password) return res.status(400).json({ msg:'Identifiants invalides' });
+
     const ok = await bcrypt.compare(password, u.password);
     if(!ok) return res.status(400).json({ msg:'Identifiants invalides' });
- 
+
+    // Sécurité (pentest auth-2) : ce chemin Express legacy contournait suspension ET 2FA
+    // (alors que le flux NextAuth magic-fast les impose, S10). On les applique ici aussi.
+    if(u.suspended) return res.status(403).json({ msg:'Compte suspendu.' });
+    if(u.totpEnabled && process.env.TOTP_ENFORCEMENT_ENABLED !== 'false'){
+      // Cette route ne sait pas valider un code TOTP : on refuse et on renvoie vers le flux principal.
+      return res.status(409).json({ msg:'Double authentification requise — connectez-vous via la page de connexion sécurisée.', use:'/auth/login' });
+    }
+
     const token = jwt.sign({ user: { id: u.id } }, JWT_SECRET, { expiresIn:'24h' });
     return res.json({ token });
   }catch(e){

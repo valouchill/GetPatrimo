@@ -27,9 +27,11 @@ export const POST = withAdmin(
     const hashed = await bcrypt.hash(rawToken, 10);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
+    // Sécurité (pentest auth-1) : on pose le marqueur SERVEUR d'impersonation. C'est lui
+    // (et non le champ client impersonatorEmail) qui autorisera le saut du 2FA dans authorize().
     await User.updateOne(
       { _id: id },
-      { $set: { magicSignInToken: hashed, magicSignInExpiresAt: expiresAt } }
+      { $set: { magicSignInToken: hashed, magicSignInExpiresAt: expiresAt, magicSignInImpersonatorId: admin._id } }
     );
 
     await logAdminAction({

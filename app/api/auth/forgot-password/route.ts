@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -53,8 +54,13 @@ export async function POST(request: NextRequest) {
           logger.error('[forgot-password] JWT_SECRET manquant');
           return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
         }
+        // Sécurité (pentest auth-3) : nonce lié au compte → le token de reset devient à usage
+        // unique et invalidable (vérifié + effacé côté reset-password). Émettre une nouvelle
+        // demande invalide automatiquement la précédente.
+        const jti = crypto.randomBytes(16).toString('hex');
+        await User.updateOne({ _id: user._id }, { $set: { passwordResetJti: jti } });
         const token = jwt.sign(
-          { user: { id: user._id.toString() }, type: 'password_reset' },
+          { user: { id: user._id.toString() }, type: 'password_reset', jti },
           jwtSecret,
           { expiresIn: '1h' }
         );
