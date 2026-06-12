@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { useSession } from 'next-auth/react';
 import { processDossier } from '@/app/actions/process-dossier';
-import { saveApplicationProgress, getApplication, submitApplication } from '@/app/actions/application-actions';
+import { saveApplicationProgress, getApplication, submitApplication, deleteApplicationDocuments } from '@/app/actions/application-actions';
 import { createTenantAccount } from '@/app/actions/create-tenant-account';
 import PassportStudio from '@/app/components/PassportStudio';
 import type { DocumentFile, CandidateStatus, GuaranteeMode, Property, AiFeedback, AnalysisV2Result, CertificationItem } from './types';
@@ -1775,11 +1775,7 @@ export default function ApplyClient({ token }: { token: string }) {
       return;
     }
 
-    const confirmed = window.confirm('Voulez-vous supprimer ce document ? Votre Indice de Résilience diminuera.');
-    if (!confirmed) {
-      setDeletingFileId(null);
-      return;
-    }
+    // La confirmation est déjà recueillie par la modale du DocumentCard (pas de double confirm).
 
     // Vérifier si c'est une pièce maîtresse (CNI, passeport)
     const isCriticalDocument = fileToDelete.type?.toLowerCase().includes('cni') || 
@@ -1787,9 +1783,23 @@ export default function ApplyClient({ token }: { token: string }) {
                                fileToDelete.type?.toLowerCase().includes('passeport');
     
     try {
-      // Note: La suppression du stockage serveur sera ajoutée ultérieurement
-      // quand l'upload des fichiers sera implémenté avec persistance
-      
+      // RGPD (droit à l'effacement granulaire) — suppression DÉFINITIVE côté serveur
+      // dès que le dossier est persisté (candidat connecté). Avant la création du
+      // compte, rien n'existe côté serveur : le retrait local suffit.
+      if (userEmail) {
+        const res = await deleteApplicationDocuments(userEmail, token, [fileId]);
+        if (!res?.success) {
+          setAiFeedback({
+            visible: true,
+            message: res?.error || 'Suppression impossible pour le moment. Réessayez.',
+            type: 'warning',
+          });
+          setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 4000);
+          setDeletingFileId(null);
+          return;
+        }
+      }
+
       // Supprimer de l'état local avec animation
       setUploadedFiles(prev => ({
         ...prev,
@@ -1821,7 +1831,7 @@ export default function ApplyClient({ token }: { token: string }) {
       } else {
         setAiFeedback({
           visible: true,
-          message: '🗑️ Document supprimé. Votre Indice de Résilience a été recalculé.',
+          message: '🗑️ Pièce supprimée définitivement de votre dossier. Votre Indice de Résilience a été recalculé.',
           type: 'info',
           scoreIncrease: -10,
         });

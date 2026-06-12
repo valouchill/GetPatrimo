@@ -247,6 +247,11 @@ export default function Privacy() {
             </a>{' '}
             (réexamen humain tracé, réponse sous un mois) ou contactez notre DPO (coordonnées au point 1).
           </p>
+          <p className="mt-2">
+            Vous pouvez par ailleurs <strong>supprimer définitivement une ou plusieurs pièces</strong> de
+            votre dossier à tout moment, directement depuis votre espace candidat (l&apos;effacement couvre
+            la pièce et son fichier sur nos serveurs).
+          </p>
         </div>
       </section>
 
