@@ -431,6 +431,74 @@ export async function saveApplicationProgress(
 /**
  * Récupérer l'application pour un utilisateur
  */
+/**
+ * RGPD — droit à l'effacement granulaire (AIPD §2.5) : le candidat supprime
+ * DÉFINITIVEMENT une ou plusieurs pièces de SON dossier depuis son espace.
+ * Suppression ciblée ($pull, pas de réécriture du tableau côté client), fichier
+ * physique /uploads effacé le cas échéant, et trace d'audit journalisée.
+ */
+export async function deleteApplicationDocuments(
+  userEmail: string,
+  applyToken: string,
+  documentIds: string[]
+): Promise<{ success: boolean; deleted?: number; error?: string }> {
+  try {
+    if (!(await assertSessionOwns(userEmail))) {
+      return { success: false, error: 'Non autorisé' };
+    }
+    const ids = (documentIds || []).map(String).filter(Boolean).slice(0, 40);
+    if (ids.length === 0) {
+      return { success: false, error: 'Aucune pièce indiquée' };
+    }
+
+    await connectDiditDb();
+    const application = await Application.findOne({
+      userEmail: userEmail.toLowerCase(),
+      applyToken,
+    }).select('_id documents').lean();
+    if (!application) {
+      return { success: false, error: 'Dossier introuvable' };
+    }
+
+    const docs = ((application as { documents?: Array<{ id?: string; fileUrl?: string }> }).documents) || [];
+    const targets = docs.filter((d) => ids.includes(String(d.id)));
+    if (targets.length === 0) {
+      return { success: false, error: 'Pièce introuvable dans votre dossier' };
+    }
+
+    // Fichier physique éventuel (fileUrl /uploads/...) — suppression best-effort,
+    // bornée au dossier uploads (anti path-traversal sur une valeur en base).
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+    for (const doc of targets) {
+      const url = String(doc.fileUrl || '');
+      if (url.startsWith('/uploads/')) {
+        try {
+          const p = path.resolve(process.cwd(), '.' + url);
+          if (p.startsWith(uploadsRoot + path.sep) && fs.existsSync(p)) fs.unlinkSync(p);
+        } catch { /* best effort — la pièce est de toute façon retirée du dossier */ }
+      }
+    }
+
+    await Application.updateOne(
+      { _id: (application as { _id: unknown })._id },
+      { $pull: { documents: { id: { $in: ids } } } }
+    );
+
+    const { logger } = require('@/lib/server-logger');
+    logger.info('[RGPD] Pièce(s) supprimée(s) définitivement par le candidat', {
+      applicationId: String((application as { _id: unknown })._id),
+      count: targets.length,
+    });
+
+    return { success: true, deleted: targets.length };
+  } catch (error) {
+    console.error('Erreur deleteApplicationDocuments:', error);
+    return { success: false, error: 'Erreur lors de la suppression. Réessayez.' };
+  }
+}
+
 export async function getApplication(userEmail: string, applyToken?: string) {
   try {
     if (!(await assertSessionOwns(userEmail))) {

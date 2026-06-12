@@ -280,8 +280,8 @@ export function DocumentCard({ file, showAmount = true, onDelete, onForceValidat
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <p id="delete-confirm-title" className="text-sm font-bold text-navy mb-1">Supprimer ce document ?</p>
-              <p className="text-xs text-slate-500 mb-4">Votre Indice de Résilience diminuera de <span className="font-bold text-red-500">-10 pts</span></p>
+              <p id="delete-confirm-title" className="text-sm font-bold text-navy mb-1">Supprimer définitivement cette pièce ?</p>
+              <p className="text-xs text-slate-500 mb-4">Elle sera effacée de votre dossier et de nos serveurs — <span className="font-semibold">action irréversible</span>. Votre Indice de Résilience peut diminuer.</p>
               <div className="flex items-center gap-2 justify-center">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
