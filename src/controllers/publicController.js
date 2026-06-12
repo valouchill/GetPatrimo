@@ -342,15 +342,17 @@ async function createLead(req, res) {
 async function submitCandidatureByPropertyId(req, res) {
   try {
     const propertyId = req.params.propertyId;
-    
+
     if (!propertyId || propertyId === 'null' || propertyId === 'undefined') {
       return res.status(400).json({ msg: "ID du bien manquant ou invalide" });
     }
-    
-    const prop = await Property.findById(propertyId);
-    
+
+    // Sécurité (pentest public-8/config-6) : on exige le applyToken SECRET (paramètre de
+    // route), plus l'ObjectId brut — sinon n'importe quel bien était ciblable (spam + coût OCR).
+    const prop = await Property.findOne({ applyToken: propertyId });
+
     if (!prop) {
-      console.log('❌ Bien non trouvé pour propertyId:', propertyId);
+      console.log('❌ Bien non trouvé pour token de candidature');
       return res.status(404).json({ msg: "Bien introuvable" });
     }
 
@@ -554,13 +556,10 @@ async function submitCandidatureByPropertyId(req, res) {
       }))
     });
   } catch (error) {
+    // Sécurité (pentest config-4) : ne JAMAIS renvoyer error.message/stack au client.
     console.error('Erreur submitCandidatureByPropertyId:', error);
     console.error('Stack:', error.stack);
-    return res.status(500).json({ 
-      msg: 'Erreur lors du dépôt',
-      error: error.message || 'Erreur inconnue',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    return res.status(500).json({ msg: 'Erreur lors du dépôt' });
   }
 }
 
