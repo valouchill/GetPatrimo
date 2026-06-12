@@ -350,8 +350,13 @@ const staticMiddleware = express.static('public', {
 // Sécurité (pentest ChatGPT P2) : neutraliser les pages HTML legacy (anciens parcours JWT
 // localStorage/x-auth-token, UI admin) encore servies par express.static('public').
 const LEGACY_HTML_BLOCKLIST = new Set([
+  // Sécurité (audit passe-4 jwt-session-5) : TOUTES les pages HTML legacy stockant le JWT en
+  // localStorage (exfiltrable par XSS) / utilisant l'ancien x-auth-token — l'app est 100% Next.
   '/admin-leads.html', '/dashboard-luxe.html', '/login.html', '/login-luxe.html',
-  '/register.html', '/register-luxe.html', '/property-luxe.html',
+  '/register.html', '/register-luxe.html', '/property-luxe.html', '/property.html',
+  '/candidatures.html', '/contractualization-luxe.html', '/dashboard-new.html',
+  '/dashboard.html', '/fiscalite.html', '/owner-journey.html',
+  '/smart-contractualization.html', '/tenant.html',
 ]);
 const LEGACY_LUXE_ROUTES = new Set(['/dashboard-luxe', '/login-luxe', '/register-luxe', '/property-luxe']);
 app.use((req, res, next) => {
@@ -423,7 +428,10 @@ async function auth(req, res, next){
   const token = req.header('x-auth-token');
   if(!token) return res.status(401).json({ msg:'Pas de token, autorisation refusée' });
   try{
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+    // Sécurité (audit passe-4 jwt-session-1) : un token typé (password_reset) ne doit pas
+    // servir de session — même JWT_SECRET, usage différent.
+    if (decoded.type) return res.status(401).json({ msg:'Token non valide' });
     req.user = decoded.user;
     // Sécurité (pentest auth-2) : un JWT 24h émis avant suspension restait valide. On
     // relit `suspended` en base (routes Express legacy, faible trafic) pour l'invalider.

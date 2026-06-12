@@ -154,6 +154,29 @@ describe('Webhook didit idempotent (webhooks-3)', () => {
   it('ne pousse pas didit_identity deux fois', () => assertContains('app/api/webhooks/didit/route.ts', ["c.id === 'didit_identity'"], 'webhooks-3'));
 });
 
+// ─────────────────────────── AUDIT PASSE-4 (angles morts) ───────────────────────────
+describe('Route EDL — path traversal + IDOR (passe-4 C-1, CRITICAL)', () => {
+  it('confine sous uploads + vérifie la propriété du bail', () => {
+    assertContains('src/routes/leaseRoutes.js',
+      ['Lease.findOne({ _id: req.params.id, user: req.user', 'uploadsRoot + path.sep', 'path.resolve(uploadsRoot, relPath)'],
+      'C-1 EDL');
+    assertNotContains('src/routes/leaseRoutes.js', "path.join(__dirname, '../../uploads', relPath)", 'C-1 ancien join');
+  });
+});
+describe('JWT — anti token-confusion + suspended (passe-4 jwt-session-1/express-surface-2)', () => {
+  it('middleware modulaire rejette les tokens typés + relit suspended + algo contraint', () => {
+    assertContains('src/middleware/auth.js', ['if (decoded.type)', "algorithms: ['HS256']", 'u.suspended'], 'modular auth');
+  });
+  it('middleware server.js rejette aussi les tokens typés', () => {
+    assertContains('server.js', ['if (decoded.type) return res.status(401)', "algorithms: ['HS256']"], 'server auth');
+  });
+});
+describe('Pages legacy JWT-localStorage bloquées (passe-4 jwt-session-5)', () => {
+  it('toutes les pages HTML legacy sensibles sont dans le blocklist', () => {
+    assertContains('server.js', ["'/dashboard.html'", "'/tenant.html'", "'/candidatures.html'", "'/smart-contractualization.html'"], 'legacy blocklist');
+  });
+});
+
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {
   const vision = require('../src/services/visionAnalysisService');

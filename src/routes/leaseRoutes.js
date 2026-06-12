@@ -75,17 +75,35 @@ router.post('/:id/edl', auth, updateLeaseEDL);
 router.post('/:id/edl/photo', auth, upload.array('photos', 10), uploadEDLPhoto);
 
 // Serve EDL photo
-router.get('/:id/edl/photo/*', auth, (req, res) => {
+router.get('/:id/edl/photo/*', auth, async (req, res) => {
   try {
     const path = require('path');
     const fs = require('fs');
-    const relPath = req.params[0]; // Everything after /photo/
-    const absPath = path.join(__dirname, '../../uploads', relPath);
-    
+    const Lease = require('../../models/Lease');
+
+    // Sécurité (audit passe-4 C-1, CRITICAL) : (1) vérifier la PROPRIÉTÉ du bail — sans ça
+    // tout compte lisait les photos EDL d'autrui ; (2) CONFINER le chemin sous uploads/ —
+    // l'ancien path.join(req.params[0]) permettait ../../../../etc/passwd (lecture arbitraire :
+    // sources, config chargeant les secrets, KYC d'autres locataires).
+    if (!/^[a-fA-F0-9]{24}$/.test(String(req.params.id || ''))) {
+      return res.status(400).json({ msg: 'Identifiant invalide' });
+    }
+    const lease = await Lease.findOne({ _id: req.params.id, user: req.user && req.user.id }).select('_id').lean();
+    if (!lease) {
+      return res.status(403).json({ msg: 'Non autorisé' });
+    }
+
+    const uploadsRoot = path.resolve(__dirname, '../../uploads');
+    const relPath = String(req.params[0] || '').replace(/^\/+/, '');
+    const absPath = path.resolve(uploadsRoot, relPath);
+    if (absPath !== uploadsRoot && !absPath.startsWith(uploadsRoot + path.sep)) {
+      return res.status(403).json({ msg: 'Chemin non autorisé' });
+    }
+
     if (!fs.existsSync(absPath)) {
       return res.status(404).json({ msg: 'Photo introuvable' });
     }
-    
+
     return res.sendFile(absPath);
   } catch (error) {
     console.error('Erreur serve photo:', error);
