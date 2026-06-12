@@ -315,6 +315,7 @@ export async function POST(
           property as unknown as QuotaProperty,
           id,
           quotaCheck.mode || 'WITHIN_QUOTA',
+          isEnabled('BILLING_ENFORCED'),
         );
       }
     } catch (quotaErr) {

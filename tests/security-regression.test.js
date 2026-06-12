@@ -176,6 +176,17 @@ describe('Pages legacy JWT-localStorage bloquées (passe-4 jwt-session-5)', () =
     assertContains('server.js', ["'/dashboard.html'", "'/tenant.html'", "'/candidatures.html'", "'/smart-contractualization.html'"], 'legacy blocklist');
   });
 });
+describe('Quota — plafond dur atomique anti-course (passe-4 quota-race)', () => {
+  it('consumeAnalysisQuota borne le compteur par $lt quota quand enforced', () => {
+    assertContains('lib/billing/quota-service.ts',
+      ['enforced: boolean = false', 'if (enforced) {', 'filter.dossiersAnalyzedCount = { $lt: quota }'],
+      'quota race $lt');
+  });
+  it('le call-site analyze-v2 transmet bien le flag BILLING_ENFORCED', () => {
+    assertContains('app/api/owner/applications/[id]/analyze-v2/route.ts',
+      ["isEnabled('BILLING_ENFORCED'),"], 'quota enforced passthrough');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {
