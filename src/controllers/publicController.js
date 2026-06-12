@@ -298,13 +298,10 @@ async function submitCandidature(req, res) {
       }))
     });
   } catch (error) {
+    // Sécurité (pentest config-4) : ne JAMAIS renvoyer error.message/stack au client.
     console.error('Erreur submitCandidature:', error);
     console.error('Stack:', error.stack);
-    return res.status(500).json({ 
-      msg: 'Erreur lors du dépôt',
-      error: error.message || 'Erreur inconnue',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    return res.status(500).json({ msg: 'Erreur lors du dépôt' });
   }
 }
 
