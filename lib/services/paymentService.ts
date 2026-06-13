@@ -338,6 +338,10 @@ export async function confirmPayment(
     payment.status = 'CONFIRMED';
   } else if (paidAmount > 0) {
     payment.status = 'PARTIAL';
+  } else {
+    // Sécurité (audit passe-5) : paidAmount=0 ne doit PAS conserver un ancien statut CONFIRMED
+    // (incohérence d'intégrité — quittance valable pour un paiement remis à zéro).
+    payment.status = 'PENDING';
   }
 
   await payment.save();

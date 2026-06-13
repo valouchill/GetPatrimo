@@ -15,7 +15,12 @@ const {
 function verifySignature(rawBody: string, signature: string | null, secret?: string) {
   if (!secret || !signature) return false;
   const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
+  // Sécurité (audit passe-5) : timingSafeEqual lève une RangeError si les buffers diffèrent
+  // de longueur → garde de longueur AVANT (sinon une signature mal formée provoquait un 500).
+  const a = Buffer.from(computed);
+  const b = Buffer.from(signature);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 // Handle GET redirects from Didit (status updates via URL params)
