@@ -22,6 +22,10 @@ const V1_BLOCKED_PAGE_ROUTES: { prefix: string | RegExp; feature: FeatureKey }[]
   { prefix: /^\/dashboard\/owner\/property\/[^/]+\/rent-receipts/, feature: 'RECEIPTS' },
   // Module contrat / bail (route legacy) — bloqué tant que LEASES est off
   { prefix: /^\/properties\/[^/]+\/contract/, feature: 'LEASES' },
+  // Sécurité (audit passe-5) : la page gestion des loyers (/payments) n'avait PAS de gate alors
+  // que MANAGEMENT est OFF en V1 → tout le module loyers (suivi, révision IRL, régularisation,
+  // quittances) restait atteignable. Bloquée comme les autres modules V2.
+  { prefix: /^\/payments(\/|$)/, feature: 'MANAGEMENT' },
 ];
 
 // V1 — routes API bloquées (renvoient 404 si la feature est off).
@@ -29,6 +33,11 @@ const V1_BLOCKED_API_ROUTES: { prefix: string; feature: FeatureKey }[] = [
   { prefix: '/api/leases', feature: 'LEASES' },
   { prefix: '/api/receipts', feature: 'RECEIPTS' },
   { prefix: '/api/inspections', feature: 'EDL' },
+  // Sécurité (audit passe-5) : l'API gestion des loyers n'était PAS gatée (oubli) alors que le
+  // module est V2 (MANAGEMENT off). Neutralise d'un coup les findings paiements (révision IRL
+  // sans table INSEE, quittance/export, régularisation, relances) tant que MANAGEMENT est off.
+  // NB : distinct de /api/billing (paywall Stripe V1) qui reste actif.
+  { prefix: '/api/payments', feature: 'MANAGEMENT' },
 ];
 
 function matchesBlocked(pathname: string, prefix: string | RegExp): boolean {
