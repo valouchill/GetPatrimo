@@ -317,6 +317,25 @@ describe('Rate-limit IP — dernier hop XFF anti-spoof (passe-5 batch-8, MEDIUM)
     assertContains('lib/action-rate-limit.ts', ["fwd.split(',').pop()?.trim()"], 'getActionClientIp last-hop');
   });
 });
+describe('Robustesse & intégrité diverses (passe-5 batch-9, LOW)', () => {
+  it('webhook Didit POST : garde de longueur avant timingSafeEqual', () => {
+    assertContains('app/api/webhooks/didit/route.ts', ['if (a.length !== b.length) return false;'], 'didit hmac len guard');
+  });
+  it('rate-limit : plafond mémoire du store', () => {
+    assertContains('lib/rate-limit.ts', ['MAX_ENTRIES', 'ipHits.clear()'], 'rate-limit map cap');
+  });
+  it('admin accept/reject : idempotence (pas de rejeu de transition)', () => {
+    assertContains('app/api/admin/applications/[id]/accept/route.ts', ["status === 'ACCEPTED'"], 'accept idempotent');
+    assertContains('app/api/admin/applications/[id]/reject/route.ts', ["status === 'REJECTED'"], 'reject idempotent');
+  });
+  it('scan-vision / scan-dpe : borne de taille du payload', () => {
+    assertContains('app/api/owner-tunnel/scan-vision/route.ts', ['img.length > 12_000_000'], 'scan-vision byte cap');
+    assertContains('app/api/owner-tunnel/scan-dpe/route.ts', ['file.size > 10 * 1024 * 1024'], 'scan-dpe byte cap');
+  });
+  it('confirmPayment : paidAmount=0 ne conserve pas CONFIRMED', () => {
+    assertContains('lib/services/paymentService.ts', ["payment.status = 'PENDING';"], 'confirmPayment integrity');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

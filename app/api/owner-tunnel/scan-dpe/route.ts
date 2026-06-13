@@ -7,6 +7,11 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
+    // Sécurité (audit passe-5) : borne la taille du fichier (10 Mo) — aucun DPE/photo légitime
+    // au-delà ; évite un payload massif (DoS mémoire / coût OpenAI).
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Fichier trop volumineux (10 Mo max).' }, { status: 413 });
+    }
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY manquante' }, { status: 500 });
     const buffer = await file.arrayBuffer();

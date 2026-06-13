@@ -15,6 +15,12 @@ export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   const before = await Application.findById(id).select('status property').lean();
   if (!before) throw new AdminHttpError(404, 'Candidature introuvable');
 
+  // Sécurité (audit passe-5) : idempotence — ne pas ré-appliquer ACCEPTED (évite de réécrire
+  // l'état du bien / rejouer la transition sur une candidature déjà acceptée).
+  if ((before as any).status === 'ACCEPTED') {
+    return NextResponse.json({ ok: true, alreadyAccepted: true });
+  }
+
   await Application.updateOne({ _id: id }, { $set: { status: 'ACCEPTED' } });
 
   if ((before as any).property) {

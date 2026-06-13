@@ -10,13 +10,18 @@
 
 const ipHits = new Map<string, { count: number; resetAt: number }>();
 
-// Cleanup stale entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
+// Sécurité (audit passe-5) : plafond dur du nombre de clés (défense en profondeur anti-épuisement
+// mémoire). Les clés sont désormais l'IP réelle (dernier hop XFF) donc bornées en pratique.
+const MAX_ENTRIES = 50_000;
+
+function purgeExpired(now: number) {
   for (const [ip, entry] of ipHits) {
     if (entry.resetAt < now) ipHits.delete(ip);
   }
-}, 5 * 60 * 1000);
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => purgeExpired(Date.now()), 5 * 60 * 1000);
 
 export function checkRateLimit(
   ip: string,
@@ -27,6 +32,11 @@ export function checkRateLimit(
   const entry = ipHits.get(key);
 
   if (!entry || entry.resetAt < now) {
+    // Plafond mémoire : purge les expirées, et en dernier recours vide le store.
+    if (ipHits.size >= MAX_ENTRIES) {
+      purgeExpired(now);
+      if (ipHits.size >= MAX_ENTRIES) ipHits.clear();
+    }
     ipHits.set(key, { count: 1, resetAt: now + windowMs });
     return { allowed: true, remaining: max - 1 };
   }

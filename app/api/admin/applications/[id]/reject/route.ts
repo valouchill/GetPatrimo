@@ -15,6 +15,11 @@ export const POST = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   const before = await Application.findById(id).select('status').lean();
   if (!before) throw new AdminHttpError(404, 'Candidature introuvable');
 
+  // Sécurité (audit passe-5) : idempotence — pas de re-rejet rejouable.
+  if ((before as any).status === 'REJECTED') {
+    return NextResponse.json({ ok: true, alreadyRejected: true });
+  }
+
   await Application.updateOne({ _id: id }, { $set: { status: 'REJECTED' } });
 
   await logAdminAction({
