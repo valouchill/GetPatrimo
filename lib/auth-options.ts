@@ -67,12 +67,39 @@ const providers: any[] = [
           user.totpSecret
         ) {
           const okTotp = await verifyUserTotp(user, (credentials as { totpCode?: string }).totpCode);
-          if (!okTotp) return null; // token NON consommé → l'utilisateur peut réessayer avec un code
+          if (!okTotp) {
+            // Anti-brute-force (audit passe-5) : /api/auth/callback/credentials n'est pas
+            // rate-limité et le magic token reste valide jusqu'à expiration → un code TOTP
+            // (6 chiffres) était brute-forçable. On borne les essais PAR magic token : au-delà
+            // de MAX_TOTP_ATTEMPTS, on INVALIDE le token (l'utilisateur doit redemander un code).
+            const MAX_TOTP_ATTEMPTS = 5;
+            const after = await User.findByIdAndUpdate(
+              user._id,
+              { $inc: { magicTotpAttempts: 1 } },
+              { new: true },
+            ).select('magicTotpAttempts').lean();
+            if (((after && after.magicTotpAttempts) || 0) >= MAX_TOTP_ATTEMPTS) {
+              await User.findByIdAndUpdate(user._id, {
+                $unset: {
+                  magicSignInToken: 1,
+                  magicSignInExpiresAt: 1,
+                  magicSignInImpersonatorId: 1,
+                  magicTotpAttempts: 1,
+                },
+              });
+            }
+            return null;
+          }
         }
 
-        // Consommation du token (+ marqueur d'impersonation) — usage unique.
+        // Consommation du token (+ marqueur d'impersonation + compteur TOTP) — usage unique.
         await User.findByIdAndUpdate(user._id, {
-          $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1, magicSignInImpersonatorId: 1 },
+          $unset: {
+            magicSignInToken: 1,
+            magicSignInExpiresAt: 1,
+            magicSignInImpersonatorId: 1,
+            magicTotpAttempts: 1,
+          },
         });
 
         return {

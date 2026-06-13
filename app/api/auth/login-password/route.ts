@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
     await User.findByIdAndUpdate(user._id, {
       magicSignInToken: hashedToken,
       magicSignInExpiresAt: expiresAt,
+      // Sécurité (audit passe-5) : nouveau magic token → réinitialise le compteur d'essais TOTP.
+      magicTotpAttempts: 0,
     });
 
     return NextResponse.json({

@@ -236,6 +236,28 @@ describe('Dossier public document — énumération + fuites OCR fermées (passe
     assertNotContains('app/api/public/dossier/[slug]/document/[docId]/route.ts', 'extractedFields,', 'raw OCR leak');
   });
 });
+describe('Invitations colocataire/garant — auth + propriété exigées (passe-5 batch-3, HIGH)', () => {
+  it('sendCoTenantInvitation exige session + propriété de l\'application', () => {
+    assertContains('app/actions/send-cotenant-invitation.ts',
+      ['getServerSession', "String(application.userEmail || '').toLowerCase() !== sessionEmail"],
+      'cotenant auth');
+  });
+  it('sendGuarantorInvitation exige session + candidature possédée sur l\'annonce', () => {
+    assertContains('app/actions/send-guarantor-invitation.ts',
+      ['getServerSession', 'Application.exists({ applyToken, userEmail: sessionEmail })'],
+      'guarantor auth');
+  });
+});
+describe('2FA — anti-brute-force du magic token (passe-5 batch-3, HIGH)', () => {
+  it('auth-options borne et invalide le magic token après MAX échecs TOTP', () => {
+    assertContains('lib/auth-options.ts',
+      ['MAX_TOTP_ATTEMPTS', '$inc: { magicTotpAttempts: 1 }', 'magicTotpAttempts: 1,'],
+      '2FA brute-force cap');
+  });
+  it('le modèle User déclare magicTotpAttempts (strict schema)', () => {
+    assertContains('models/User.js', ['magicTotpAttempts'], 'user schema field');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

@@ -62,6 +62,9 @@ const UserSchema = new mongoose.Schema({
   // Magic Auth — token à usage unique pour connexion sans mot de passe (Fast-Track)
   magicSignInToken: { type: String, default: '' },
   magicSignInExpiresAt: { type: Date },
+  // Sécurité (audit passe-5) : compteur d'échecs TOTP sur le magic token courant. Au-delà
+  // de MAX, le magic token est invalidé (anti-brute-force du 2e facteur sur callback/credentials).
+  magicTotpAttempts: { type: Number, default: 0 },
   // Sécurité (pentest auth-1) : marqueur SERVEUR d'impersonation. Posé UNIQUEMENT par la
   // route admin impersonate ; c'est lui (jamais un champ client) qui autorise le saut du
   // 2e facteur dans authorize(). Un magic token issu de login-password n'a pas ce champ.
