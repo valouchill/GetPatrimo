@@ -272,6 +272,17 @@ describe('Durcissements divers vérifiés (passe-5 batch-4, MEDIUM)', () => {
       ["String(payment.status || '').toUpperCase() !== 'CONFIRMED'"], 'receipt confirmed');
   });
 });
+describe('Fuites d\'exception interne retirées — routes admin/IA (passe-5 batch-5)', () => {
+  it('adminErrorResponse ne renvoie plus le message brut (CastError ObjectId inclus)', () => {
+    assertContains('lib/auth-admin.ts', ["return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })"], 'admin generic err');
+    assertNotContains('lib/auth-admin.ts', 'const message = err instanceof Error ? err.message', 'admin raw err');
+  });
+  it('analyze-v2 & reanalyze ne renvoient plus l\'exception au client', () => {
+    assertContains('app/api/owner/applications/[id]/analyze-v2/route.ts',
+      ["return NextResponse.json({ error: 'Erreur lors de l\\'analyse' }, { status: 500 })"], 'analyze-v2 generic');
+    assertNotContains('app/api/owner/applications/[id]/reanalyze/route.ts', 'details: error instanceof Error', 'reanalyze details leak');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {
