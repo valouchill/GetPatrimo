@@ -204,6 +204,8 @@ export async function saveApplicationProgress(
         return { success: false, error: 'Nombre de pièces trop élevé (40 max).' };
       }
       const { isForbiddenDocumentLabel } = require('@/src/services/visionAnalysisService');
+      // Sécurité (audit passe-5 — C1) : sceau HMAC serveur des signaux de confiance (cf. lib).
+      const { verifyAnalysisTrust, neutralizeUntrustedDocument } = require('@/lib/analysis-trust-seal');
       for (const doc of data.documents) {
         const url = doc.fileUrl || '';
         // ~12 M caractères ≈ 9 Mo binaire : aucune pièce légitime (PDF/photo) au-delà.
@@ -224,6 +226,31 @@ export async function saveApplicationProgress(
         if (isForbiddenDocumentLabel(aiType) || isForbiddenDocumentLabel(doc.type)) {
           doc.status = 'REJECTED';
           doc.fileUrl = '';
+        }
+
+        // Sécurité (audit passe-5 — C1, CRITICAL) : on ne fait confiance aux signaux de confiance
+        // (revenu, sceau Visale, fraude → revenu certifié + score) QUE si le document porte un
+        // sceau HMAC serveur VALIDE (posé par /api/analyze-document-v2 au moment de l'analyse).
+        if (verifyAnalysisTrust(doc.aiAnalysis)) {
+          // Sceau valide → signaux crus, MAIS le statut CERTIFIED doit rester cohérent avec les
+          // signaux SCELLÉS : un candidat ne peut pas forcer CERTIFIED sur un doc à fraude élevée
+          // / en revue (rétrogradation seule, jamais d'upgrade ⇒ aucun faux positif légitime).
+          const ts = ((doc.aiAnalysis as { trust_and_security?: Record<string, unknown> } | undefined)
+            ?.trust_and_security) || {};
+          if (
+            doc.status === 'CERTIFIED' &&
+            (Number((ts.fraud_score as number) || 0) > 20 ||
+              ts.needs_human_review === true ||
+              ts.partial_extraction === true)
+          ) {
+            doc.status = 'NEEDS_REVIEW';
+          }
+        } else {
+          // Sceau absent ou falsifié (signaux fabriqués, ou pièce non analysée par le serveur)
+          // → neutralisation : aucun revenu, aucun sceau, statut non-certifié. Le document reste
+          // (affichage) mais ne pèse plus dans le scoring. NB : les pièces legacy analysées AVANT
+          // ce correctif n'ont pas de sceau → neutralisées au prochain save (ré-upload conseillé).
+          neutralizeUntrustedDocument(doc);
         }
       }
       application.documents = data.documents as typeof application.documents;

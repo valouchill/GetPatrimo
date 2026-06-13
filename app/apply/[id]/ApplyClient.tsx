@@ -2276,6 +2276,9 @@ export default function ApplyClient({ token }: { token: string }) {
                     document_metadata: analysis.document_metadata, // Pour cross-check garant (CNI vs avis)
                     financial_data: analysis.financial_data,
                     trust_and_security: analysis.trust_and_security,
+                    // Sécurité (audit passe-5 — C1) : sceau HMAC serveur des signaux de confiance.
+                    // Pass-through opaque ; vérifié serveur au save (seul un sceau valide est cru).
+                    _trustSig: (analysis as { _trustSig?: string })._trustSig,
                   }
                 }
               : f

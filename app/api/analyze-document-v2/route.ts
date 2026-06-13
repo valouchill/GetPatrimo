@@ -18,6 +18,9 @@ const { extractPDFMetadata, convertPDFToImages } = require('@/src/services/pdfDo
 const { getExtractionPrompt } = require('@/src/services/documentPromptService');
  
 const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidateAnalysis } = require('@/src/services/visionAnalysisService');
+// Sécurité (audit passe-5 — C1) : sceau HMAC serveur des signaux de confiance (revenu, sceau,
+// fraude). Le client renvoie l'aiAnalysis au save ; seul un sceau valide y est cru (cf. lib).
+const { signAnalysisTrust } = require('@/lib/analysis-trust-seal');
 // Module B — extraction hybride Azure OCR / Vision (repli automatique si Azure non configuré).
  
 const { routeExtraction } = require('@/src/services/azureDocIntelligenceService');
@@ -105,6 +108,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ...e2eResult,
         ...buildLegacyCompatibilityPayload(e2eResult, documentCategory),
+        _trustSig: signAnalysisTrust(e2eResult),
         originalFileName: fileName,
       });
     }
@@ -196,7 +200,7 @@ export async function POST(request: NextRequest) {
               }
               if (rawResult) {
                 const result = normalizeAndValidateAnalysis(rawResult, { firstName: diditFirstName, lastName: diditLastName, birthDate: diditBirthDate }, fileName);
-                return NextResponse.json({ ...result, originalFileName: fileName, analysisMethod: 'text_extraction' });
+                return NextResponse.json({ ...result, _trustSig: signAnalysisTrust(result), originalFileName: fileName, analysisMethod: 'text_extraction' });
               }
             }
           }
@@ -347,6 +351,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ...result,
         ...buildLegacyCompatibilityPayload(result, documentCategory),
+        _trustSig: signAnalysisTrust(result),
         originalFileName: fileName,
         analysisMethod: isPDF ? 'pdf_to_image_vision' : 'direct_vision',
         requiresManualReview: true,
@@ -400,6 +405,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...result,
       ...buildLegacyCompatibilityPayload(result, documentCategory),
+      _trustSig: signAnalysisTrust(result),
       originalFileName: fileName,
       analysisMethod: isPDF ? 'pdf_to_image_vision' : 'direct_vision',
       needsHumanReview,
