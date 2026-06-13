@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import Application from '@/models/Application';
 import { resolveResilienceScore } from '@/lib/resilience-score';
 
@@ -29,24 +30,6 @@ interface AppDocument {
   dateEmission?: string;
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function buildLegacyPassportExpr(slug: string) {
-  const match = /^PT-\d{4}-([A-F0-9]{6,24})$/i.exec(slug);
-  if (!match) return null;
-  return {
-    $expr: {
-      $regexMatch: {
-        input: { $toString: '$_id' },
-        regex: `${escapeRegExp(match[1])}$`,
-        options: 'i',
-      },
-    },
-  };
-}
-
 function mapStatusToAudit(status?: string, flagged?: boolean): AuditStatus {
   const upper = (status || '').toUpperCase();
   if (upper === 'CERTIFIED' && !flagged) return 'verified';
@@ -57,22 +40,16 @@ function mapStatusToAudit(status?: string, flagged?: boolean): AuditStatus {
 
 function extractAiInsights(doc: AppDocument) {
   const ai = doc.aiAnalysis || {};
-  let extractedFields: Record<string, unknown> = {};
-  const raw = ai.extractedFields as unknown;
-  if (raw && typeof raw === 'object') {
-    if (raw instanceof Map) {
-      extractedFields = Object.fromEntries(raw);
-    } else {
-      extractedFields = raw as Record<string, unknown>;
-    }
-  }
+  // Sécurité (audit passe-5) : on N'EXPOSE PAS les champs OCR bruts (`extractedFields` :
+  // salaire exact, employeur, adresse, n° fiscal…) sur cet endpoint PUBLIC non authentifié.
+  // Seuls les signaux d'affichage de haut niveau (type, confiance, synthèse, score de fraude)
+  // sont renvoyés — la preuve documentaire détaillée reste réservée à l'accès authentifié.
   return {
     documentType: typeof ai.documentType === 'string' ? ai.documentType : null,
     confidence: typeof ai.confidence === 'number' ? ai.confidence : null,
     summary: typeof ai.summary === 'string' ? ai.summary : null,
     fraudScore: typeof ai.fraudScore === 'number' ? ai.fraudScore : null,
     flags: Array.isArray(ai.flags) ? ai.flags.filter((f) => typeof f === 'string') : [],
-    extractedFields,
   };
 }
 
@@ -109,14 +86,10 @@ function getDocumentName(doc: AppDocument) {
 }
 
 async function findApplicationByPassportSlug(slug: string) {
-  const or: Array<Record<string, unknown>> = [
-    { passportSlug: slug },
-    { 'passport.id': slug },
-  ];
-  const legacyExpr = buildLegacyPassportExpr(slug);
-  if (legacyExpr) or.push(legacyExpr);
-
-  return Application.findOne({ $or: or })
+  // Sécurité (audit passe-5, HIGH) : résolution UNIQUEMENT par slug 64-bit (ou passport.id).
+  // L'ancien matcher legacy `PT-\d{4}-<suffixe ObjectId>` permettait d'énumérer n'importe quel
+  // dossier en brute-forçant 6-24 hex de l'_id (contournement de l'anti-énumération du slug).
+  return Application.findOne({ $or: [{ passportSlug: slug }, { 'passport.id': slug }] })
     .populate('property', 'name')
     .select('passportSlug documents profile patrimometer property aiAuditV2')
     .lean();
@@ -127,6 +100,16 @@ export async function GET(
   { params }: { params: Promise<{ slug: string; docId: string }> },
 ) {
   try {
+    // Sécurité (audit passe-5) : endpoint PUBLIC non authentifié → limite de débit par IP
+    // (anti-énumération / anti-DB-scan). Le slug est à 64 bits mais on borne quand même.
+    const rlIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    if (!checkRateLimit(`pubdoc:${rlIp}`, { windowMs: 60_000, max: 30 }).allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
+    }
+
     await connectDiditDb();
 
     const { slug, docId } = await params;
