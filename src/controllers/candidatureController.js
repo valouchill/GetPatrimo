@@ -52,12 +52,10 @@ async function getAllCandidatures(req, res) {
     console.error('❌ Erreur getAllCandidatures:', error);
     console.error('Stack:', error.stack);
     
-    // Répond toujours avec un JSON valide, même en cas d'erreur
+    // Répond toujours avec un JSON valide, même en cas d'erreur.
+    // Sécurité (audit passe-5) : pas de fuite du message d'exception interne au client.
     if (!res.headersSent) {
-      return res.status(500).json({ 
-        msg: 'Erreur serveur',
-        error: error.message 
-      });
+      return res.status(500).json({ msg: 'Erreur serveur' });
     }
   }
 }

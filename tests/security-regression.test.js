@@ -176,6 +176,40 @@ describe('Pages legacy JWT-localStorage bloquées (passe-4 jwt-session-5)', () =
     assertContains('server.js', ["'/dashboard.html'", "'/tenant.html'", "'/candidatures.html'", "'/smart-contractualization.html'"], 'legacy blocklist');
   });
 });
+describe('Quota — plafond dur atomique anti-course (passe-4 quota-race)', () => {
+  it('consumeAnalysisQuota borne le compteur par $lt quota quand enforced', () => {
+    assertContains('lib/billing/quota-service.ts',
+      ['enforced: boolean = false', 'if (enforced) {', 'filter.dossiersAnalyzedCount = { $lt: quota }'],
+      'quota race $lt');
+  });
+  it('le call-site analyze-v2 transmet bien le flag BILLING_ENFORCED', () => {
+    assertContains('app/api/owner/applications/[id]/analyze-v2/route.ts',
+      ["isEnabled('BILLING_ENFORCED'),"], 'quota enforced passthrough');
+  });
+});
+
+// ─────────────────────────── AUDIT PASSE-5 (66 findings vérifiés) ───────────────────────────
+describe('verify-otp — IDOR re-parent par passportSlug retiré (passe-5 C-2, CRITICAL)', () => {
+  it('ne re-parente plus / ne forge plus ACCEPTED via passportSlug', () => {
+    assertNotContains('app/api/auth/verify-otp/route.ts', "ownerDecision: 'ACCEPTED'", 'C-2 forge acceptation');
+    assertNotContains('app/api/auth/verify-otp/route.ts', 'Application.findOneAndUpdate', 'C-2 re-parent slug');
+  });
+});
+describe('unsubscribe — XSS réfléchi sur ?category neutralisé (passe-5)', () => {
+  it('réfléchit un libellé liste-blanche, jamais la valeur brute category', () => {
+    assertContains('app/api/user/unsubscribe/route.ts', ['categoryLabel'], 'unsubscribe label');
+    assertNotContains('app/api/user/unsubscribe/route.ts', '« ${category} »', 'unsubscribe XSS brut');
+  });
+});
+describe('Fuites de message d\'erreur interne au client retirées (passe-5)', () => {
+  it('getAllCandidatures ne renvoie plus error.message', () => {
+    assertNotContains('src/controllers/candidatureController.js', "msg: 'Erreur serveur',\n        error: error.message", 'candidature leak');
+  });
+  it('create-checkout & billing portal ne renvoient plus e.message', () => {
+    assertNotContains('app/api/billing/create-checkout/route.ts', 'error: e.message ||', 'checkout leak');
+    assertNotContains('app/api/billing/portal/route.ts', 'error: e.message ||', 'portal leak');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

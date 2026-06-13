@@ -130,11 +130,18 @@ export interface QuotaConsumption {
  * Consomme le quota après une analyse réussie. Persiste la Property.
  *  - ALREADY_COUNTED / SOFT_FREE → no-op (pas de décompte)
  *  - WITHIN_QUOTA → +1 dossier distinct, push l'app id
+ *
+ * @param enforced  Plafond dur actif (BILLING_ENFORCED). Quand `true`, le décompte est
+ *   borné ATOMIQUEMENT par `dossiersAnalyzedCount < quota` : deux analyses concurrentes
+ *   de dossiers DIFFÉRENTS passant toutes deux le check (used == quota-1) ne peuvent plus
+ *   faire dépasser le compteur au-delà du quota payé (race check→consume). En soft-launch
+ *   (`enforced=false`) on NE borne PAS — le compteur sert de suivi visuel et peut dépasser.
  */
 export async function consumeAnalysisQuota(
   property: QuotaProperty,
   applicationId: string,
   mode: QuotaMode,
+  enforced: boolean = false,
 ): Promise<QuotaConsumption> {
   const quota = effectiveQuota(property);
 
@@ -152,18 +159,29 @@ export async function consumeAnalysisQuota(
   // Décompte ATOMIQUE du dossier distinct (revue V1 — S12) : évite double-compte /
   // sous-compte en analyses concurrentes. Filtre `$ne` + `$addToSet` = idempotent par
   // dossier ; `$inc` atomique = pas de « last-writer-wins » sur le compteur.
+  // Audit passe-4 (quota-race) : quand le plafond est imposé, on ajoute la borne
+  // `dossiersAnalyzedCount < quota` AU FILTRE pour que l'$inc ne franchisse jamais le
+  // quota, même sous course concurrente (le check `used < quota` seul est TOCTOU).
 
   const PropertyModel = require('@/models/Property');
   const appIdStr = String(applicationId);
   const propId = (property as { _id: unknown })._id;
+  const filter: Record<string, unknown> = {
+    _id: propId,
+    analyzedApplicationIds: { $ne: appIdStr },
+  };
+  if (enforced) {
+    filter.dossiersAnalyzedCount = { $lt: quota };
+  }
   const updated = await PropertyModel.findOneAndUpdate(
-    { _id: propId, analyzedApplicationIds: { $ne: appIdStr } },
+    filter,
     { $inc: { dossiersAnalyzedCount: 1 }, $addToSet: { analyzedApplicationIds: appIdStr } },
     { new: true },
   ).lean();
 
-  // updated === null ⇒ dossier déjà compté (course concurrente ou ré-analyse) :
-  // on ne recompte pas.
+  // updated === null ⇒ soit le dossier est déjà compté (course / ré-analyse), soit
+  // (enforced) le quota est déjà atteint car une analyse concurrente a pris le dernier
+  // crédit : dans les deux cas on ne recompte pas (le compteur reste ≤ quota).
   if (!updated) {
     return { mode, used: Number(property.dossiersAnalyzedCount || 0), quota, overageBilled: false };
   }
