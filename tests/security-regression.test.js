@@ -210,6 +210,32 @@ describe('Fuites de message d\'erreur interne au client retirées (passe-5)', ()
     assertNotContains('app/api/billing/portal/route.ts', 'error: e.message ||', 'portal leak');
   });
 });
+describe('Passeport public — PII de tiers masquée (passe-5 batch-2, HIGH)', () => {
+  it('nom du garant masqué + revenus/employeur omis en audience publique', () => {
+    assertContains('src/utils/passportViewModel.js',
+      ['function maskNameToInitial',
+       "audience === 'public' ? maskNameToInitial(guarantorRealName) : guarantorRealName",
+       "audience !== 'public' && guarantorMonthlyIncome > 0",
+       "employer: audience === 'public' ? null"],
+      'passport public PII');
+  });
+  it('aiAuditV2 réduit à un sous-ensemble curaté en public', () => {
+    assertContains('src/utils/passportViewModel.js',
+      ["audience === 'public'\n        ? (app.aiAuditV2", 'forensicAudit: app.aiAuditV2.ai.forensicAudit'],
+      'aiAuditV2 public subset');
+  });
+});
+describe('Dossier public document — énumération + fuites OCR fermées (passe-5 batch-2)', () => {
+  it('résolution par slug seul (legacy ObjectId-suffix retiré)', () => {
+    assertNotContains('app/api/public/dossier/[slug]/document/[docId]/route.ts', '$regexMatch', 'legacy suffix enum');
+    assertNotContains('app/api/public/dossier/[slug]/document/[docId]/route.ts', 'buildLegacyPassportExpr', 'legacy expr');
+  });
+  it('rate-limit par IP + pas de champs OCR bruts (extractedFields)', () => {
+    assertContains('app/api/public/dossier/[slug]/document/[docId]/route.ts',
+      ['checkRateLimit(`pubdoc:'], 'pubdoc rate-limit');
+    assertNotContains('app/api/public/dossier/[slug]/document/[docId]/route.ts', 'extractedFields,', 'raw OCR leak');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

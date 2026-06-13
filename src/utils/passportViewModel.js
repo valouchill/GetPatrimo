@@ -341,6 +341,16 @@ function deriveRegion(property) {
   return parts[0];
 }
 
+// Masque un nom complet « Prénom Nom » → « Prénom N. ». Sécurité (audit passe-5) :
+// l'identité d'un TIERS (garant) ne doit pas fuiter en clair à l'audience publique.
+function maskNameToInitial(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  const first = parts[0];
+  const lastInitial = parts.length > 1 ? `${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+  return [first, lastInitial].filter(Boolean).join(' ').trim();
+}
+
 function buildMaskedIdentity(profile, didit, audience) {
   const firstName = profile?.firstName || didit?.identityData?.firstName || 'Candidat';
   const lastName = profile?.lastName || didit?.identityData?.lastName || '';
@@ -801,7 +811,9 @@ function buildPassportViewModel({
       gradeLabel: resilience.label,
       badge: guaranteeSummary.shareBadge,
       candidateStatus: profile.status || null,
-      employer: tenantEmployer || null,
+      // Sécurité (audit passe-5) : l'employeur n'est pas exposé à l'audience publique
+      // (lien de passeport partageable/transférable → fuite hors destinataire voulu).
+      employer: audience === 'public' ? null : (tenantEmployer || null),
       identityVerified: didit.status === 'VERIFIED',
     },
     solvency: {
@@ -835,14 +847,18 @@ function buildPassportViewModel({
           : guaranteeSummary.mode === 'PHYSICAL'
             ? 'Garant physique'
             : 'Aucune',
+      // Sécurité (audit passe-5, HIGH) : le NOM RÉEL du garant est une PII de TIERS — masqué
+      // en « Prénom N. » pour l'audience publique (jamais en clair sans authentification).
       guarantorName:
-        guarantorRealName ||
+        (audience === 'public' ? maskNameToInitial(guarantorRealName) : guarantorRealName) ||
         (guaranteeSummary.mode === 'VISALE'
           ? 'Organisme Visale (Action Logement)'
           : guaranteeSummary.guarantors[0]
             ? `Garant ${guaranteeSummary.guarantors[0].profile || ''}`.trim()
             : null),
-      guarantorIncomeLabel: guarantorMonthlyIncome > 0 ? formatCurrency(guarantorMonthlyIncome) : null,
+      // Revenus du garant (PII financière de tiers) : omis pour l'audience publique.
+      guarantorIncomeLabel:
+        audience !== 'public' && guarantorMonthlyIncome > 0 ? formatCurrency(guarantorMonthlyIncome) : null,
     },
     pillars: tenantBlocks.map((block) => ({
       id: block.id,
@@ -903,7 +919,23 @@ function buildPassportViewModel({
     // Optionnel : présent seulement si l'analyse V2 a déjà été lancée.
     // Le PDF utilise ces données pour la section anti-fraude enrichie et
     // le badge métal du hero.
-    aiAuditV2: app.aiAuditV2 || null,
+    // Sécurité (audit passe-5) : l'audience PUBLIQUE ne reçoit qu'un SOUS-ENSEMBLE curaté
+    // (badge `resilience.level` + Trust-List `ai.forensicAudit` conçus pour l'affichage) —
+    // jamais l'objet d'analyse interne complet (revenus bruts, raisonnement, PII détaillée).
+    aiAuditV2:
+      audience === 'public'
+        ? (app.aiAuditV2
+            ? {
+                resilience: app.aiAuditV2.resilience
+                  ? { level: app.aiAuditV2.resilience.level }
+                  : undefined,
+                ai:
+                  app.aiAuditV2.ai && Array.isArray(app.aiAuditV2.ai.forensicAudit)
+                    ? { forensicAudit: app.aiAuditV2.ai.forensicAudit }
+                    : undefined,
+              }
+            : null)
+        : (app.aiAuditV2 || null),
   };
 }
 
