@@ -1,6 +1,8 @@
 'use server';
 
 import crypto from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { sendMailWithRetry } from '@/lib/email-retry';
 import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
@@ -35,6 +37,16 @@ export async function sendCoTenantInvitation(params: {
 
     await connectDiditDb();
 
+    // Sécurité (audit passe-5, HIGH) : server action = endpoint POST PUBLIC. Sans garde,
+    // n'importe qui injectait un colocataire dans le dossier d'autrui (IDOR write) via un
+    // `applicationId` arbitraire + relayait un email signé du domaine. On exige une session
+    // authentifiée ET la PROPRIÉTÉ de l'application cible (le tunnel candidat a une session).
+    const session = (await getServerSession(authOptions as any)) as { user?: { email?: string } } | null;
+    const sessionEmail = session?.user?.email?.toLowerCase();
+    if (!sessionEmail) {
+      return { success: false, error: 'Non autorisé' };
+    }
+
     const property = await Property.findOne({ applyToken });
     if (!property) {
       return { success: false, error: 'Bien immobilier introuvable (token invalide)' };
@@ -45,13 +57,19 @@ export async function sendCoTenantInvitation(params: {
       return { success: false, error: 'Slot colocataire invalide (2-4)' };
     }
 
-    // Résoudre l'Application de l'initiateur (clé du re-sync).
-    let application = null as { _id: unknown; coTenants?: unknown[]; isColocation?: boolean; save: () => Promise<unknown> } | null;
+    // Résoudre l'Application de l'initiateur (clé du re-sync) — TOUJOURS bornée à la session.
+    let application = null as
+      | { _id: unknown; userEmail?: string; coTenants?: unknown[]; isColocation?: boolean; save: () => Promise<unknown> }
+      | null;
     if (applicationId) {
       application = await Application.findById(applicationId);
     }
-    if (!application && initiator?.email) {
-      application = await Application.findOne({ applyToken, userEmail: initiator.email.toLowerCase() });
+    if (!application) {
+      application = await Application.findOne({ applyToken, userEmail: sessionEmail });
+    }
+    // L'application doit exister ET appartenir à l'utilisateur authentifié.
+    if (!application || String(application.userEmail || '').toLowerCase() !== sessionEmail) {
+      return { success: false, error: 'Non autorisé' };
     }
 
     const invitationToken = crypto.randomBytes(32).toString('hex');

@@ -1,9 +1,12 @@
 'use server';
 
 import crypto from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { sendMailWithRetry } from '@/lib/email-retry';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
+import Application from '@/models/Application';
 import mongoose from 'mongoose';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { actionRateLimited } from '@/lib/action-rate-limit';
@@ -38,6 +41,19 @@ export async function sendGuarantorInvitation(
 
     // Connexion à la base de données
     await connectDiditDb();
+
+    // Sécurité (audit passe-5, HIGH) : server action = endpoint POST PUBLIC. On exige une
+    // session authentifiée qui possède RÉELLEMENT une candidature sur cette annonce — sinon
+    // n'importe qui relayait un email d'invitation signé du domaine (open relay / phishing).
+    const session = (await getServerSession(authOptions as any)) as { user?: { email?: string } } | null;
+    const sessionEmail = session?.user?.email?.toLowerCase();
+    if (!sessionEmail) {
+      return { success: false, error: 'Non autorisé' };
+    }
+    const ownsApplication = await Application.exists({ applyToken, userEmail: sessionEmail });
+    if (!ownsApplication) {
+      return { success: false, error: 'Non autorisé' };
+    }
 
     // Trouver la Property par son applyToken
     const property = await Property.findOne({ applyToken });
