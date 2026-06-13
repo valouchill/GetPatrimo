@@ -240,9 +240,7 @@ export async function POST(
     });
   } catch (error) {
     logger.error('[reanalyze] erreur', { err: error instanceof Error ? error.message : String(error) });
-    return NextResponse.json(
-      { error: 'Erreur lors de la ré-analyse', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    );
+    // Sécurité (audit passe-5) : pas de `details` (exception interne) renvoyée au client.
+    return NextResponse.json({ error: 'Erreur lors de la ré-analyse' }, { status: 500 });
   }
 }

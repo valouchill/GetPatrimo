@@ -384,11 +384,8 @@ export async function POST(
     logger.error('POST /api/owner/applications/[id]/analyze-v2', {
       error: error instanceof Error ? error.message : error,
     });
-    const message =
-      error instanceof Error && error.message
-        ? error.message
-        : 'Erreur lors de l\'analyse';
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Sécurité (audit passe-5) : message générique — pas de fuite de l'exception interne au client.
+    return NextResponse.json({ error: 'Erreur lors de l\'analyse' }, { status: 500 });
   }
 }
 

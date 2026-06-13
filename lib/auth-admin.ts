@@ -130,9 +130,11 @@ export function adminErrorResponse(err: unknown): NextResponse {
       { status: err.statusCode }
     );
   }
-  const message = err instanceof Error ? err.message : 'Erreur serveur';
+  // Sécurité (audit passe-5) : ne JAMAIS renvoyer le message d'exception brut au client pour
+  // une erreur inattendue (les AdminHttpError ci-dessus portent des messages volontaires). Un
+  // ObjectId invalide (CastError Mongoose) ou toute erreur interne fuyait sa stack/structure.
   console.error('[admin] unhandled error:', err);
-  return NextResponse.json({ error: message }, { status: 500 });
+  return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
 }
 
 interface LogAdminActionParams {
