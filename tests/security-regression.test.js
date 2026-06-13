@@ -371,3 +371,69 @@ describe('EXÉCUTABLE — prompt sanitize (recent-1)', () => {
     assert.ok(!prompt.includes('"\n\n'), 'pas de saut de ligne injecté via guillemet');
   });
 });
+
+// ─────────────────────────── C1 — sceau serveur des analyses (passe-5) ───────────────────────────
+describe('EXÉCUTABLE — sceau HMAC serveur des signaux de confiance (C1, CRITICAL)', () => {
+  const seal = require('../lib/analysis-trust-seal');
+  const makeAnalysis = () => ({
+    financial_data: { monthly_net_income: 2500, currency: 'EUR', extra_details: { period_month: 'mars' } },
+    trust_and_security: { fraud_score: 5, digital_seal_authenticated: false, forensic_alerts: [] },
+    document_metadata: { type: 'BULLETIN_SALAIRE' },
+  });
+
+  it('un document scellé par le serveur est vérifié comme authentique', () => {
+    const a = makeAnalysis();
+    a._trustSig = seal.signAnalysisTrust(a);
+    assert.equal(seal.verifyAnalysisTrust(a), true);
+  });
+
+  it('revenu falsifié par le client → sceau invalide', () => {
+    const a = makeAnalysis();
+    a._trustSig = seal.signAnalysisTrust(a);
+    a.financial_data.monthly_net_income = 99999; // forge
+    assert.equal(seal.verifyAnalysisTrust(a), false);
+  });
+
+  it('sceau Visale falsifié par le client → sceau invalide', () => {
+    const a = makeAnalysis();
+    a._trustSig = seal.signAnalysisTrust(a);
+    a.trust_and_security.digital_seal_authenticated = true; // forge
+    assert.equal(seal.verifyAnalysisTrust(a), false);
+  });
+
+  it('aiAnalysis fabriquée sans sceau (ou sceau bidon) → rejetée', () => {
+    assert.equal(seal.verifyAnalysisTrust({ financial_data: { monthly_net_income: 99999 }, trust_and_security: { digital_seal_authenticated: true } }), false);
+    assert.equal(seal.verifyAnalysisTrust({ ...makeAnalysis(), _trustSig: 'deadbeef' }), false);
+  });
+
+  it('neutralisation : revenu et sceau remis à zéro + CERTIFIED rétrogradé', () => {
+    const doc = { status: 'CERTIFIED', aiAnalysis: makeAnalysis() };
+    seal.neutralizeUntrustedDocument(doc);
+    assert.deepEqual(doc.aiAnalysis.financial_data, {});
+    assert.deepEqual(doc.aiAnalysis.trust_and_security, {});
+    assert.equal(doc.status, 'NEEDS_REVIEW');
+  });
+
+  it('sceau indépendant de l\'ordre des clés (stableStringify)', () => {
+    const a = makeAnalysis();
+    a._trustSig = seal.signAnalysisTrust(a);
+    const reordered = { document_metadata: a.document_metadata, _trustSig: a._trustSig, trust_and_security: { forensic_alerts: [], digital_seal_authenticated: false, fraud_score: 5 }, financial_data: { extra_details: { period_month: 'mars' }, currency: 'EUR', monthly_net_income: 2500 } };
+    assert.equal(seal.verifyAnalysisTrust(reordered), true);
+  });
+});
+
+describe('C1 — câblage serveur-autoritaire (présence-source)', () => {
+  it('analyze-document-v2 scelle ses réponses de succès', () => {
+    assertContains('app/api/analyze-document-v2/route.ts',
+      ["require('@/lib/analysis-trust-seal')", '_trustSig: signAnalysisTrust(result)', '_trustSig: signAnalysisTrust(e2eResult)'],
+      'analyze-v2 seal');
+  });
+  it('saveApplicationProgress vérifie le sceau et neutralise sinon', () => {
+    assertContains('app/actions/application-actions.ts',
+      ['verifyAnalysisTrust(doc.aiAnalysis)', 'neutralizeUntrustedDocument(doc)', "doc.status === 'CERTIFIED' &&"],
+      'save verify+neutralize');
+  });
+  it('le tunnel transmet le sceau _trustSig au save', () => {
+    assertContains('app/apply/[id]/ApplyClient.tsx', ['_trustSig: (analysis as { _trustSig?: string })._trustSig'], 'client passthrough');
+  });
+});
