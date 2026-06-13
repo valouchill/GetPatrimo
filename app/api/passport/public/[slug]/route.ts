@@ -17,7 +17,7 @@ export async function GET(
 ) {
   try {
     // Rate limiting : 60 req/min par IP pour prévenir l'énumération de slugs
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     const { allowed } = checkRateLimit(`passport-public:${ip}`, { windowMs: 60_000, max: 60 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });

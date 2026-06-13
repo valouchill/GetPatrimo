@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     // Anti-abus/scraping (pré-lancement) : endpoint public d'apply. Borne par IP.
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     if (!checkRateLimit(`public-apply:${ip}`, { windowMs: 60_000, max: 60 }).allowed) {
       return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
     }

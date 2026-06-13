@@ -17,7 +17,7 @@ const OtpToken = require('@/models/OtpToken');
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     const { allowed } = checkRateLimit(ip, { windowMs: 60_000, max: 5 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 1 minute.' }, { status: 429 });

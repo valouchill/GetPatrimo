@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   // tunnel (login-less) → borne par IP pour éviter le DoS de coût (création en masse de KYC).
   // Limite généreuse : un candidat n'en lance qu'une (+ quelques reprises).
   const rlIp =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() ||
     request.headers.get('x-real-ip') ||
     'unknown';
   if (!checkRateLimit(`didit-session:${rlIp}`, { windowMs: 60_000, max: 10 }).allowed) {

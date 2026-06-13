@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     // Rate limiting : prévenir l'abus du compteur de partage
-    const ip = _request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = _request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     const { allowed } = checkRateLimit(`passport-share:${ip}`, { windowMs: 60_000, max: 10 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });

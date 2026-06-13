@@ -321,7 +321,7 @@ async function createLead(req, res) {
       source: source ? String(source) : 'landing',
       utm: utm && typeof utm === 'object' ? utm : {},
       ip: req.headers['x-forwarded-for'] 
-        ? String(req.headers['x-forwarded-for']).split(',')[0].trim() 
+        ? String(req.headers['x-forwarded-for']).split(',').pop().trim() 
         : (req.ip || ''),
       userAgent: String(req.headers['user-agent'] || '')
     });

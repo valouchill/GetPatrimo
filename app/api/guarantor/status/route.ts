@@ -28,7 +28,7 @@ const {
  */
 export async function GET(request: NextRequest) {
   try {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     const { allowed } = checkRateLimit(`guarantor-status:${ip}`, { windowMs: 60_000, max: 20 });
     if (!allowed) {
       return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
