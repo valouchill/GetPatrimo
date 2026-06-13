@@ -293,6 +293,14 @@ describe('Cost-DoS IA — endpoints facturés rate-limités (passe-5 batch-6, ME
       ['getActionClientIp', 'checkRateLimit(`process-dossier:'], 'process-dossier cost cap');
   });
 });
+describe('Admin force-status — statut contraint à l\'enum (passe-5 batch-7, LOW)', () => {
+  it('ApplicationPatchSchema n\'accepte plus une chaîne libre', () => {
+    assertContains('lib/validations/admin.ts',
+      ["z\n    .enum(['DRAFT', 'IN_PROGRESS', 'PENDING_REVIEW', 'COMPLETE', 'SUBMITTED', 'ACCEPTED', 'REJECTED'])"],
+      'admin app status enum');
+    assertNotContains('lib/validations/admin.ts', 'status: z.string().min(1).max(50).optional()', 'free-form status');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {
