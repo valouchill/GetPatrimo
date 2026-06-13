@@ -103,7 +103,7 @@ export async function GET(
     // Sécurité (audit passe-5) : endpoint PUBLIC non authentifié → limite de débit par IP
     // (anti-énumération / anti-DB-scan). Le slug est à 64 bits mais on borne quand même.
     const rlIp =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() ||
       request.headers.get('x-real-ip') ||
       'unknown';
     if (!checkRateLimit(`pubdoc:${rlIp}`, { windowMs: 60_000, max: 30 }).allowed) {
@@ -147,7 +147,7 @@ export async function GET(
       slug,
       docId,
       category: doc.category || null,
-      ip: typeof ip === 'string' ? ip.split(',')[0]?.trim() : 'unknown',
+      ip: typeof ip === 'string' ? ip.split(',').pop()?.trim() : 'unknown',
     });
 
     const profile = (application as any).profile || {};

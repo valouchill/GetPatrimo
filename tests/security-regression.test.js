@@ -301,6 +301,22 @@ describe('Admin force-status — statut contraint à l\'enum (passe-5 batch-7, L
     assertNotContains('lib/validations/admin.ts', 'status: z.string().min(1).max(50).optional()', 'free-form status');
   });
 });
+describe('Rate-limit IP — dernier hop XFF anti-spoof (passe-5 batch-8, MEDIUM)', () => {
+  const XFF_FILES = [
+    'app/api/auth/send-otp/route.ts', 'app/api/auth/verify-otp/route.ts', 'app/api/auth/totp/route.ts',
+    'app/api/analyze-document/route.ts', 'app/api/analyze-photos/route.ts', 'app/api/didit/session/route.ts',
+    'app/api/guarantor/status/route.ts', 'app/api/cotenant/status/route.ts', 'lib/action-rate-limit.ts',
+    'app/api/public/apply/[token]/route.ts',
+  ];
+  it('aucun de ces fichiers ne prend le 1er hop XFF (spoofable)', () => {
+    for (const f of XFF_FILES) {
+      assertNotContains(f, "x-forwarded-for')?.split(',')[0]", `${f} first-hop`);
+    }
+  });
+  it('le helper getActionClientIp prend le dernier hop', () => {
+    assertContains('lib/action-rate-limit.ts', ["fwd.split(',').pop()?.trim()"], 'getActionClientIp last-hop');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

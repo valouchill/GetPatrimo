@@ -114,7 +114,7 @@ export async function GET(
 ) {
   try {
     // Anti-scraping (pré-lancement) : endpoint public de consultation de pièces. Borne par IP.
-    const rlIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rlIp = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
     if (!checkRateLimit(`public-dossier:${rlIp}`, { windowMs: 60_000, max: 60 }).allowed) {
       return NextResponse.json({ error: 'Trop de requêtes, réessayez plus tard.' }, { status: 429 });
     }
@@ -168,7 +168,7 @@ export async function GET(
       slug,
       docType,
       category,
-      ip: typeof ip === 'string' ? ip.split(',')[0]?.trim() : 'unknown',
+      ip: typeof ip === 'string' ? ip.split(',').pop()?.trim() : 'unknown',
     });
 
     const docs: AppDocument[] = Array.isArray((application as any).documents)

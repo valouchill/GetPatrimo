@@ -20,7 +20,7 @@ function verifySignature(rawBody: string, signature: string | null, secret?: str
 
 // Handle GET redirects from Didit (status updates via URL params)
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
   const { allowed } = checkRateLimit(`webhook-get:${ip}`, { windowMs: 60_000, max: 30 });
   if (!allowed) {
     return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const ip = request.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
   const { allowed } = checkRateLimit(`webhook-post:${ip}`, { windowMs: 60_000, max: 30 });
   if (!allowed) {
     return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });

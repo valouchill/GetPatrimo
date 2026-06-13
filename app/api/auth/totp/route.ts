@@ -39,7 +39,7 @@ async function verifyCurrentTotp(user: any, code: unknown): Promise<boolean> {
 export const POST = withErrorHandler(async (request: NextRequest) => {
   // Sécurité (revue V1 — S27) : plafond dédié sur cette route 2FA sensible (en plus du
   // globalLimiter Express 20/min) — anti-brute-force des codes.
-  const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+  const ip = (request.headers.get('x-forwarded-for') || '').split(',').pop()?.trim() || 'unknown';
   if (!checkRateLimit(`totp:${ip}`, { windowMs: 60_000, max: 10 }).allowed) {
     return NextResponse.json({ error: 'Trop de tentatives. Réessayez dans une minute.' }, { status: 429 });
   }

@@ -14,12 +14,17 @@
 import { headers } from 'next/headers';
 import { checkRateLimit } from '@/lib/rate-limit';
 
-/** IP client d'une Server Action, depuis les en-têtes proxy (spoofable mais 1 couche). */
+/**
+ * IP client d'une Server Action. Sécurité (audit passe-5) : on prend le DERNIER hop de
+ * X-Forwarded-For — celui injecté par notre reverse-proxy de confiance (nginx-proxy-manager,
+ * proxy unique, pas de CDN devant) — et non le premier, qui est contrôlé par le client et
+ * permettait de contourner le rate-limit en forgeant l'en-tête.
+ */
 export async function getActionClientIp(): Promise<string> {
   try {
     const h = await headers();
     const fwd = h.get('x-forwarded-for') || '';
-    const ip = fwd.split(',')[0].trim() || h.get('x-real-ip') || '';
+    const ip = fwd.split(',').pop()?.trim() || h.get('x-real-ip') || '';
     return ip || 'unknown';
   } catch {
     return 'unknown';

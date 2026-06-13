@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       targetId: targetUserId || null,
       before: null,
       after: null,
-      ip: String(req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim(),
+      ip: String(req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',').pop()?.trim() || 'unknown',
       userAgent: String(req.headers.get('user-agent') || ''),
     });
   } catch (err) {
