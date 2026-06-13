@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../db';
 import { logger } from '@/lib/server-logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 import IdentitySession from '@/models/IdentitySession';
 
 // Liste des endpoints Didit à essayer (ordre de priorité)
@@ -12,6 +13,17 @@ const DIDIT_ENDPOINTS = [
 ];
 
 export async function POST(request: NextRequest) {
+  // Sécurité (audit passe-5) : la création de session Didit est FACTURÉE. Endpoint public du
+  // tunnel (login-less) → borne par IP pour éviter le DoS de coût (création en masse de KYC).
+  // Limite généreuse : un candidat n'en lance qu'une (+ quelques reprises).
+  const rlIp =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  if (!checkRateLimit(`didit-session:${rlIp}`, { windowMs: 60_000, max: 10 }).allowed) {
+    return NextResponse.json({ error: 'Trop de demandes, réessayez dans une minute.' }, { status: 429 });
+  }
+
   // Nouveau format de configuration Didit
   const apiKey = process.env.DIDIT_API_KEY || process.env.DIDIT_CLIENT_SECRET;
   const workflowId = process.env.DIDIT_WORKFLOW_ID || process.env.DIDIT_CLIENT_ID;
