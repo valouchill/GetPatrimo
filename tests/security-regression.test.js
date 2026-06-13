@@ -336,6 +336,16 @@ describe('Robustesse & intégrité diverses (passe-5 batch-9, LOW)', () => {
     assertContains('lib/services/paymentService.ts', ["payment.status = 'PENDING';"], 'confirmPayment integrity');
   });
 });
+describe('Module loyers V2 gaté en V1 (passe-5 batch-10)', () => {
+  it('middleware bloque /api/payments + page /payments derrière MANAGEMENT', () => {
+    assertContains('middleware.ts',
+      ["{ prefix: '/api/payments', feature: 'MANAGEMENT' }", "{ prefix: /^\\/payments(\\/|$)/, feature: 'MANAGEMENT' }"],
+      'payments V1 gate');
+  });
+  it('le paywall Stripe V1 (/api/billing) n\'est PAS gaté', () => {
+    assertNotContains('middleware.ts', "prefix: '/api/billing'", 'billing not gated');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {
