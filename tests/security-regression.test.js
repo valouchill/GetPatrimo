@@ -258,6 +258,20 @@ describe('2FA — anti-brute-force du magic token (passe-5 batch-3, HIGH)', () =
     assertContains('models/User.js', ['magicTotpAttempts'], 'user schema field');
   });
 });
+describe('Durcissements divers vérifiés (passe-5 batch-4, MEDIUM)', () => {
+  it('webhook Didit GET valide le format de sessionId (anti path-injection/SSRF)', () => {
+    assertContains('app/api/webhooks/didit/route.ts',
+      ['/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)'], 'didit webhook sessionId');
+  });
+  it('admin/users PATCH réserve plan/crédits/suspension au superadmin', () => {
+    assertContains('app/api/admin/users/[id]/route.ts',
+      ['touchesPrivileged', "admin.role !== 'superadmin'"], 'admin priv gate');
+  });
+  it('la quittance n\'est servie que pour un paiement CONFIRMED', () => {
+    assertContains('app/api/payments/[id]/receipt/route.ts',
+      ["String(payment.status || '').toUpperCase() !== 'CONFIRMED'"], 'receipt confirmed');
+  });
+});
 
 // ─────────────────────────── EXÉCUTABLE — fonctions pures ───────────────────────────
 describe('EXÉCUTABLE — pièce interdite détectée serveur (recent-2)', () => {

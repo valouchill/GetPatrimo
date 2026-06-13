@@ -35,6 +35,16 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
   }
 
+  // Sécurité (audit passe-5) : une quittance de loyer est un document JURIDIQUE qui atteste
+  // d'un paiement RÉEL. On ne la génère/sert que pour un paiement CONFIRMÉ — sinon un locataire
+  // téléchargeait une quittance valable pour un loyer non payé (status PENDING, paidAmount 0).
+  if (String(payment.status || '').toUpperCase() !== 'CONFIRMED') {
+    return NextResponse.json(
+      { error: "La quittance n'est disponible qu'après confirmation du paiement." },
+      { status: 409 },
+    );
+  }
+
   let receiptPath = payment.receiptUrl;
 
   // Générer si pas encore fait

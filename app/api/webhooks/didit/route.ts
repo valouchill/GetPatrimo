@@ -36,10 +36,13 @@ export async function GET(request: NextRequest) {
 
   logger.info('[DIDIT WEBHOOK GET] Paramètres', { sessionId, status });
   
-  if (!sessionId) {
-    return NextResponse.json({ error: 'Session ID manquant' }, { status: 400 });
+  // Sécurité (audit passe-5) : sessionId est interpolé dans 4 URLs fetch vers l'API Didit.
+  // Sans validation de format, des caractères de chemin (« / », « .. », « @ »…) permettaient
+  // une path-injection / SSRF. On impose la même allowlist stricte que /api/didit/status.
+  if (!sessionId || !/^[A-Za-z0-9_-]{8,128}$/.test(sessionId)) {
+    return NextResponse.json({ error: 'Session ID manquant ou invalide' }, { status: 400 });
   }
-  
+
   // Si le statut est "Approved", on met à jour la DB
   let existingSession = null;
 

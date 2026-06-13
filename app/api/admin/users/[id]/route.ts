@@ -51,6 +51,15 @@ export const PATCH = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   }
   const input = parsed.data;
 
+  // Sécurité (audit passe-5) : les champs SENSIBLES (plan/crédits/suspension) octroient un
+  // avantage commercial ou coupent l'accès → réservés au SUPERADMIN. Un simple admin ne peut
+  // éditer que les champs de contact (prénom/nom/téléphone).
+  const touchesPrivileged =
+    input.plan !== undefined || input.credits !== undefined || input.suspended !== undefined;
+  if (touchesPrivileged && admin.role !== 'superadmin') {
+    throw new AdminHttpError(403, 'Action réservée au superadmin (plan, crédits, suspension).');
+  }
+
   const before = await User.findById(id).select(USER_SELECT).lean();
   if (!before) throw new AdminHttpError(404, 'Utilisateur introuvable');
 
