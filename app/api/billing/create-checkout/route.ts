@@ -74,8 +74,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: checkoutSession.url });
   } catch (e: any) {
     logger.error('[create-checkout]', { error: e instanceof Error ? e.message : e });
+    // Sécurité (audit passe-5) : message générique au client — pas de détail interne Stripe.
     return NextResponse.json(
-      { error: e.message || 'Erreur lors de la création de la session.' },
+      { error: 'Erreur lors de la création de la session.' },
       { status: 500 },
     );
   }

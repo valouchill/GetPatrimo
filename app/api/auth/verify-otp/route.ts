@@ -9,7 +9,6 @@ import crypto from 'crypto';
 
 const User = require('@/models/User');
 const Property = require('@/models/Property');
-const Application = require('@/models/Application');
 
 const MAX_ATTEMPTS = 5;
 
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
     const result = validateRequest(VerifyOtpSchema, body);
     if (!result.success) return result.response;
 
-    const { propertyData, passportSlug } = result.data;
+    const { propertyData } = result.data;
     const normalizedEmail = result.data.email.trim().toLowerCase();
     const code = result.data.otp.trim();
 
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
     const userId = user._id;
 
     if (propertyData?.address) {
-      const property = await Property.create({
+      await Property.create({
         user: userId,
         name: (propertyData.address || '').slice(0, 80) || 'Mon bien',
         address: propertyData.address,
@@ -87,17 +86,13 @@ export async function POST(request: NextRequest) {
         status: 'AVAILABLE',
       });
 
-      if (passportSlug) {
-        await Application.findOneAndUpdate(
-          { passportSlug },
-          {
-            property: property._id,
-            status: 'ACCEPTED',
-            ownerDecision: 'ACCEPTED',
-            viewedByOwnerAt: new Date(),
-          }
-        );
-      }
+      // Sécurité (audit passe-5, CRITICAL IDOR/BOLA) : on NE re-parente PLUS une
+      // candidature par `passportSlug` ici. Le slug est un identifiant PUBLIC (présent
+      // dans les URLs `/p/{slug}` et les routes dossier publiques) ; quiconque vérifie
+      // SON propre OTP pouvait rattacher la candidature d'autrui à SA propriété et la
+      // passer ACCEPTED → exfiltration du dossier complet (PII/KYC) dans son tableau de
+      // bord bailleur + forge d'acceptation. Bloc déjà retiré de process-fast-onboarding.ts
+      // (même faille « forge d'acceptation bailleur ») — verify-otp avait été oublié.
     }
 
     const magicToken = crypto.randomBytes(32).toString('hex');

@@ -35,10 +35,15 @@ a{color:#1E40AF;text-decoration:none;font-weight:600;}</style></head>
   const category = request.nextUrl.searchParams.get('category');
 
   const update: Record<string, boolean> = {};
+  // Sécurité (audit passe-5) : libellé d'affichage dérivé d'une LISTE BLANCHE — on ne
+  // réfléchit JAMAIS la valeur brute `category` dans le HTML (sinon XSS réfléchi).
+  let categoryLabel: string | null = null;
   if (category === 'reminders') {
     update['emailPreferences.reminders'] = false;
+    categoryLabel = 'rappels';
   } else if (category === 'marketing') {
     update['emailPreferences.marketing'] = false;
+    categoryLabel = 'marketing';
   } else {
     update['emailPreferences.reminders'] = false;
     update['emailPreferences.marketing'] = false;
@@ -59,7 +64,7 @@ a{color:#1E40AF;text-decoration:none;font-weight:600;}</style></head>
 <body><div class="card">
 <div class="check">✓</div>
 <h1 style="font-size:20px;margin-bottom:16px;">Désinscription confirmée</h1>
-<p style="color:#6b7280;">Vous ne recevrez plus ${category ? `les emails de type « ${category} »` : 'de notifications par email'}.</p>
+<p style="color:#6b7280;">Vous ne recevrez plus ${categoryLabel ? `les emails de type « ${categoryLabel} »` : 'de notifications par email'}.</p>
 <p style="color:#6b7280;margin-top:12px;">Vous pouvez réactiver les notifications depuis votre <a href="/dashboard/owner/profile">profil</a>.</p>
 </div></body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }

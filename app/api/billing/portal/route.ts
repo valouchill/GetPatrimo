@@ -43,8 +43,9 @@ export async function POST() {
     return NextResponse.json({ url: portalSession.url });
   } catch (e: any) {
     logger.error('[billing-portal]', { error: e instanceof Error ? e.message : e });
+    // Sécurité (audit passe-5) : message générique — pas de détail interne Stripe au client.
     return NextResponse.json(
-      { error: e.message || 'Erreur lors de la création du portail.' },
+      { error: 'Erreur lors de la création du portail.' },
       { status: 500 },
     );
   }
