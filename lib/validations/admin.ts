@@ -135,7 +135,11 @@ export const PaymentPatchSchema = z.object({
 }).strict();
 
 export const ApplicationPatchSchema = z.object({
-  status: z.string().min(1).max(50).optional(),
+  // Sécurité (audit passe-5) : statut contraint à l'enum Mongoose de Application (jamais une
+  // chaîne libre — sinon un admin posait un statut hors machine à états → corruption d'état).
+  status: z
+    .enum(['DRAFT', 'IN_PROGRESS', 'PENDING_REVIEW', 'COMPLETE', 'SUBMITTED', 'ACCEPTED', 'REJECTED'])
+    .optional(),
   note: z.string().max(2000).optional(),
 }).strict();
 
