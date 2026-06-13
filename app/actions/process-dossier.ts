@@ -1,5 +1,8 @@
  'use server';
- 
+
+ import { getActionClientIp } from '@/lib/action-rate-limit';
+ import { checkRateLimit } from '@/lib/rate-limit';
+
  interface DiditIdentity {
    firstName?: string;
    lastName?: string;
@@ -110,6 +113,13 @@
    candidateStatus?: 'Etudiant' | 'Salarie' | 'Independant',
    diditIdentity?: DiditIdentity | null
  ): Promise<DocumentAnalysisResult> {
+   // Sécurité (audit passe-5) : server action PUBLIQUE (login-less) appelant GPT-4o Vision
+   // (facturé). Borne par IP pour éviter le DoS de coût (analyse en masse non authentifiée).
+   const rlIp = await getActionClientIp();
+   if (!checkRateLimit(`process-dossier:${rlIp}`, { windowMs: 60_000, max: 20 }).allowed) {
+     throw new Error('Trop de demandes. Réessayez dans quelques minutes.');
+   }
+
    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
    if (!OPENAI_API_KEY) {
      throw new Error('OPENAI_API_KEY non configurée');
