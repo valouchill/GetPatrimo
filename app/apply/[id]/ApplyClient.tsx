@@ -351,7 +351,7 @@ function ColocationSection({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Colocation (optionnel)</p>
           <h3 className="text-lg font-serif text-navy">Vous candidatez à plusieurs&nbsp;?</h3>
@@ -4142,7 +4142,7 @@ export default function ApplyClient({ token }: { token: string }) {
 
                 {/* Profiling administratif */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Profil administratif</p>
                       <h3 className="text-lg font-serif text-navy">Quel est votre statut ?</h3>
@@ -4638,12 +4638,12 @@ export default function ApplyClient({ token }: { token: string }) {
 
                       {/* Formulaire d'ajout de garant */}
                       <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-6">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <div>
                             <h3 className="text-xl font-serif text-navy">Garant physique 1</h3>
                             <p className="text-sm text-slate-500 mt-1">Le garant suit la même logique documentaire que le locataire.</p>
                           </div>
-                          <div className="min-w-[220px]">
+                          <div className="w-full sm:w-auto sm:min-w-[220px]">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Profil du garant</label>
                             <select
                               value={guarantorProfile}
@@ -4952,12 +4952,12 @@ export default function ApplyClient({ token }: { token: string }) {
 
                       {guarantorSlotsCount === 2 && (
                         <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-6">
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div>
                               <h3 className="text-xl font-serif text-navy">Garant physique 2</h3>
                               <p className="text-sm text-slate-500 mt-1">Ce second garant complète le premier. Le meilleur sous-bloc par thème est retenu.</p>
                             </div>
-                            <div className="min-w-[220px]">
+                            <div className="w-full sm:w-auto sm:min-w-[220px]">
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Profil du garant 2</label>
                               <select
                                 value={secondGuarantor.profile}
