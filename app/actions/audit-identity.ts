@@ -391,8 +391,10 @@ export async function auditGuarantorIdentity(
     fileName: string;
     type: string;
     analysisResult?: {
-      document_metadata?: { owner_name: string };
+      document_metadata?: { owner_name?: string };
       trust_and_security?: { digital_seal_authenticated?: boolean };
+      financial_data?: Record<string, unknown>;
+      _trustSig?: string;
     };
     mrzLines?: string[];
   }>

@@ -19,8 +19,8 @@ export const GuarantorAuditSchema = z.object({
     // `_trustSig` — sinon Zod stripperait les champs nécessaires à la vérification du sceau serveur
     // (auditGuarantorIdentity ne croit owner_name / digital_seal que sur un document scellé).
     analysisResult: z.object({
-      document_metadata: z.record(z.string(), z.unknown()).optional(),
-      trust_and_security: z.record(z.string(), z.unknown()).optional(),
+      document_metadata: z.object({ owner_name: z.string().optional() }).passthrough().optional(),
+      trust_and_security: z.object({ digital_seal_authenticated: z.boolean().optional() }).passthrough().optional(),
       financial_data: z.record(z.string(), z.unknown()).optional(),
       _trustSig: z.string().optional(),
     }).passthrough().optional(),
