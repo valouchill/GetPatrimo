@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
   Clock,
@@ -17,6 +16,7 @@ import type { LocalDossier, LocalBien } from './ui';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import { Button } from '@/app/components/ui/Button';
+import { Overlay } from '@/app/components/ui/Overlay';
 import {
   CandidateAiReport,
   type AiReportCandidate,
@@ -276,6 +276,7 @@ export function CandidateAuditModal({
   onResumeLease,
 }: CandidateAuditModalProps) {
   const titleId = React.useId();
+  const bodyScrollRef = React.useRef<HTMLDivElement>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = React.useState(false);
   // V7.12.1 — Etat dedie a l'action "retirer la selection"
@@ -417,47 +418,18 @@ export function CandidateAuditModal({
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="audit-modal-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          {/* Modale (desktop centrée / mobile bottom-sheet) */}
-          <motion.div
-            key="audit-modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            initial={{ opacity: 0, y: 40, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className={[
-              'fixed z-[201] flex flex-col overflow-hidden bg-slate-50 shadow-premium',
-              // Mobile : bottom sheet
-              'inset-x-0 bottom-0 max-h-[94vh] rounded-t-modal',
-              // Desktop : modale centrée
-              'md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-h-[92vh] md:w-[calc(100vw-2rem)] md:max-w-5xl md:rounded-modal',
-            ].join(' ')}
-          >
-            {/* Mobile handle */}
-            <div className="flex justify-center bg-white pt-2.5 pb-1 md:hidden">
-              <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
-            </div>
-
-            {/* ─── V7.12 — STICKY HEADER (identite + score V2 + actions) ──── */}
+    <>
+      <Overlay
+        open={open}
+        onClose={onClose}
+        variant="fullscreen"
+        size="5xl"
+        zToken="modal"
+        ariaLabelledBy={titleId}
+      >
+            {/* ─── STICKY HEADER (identite + score V2 + actions) ──── */}
             <header
-              className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white/95 px-5 py-5 backdrop-blur-xl md:px-6"
+              className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white/95 px-5 pb-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] backdrop-blur-xl md:px-6 md:pt-5"
               id={titleId}
             >
               {/* Ligne 1 : identite + score + close */}
@@ -643,6 +615,9 @@ export function CandidateAuditModal({
             <div className="flex flex-1 flex-col overflow-hidden">
               <Tabs
                 defaultValue="synthesis"
+                onValueChange={() =>
+                  bodyScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+                }
                 className="flex flex-1 flex-col overflow-hidden"
               >
                 <div className="shrink-0 px-5 pt-4 pb-2 md:px-6">
@@ -669,7 +644,10 @@ export function CandidateAuditModal({
                 </div>
 
                 {/* Zone scroll independante (le header reste fixe) */}
-                <div className="flex-1 overflow-y-auto bg-slate-50">
+                <div
+                  ref={bodyScrollRef}
+                  className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                >
                   <TabsContent value="synthesis">
                     {/* CandidateAiReport sans son footer d'actions :
                         Onclick onValidate/onReject = undefined -> footer masqué.
@@ -704,9 +682,7 @@ export function CandidateAuditModal({
                 </div>
               </Tabs>
             </div>
-          </motion.div>
-        </>
-      )}
+      </Overlay>
 
       {/* Modale de confirmation déclenchée par "Valider".
           La modale reste ouverte pendant l'appel API (onSelect peut être
@@ -736,6 +712,6 @@ export function CandidateAuditModal({
         reasonCodes={c.reasonCodes}
         loading={confirmLoading}
       />
-    </AnimatePresence>
+    </>
   );
 }

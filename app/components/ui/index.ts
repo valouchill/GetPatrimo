@@ -21,6 +21,14 @@ export type { InputProps } from "./Input";
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
 
+export { Overlay } from "./Overlay";
+export type {
+  OverlayProps,
+  OverlayVariant,
+  OverlaySize,
+  OverlayZToken,
+} from "./Overlay";
+
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonRow } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
 

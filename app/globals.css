@@ -13,10 +13,17 @@
   --background-end-rgb: 248, 250, 252;
 }
 
+html {
+  /* Ressenti "app" : pas de flash gris au tap sur mobile. */
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
+  /* Empêche le pull-to-refresh / rebond sous les bottom-sheets fixes. */
+  overscroll-behavior-y: none;
 }
 
 .text-balance {
