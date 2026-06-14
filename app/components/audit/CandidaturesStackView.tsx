@@ -20,6 +20,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 import {
   AlertTriangle,
   Check,
@@ -625,43 +626,29 @@ function DetailsSheet({
   }, [candidate]);
 
   return (
-    <AnimatePresence>
-      {open && reportCandidate && (
+    <Overlay
+      open={open && !!reportCandidate}
+      onClose={onClose}
+      variant="drawer"
+      size="lg"
+      zToken="drawer"
+      ariaLabel="Rapport d'audit IA détaillé"
+      panelClassName="relative"
+    >
+      {reportCandidate && (
         <>
-          {/* Backdrop */}
-          <motion.div
-            key="sheet-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
-            aria-hidden="true"
-          />
 
           {/* Sheet panel — slide depuis la droite (desktop), bottom-sheet (mobile)
               Le bouton close est positionné en absolute par rapport à CE
               conteneur (et NON à l'intérieur du score), garanti par z-30
               local (toujours en-dessous de la nav globale z-50). */}
-          <motion.aside
-            key="sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Rapport d'audit IA détaillé"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-y-0 right-0 z-[201] flex w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl md:rounded-l-3xl"
-          >
             {/* Floating close button — absolute top-4 right-4 (sur le conteneur
                 principal de la modale, pas dans la div du score) */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Fermer le panneau de détails"
-              className="absolute right-4 top-4 z-30 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+              className="absolute right-4 top-4 z-30 inline-flex h-11 w-11 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
             >
               <X className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             </button>
@@ -685,10 +672,9 @@ function DetailsSheet({
                 }}
               />
             </div>
-          </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </Overlay>
   );
 }
 

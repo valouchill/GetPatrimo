@@ -24,8 +24,7 @@
  */
 
 import * as React from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 import {
   X,
   Download,
@@ -215,21 +214,7 @@ export function SecureDocumentViewer({
   allowDownload = false,
   className = '',
 }: SecureDocumentViewerProps): React.ReactElement {
-  // ESC ferme le viewer
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    // Lock body scroll
-    const originalOverflow = window.document.body.style.overflow;
-    window.document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.document.body.style.overflow = originalOverflow;
-    };
-  }, [open, onClose]);
+  // ESC, verrou de scroll (compté → ok en imbriqué) et portail gérés par <Overlay>.
 
   // Horodatage défensif inclus dans le watermark pour traçabilité
   const finalWatermark = React.useMemo(() => {
@@ -247,42 +232,18 @@ export function SecureDocumentViewer({
   const AuditIcon = audit?.icon ?? ShieldCheck;
   const TypeIcon = mimeType === 'pdf' ? FileText : ImageIcon;
 
-  // V5.9 — Mount portal target uniquement côté client (évite hydration mismatch)
-  const [portalReady, setPortalReady] = React.useState(false);
-  React.useEffect(() => {
-    setPortalReady(true);
-  }, []);
-
-  if (!portalReady || typeof window === 'undefined') return <></>;
-
-  const viewerNode = (
-    <AnimatePresence>
-      {open && document && (
+  return (
+    <Overlay
+      open={open && !!document}
+      onClose={onClose}
+      variant="fullscreen"
+      zToken="docViewer"
+      swipeToDismiss={false}
+      ariaLabel={document ? `Visionneuse sécurisée : ${document.name}` : 'Visionneuse sécurisée'}
+      panelClassName={className}
+    >
+      {document && (
         <>
-          {/* Backdrop — click pour fermer */}
-          <motion.div
-            key="viewer-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[400] bg-slate-950/80 backdrop-blur-sm"
-            aria-hidden="true"
-          />
-
-          {/* Viewer panel */}
-          <motion.div
-            key="viewer-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Visionneuse sécurisée : ${document.name}`}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className={`fixed inset-4 z-[401] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:inset-8 ${className}`}
-          >
             {/* ─── A. Header ───────────────────────────────────────────── */}
             <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
               <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -325,7 +286,7 @@ export function SecureDocumentViewer({
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white sm:h-9 sm:w-9 text-slate-600 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
                     title="Télécharger le document"
                     aria-label="Télécharger le document"
                   >
@@ -335,7 +296,7 @@ export function SecureDocumentViewer({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white sm:h-9 sm:w-9 text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
                   aria-label="Fermer la visionneuse"
                 >
                   <X className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
@@ -355,7 +316,7 @@ export function SecureDocumentViewer({
                       className="h-full w-full border-0 bg-white"
                     />
                   ) : mimeType === 'image' ? (
-                    <div className="flex h-full w-full items-center justify-center p-4 sm:p-8">
+                    <div className="flex h-full w-full items-center justify-center p-4 sm:p-8" style={{ touchAction: 'pinch-zoom' }}>
                       <img
                         src={document.url}
                         alt={document.name}
@@ -396,15 +357,10 @@ export function SecureDocumentViewer({
                 {finalIdentity}
               </p>
             </footer>
-          </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </Overlay>
   );
-
-  // V5.9 — Rendu via portal au niveau du body pour échapper au stacking
-  // context de la modale parente (CandidateAuditModal).
-  return createPortal(viewerNode, window.document.body);
 }
 
 // ─── Aperçu synthétique IA (document sans URL ou format non prévisualisable) ──
