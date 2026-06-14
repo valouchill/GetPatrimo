@@ -11,6 +11,10 @@ const GuarantorSchema = new mongoose.Schema({
   
   // Informations du garant
   email: { type: String, required: true, trim: true, lowercase: true },
+  // Sécurité (audit passe-5) : email du CANDIDAT qui a invité ce garant. L'applyToken est PARTAGÉ
+  // entre tous les candidats d'une annonce → sans ce scope, un candidat héritait du garant certifié
+  // d'un autre et voyait son identité KYC. Renseigné à l'invitation, filtré au scoring.
+  tenantEmail: { type: String, default: '', trim: true, lowercase: true, index: true },
   firstName: { type: String, default: '' },
   lastName: { type: String, default: '' },
   
