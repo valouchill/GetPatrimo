@@ -1,13 +1,14 @@
 /**
- * Maison Patrimo — logo purement typographique.
+ * Maison Patrimo — logo typographique moderne (wordmark sans-serif).
  *
- * Plus de pictogramme : le logo EST le nom, posé en Playfair Display (registre
- * « banque privée »). Une seule source de vérité pour toute l'app.
+ * Registre « Apple / fintech » : Inter, épuré, avec un contraste de graisse
+ * subtil (« Maison » fin / « Patrimo » gras) pour ancrer le nom distinctif.
+ * Plus de pictogramme : le logo EST le nom. Source unique pour toute l'app.
  * - `variant` : 'light' (émeraude profond sur fond clair, défaut) | 'dark'
  *   (blanc sur fond sombre / émeraude / navy).
  * - La taille se règle via `className` (text-lg, text-xl, text-2xl…).
  */
-const SERIF = "'Playfair Display', Georgia, serif";
+const SANS = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
 export const Logo = ({
   className = 'text-2xl',
@@ -19,10 +20,10 @@ export const Logo = ({
   const color = variant === 'dark' ? 'text-white' : 'text-emerald-950';
   return (
     <span
-      className={`font-bold tracking-tight whitespace-nowrap select-none ${color} ${className}`}
-      style={{ fontFamily: SERIF }}
+      className={`whitespace-nowrap tracking-tight select-none ${color} ${className}`}
+      style={{ fontFamily: SANS }}
     >
-      Maison Patrimo
+      <span className="font-normal">Maison</span> <span className="font-bold">Patrimo</span>
     </span>
   );
 };
