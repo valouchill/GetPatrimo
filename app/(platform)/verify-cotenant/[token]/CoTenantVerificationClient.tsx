@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { Logo } from '@/app/components/Logo';
 import { ShieldCheck, Loader2, CheckCircle2, AlertCircle, Fingerprint } from 'lucide-react';
 
 interface CoTenantInfo {
@@ -107,11 +108,10 @@ export default function CoTenantVerificationClient({ token }: { token: string })
       <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 shadow-2xl sm:p-10">
         {/* En-tête */}
         <div className="text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-900">
-            <ShieldCheck className="h-6 w-6 text-amber-400" aria-hidden="true" />
-          </span>
-          <p className="mt-4 font-serif text-lg font-semibold text-emerald-900">Maison Patrimo</p>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex justify-center">
+            <Logo variant="light" className="h-11" />
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Colocation — Certification d’identité
           </p>
         </div>
