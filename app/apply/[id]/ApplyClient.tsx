@@ -3874,7 +3874,7 @@ export default function ApplyClient({ token }: { token: string }) {
                       initial={{ y: 30, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.4, duration: 0.5 }}
-                      className="relative bg-gradient-to-br from-navy via-slate-800 to-navy rounded-[2rem] p-8 shadow-2xl shadow-navy/40 border border-white/10 min-w-[320px]"
+                      className="relative bg-gradient-to-br from-navy via-slate-800 to-navy rounded-[2rem] p-8 shadow-2xl shadow-navy/40 border border-white/10 min-w-0 sm:min-w-[320px]"
                     >
                       {/* Badge vérifié */}
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1.5">
