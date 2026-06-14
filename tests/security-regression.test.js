@@ -414,6 +414,15 @@ describe('EXÉCUTABLE — sceau HMAC serveur des signaux de confiance (C1, CRITI
     assert.equal(doc.status, 'NEEDS_REVIEW');
   });
 
+  it('robuste à l\'aller-retour JSON (transport supprime les undefined) — anti-neutralisation légitime', () => {
+    const a = makeAnalysis();
+    a.financial_data.extra_details.bonus = undefined;
+    a.trust_and_security.human_review_reason = undefined;
+    a._trustSig = seal.signAnalysisTrust(a);
+    const overTheWire = JSON.parse(JSON.stringify(a)); // NextResponse.json → fetch().json()
+    assert.equal(seal.verifyAnalysisTrust(overTheWire), true);
+  });
+
   it('sceau indépendant de l\'ordre des clés (stableStringify)', () => {
     const a = makeAnalysis();
     a._trustSig = seal.signAnalysisTrust(a);
