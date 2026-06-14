@@ -220,3 +220,22 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile (audit UX) : zone tactile des curseurs input[type=range] sur écrans TACTILES
+   (pointer: coarse). La piste reste fine visuellement mais la hauteur cliquable passe à ~44px
+   (Apple HIG) et la poignée est agrandie → curseur d'estimation de loyer & co. saisissables au
+   doigt. Aucun effet sur desktop (pointer: fine). */
+@media (pointer: coarse) {
+  input[type='range'] {
+    min-height: 2.75rem;
+    cursor: pointer;
+  }
+  input[type='range']::-webkit-slider-thumb {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+  input[type='range']::-moz-range-thumb {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+}
