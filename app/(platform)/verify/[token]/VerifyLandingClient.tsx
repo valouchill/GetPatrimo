@@ -458,7 +458,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
       {/* Header Sticky */}
       <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/50">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Logo variant="dark" className="h-10" />
+          <Logo variant="dark" className="text-xl" />
           <h1 className="sr-only">Dossier locatif certifié — Maison Patrimo</h1>
           <motion.div
             className="px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"
@@ -1037,7 +1037,7 @@ export default function VerifyLandingClient({ token }: { token: string }) {
       <footer className="border-t border-slate-800 py-8 mt-12">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center mb-3">
-            <Logo variant="dark" className="h-8" />
+            <Logo variant="dark" className="text-base" />
           </div>
           <p className="text-slate-500 text-xs max-w-md mx-auto">
             Maison Patrimo est conforme à la Loi Alur et au RGPD. 

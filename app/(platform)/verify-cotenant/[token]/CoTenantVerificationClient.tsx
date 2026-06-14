@@ -109,7 +109,7 @@ export default function CoTenantVerificationClient({ token }: { token: string })
         {/* En-tête */}
         <div className="text-center">
           <div className="flex justify-center">
-            <Logo variant="light" className="h-11" />
+            <Logo variant="light" className="text-2xl" />
           </div>
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Colocation — Certification d’identité

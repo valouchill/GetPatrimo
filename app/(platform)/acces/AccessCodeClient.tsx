@@ -86,7 +86,7 @@ export default function AccessCodeClient() {
             className="inline-flex transition-opacity hover:opacity-80"
             aria-label="Maison Patrimo — accueil"
           >
-            <Logo variant="light" className="h-8" />
+            <Logo variant="light" className="text-lg" />
           </Link>
         </div>
 

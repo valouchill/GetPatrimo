@@ -326,9 +326,8 @@ export default function OwnerDashboardClient() {
       <aside className={`fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
-            <Logo variant="light" className="h-9" showText={false} />
             <div className="flex-1">
-              <div className="font-serif text-base font-bold tracking-tight text-emerald-950">Maison Patrimo</div>
+              <Logo variant="light" className="text-lg" />
               <div className="mt-0.5 inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">Propriétaire</div>
             </div>
             <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:hidden" aria-label="Fermer le menu">

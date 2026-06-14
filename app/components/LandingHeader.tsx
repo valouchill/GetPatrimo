@@ -19,7 +19,7 @@ export default function LandingHeader() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center" onClick={() => setOpen(false)}>
-          <Logo className="h-9" />
+          <Logo className="text-xl" />
         </Link>
 
         {/* Liens centraux (desktop) */}

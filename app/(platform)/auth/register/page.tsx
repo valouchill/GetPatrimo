@@ -214,7 +214,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center group">
-            <Logo className="h-10" />
+            <Logo className="text-2xl" />
           </Link>
         </div>
 

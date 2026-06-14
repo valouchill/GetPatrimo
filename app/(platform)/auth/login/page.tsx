@@ -295,7 +295,7 @@ export default function LoginPage() {
         >
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center">
-              <Logo className="h-10" />
+              <Logo className="text-2xl" />
             </Link>
           </div>
           <div className="bg-white/90 backdrop-blur-xl p-10 rounded-3xl shadow-2xl shadow-slate-200/60 border border-slate-100">
@@ -357,7 +357,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center group">
-            <Logo className="h-10" />
+            <Logo className="text-2xl" />
           </Link>
         </div>
 
