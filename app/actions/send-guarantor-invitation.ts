@@ -78,6 +78,7 @@ export async function sendGuarantorInvitation(
       guarantor.slot = guarantor.slot === 2 ? 2 : 1;
       guarantor.invitationToken = invitationToken;
       guarantor.invitationSentAt = new Date();
+      guarantor.tenantEmail = sessionEmail; // Sécurité (audit passe-5) : scope au candidat invitant.
       if (guarantorFirstName) guarantor.firstName = guarantorFirstName;
       if (guarantorLastName) guarantor.lastName = guarantorLastName;
     } else {
@@ -87,6 +88,7 @@ export async function sendGuarantorInvitation(
         applyToken: applyToken, // Token de la page apply
         slot: 1,
         email: guarantorEmail.toLowerCase(),
+        tenantEmail: sessionEmail, // Sécurité (audit passe-5) : scope au candidat invitant.
         firstName: guarantorFirstName || '',
         lastName: guarantorLastName || '',
         status: 'PENDING',

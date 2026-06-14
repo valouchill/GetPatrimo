@@ -446,3 +446,39 @@ describe('C1 — câblage serveur-autoritaire (présence-source)', () => {
     assertContains('app/apply/[id]/ApplyClient.tsx', ['_trustSig: (analysis as { _trustSig?: string })._trustSig'], 'client passthrough');
   });
 });
+
+// ─────────────────────────── Garant — sceau v2 + audit + scoping (passe-5) ───────────────────────────
+describe('EXÉCUTABLE — sceau v2 couvre document_metadata (anti-forge audit garant)', () => {
+  const seal = require('../lib/analysis-trust-seal');
+  const ar = () => ({ financial_data: {}, trust_and_security: { fraud_score: 3, digital_seal_authenticated: true }, document_metadata: { type: 'CNI', owner_name: 'DUPONT Jean' } });
+  it('owner_name scellé : falsifier la concordance de nom invalide le sceau', () => {
+    const a = ar(); a._trustSig = seal.signAnalysisTrust(a);
+    const wire = JSON.parse(JSON.stringify(a));
+    assert.equal(seal.verifyAnalysisTrust(wire), true);
+    wire.document_metadata.owner_name = 'AUTRE Personne';
+    assert.equal(seal.verifyAnalysisTrust(wire), false);
+  });
+  it('digital_seal scellé : le forger invalide le sceau', () => {
+    const a = ar(); a._trustSig = seal.signAnalysisTrust(a);
+    const wire = JSON.parse(JSON.stringify(a));
+    wire.trust_and_security.digital_seal_authenticated = false;
+    assert.equal(seal.verifyAnalysisTrust(wire), false);
+  });
+});
+describe('Garant — audit serveur-autoritaire + scoping par candidat (présence-source)', () => {
+  it('auditGuarantorIdentity ne croit les signaux QUE si le doc est scellé', () => {
+    assertContains('app/actions/audit-identity.ts',
+      ['verifyAnalysisTrust(doc.analysisResult)', 'const trusted = sealed ? doc.analysisResult : undefined', 'mrzLines: sealed ? doc.mrzLines : undefined'],
+      'audit seal');
+  });
+  it('GuarantorAuditSchema préserve analysisResult complet + _trustSig', () => {
+    assertContains('lib/validations/guarantor.ts',
+      ['_trustSig: z.string().optional()', 'z.record(z.string(), z.unknown())'], 'schema preserve');
+  });
+  it('Guarantor scopé au candidat (tenantEmail) : modèle + invitation + lookups', () => {
+    assertContains('models/Guarantor.js', ['tenantEmail'], 'model tenantEmail');
+    assertContains('app/actions/send-guarantor-invitation.ts', ['guarantor.tenantEmail = sessionEmail', 'tenantEmail: sessionEmail'], 'invite');
+    assertContains('app/actions/application-actions.ts',
+      ['tenantEmail: userEmail.toLowerCase(), status:', 'Guarantor.find({ applyToken, tenantEmail: userEmail.toLowerCase() })'], 'lookups');
+  });
+});

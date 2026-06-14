@@ -262,7 +262,7 @@ export async function saveApplicationProgress(
       if (isCertClaim) {
         // Élévation CERTIFIED/AUDITED acceptée UNIQUEMENT si un garant est réellement certifié
         // côté serveur (statut posé par /api/guarantor/{status,audit} après vérification Didit/audit).
-        const serverCertified = await Guarantor.exists({ applyToken, status: 'CERTIFIED' });
+        const serverCertified = await Guarantor.exists({ applyToken, tenantEmail: userEmail.toLowerCase(), status: 'CERTIFIED' });
         if (serverCertified) {
           application.guarantor.status = data.guarantorStatus;
           application.guarantor.hasGuarantor = true;
@@ -295,7 +295,7 @@ export async function saveApplicationProgress(
     let guarantorOne: unknown = null;
     let guarantorTwo: unknown = null;
     try {
-      const guarantorRecords = (await Guarantor.find({ applyToken })
+      const guarantorRecords = (await Guarantor.find({ applyToken, tenantEmail: userEmail.toLowerCase() })
         .select('firstName lastName status identityVerification slot')
         .lean()) as unknown as Array<Record<string, unknown>>;
       guarantorOne = guarantorRecords.find((g) => Number(g.slot) !== 2) || null;

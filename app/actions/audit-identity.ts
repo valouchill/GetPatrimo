@@ -1,6 +1,8 @@
 'use server';
 
 import { validateMRZ, compareMRZWithIdentity } from './validate-mrz';
+// Sécurité (audit passe-5) : sceau HMAC serveur des signaux d'analyse (cf. lib/analysis-trust-seal).
+const { verifyAnalysisTrust } = require('@/lib/analysis-trust-seal');
 
 /**
  * Server Action pour l'Audit d'Identité Maison Patrimo
@@ -410,12 +412,19 @@ export async function auditGuarantorIdentity(
       type = 'BULLETIN_SALAIRE';
     }
     
-    // Extraire nom/prénom depuis owner_name
+    // Sécurité (audit passe-5) : on ne fait confiance aux signaux d'analyse (owner_name pour la
+    // concordance de nom, sceau 2D-Doc/digital_seal, MRZ) QUE si le document porte un sceau serveur
+    // VALIDE (posé par /api/analyze-document-v2 au moment de l'analyse). Sinon les valeurs fournies
+    // par le client sont IGNORÉES → impossible de certifier un garant à partir de signaux fabriqués.
+    const sealed = verifyAnalysisTrust(doc.analysisResult);
+    const trusted = sealed ? doc.analysisResult : undefined;
+
+    // Extraire nom/prénom depuis owner_name (uniquement si scellé)
     let extractedFirstName: string | undefined;
     let extractedLastName: string | undefined;
     
-    if (doc.analysisResult?.document_metadata?.owner_name) {
-      const parts = doc.analysisResult.document_metadata.owner_name.split(' ');
+    if (trusted?.document_metadata?.owner_name) {
+      const parts = trusted.document_metadata.owner_name.split(' ');
       if (parts.length >= 2) {
         extractedLastName = parts[0];
         extractedFirstName = parts.slice(1).join(' ');
@@ -427,9 +436,9 @@ export async function auditGuarantorIdentity(
       fileName: doc.fileName,
       extractedFirstName,
       extractedLastName,
-      mrzLines: doc.mrzLines,
-      has2DDoc: !!doc.analysisResult?.trust_and_security?.digital_seal_authenticated,
-      docAuthenticated: doc.analysisResult?.trust_and_security?.digital_seal_authenticated
+      mrzLines: sealed ? doc.mrzLines : undefined,
+      has2DDoc: !!trusted?.trust_and_security?.digital_seal_authenticated,
+      docAuthenticated: trusted?.trust_and_security?.digital_seal_authenticated
     };
   });
   
