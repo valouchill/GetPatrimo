@@ -10,6 +10,8 @@ import { useSession } from 'next-auth/react';
 import { processDossier } from '@/app/actions/process-dossier';
 import { saveApplicationProgress, getApplication, submitApplication, deleteApplicationDocuments } from '@/app/actions/application-actions';
 import { createTenantAccount } from '@/app/actions/create-tenant-account';
+import { ConsentCheckboxes } from '@/app/components/ConsentCheckboxes';
+import { EMPTY_CONSENT, type ConsentValues } from '@/lib/legal/consent';
 import PassportStudio from '@/app/components/PassportStudio';
 import type { DocumentFile, CandidateStatus, GuaranteeMode, Property, AiFeedback, AnalysisV2Result, CertificationItem } from './types';
 import {
@@ -698,6 +700,7 @@ export default function ApplyClient({ token }: { token: string }) {
   const [contactStep, setContactStep] = useState<'pending' | 'active' | 'completed'>('pending');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [tenantConsent, setTenantConsent] = useState<ConsentValues>(EMPTY_CONSENT);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
@@ -4001,13 +4004,24 @@ export default function ApplyClient({ token }: { token: string }) {
                             </div>
                           </div>
 
+                          {/* Consentements RGPD */}
+                          <div className="mt-5 border-t border-slate-100 pt-5">
+                            <ConsentCheckboxes
+                              values={tenantConsent}
+                              onChange={setTenantConsent}
+                              variant="tenant"
+                            />
+                          </div>
+
                           {/* Bouton Continuer */}
                           <button
                             onClick={async () => {
-                              if (!contactPhone || (!contactEmail && !formData.email)) {
+                              if (!contactPhone || (!contactEmail && !formData.email) || !tenantConsent.terms) {
                                 setAiFeedback({
                                   visible: true,
-                                  message: '❌ Veuillez renseigner votre téléphone et email',
+                                  message: !tenantConsent.terms
+                                    ? '❌ Veuillez accepter les CGU et les CGV pour continuer'
+                                    : '❌ Veuillez renseigner votre téléphone et email',
                                   type: 'error',
                                 });
                                 setTimeout(() => setAiFeedback(prev => ({ ...prev, visible: false })), 4000);
@@ -4021,7 +4035,11 @@ export default function ApplyClient({ token }: { token: string }) {
                                   phone: contactPhone,
                                   firstName: formData.firstName || diditIdentity?.firstName,
                                   lastName: formData.lastName || diditIdentity?.lastName,
-                                }, diditIdentity || undefined);
+                                }, diditIdentity || undefined, {
+                                  terms: tenantConsent.terms,
+                                  marketing: tenantConsent.marketing,
+                                  partner: tenantConsent.partner,
+                                });
 
                                 if (result.success) {
                                   setAccountCreated(true);

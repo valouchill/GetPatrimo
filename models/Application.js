@@ -208,6 +208,16 @@ const ApplicationSchema = new mongoose.Schema({
     phone: { type: Boolean, default: false },
     phoneVerifiedAt: { type: Date },
   },
+
+  // Consentements légaux (RGPD art. 7) — locataire du tunnel de candidature.
+  legalConsent: {
+    termsAcceptedAt: { type: Date },
+    termsVersion: { type: String, default: '' },
+    marketingConsent: { type: Boolean, default: false },
+    marketingConsentAt: { type: Date },
+    partnerSharingConsent: { type: Boolean, default: false },
+    partnerSharingConsentAt: { type: Date },
+  },
   
   // Magic Link pour accès sans mot de passe
   magicLinkToken: { type: String, index: true },

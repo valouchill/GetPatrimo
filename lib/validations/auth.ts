@@ -11,6 +11,10 @@ export const RegisterSchema = z.object({
   role: z.enum(['owner', 'tenant']).default('owner'),
   // Optionnel : un locataire sans code crée un Passeport Locatif universel (codeless).
   propertyCode: z.string().regex(/^PT-\d{5}-[A-Z0-9]{4}$/, 'Format de code invalide (ex: PT-75001-K7M9)').optional(),
+  // Consentement légal (RGPD) — acceptTerms (CGU+CGV+confidentialité) OBLIGATOIRE ; les 2 autres optionnels.
+  acceptTerms: z.boolean().refine((v) => v === true, 'Vous devez accepter les CGU et les CGV pour créer un compte'),
+  marketingConsent: z.boolean().optional().default(false),
+  partnerSharingConsent: z.boolean().optional().default(false),
 });
 
 export const LoginPasswordSchema = z.object({
