@@ -75,10 +75,10 @@ export function Btn({ children, variant = 'primary', onClick, disabled, classNam
 
 export function StatCard({ icon, value, label, bg = 'bg-amber-50' }: { icon: React.ReactNode; value: string | number; label: string; bg?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
       <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>{icon}</div>
-      <div className="text-[1.75rem] font-bold tracking-tight text-slate-950">{value}</div>
-      <div className="mt-1 text-sm text-slate-500">{label}</div>
+      <div className="truncate text-2xl font-bold tracking-tight tabular-nums text-slate-950 sm:text-[1.75rem]">{value}</div>
+      <div className="mt-1 truncate text-sm text-slate-500">{label}</div>
     </div>
   );
 }

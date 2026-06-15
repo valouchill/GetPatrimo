@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Logo } from '@/app/components/Logo';
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -11,7 +12,6 @@ import {
   Sparkles,
   Loader2,
   AlertCircle,
-  Building2,
 } from "lucide-react";
 import { Button } from "@/app/components/ui";
 import { PRODUCT } from "@/lib/product-lexicon";
@@ -83,10 +83,10 @@ export default function AccessCodeClient() {
         <div className="mb-8 text-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-slate-500 transition-colors hover:text-slate-700"
+            className="inline-flex transition-opacity hover:opacity-80"
+            aria-label="Maison Patrimo — accueil"
           >
-            <Building2 className="h-4 w-4" aria-hidden="true" />
-            <span className="text-sm font-semibold">Maison Patrimo</span>
+            <Logo variant="light" className="text-lg" />
           </Link>
         </div>
 

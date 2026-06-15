@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Logo } from '@/app/components/Logo';
 import { useNotification } from '@/app/hooks/useNotification';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -457,15 +458,8 @@ export default function VerifyLandingClient({ token }: { token: string }) {
       {/* Header Sticky */}
       <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/50">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center">
-              <span className="text-slate-900 font-bold text-lg">P</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-wide">Maison Patrimo</h1>
-              <p className="text-[9px] text-slate-500 uppercase tracking-[0.2em]">Standard de Confiance Immobilier</p>
-            </div>
-          </div>
+          <Logo variant="dark" className="text-xl" />
+          <h1 className="sr-only">Dossier locatif certifié — Maison Patrimo</h1>
           <motion.div
             className="px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2"
             style={{ 
@@ -1042,11 +1036,8 @@ export default function VerifyLandingClient({ token }: { token: string }) {
       {/* Footer */}
       <footer className="border-t border-slate-800 py-8 mt-12">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-              <span className="text-slate-900 font-bold">P</span>
-            </div>
-            <span className="text-amber-400 font-bold text-lg">Maison Patrimo</span>
+          <div className="flex items-center justify-center mb-3">
+            <Logo variant="dark" className="text-base" />
           </div>
           <p className="text-slate-500 text-xs max-w-md mx-auto">
             Maison Patrimo est conforme à la Loi Alur et au RGPD. 

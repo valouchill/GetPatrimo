@@ -1,7 +1,8 @@
 'use client';
 
 import { memo, useState, useCallback, type FormEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 import { X, Home, User, FileText, Loader2 } from 'lucide-react';
 
 interface AddManagementModalProps {
@@ -126,31 +127,18 @@ const AddManagementModal = memo(function AddManagementModal({
   const canGoStep3 = tenantFirstName.trim() && tenantLastName.trim() && tenantEmail.trim();
   const canSubmit = rentAmount && startDate;
 
-  if (!open) return null;
-
   const inputCls = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-colors';
   const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-        onClick={handleClose}
-        aria-modal="true"
-        role="dialog"
-        aria-label="Ajouter un bien en gestion"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
+    <Overlay
+      variant="sheet"
+      size="md"
+      open={open}
+      onClose={handleClose}
+      ariaLabel="Ajouter un bien en gestion"
+    >
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
@@ -443,9 +431,8 @@ const AddManagementModal = memo(function AddManagementModal({
               )}
             </div>
           </form>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        </div>
+    </Overlay>
   );
 });
 

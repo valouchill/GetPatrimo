@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { Logo } from '@/app/components/Logo';
 import { motion } from 'framer-motion';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
-  ShieldCheckIcon,
   DocumentTextIcon,
   HomeIcon,
   UserCircleIcon,
@@ -190,13 +190,10 @@ export default function TenantDashboardClient({
         <div className="container mx-auto px-4 py-3 md:px-6 md:py-4">
           <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3 md:gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-navy to-slate-700 rounded-xl flex items-center justify-center">
-                <ShieldCheckIcon className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-navy">Maison Patrimo</h1>
-                <p className="text-xs text-slate-500">Espace Locataire</p>
-              </div>
+              <Logo variant="light" className="text-xl" />
+              <h1 className="sr-only">Espace locataire — Maison Patrimo</h1>
+              <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
+              <p className="hidden text-xs font-medium text-slate-500 sm:block">Espace Locataire</p>
             </div>
 
             <div className="flex min-w-0 flex-wrap items-center gap-4">

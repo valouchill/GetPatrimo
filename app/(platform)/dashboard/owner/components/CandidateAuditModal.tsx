@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
   Clock,
@@ -17,6 +16,7 @@ import type { LocalDossier, LocalBien } from './ui';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
 import { Button } from '@/app/components/ui/Button';
+import { Overlay } from '@/app/components/ui/Overlay';
 import {
   CandidateAiReport,
   type AiReportCandidate,
@@ -276,6 +276,7 @@ export function CandidateAuditModal({
   onResumeLease,
 }: CandidateAuditModalProps) {
   const titleId = React.useId();
+  const bodyScrollRef = React.useRef<HTMLDivElement>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = React.useState(false);
   // V7.12.1 — Etat dedie a l'action "retirer la selection"
@@ -416,48 +417,45 @@ export function CandidateAuditModal({
     }
   };
 
+  const decisionButtons = (
+    <>
+      <Button
+        variant="outline"
+        size="md"
+        onClick={canRenderUnselect ? handleUnselect : onClose}
+        disabled={isBusy}
+        loading={canRenderUnselect && actionLoading}
+        iconLeft={<XCircle className="h-4 w-4" />}
+        className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 sm:flex-none"
+      >
+        {canRenderUnselect ? 'Retirer la sélection' : 'Écarter'}
+      </Button>
+      <Button
+        variant="primary"
+        size="md"
+        onClick={isSelected ? () => onResumeLease?.(c) : () => setConfirmOpen(true)}
+        disabled={isBusy || (isSelected && !onResumeLease)}
+        iconRight={<CheckCircle2 className="h-4 w-4" />}
+        className="flex-1 bg-amber-500 text-white hover:bg-amber-600 shadow-amber sm:flex-1"
+      >
+        {isSelected ? 'Reprendre le bail' : 'Retenir ce locataire'}
+      </Button>
+    </>
+  );
+
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="audit-modal-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          {/* Modale (desktop centrée / mobile bottom-sheet) */}
-          <motion.div
-            key="audit-modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            initial={{ opacity: 0, y: 40, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className={[
-              'fixed z-[201] flex flex-col overflow-hidden bg-slate-50 shadow-premium',
-              // Mobile : bottom sheet
-              'inset-x-0 bottom-0 max-h-[94vh] rounded-t-modal',
-              // Desktop : modale centrée
-              'md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-h-[92vh] md:w-[calc(100vw-2rem)] md:max-w-5xl md:rounded-modal',
-            ].join(' ')}
-          >
-            {/* Mobile handle */}
-            <div className="flex justify-center bg-white pt-2.5 pb-1 md:hidden">
-              <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
-            </div>
-
-            {/* ─── V7.12 — STICKY HEADER (identite + score V2 + actions) ──── */}
+    <>
+      <Overlay
+        open={open}
+        onClose={onClose}
+        variant="fullscreen"
+        size="5xl"
+        zToken="modal"
+        ariaLabelledBy={titleId}
+      >
+            {/* ─── STICKY HEADER (identite + score V2 + actions) ──── */}
             <header
-              className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white/95 px-5 py-5 backdrop-blur-xl md:px-6"
+              className="sticky top-0 z-30 shrink-0 border-b border-slate-200 bg-white/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-xl md:px-6 md:pb-5 md:pt-5"
               id={titleId}
             >
               {/* Ligne 1 : identite + score + close */}
@@ -466,7 +464,7 @@ export function CandidateAuditModal({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
                     Dossier Candidat
                   </p>
-                  <h2 className="mt-0.5 truncate font-serif text-2xl font-bold leading-tight text-emerald-900 sm:text-3xl">
+                  <h2 className="mt-0.5 truncate font-serif text-xl font-bold leading-tight text-emerald-900 sm:text-3xl">
                     {c.isColocation && c.householdLabel
                       ? c.householdLabel
                       : `${(c.prenom || '').trim()} ${(c.nom || '').trim()}`.trim()}
@@ -517,7 +515,7 @@ export function CandidateAuditModal({
                         Indice de Résilience
                       </p>
                       <div className="flex items-baseline gap-1">
-                        <span className="tabular-nums font-serif text-3xl font-bold leading-none text-emerald-900 sm:text-4xl">
+                        <span className="tabular-nums font-serif text-2xl font-bold leading-none text-emerald-900 sm:text-4xl">
                           {score}
                         </span>
                         <span className="text-sm font-semibold text-slate-500">
@@ -586,38 +584,14 @@ export function CandidateAuditModal({
                   V7.12.1 — Si candidat selectionne ET onResumeLease fourni,
                   bascule en "Reprendre la preparation du bail" + bouton
                   rouge devient "Retirer la selection" si onUnselect dispo. */}
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={canRenderUnselect ? handleUnselect : onClose}
-                  disabled={isBusy}
-                  loading={canRenderUnselect && actionLoading}
-                  iconLeft={<XCircle className="h-4 w-4" />}
-                  className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 sm:flex-none"
-                >
-                  {canRenderUnselect ? 'Retirer la sélection' : 'Écarter'}
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={
-                    isSelected
-                      ? () => onResumeLease?.(c)
-                      : () => setConfirmOpen(true)
-                  }
-                  disabled={isBusy || (isSelected && !onResumeLease)}
-                  iconRight={<CheckCircle2 className="h-4 w-4" />}
-                  className="bg-amber-500 text-white hover:bg-amber-600 shadow-amber sm:flex-1"
-                >
-                  {isSelected ? 'Reprendre le bail' : 'Retenir ce locataire'}
-                </Button>
+              <div className="mt-4 hidden gap-2 sm:flex sm:flex-row sm:items-center">
+                {decisionButtons}
               </div>
             </header>
 
             {/* AIPD §2.4 / M9 — art. 22 RGPD : la sortie IA est une aide à la décision,
                 jamais une décision. Mention systématique sur l'écran où l'owner tranche. */}
-            <p className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-5 py-2 text-[11px] leading-snug text-slate-500 md:px-6">
+            <p className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-4 py-1.5 text-[10px] leading-snug text-slate-500 md:px-6 md:py-2 md:text-[11px]">
               Analyse générée par IA — <strong className="font-semibold text-slate-600">résultat indicatif</strong> nécessitant
               votre vérification humaine des pièces. La décision de location vous appartient ; le candidat peut
               signaler une erreur d&apos;analyse et obtenir un réexamen.
@@ -643,9 +617,12 @@ export function CandidateAuditModal({
             <div className="flex flex-1 flex-col overflow-hidden">
               <Tabs
                 defaultValue="synthesis"
+                onValueChange={() =>
+                  bodyScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+                }
                 className="flex flex-1 flex-col overflow-hidden"
               >
-                <div className="shrink-0 px-5 pt-4 pb-2 md:px-6">
+                <div className="shrink-0 px-4 pt-2 pb-2 md:px-6 md:pt-4">
                   <TabsList className="w-full">
                     <TabsTrigger value="synthesis">
                       <span className="inline-flex items-center gap-1.5">
@@ -669,7 +646,10 @@ export function CandidateAuditModal({
                 </div>
 
                 {/* Zone scroll independante (le header reste fixe) */}
-                <div className="flex-1 overflow-y-auto bg-slate-50">
+                <div
+                  ref={bodyScrollRef}
+                  className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+                >
                   <TabsContent value="synthesis">
                     {/* CandidateAiReport sans son footer d'actions :
                         Onclick onValidate/onReject = undefined -> footer masqué.
@@ -704,9 +684,14 @@ export function CandidateAuditModal({
                 </div>
               </Tabs>
             </div>
-          </motion.div>
-        </>
-      )}
+
+            {/* Barre d'action mobile (pouce) — la décision migre en bas sur
+                mobile pour alléger l'en-tête fixe. Masquée en desktop (boutons
+                dans le header). */}
+            <div className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-xl sm:hidden">
+              {decisionButtons}
+            </div>
+      </Overlay>
 
       {/* Modale de confirmation déclenchée par "Valider".
           La modale reste ouverte pendant l'appel API (onSelect peut être
@@ -736,6 +721,6 @@ export function CandidateAuditModal({
         reasonCodes={c.reasonCodes}
         loading={confirmLoading}
       />
-    </AnimatePresence>
+    </>
   );
 }
