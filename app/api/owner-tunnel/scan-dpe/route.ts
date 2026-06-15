@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scanDPE } from '../../../../lib/owner-tunnel/dpe-scanner';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });

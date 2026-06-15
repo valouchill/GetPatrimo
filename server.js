@@ -53,13 +53,15 @@ const app = express();
 app.set('trust proxy', 1);
 
 // --- Securite : headers HTTP ---
-// NOTE: unsafe-inline/unsafe-eval requis par Next.js (hydration scripts) et Stripe.js.
-// Pour durcir: migrer vers nonce-based CSP quand Next.js le supporte nativement.
+// NOTE: 'unsafe-inline' reste requis (scripts d'hydratation Next.js + Stripe.js). En revanche
+// 'unsafe-eval' a été RETIRÉ (pentest ChatGPT P2/P3) : Next 16 (webpack runtime) et Stripe.js
+// n'ont pas besoin d'eval(). Prochaine étape de durcissement : nonce-based CSP (retrait de
+// 'unsafe-inline') quand Next.js le supporte nativement.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],

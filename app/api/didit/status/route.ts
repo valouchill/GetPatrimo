@@ -75,7 +75,9 @@ export async function GET(request: NextRequest) {
       
       if (response) {
         const data = await response.json();
-        logger.info('[DIDIT STATUS] Réponse API Didit', { endpoint: successEndpoint, data });
+        // Sécurité (pentest ChatGPT P2 — PII/KYC) : NE JAMAIS logger le payload Didit complet
+        // (nom, prénom, date de naissance, n° de pièce d'identité). On ne trace que le statut.
+        logger.info('[DIDIT STATUS] Réponse API Didit', { endpoint: successEndpoint, status: data?.status });
         
         // Vérifier si le statut est "Approved" ou équivalent
         // V3: data.status peut être "Approved", "Completed", etc.

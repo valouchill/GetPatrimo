@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isInvitationClosed } from '@/lib/invitation-validity';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import CoTenant from '@/models/CoTenant';
@@ -66,6 +67,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Colocataire introuvable' }, { status: 404 });
     }
 
+    // Sécurité (pentest ChatGPT P2) : lien d'invitation expiré/révoqué → plus d'accès statut
+    // (sauf dossier déjà CERTIFIED).
+    if (isInvitationClosed(coTenant)) {
+      return NextResponse.json({ error: 'Invitation expirée ou révoquée.' }, { status: 410 });
+    }
+
     let diditStatus = null;
     if (coTenant.diditSessionId) {
       try {
@@ -105,12 +112,19 @@ export async function GET(request: NextRequest) {
       ? coTenant.email.replace(/^(.{2})(.*)(@.*)$/, '$1***$3')
       : undefined;
 
+    // Sécurité (pentest ChatGPT P2) : nom/prénom en clair uniquement via le token d'invitation
+    // personnel ; masqués sur les autres chemins de résolution (applyToken+email / sessionId).
+    const viaInvitationToken = !!invitationToken;
+    const maskName = (s?: string) => (s ? `${s.charAt(0)}***` : s);
+    const outFirstName = viaInvitationToken ? coTenant.firstName : maskName(coTenant.firstName);
+    const outLastName = viaInvitationToken ? coTenant.lastName : maskName(coTenant.lastName);
+
     return NextResponse.json({
       coTenant: {
         id: coTenant._id,
         email: maskedEmail,
-        firstName: coTenant.firstName,
-        lastName: coTenant.lastName,
+        firstName: outFirstName,
+        lastName: outLastName,
         slot: coTenant.slot || 2,
         status: coTenant.status,
         identityVerification: coTenant.identityVerification

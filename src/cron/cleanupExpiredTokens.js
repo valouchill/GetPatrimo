@@ -9,7 +9,7 @@ const { connectDB } = require('../config/db');
 
 async function cleanupExpiredTokens() {
   const now = new Date();
-  const report = { otpCleaned: 0, magicLinksCleaned: 0, errors: [] };
+  const report = { otpCleaned: 0, magicLinksCleaned: 0, guarantorInvitationsRevoked: 0, cotenantInvitationsRevoked: 0, errors: [] };
 
   try {
     await connectDB();
@@ -34,6 +34,22 @@ async function cleanupExpiredTokens() {
       { $unset: { magicSignInToken: 1, magicSignInExpiresAt: 1 } }
     );
     report.magicLinksCleaned = magicResult.modifiedCount || 0;
+
+    // 3. Sécurité (pentest ChatGPT P2) : clôturer les invitations garant/colocataire EXPIRÉES et
+    // non encore certifiées (révocation = invitationRevokedAt). Non destructif (le dossier n'est
+    // pas supprimé — purge RGPD gérée ailleurs) : une invitation close fait refuser statut + KYC.
+    // Les docs legacy sans invitationExpiresAt ne matchent pas ($lt sur champ absent) → préservés.
+    const Guarantor = require('../../models/Guarantor');
+    const CoTenant = require('../../models/CoTenant');
+    const staleInvitationFilter = {
+      status: { $ne: 'CERTIFIED' },
+      invitationRevokedAt: { $exists: false },
+      invitationExpiresAt: { $lt: now },
+    };
+    const gRevoked = await Guarantor.updateMany(staleInvitationFilter, { $set: { invitationRevokedAt: now } });
+    const cRevoked = await CoTenant.updateMany(staleInvitationFilter, { $set: { invitationRevokedAt: now } });
+    report.guarantorInvitationsRevoked = gRevoked.modifiedCount || 0;
+    report.cotenantInvitationsRevoked = cRevoked.modifiedCount || 0;
 
     console.log('[cleanup] Tokens expirés nettoyés:', JSON.stringify(report));
   } catch (err) {

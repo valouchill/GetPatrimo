@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isInvitationClosed } from '@/lib/invitation-validity';
 import CoTenant from '@/models/CoTenant';
 import Property from '@/models/Property';
  
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
       coTenant = await CoTenant.findOne({ invitationToken });
       if (!coTenant) {
         return NextResponse.json({ error: 'Colocataire introuvable ou token invalide' }, { status: 404 });
+      }
+      // Sécurité (pentest ChatGPT P2) : un token expiré/révoqué ne peut plus ouvrir de session KYC.
+      if (isInvitationClosed(coTenant)) {
+        return NextResponse.json({ error: 'Invitation expirée ou révoquée.' }, { status: 410 });
       }
     } else if (applyToken && email) {
       // Option "En Direct" : créer/retrouver le colocataire pour ce bien + slot.

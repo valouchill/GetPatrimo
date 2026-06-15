@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isInvitationClosed } from '@/lib/invitation-validity';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import Guarantor from '@/models/Guarantor';
@@ -109,6 +110,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Sécurité (pentest ChatGPT P2) : un lien d'invitation expiré/révoqué n'ouvre plus le statut
+    // (sauf dossier déjà CERTIFIED). Empêche l'usage indéfini d'un token d'invitation fuité.
+    if (isInvitationClosed(guarantor)) {
+      return NextResponse.json({ error: 'Invitation expirée ou révoquée.' }, { status: 410 });
+    }
+
     // Si le garant a une session Didit, vérifier son statut
     let diditStatus = null;
     if (guarantor.diditSessionId) {
@@ -151,12 +158,20 @@ export async function GET(request: NextRequest) {
       ? guarantor.email.replace(/^(.{2})(.*)(@.*)$/, '$1***$3')
       : undefined;
 
+    // Sécurité (pentest ChatGPT P2) : ne renvoyer nom/prénom en clair QUE via le token
+    // d'invitation personnel (le garant lui-même). Sur les chemins applyToken+email / sessionId,
+    // on masque pour ne pas sur-divulguer l'identité d'un tiers à quiconque détient un identifiant.
+    const viaInvitationToken = !!invitationToken;
+    const maskName = (s?: string) => (s ? `${s.charAt(0)}***` : s);
+    const outFirstName = viaInvitationToken ? guarantor.firstName : maskName(guarantor.firstName);
+    const outLastName = viaInvitationToken ? guarantor.lastName : maskName(guarantor.lastName);
+
     return NextResponse.json({
       guarantor: {
         id: guarantor._id,
         email: maskedEmail,
-        firstName: guarantor.firstName,
-        lastName: guarantor.lastName,
+        firstName: outFirstName,
+        lastName: outLastName,
         slot: guarantor.slot || 1,
         status: guarantor.status,
         identityVerification: guarantor.identityVerification
@@ -166,8 +181,8 @@ export async function GET(request: NextRequest) {
         certificationMethod,
       },
       diditStatus: diditStatus ? { verified: diditStatus.verified } : null,
-      tenantName: guarantor.firstName && guarantor.lastName
-        ? `${guarantor.firstName} ${guarantor.lastName}`
+      tenantName: outFirstName && outLastName
+        ? `${outFirstName} ${outLastName}`
         : maskedEmail,
     });
   } catch (error) {

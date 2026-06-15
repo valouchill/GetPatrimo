@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 const SYSTEM = `Rédacteur d'annonces immobilières. Tu rédiges une annonce 120-180 mots en intégrant UNIQUEMENT les variables fournies.
 Surface et DPE viennent du JSON DPE. Atouts viennent du JSON Vision. Prix et justification viennent du Pricing Engine.
@@ -7,6 +8,8 @@ Ne fabrique jamais de chiffres ou de caractéristiques. Utilise strictement ce q
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const payload = await request.json();
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY manquante' }, { status: 500 });

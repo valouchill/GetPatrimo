@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scanVision } from '@/lib/owner-tunnel/vision-scanner';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const body = await request.json();
     const images = Array.isArray(body?.images) ? (body.images as string[]) : [];
     if (images.length === 0) return NextResponse.json({ error: 'Aucune image' }, { status: 400 });

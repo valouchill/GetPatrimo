@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchBaseMarketPrice, computePricingWithAI } from '@/lib/owner-tunnel/pricing-engine';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const body = await request.json();
     const zipcode = String(body?.zipcode || '').trim();
     const surface_m2 = Number(body?.surface_m2);

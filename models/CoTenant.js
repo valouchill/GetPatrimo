@@ -53,6 +53,9 @@ const CoTenantSchema = new mongoose.Schema({
     index: true,
     required: true,
   },
+  // Sécurité (pentest ChatGPT P2) : expiration + révocation du token d'invitation (cf. Guarantor).
+  invitationExpiresAt: { type: Date, default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) },
+  invitationRevokedAt: { type: Date },
   invitationSentAt: { type: Date },
   certifiedAt: { type: Date },
 

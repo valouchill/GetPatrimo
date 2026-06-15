@@ -79,7 +79,8 @@ export async function POST(request: NextRequest) {
       
       await guarantor.save();
       
-      logger.info('Garant certifié par Audit Maison Patrimo', { email: guarantor.email });
+      // Sécurité (pentest ChatGPT P2 — PII) : tracer l'ID du garant, pas son email.
+      logger.info('Garant certifié par Audit Maison Patrimo', { guarantorId: String(guarantor._id) });
     }
     
     return NextResponse.json({

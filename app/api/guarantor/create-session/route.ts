@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDiditDb } from '../../didit/db';
 import { logger } from '@/lib/server-logger';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isInvitationClosed } from '@/lib/invitation-validity';
 import Guarantor from '@/models/Guarantor';
 import Property from '@/models/Property';
  
@@ -26,7 +27,14 @@ export async function POST(request: NextRequest) {
   let body: { invitationToken?: string; applyToken?: string; email?: string; firstName?: string; lastName?: string; slot?: number | string };
   try {
     body = await request.json();
-    logger.info('[GUARANTOR CREATE-SESSION] Body reçu', { body });
+    // Sécurité (pentest ChatGPT P2 — PII) : ne pas logger le body (email/nom/prénom du garant).
+    // On ne trace que la forme de la requête (présence de tokens / slot), jamais les valeurs PII.
+    logger.info('[GUARANTOR CREATE-SESSION] Body reçu', {
+      hasInvitationToken: !!body?.invitationToken,
+      hasApplyToken: !!(body?.applyToken || (body as { candidatureId?: string })?.candidatureId),
+      hasEmail: !!body?.email,
+      slot: body?.slot,
+    });
   } catch (parseError) {
     logger.error('[GUARANTOR CREATE-SESSION] Erreur parsing JSON', { error: parseError instanceof Error ? parseError.message : parseError });
     return NextResponse.json(
@@ -69,6 +77,10 @@ export async function POST(request: NextRequest) {
           { error: 'Garant introuvable ou token invalide' },
           { status: 404 }
         );
+      }
+      // Sécurité (pentest ChatGPT P2) : un token expiré/révoqué ne peut plus ouvrir de session KYC.
+      if (isInvitationClosed(guarantor)) {
+        return NextResponse.json({ error: 'Invitation expirée ou révoquée.' }, { status: 410 });
       }
     } else if (effectiveApplyToken && email) {
       // Option "En Direct" : créer ou trouver le garant pour cette Property

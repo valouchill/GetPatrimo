@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAnnonce } from '../../../../lib/owner-tunnel/annonce-generator';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const payload = await request.json();
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY manquante' }, { status: 500 });

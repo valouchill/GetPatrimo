@@ -46,6 +46,12 @@ const GuarantorSchema = new mongoose.Schema({
     required: true 
   },
   
+  // Sécurité (pentest ChatGPT P2) : expiration + révocation du token d'invitation.
+  // Défaut 90 j à la création ; un doc legacy (champ absent) reste valide (rétro-compat).
+  // Un token expiré/révoqué n'ouvre plus l'accès tant que le dossier n'est pas CERTIFIED.
+  invitationExpiresAt: { type: Date, default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) },
+  invitationRevokedAt: { type: Date },
+
   // Date d'envoi de l'invitation
   invitationSentAt: { type: Date },
   

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { PropertyData } from "@/lib/owner-tunnel/property-data-schema";
 import { logger } from "@/lib/server-logger";
+import { guardOwnerTunnel } from "@/lib/owner-tunnel-guard";
 
 const SYSTEM_PROMPT = `# RÔLE ET PERSONA
 Tu es l'Expert Maison Patrimo, un concierge immobilier de très haut niveau. Ton rôle est d'accompagner un propriétaire exigeant dans la valorisation de son actif immobilier.
@@ -60,6 +61,8 @@ function extractQuickReplies(text: string): string[] | null {
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const body = await request.json();
     const propertyData = (body.propertyData ?? {}) as PropertyData;
     const userMessage = String(body.userMessage ?? "").trim();

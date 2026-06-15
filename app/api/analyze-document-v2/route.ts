@@ -65,7 +65,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Trop de requêtes, réessayez dans 1 minute.' }, { status: 429 });
     }
 
-    const formData = await request.formData();
+    // Sécurité (pentest ChatGPT P3) : valider le Content-Type AVANT de parser le multipart.
+    // Un POST JSON déclenchait request.formData() → throw → 500 (fuite de stack). On répond
+    // proprement 415 (mauvais type) / 400 (formulaire illisible) sans atteindre la logique métier.
+    const contentType = request.headers.get('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ error: 'Content-Type multipart/form-data requis' }, { status: 415 });
+    }
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json({ error: 'Formulaire illisible' }, { status: 400 });
+    }
     const file = formData.get('file') as File | null;
     const candidateStatus = formData.get('candidateStatus') as string | null;
     const candidateName = formData.get('candidateName') as string | null;

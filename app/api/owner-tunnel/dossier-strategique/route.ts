@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { computeDossierStrategique } from '@/lib/owner-tunnel/dossier-strategique-engine';
 import type { VisionAtouts } from '@/lib/owner-tunnel/schemas';
 import { logger } from '@/lib/server-logger';
+import { guardOwnerTunnel } from '@/lib/owner-tunnel-guard';
 
 const DEFAULT_ATOUTS: VisionAtouts = {
   parquet_massif: false,
@@ -12,6 +13,8 @@ const DEFAULT_ATOUTS: VisionAtouts = {
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardOwnerTunnel(request);
+    if (!guard.ok) return guard.response;
     const body = await request.json();
     const zipcode = String(body?.zipcode || '').trim();
     const surface_m2 = Number(body?.surface_m2);
