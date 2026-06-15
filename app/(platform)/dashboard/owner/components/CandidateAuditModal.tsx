@@ -594,7 +594,8 @@ export function CandidateAuditModal({
             <p className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-4 py-1.5 text-[10px] leading-snug text-slate-500 md:px-6 md:py-2 md:text-[11px]">
               Analyse générée par IA — <strong className="font-semibold text-slate-600">résultat indicatif</strong> nécessitant
               votre vérification humaine des pièces. La décision de location vous appartient ; le candidat peut
-              signaler une erreur d&apos;analyse et obtenir un réexamen.
+              signaler une erreur d&apos;analyse et obtenir un réexamen. Maison Patrimo ne garantit
+              pas la solvabilité future du locataire.
             </p>
 
             {/* V7.12.1 — Banners metier (erreur + info "deja selectionne") */}

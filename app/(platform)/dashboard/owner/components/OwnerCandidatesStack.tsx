@@ -397,7 +397,7 @@ export function OwnerCandidatesStack({
       {/* AIPD §2.4 — art. 22 RGPD : rappel systématique au-dessus de la pile de décision. */}
       <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-center text-[11px] text-slate-500 md:px-6">
         Indicateurs générés par IA, à caractère indicatif — la décision finale vous appartient après
-        vérification humaine des pièces.
+        vérification humaine des pièces. Maison Patrimo ne garantit pas la solvabilité future du locataire.
       </p>
       {/* Header avec bouton close (mode overlay) */}
       {showCloseButton && onClose && (
