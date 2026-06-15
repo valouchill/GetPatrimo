@@ -41,7 +41,10 @@ ENV NODE_ENV=production \
     NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
     MONGO_URI=$MONGO_URI \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
-    NODE_OPTIONS=--max-old-space-size=4096
+    # Heap 2048 (au lieu de 4096) : avec 3 workers concurrents en page-data, 4096 chacun
+    # dépassait la RAM dispo (7,6 Go, app+mongo+NPM live) → worker OOM/SIGTERM au build.
+    # 2048 reproduit le heap par défaut du build local qui passait. Swap 4 Go en filet.
+    NODE_OPTIONS=--max-old-space-size=2048
 RUN npm run build
 
 # ── Stage 2: Production ────────────────────────────────────────
