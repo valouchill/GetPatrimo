@@ -88,6 +88,16 @@ export default function CGV() {
             email de contact]. En cas de litige non résolu, l&apos;utilisateur peut recourir gratuitement
             au médiateur de la consommation [À COMPLÉTER : coordonnées du médiateur].
           </p>
+          <p className="mt-2">
+            <strong>Limitation de responsabilité.</strong> Le service constitue une aide à la décision
+            (obligation de moyens) : Maison Patrimo ne garantit pas la solvabilité du locataire ni le
+            paiement effectif des loyers. Sa responsabilité ne saurait être engagée au titre des impayés,
+            retards de paiement ou dégradations imputables au locataire postérieurement à l&apos;analyse,
+            dans les conditions de l&apos;article 6 des{' '}
+            <Link href="/terms" className="text-cobalt hover:underline">CGU</Link> et dans les limites de
+            la loi (art. 1231-1, 1231-3 et 1170 du Code civil ; art. L.212-1 du Code de la consommation
+            pour les utilisateurs non-professionnels).
+          </p>
         </div>
 
         <div>
