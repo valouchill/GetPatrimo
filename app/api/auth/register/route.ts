@@ -6,6 +6,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { validateRequest } from '@/lib/validate-request';
 import { RegisterSchema } from '@/lib/validations/auth';
 import { logger } from '@/lib/server-logger';
+import { CONSENT_VERSION } from '@/lib/legal/consent';
  
 const User = require('@/models/User');
  
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
     const hashedToken = await bcrypt.hash(magicToken, 10);
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
+    const now = new Date();
+    const marketingConsent = result.data.marketingConsent === true;
+    const partnerSharingConsent = result.data.partnerSharingConsent === true;
     const user = await User.create({
       email,
       password: hashed,
@@ -65,6 +69,16 @@ export async function POST(req: NextRequest) {
       role,
       magicSignInToken: hashedToken,
       magicSignInExpiresAt: expiresAt,
+      // RGPD : le marketing devient opt-in, piloté par la case d'inscription.
+      emailPreferences: { reminders: true, marketing: marketingConsent },
+      legalConsent: {
+        termsAcceptedAt: now,
+        termsVersion: CONSENT_VERSION,
+        marketingConsent,
+        marketingConsentAt: marketingConsent ? now : undefined,
+        partnerSharingConsent,
+        partnerSharingConsentAt: partnerSharingConsent ? now : undefined,
+      },
     });
 
     return NextResponse.json({

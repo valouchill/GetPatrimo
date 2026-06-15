@@ -44,8 +44,13 @@ export async function PUT(req: NextRequest) {
     };
 
     if (result.data.marketingConsent !== undefined) {
+      const at = new Date();
       update['consent.marketing'] = result.data.marketingConsent;
-      update['consent.marketingUpdatedAt'] = new Date();
+      update['consent.marketingUpdatedAt'] = at;
+      // Cohérence : le marketing pilote aussi legalConsent + la machinerie email.
+      update['legalConsent.marketingConsent'] = result.data.marketingConsent;
+      update['legalConsent.marketingConsentAt'] = at;
+      update['emailPreferences.marketing'] = result.data.marketingConsent;
     }
 
     await User.updateOne({ _id: user._id }, { $set: update });

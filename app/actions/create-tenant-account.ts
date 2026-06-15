@@ -6,6 +6,7 @@ import Application from '@/models/Application';
 import Property from '@/models/Property';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import { CONSENT_VERSION } from '@/lib/legal/consent';
 
 // Configuration du transporteur email Brevo
 const transporter = nodemailer.createTransport({
@@ -40,6 +41,11 @@ export async function createTenantAccount(
     firstName?: string;
     lastName?: string;
     birthDate?: string;
+  },
+  consent?: {
+    terms: boolean;
+    marketing?: boolean;
+    partner?: boolean;
   }
 ): Promise<CreateAccountResult> {
   try {
@@ -47,6 +53,11 @@ export async function createTenantAccount(
     // Borne par IP + email cible pour empêcher le spam de comptes / l'email-bombing.
     if (await actionRateLimited('tenant-account', contactInfo.email, { ipMax: 5, keyMax: 5 })) {
       return { success: false, error: 'Trop de demandes. Réessayez dans quelques minutes.' };
+    }
+
+    // RGPD : acceptation CGU/CGV obligatoire (défense serveur, jamais l'input client seul).
+    if (consent?.terms !== true) {
+      return { success: false, error: 'Vous devez accepter les CGU et les CGV pour créer votre compte.' };
     }
 
     await connectDiditDb();
@@ -103,6 +114,17 @@ export async function createTenantAccount(
       emailVerifiedAt: new Date(),
       phone: true,
       phoneVerifiedAt: new Date(),
+    };
+
+    // Consentements légaux (RGPD) — horodatés + versionnés.
+    const consentNow = new Date();
+    application.legalConsent = {
+      termsAcceptedAt: consentNow,
+      termsVersion: CONSENT_VERSION,
+      marketingConsent: consent?.marketing === true,
+      marketingConsentAt: consent?.marketing ? consentNow : undefined,
+      partnerSharingConsent: consent?.partner === true,
+      partnerSharingConsentAt: consent?.partner ? consentNow : undefined,
     };
 
     // Sécurité (re-audit V1 — 3e passe) : NE PAS poser didit.status='VERIFIED' à partir

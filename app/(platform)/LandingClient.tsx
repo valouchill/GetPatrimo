@@ -755,6 +755,9 @@ export default function LandingClient() {
               <Link href="/terms" className="text-slate-500 transition-colors hover:text-emerald-800">
                 CGU
               </Link>
+              <Link href="/cgv" className="text-slate-500 transition-colors hover:text-emerald-800">
+                CGV
+              </Link>
               <Link href="/privacy" className="text-slate-500 transition-colors hover:text-emerald-800">
                 Confidentialité
               </Link>

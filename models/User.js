@@ -79,6 +79,24 @@ const UserSchema = new mongoose.Schema({
     marketing: { type: Boolean, default: true },
   },
 
+  // Consentements légaux (RGPD art. 7) — recueillis à l'inscription, horodatés + versionnés.
+  legalConsent: {
+    termsAcceptedAt: { type: Date },             // CGU + CGV + confidentialité (obligatoire)
+    termsVersion: { type: String, default: '' },
+    marketingConsent: { type: Boolean, default: false },
+    marketingConsentAt: { type: Date },
+    partnerSharingConsent: { type: Boolean, default: false },
+    partnerSharingConsentAt: { type: Date },
+  },
+
+  // Consentement post-inscription géré par PUT /api/user/consent (Didit KYC + marketing).
+  consent: {
+    didit: { type: Boolean, default: false },
+    diditUpdatedAt: { type: Date },
+    marketing: { type: Boolean, default: false },
+    marketingUpdatedAt: { type: Date },
+  },
+
   // 2FA TOTP (optional)
   totpSecret: { type: String, default: '' },   // encrypted base32 secret
   totpEnabled: { type: Boolean, default: false },

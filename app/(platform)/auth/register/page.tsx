@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Building2, User, ArrowLeft, ArrowRight, Shield, CheckCircle2, MapPin, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/app/components/Logo';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
+import { ConsentCheckboxes } from '@/app/components/ConsentCheckboxes';
+import { EMPTY_CONSENT, type ConsentValues } from '@/lib/legal/consent';
 
 type Role = 'owner' | 'tenant';
 type Step = 'role' | 'ownerForm' | 'tenantCode' | 'tenantForm' | 'unlocking';
@@ -34,6 +36,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   // Mode "codeless" : création d'un Passeport Locatif universel sans code de bien.
   const [codeless, setCodeless] = useState(false);
+  const [consent, setConsent] = useState<ConsentValues>(EMPTY_CONSENT);
 
   // ── Pré-sélection du parcours via ?role= / ?mode= (depuis l'Espace Locataire) ──
   // ?role=tenant&mode=codeless → Passeport universel (saute l'étape code).
@@ -72,7 +75,7 @@ export default function RegisterPage() {
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  const canSubmitForm = emailValid && passwordValid && passwordsMatch;
+  const canSubmitForm = emailValid && passwordValid && passwordsMatch && consent.terms;
 
   // UX — détaille ce qui bloque encore la soumission, pour expliquer un bouton
   // désactivé (sinon l'utilisateur croit que « le bouton ne fonctionne pas »).
@@ -84,6 +87,7 @@ export default function RegisterPage() {
   if (!/\d/.test(password)) formBlockers.push('un chiffre');
   if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) formBlockers.push('un caractère spécial');
   if (passwordValid && !passwordsMatch) formBlockers.push('confirmer le mot de passe à l’identique');
+  if (!consent.terms) formBlockers.push('accepter les CGU et les CGV');
   const showBlockers = !canSubmitForm && (email.length > 0 || password.length > 0) && formBlockers.length > 0;
 
   // ── Validation live du code de bien (débouncé 400ms) ──
@@ -137,6 +141,9 @@ export default function RegisterPage() {
         email: email.trim().toLowerCase(),
         password,
         role,
+        acceptTerms: consent.terms,
+        marketingConsent: consent.marketing,
+        partnerSharingConsent: consent.partner,
       };
       // En mode codeless, on n'envoie PAS de code → le backend génère un self-token.
       if (role === 'tenant' && !codeless) payload.propertyCode = propertyCode.trim().toUpperCase();
@@ -195,7 +202,7 @@ export default function RegisterPage() {
       setError('Erreur réseau. Veuillez réessayer.');
       setLoading(false);
     }
-  }, [email, password, role, propertyCode, codeless]);
+  }, [email, password, role, propertyCode, codeless, consent]);
 
   // ── UI ──
   return (
@@ -312,6 +319,14 @@ export default function RegisterPage() {
                   setShowPassword={setShowPassword}
                   passwordScore={passwordScore}
                 />
+
+                <div className="mt-6">
+                  <ConsentCheckboxes
+                    values={consent}
+                    onChange={setConsent}
+                    variant={role === 'tenant' ? 'tenant' : 'owner'}
+                  />
+                </div>
 
                 {error && <ErrorBox text={error} />}
 
@@ -479,6 +494,14 @@ export default function RegisterPage() {
                   setShowPassword={setShowPassword}
                   passwordScore={passwordScore}
                 />
+
+                <div className="mt-6">
+                  <ConsentCheckboxes
+                    values={consent}
+                    onChange={setConsent}
+                    variant={role === 'tenant' ? 'tenant' : 'owner'}
+                  />
+                </div>
 
                 {error && <ErrorBox text={error} />}
 
