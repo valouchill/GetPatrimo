@@ -5292,7 +5292,7 @@ export default function ApplyClient({ token }: { token: string }) {
                     : submittingPassport
                       ? 'Transmission...'
                       : currentStep === 3 
-                        ? 'Continuer vers le Passeport' 
+                        ? 'Vers le Passeport' 
                         : currentStep === 4 
                           ? canAccessCertification ? 'Sceller mon Passeport' : 'Passeport en attente'
                           : 'Continuer'
