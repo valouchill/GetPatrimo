@@ -17,13 +17,14 @@
  */
 
 import * as React from 'react';
-import { Building2, X } from 'lucide-react';
+import { Building2, X, Layers, LayoutGrid, List } from 'lucide-react';
 import {
   CandidaturesStackView,
   type StackCandidate,
   type AiReportCheck,
   type AiReportStatus,
 } from '@/app/components/audit';
+import { CandidaturesListView } from '@/app/components/audit/CandidaturesListView';
 import { SelectionConfirmModal } from './SelectionConfirmModal';
 import type { LocalDossier, LocalBien } from './ui';
 import { formatPrice, getMetalLevel, METAL_LABELS } from '@/lib/product-lexicon';
@@ -341,6 +342,36 @@ export function OwnerCandidatesStack({
     [filteredCandidats, onReject],
   );
 
+  // V8.4 — bascule pile/liste (candidatures) + grille/liste (sélecteur de biens)
+  const [candView, setCandView] = React.useState<'stack' | 'list'>('stack');
+  const [biensView, setBiensView] = React.useState<'grid' | 'list'>('grid');
+  React.useEffect(() => {
+    try {
+      const v = window.localStorage.getItem('patrimo:candidatures:view');
+      if (v === 'list' || v === 'stack') setCandView(v);
+      const b = window.localStorage.getItem('patrimo:candidatures:biensView');
+      if (b === 'list' || b === 'grid') setBiensView(b);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const updateCandView = React.useCallback((v: 'stack' | 'list') => {
+    setCandView(v);
+    try {
+      window.localStorage.setItem('patrimo:candidatures:view', v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const updateBiensView = React.useCallback((v: 'grid' | 'list') => {
+    setBiensView(v);
+    try {
+      window.localStorage.setItem('patrimo:candidatures:biensView', v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Empty state
   if (biensWithCandidates.length === 0) {
     return (
@@ -385,10 +416,30 @@ export function OwnerCandidatesStack({
       {/* Sélecteur de bien (mode multi-biens) */}
       {!bien && biensWithCandidates.length > 1 && (
         <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-4 backdrop-blur md:px-6">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
-            Bien sélectionné
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+              Bien sélectionné
+            </p>
+            <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => updateBiensView('grid')}
+                aria-label="Vue grille des biens"
+                className={`rounded-md p-1.5 transition-colors ${biensView === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateBiensView('list')}
+                aria-label="Vue liste des biens"
+                className={`rounded-md p-1.5 transition-colors ${biensView === 'list' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <List className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          <div className={biensView === 'list' ? 'flex flex-col gap-1.5' : 'flex flex-wrap gap-2'}>
             {biensWithCandidates.map((b) => {
               const count = candidats.filter(
                 (c) => c.bien_id === b.id && !c.isSealed && c.statut === 'en_attente',
@@ -399,14 +450,16 @@ export function OwnerCandidatesStack({
                   key={b.id}
                   type="button"
                   onClick={() => setSelectedBienId(b.id)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                    active
-                      ? 'bg-emerald-900 text-white shadow-sm'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-                  }`}
+                  className={
+                    biensView === 'list'
+                      ? `flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${active ? 'bg-emerald-900 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`
+                      : `inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${active ? 'bg-emerald-900 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`
+                  }
                 >
-                  <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="truncate max-w-[180px]">{b.label}</span>
+                  <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className={biensView === 'list' ? 'flex-1 truncate text-left' : 'truncate max-w-[180px]'}>
+                    {b.label}
+                  </span>
                   <span
                     className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
                       active
@@ -423,17 +476,51 @@ export function OwnerCandidatesStack({
         </div>
       )}
 
-      {/* Stack view — persistance localStorage par bien (V5.4) */}
+      {/* Bascule pile / liste + vue candidatures (persistance localStorage) */}
       {activeBien && stackCandidates.length > 0 ? (
-        <CandidaturesStackView
-          key={activeBien.id}
-          candidates={stackCandidates}
-          onAccept={handleStackAccept}
-          onReject={handleStackReject}
-          onOpenDetail={onOpenDetail}
-          persistKey={`patrimo:stack:${activeBien.id}`}
-          deferAcceptDecision
-        />
+        <>
+          <div className="flex items-center justify-between gap-2 px-4 pt-3 md:px-6">
+            <p className="text-xs font-semibold text-slate-500">
+              {stackCandidates.length} candidature{stackCandidates.length > 1 ? 's' : ''}
+            </p>
+            <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => updateCandView('stack')}
+                aria-label="Vue pile"
+                className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${candView === 'stack' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Layers className="h-3.5 w-3.5" aria-hidden="true" /> Pile
+              </button>
+              <button
+                type="button"
+                onClick={() => updateCandView('list')}
+                aria-label="Vue liste"
+                className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${candView === 'list' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <List className="h-3.5 w-3.5" aria-hidden="true" /> Liste
+              </button>
+            </div>
+          </div>
+          {candView === 'list' ? (
+            <CandidaturesListView
+              candidates={stackCandidates}
+              onAccept={handleStackAccept}
+              onReject={handleStackReject}
+              onOpenDetail={onOpenDetail}
+            />
+          ) : (
+            <CandidaturesStackView
+              key={activeBien.id}
+              candidates={stackCandidates}
+              onAccept={handleStackAccept}
+              onReject={handleStackReject}
+              onOpenDetail={onOpenDetail}
+              persistKey={`patrimo:stack:${activeBien.id}`}
+              deferAcceptDecision
+            />
+          )}
+        </>
       ) : (
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12">
           <p className="font-serif text-xl font-semibold text-emerald-900">
@@ -444,6 +531,7 @@ export function OwnerCandidatesStack({
           </p>
         </div>
       )}
+      {/* fin bascule */}
 
       {/* Modale de confirmation au "Retenir" */}
       {pendingAccept && (
