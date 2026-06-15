@@ -285,6 +285,23 @@ export async function runFullAnalysis(
   options: { model?: string; timeoutMs?: number } = {},
 ): Promise<FullAnalysisResult> {
   const ai = await analyzeApplication(input, options);
+  // V8.3 — Identité certifiée eIDAS (Didit) : la biométrie souveraine prime sur
+  // tout scan PDF de CNI. Le LLM émet parfois un contrôle « Authenticité CNI »
+  // en WARNING/ALERT malgré la consigne → on le force à VERIFIED pour ne pas
+  // afficher d'alerte CNI fantôme alors que l'identité est déjà certifiée.
+  if (input.identity?.diditVerified === true && Array.isArray(ai.forensicAudit)) {
+    const IDENTITY_RE = /(cni|identit|titre de s[e\u00e9]jour|mrz)/i;
+    ai.forensicAudit = ai.forensicAudit.map((c) =>
+      IDENTITY_RE.test(c.checkName || '') && c.status !== 'VERIFIED'
+        ? {
+            ...c,
+            status: 'VERIFIED' as const,
+            details:
+              'Identité certifiée eIDAS (Didit) — vérification biométrique souveraine ; le scan de la pièce d’identité n’est pas requis.',
+          }
+        : c,
+    );
+  }
   // V8.2 — Exception biométrique : l'identité vérifiée eIDAS (Didit) est un
   // fait DÉTERMINISTE (pas une supposition du LLM) → on le passe à l'algo.
   const resilience = computeResilienceIndex(ai, {

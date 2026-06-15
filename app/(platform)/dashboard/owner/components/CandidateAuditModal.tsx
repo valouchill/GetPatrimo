@@ -663,6 +663,7 @@ export function CandidateAuditModal({
                     <AnalysisV2Panel
                       applicationId={c.id}
                       onResult={(r) => setV2Resilience(r)}
+                      diditVerified={c.identityVerified === true}
                     />
                   </TabsContent>
 

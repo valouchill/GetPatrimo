@@ -246,12 +246,15 @@ export interface AnalysisV2PanelProps {
    * Permet d'afficher l'Indice de Résilience V2 comme source de vérité.
    */
   onResult?: (r: { score: number; level: string }) => void;
+  /** Identité certifiée eIDAS (Didit) → neutralise les contrôles forensic d'identité. */
+  diditVerified?: boolean;
 }
 
 export function AnalysisV2Panel({
   applicationId,
   className = '',
   onResult,
+  diditVerified,
 }: AnalysisV2PanelProps): React.ReactElement {
   const [loading, setLoading] = React.useState(false);
   const [cacheLoading, setCacheLoading] = React.useState(true);
@@ -580,9 +583,22 @@ export function AnalysisV2Panel({
                   contrôles)
                 </h4>
                 <ul className="space-y-1.5">
-                  {result.ai.forensicAudit.map((item, idx) => (
-                    <ForensicItem key={`${item.checkName}-${idx}`} item={item} />
-                  ))}
+                  {result.ai.forensicAudit.map((rawItem, idx) => {
+                    const item =
+                      diditVerified &&
+                      /(cni|identit|titre de s[eé]jour|mrz)/i.test(rawItem.checkName) &&
+                      rawItem.status !== 'VERIFIED'
+                        ? {
+                            ...rawItem,
+                            status: 'VERIFIED' as ForensicStatus,
+                            details:
+                              'Identité certifiée eIDAS (Didit) — vérification biométrique souveraine.',
+                          }
+                        : rawItem;
+                    return (
+                      <ForensicItem key={`${item.checkName}-${idx}`} item={item} />
+                    );
+                  })}
                 </ul>
               </div>
             )}

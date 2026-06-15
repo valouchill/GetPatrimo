@@ -164,8 +164,8 @@ function KpiTile({
 
 const TIER_LABELS: Record<string, string> = {
   ESSENTIAL: 'Essentiel',
-  PREMIUM: 'Analyse IA',
-  MAX: 'Analyse IA Max',
+  PREMIUM: 'Pro',
+  MAX: 'Pro max',
 };
 
 // ─── Sub-component : PropertyAssetCard ──────────────────────────────────────
