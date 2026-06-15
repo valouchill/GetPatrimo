@@ -21,7 +21,7 @@ const Property = require('@/models/Property');
 export const metadata = {
   title: 'Tarifs · Maison Patrimo',
   description:
-    'Paiement unique par logement : analysez vos dossiers locataires avec l’IA anti-fraude. Offres Essentiel, Analyse IA et Max.',
+    'Paiement unique par logement : analysez vos dossiers locataires avec l’IA anti-fraude. Offres Essentiel, Pro et Pro max.',
 };
 
 async function getOwnerContext(): Promise<{

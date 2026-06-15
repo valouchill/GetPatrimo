@@ -28,7 +28,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Menu, Plus, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { Menu, Plus, RefreshCw, X } from 'lucide-react';
+import { Logo } from '@/app/components/Logo';
 import { isEnabled } from '@/lib/features';
 import { NAV, type NavId } from './ui';
 import { MobileBottomNav } from './MobileBottomNav';
@@ -118,13 +119,8 @@ export function OwnerShell({ children }: OwnerShellProps): React.ReactElement {
       >
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
             <div className="flex-1">
-              <div className="font-serif text-base font-bold tracking-tight text-slate-950">
-                Maison Patrimo
-              </div>
+              <Logo variant="light" className="text-lg" />
               <div className="mt-0.5 inline-block rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600">
                 Propriétaire
               </div>
