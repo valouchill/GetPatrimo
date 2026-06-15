@@ -98,6 +98,27 @@ export default function Terms() {
             personne concernée peut contester un résultat d&apos;analyse et obtenir un réexamen humain
             dans les conditions décrites par la Politique de Confidentialité.
           </p>
+          <p className="mt-2">
+            <strong>6.3 — Solvabilité et comportement du locataire.</strong> Le service repose sur les
+            pièces communiquées par le candidat à un instant donné et sur des traitements automatisés.
+            Maison Patrimo SAS est tenue à une <strong>obligation de moyens</strong>, et non de résultat :
+            elle ne garantit ni l&apos;authenticité ou l&apos;exhaustivité des documents fournis par des
+            tiers, ni le <strong>comportement futur du locataire</strong>, en particulier sa solvabilité,
+            le paiement effectif des loyers et charges, ou l&apos;absence de dégradations. En conséquence,
+            Maison Patrimo SAS ne saurait être tenue responsable des impayés de loyer, retards de paiement,
+            dégradations ou de tout préjudice survenant postérieurement à l&apos;analyse ou à la conclusion
+            du bail. Le choix de retenir un candidat, ainsi que la souscription de garanties (dépôt de
+            garantie, caution solidaire, garantie Visale, assurance contre les loyers impayés), relèvent
+            de la seule appréciation du bailleur, qui demeure libre de procéder à ses propres vérifications.
+          </p>
+          <p className="mt-2">
+            Cette limitation s&apos;applique dans les limites permises par la loi : elle ne couvre pas la
+            faute lourde ou dolosive de Maison Patrimo SAS, ne prive pas l&apos;obligation essentielle du
+            service de sa substance (art. 1170 du Code civil) et ne saurait, à l&apos;égard d&apos;un
+            utilisateur non-professionnel, créer un déséquilibre significatif au sens de l&apos;article
+            L.212-1 du Code de la consommation. La réparation éventuelle est limitée aux dommages directs
+            et prévisibles (art. 1231-1 et 1231-3 du Code civil).
+          </p>
         </div>
 
         <div>
