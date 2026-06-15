@@ -1,7 +1,8 @@
 'use client';
 
 import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 import type { Payment } from './PaymentRow';
 
@@ -99,28 +100,14 @@ const ConfirmPaymentModal = memo(function ConfirmPaymentModal({
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          variants={overlayVariants}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          onClick={onClose}
-        >
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirmer le paiement"
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-            variants={panelVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            transition={{ type: 'spring', duration: 0.35 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+    <Overlay
+      variant="sheet"
+      size="md"
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="Confirmer le paiement"
+    >
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-semibold text-[#0f172a]">
                 Confirmer le paiement
@@ -223,10 +210,8 @@ const ConfirmPaymentModal = memo(function ConfirmPaymentModal({
                 </button>
               </div>
             </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </div>
+    </Overlay>
   );
 });
 

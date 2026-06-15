@@ -1,59 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 
 export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [isClosing, setIsClosing] = useState(false);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-      setIsClosing(false);
-    }, 400);
-  };
-
-  if (!isOpen) return null;
+  const handleClose = () => onClose();
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        >
-          {/* Backdrop avec effet blur intense */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/70"
-            style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-            onClick={handleClose}
-          />
-
-          {/* Modal - Style Banque Privée */}
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.9 }}
-            animate={isClosing
-              ? { opacity: 0, y: 100, scale: 0.5 }
-              : { opacity: 1, y: 0, scale: 1 }
-            }
-            exit={{ opacity: 0, y: 100, scale: 0.5 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="onboarding-modal-title"
-          >
+    <Overlay
+      variant="sheet"
+      size="lg"
+      open={isOpen}
+      onClose={handleClose}
+      ariaLabelledBy="onboarding-modal-title"
+    >
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-gradient-to-br from-white to-slate-50">
             {/* Effet de brillance émeraude/or sur les bords */}
             <div className="absolute inset-0 rounded-3xl pointer-events-none">
               <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-emerald-400/30 to-transparent rounded-tl-3xl" />
@@ -254,9 +216,7 @@ export function OnboardingModal({ isOpen, onClose }: { isOpen: boolean; onClose:
                 </p>
               </motion.div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Overlay>
   );
 }

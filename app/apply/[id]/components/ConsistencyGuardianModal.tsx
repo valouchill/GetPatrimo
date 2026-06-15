@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Overlay } from '@/app/components/ui/Overlay';
 
 export function ConsistencyGuardianModal({
   isOpen,
@@ -24,8 +25,6 @@ export function ConsistencyGuardianModal({
   const [justificationText, setJustificationText] = useState('');
   const [showJustificationInput, setShowJustificationInput] = useState(false);
 
-  if (!isOpen || !inconsistency) return null;
-
   const handleJustify = () => {
     if (justificationText.trim()) {
       onJustify(justificationText);
@@ -35,35 +34,15 @@ export function ConsistencyGuardianModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-        >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.98 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-amber-200"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="consistency-modal-title"
-          >
+    <Overlay
+      variant="sheet"
+      size="md"
+      open={isOpen && !!inconsistency}
+      onClose={onClose}
+      ariaLabelledBy="consistency-modal-title"
+    >
+      {inconsistency && (
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {/* Header ambre */}
             <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 px-6 py-5 border-b border-amber-200">
               <div className="flex items-start gap-4">
@@ -210,9 +189,8 @@ export function ConsistencyGuardianModal({
                 </p>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </Overlay>
   );
 }
