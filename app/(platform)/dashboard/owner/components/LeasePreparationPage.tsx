@@ -206,6 +206,14 @@ export interface LeasePreparationPageProps {
   applicationLabel?: string | null;
 }
 
+const LEASE_TYPES = [
+  { value: 'vide', label: 'Location vide (non meublée)', file: 'bail-vide' },
+  { value: 'meuble', label: 'Location meublée', file: 'bail-meuble' },
+  { value: 'mobilite', label: 'Bail mobilité', file: 'bail-mobilite' },
+  { value: 'garage', label: 'Garage / Parking', file: 'bail-garage' },
+  { value: 'civil', label: 'Bail civil (droit commun)', file: 'bail-civil' },
+] as const;
+
 export function LeasePreparationPage({
   data = DEMO_LEASE_DATA,
   pdfTemplateHref = '/templates/bail-alur.pdf',
@@ -213,6 +221,9 @@ export function LeasePreparationPage({
   applicationLabel = null,
 }: LeasePreparationPageProps): React.ReactElement {
   const isRealData = !!applicationLabel;
+  const [leaseType, setLeaseType] = React.useState<string>('vide');
+  const activeType =
+    LEASE_TYPES.find((t) => t.value === leaseType) || LEASE_TYPES[0];
   return (
     // V7.7 — Conteneur adapte au layout OwnerShell (sidebar a gauche).
     // max-w-5xl + mx-auto + w-full pour eviter l'etirement excessif sur grands ecrans.
@@ -246,23 +257,46 @@ export function LeasePreparationPage({
         {/* ─── Zone de téléchargement ───────────────────────────────── */}
         <section>
           <h2 className="mb-4 font-serif text-xl text-emerald-900">
-            Modèle officiel de bail (Loi ALUR)
+            Modèle de bail (Loi ALUR)
           </h2>
+          <div className="mb-4">
+            <label
+              htmlFor="lease-type"
+              className="mb-1.5 block text-sm font-semibold text-slate-700"
+            >
+              Type de bail
+            </label>
+            <select
+              id="lease-type"
+              value={leaseType}
+              onChange={(e) => setLeaseType(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition-colors focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 sm:max-w-sm"
+            >
+              {LEASE_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Le modèle ci-dessous s’adapte au type de bail sélectionné.
+            </p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <TemplateCard
-              format="PDF"
-              title="Modèle Officiel Loi ALUR"
-              subtitle="Format PDF · prêt à imprimer ou signer numériquement"
-              href={pdfTemplateHref}
-              filename="bail-alur.pdf"
+              format="DOCX"
+              title={`Modèle ${activeType.label}`}
+              subtitle="Format Word · à compléter, imprimer ou signer"
+              href={`/templates/${activeType.file}.docx`}
+              filename={`${activeType.file}.docx`}
               variant="emerald"
             />
             <TemplateCard
-              format="DOCX"
-              title="Modèle Modifiable"
-              subtitle="Format Word · éditez les clauses spécifiques"
-              href={docxTemplateHref}
-              filename="bail-alur.docx"
+              format="PDF"
+              title={`Modèle ${activeType.label} (PDF)`}
+              subtitle="Format PDF · prêt à imprimer (si déposé)"
+              href={`/templates/${activeType.file}.pdf`}
+              filename={`${activeType.file}.pdf`}
               variant="gold"
             />
           </div>
