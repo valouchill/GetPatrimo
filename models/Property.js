@@ -35,6 +35,7 @@ const PropertySchema = new mongoose.Schema({
 
   // Date de vacance
   vacantSince: { type: Date, default: null },
+  idealRentalDate: { type: Date, default: null }, // Date idéale de mise en location (souhait du bailleur)
 
   applyToken: { type: String, default: '', unique: true, sparse: true },
 
