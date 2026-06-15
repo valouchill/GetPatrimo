@@ -5280,7 +5280,7 @@ export default function ApplyClient({ token }: { token: string }) {
             <button 
               onClick={handleNext}
               disabled={isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification)}
-              className={`flex-1 ${currentStep > 1 ? 'ml-3' : ''} py-4 bg-navy text-white rounded-xl text-sm font-bold uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              className={`flex-1 ${currentStep > 1 ? 'ml-3' : ''} py-4 bg-navy text-white rounded-xl text-xs font-bold uppercase tracking-wide leading-tight text-center shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] sm:text-sm sm:tracking-wider ${
                 isScanning || submittingPassport || isAnalyzingDoc || (currentStep === 4 && !canAccessCertification) ? 'opacity-50 pointer-events-none' : ''
               }`}
             >

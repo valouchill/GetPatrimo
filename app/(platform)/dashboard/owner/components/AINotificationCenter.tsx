@@ -213,7 +213,7 @@ export function AINotificationCenter({
           ref={popoverRef}
           role="dialog"
           aria-label="Rapports de l'Auditeur IA"
-          className={`absolute z-50 w-[22rem] sm:w-96 max-h-[32rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ${popoverPosClass}`}
+          className={`absolute z-50 w-[min(22rem,calc(100vw-1.5rem))] sm:w-96 max-h-[min(32rem,75vh)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ${popoverPosClass}`}
         >
           {/* Header */}
           <header className="border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/40 px-5 py-4">
