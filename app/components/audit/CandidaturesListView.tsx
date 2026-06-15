@@ -31,7 +31,7 @@ export function CandidaturesListView({
   );
 
   return (
-    <div className="px-4 py-4 md:px-6">
+    <div className="mx-auto w-full max-w-3xl px-4 py-4 md:px-6">
       <ul className="space-y-2">
         {sorted.map((c, idx) => {
           const fullName = `${c.prenom} ${c.nom}`.trim();

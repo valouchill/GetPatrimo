@@ -32,6 +32,8 @@ import {
   ShieldCheck,
   Sparkles,
   AlertCircle,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -432,6 +434,24 @@ export function PropertiesPortfolio({
     [assets],
   );
 
+  const [view, setView] = React.useState<'grid' | 'list'>('grid');
+  React.useEffect(() => {
+    try {
+      const v = window.localStorage.getItem('patrimo:biens:view');
+      if (v === 'list' || v === 'grid') setView(v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const updateView = React.useCallback((v: 'grid' | 'list') => {
+    setView(v);
+    try {
+      window.localStorage.setItem('patrimo:biens:view', v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <div className={`bg-slate-50 ${className}`}>
       {/* ─── A. Header Portefeuille ───────────────────────────────────────── */}
@@ -513,16 +533,69 @@ export function PropertiesPortfolio({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {assets.map((asset) => (
-            <PropertyAssetCard
-              key={asset.id}
-              asset={asset}
-              onManage={onManage}
-              onSesameCopied={onSesameCopied}
-            />
-          ))}
-        </div>
+        <>
+          <div className="mb-4 flex items-center justify-end">
+            <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => updateView('grid')}
+                aria-label="Vue grille"
+                className={`rounded-lg p-2 transition-colors ${view === 'grid' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateView('list')}
+                aria-label="Vue liste"
+                className={`rounded-lg p-2 transition-colors ${view === 'list' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <List className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          {view === 'list' ? (
+            <div className="flex flex-col gap-2.5">
+              {assets.map((asset) => (
+                <button
+                  key={asset.id}
+                  type="button"
+                  onClick={() => onManage?.(asset.id)}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                    <Home className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-slate-900">{asset.title}</p>
+                    <p className="truncate text-xs text-slate-500">{asset.address}</p>
+                  </div>
+                  <div className="hidden shrink-0 text-right sm:block">
+                    <p className="font-semibold tabular-nums text-slate-900">{formatPrice(asset.rent)}/mois</p>
+                    <p className="text-xs text-slate-500">{asset.statusLabel}</p>
+                  </div>
+                  {asset.pendingApplications > 0 && (
+                    <span className="inline-flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-bold text-emerald-900">
+                      {asset.pendingApplications}
+                    </span>
+                  )}
+                  <ArrowRight className="hidden h-5 w-5 shrink-0 text-slate-300 sm:block" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {assets.map((asset) => (
+                <PropertyAssetCard
+                  key={asset.id}
+                  asset={asset}
+                  onManage={onManage}
+                  onSesameCopied={onSesameCopied}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
