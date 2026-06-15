@@ -22,6 +22,7 @@ const CreatePropertySchema = z.object({
   equipment: z.array(z.string()).optional(),
   description: z.string().optional(),
   purchasePrice: z.number().optional(),
+  idealRentalDate: z.string().optional(),
 });
  
 const { buildOwnerApplicationInsights } = require('@/src/utils/ownerApplicationInsights');
@@ -285,7 +286,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const result = validateRequest(CreatePropertySchema, body);
     if (!result.success) return result.response;
-    const { address, surfaceM2, rentAmount, chargesAmount, propertyType, rooms, bedrooms, floor, totalFloors, equipment, description, purchasePrice } = result.data;
+    const { address, surfaceM2, rentAmount, chargesAmount, propertyType, rooms, bedrooms, floor, totalFloors, equipment, description, purchasePrice, idealRentalDate } = result.data;
 
     const property = await Property.create({
       user: userId,
@@ -302,6 +303,7 @@ export async function POST(request: NextRequest) {
       equipment: equipment || [],
       description: description || '',
       purchasePrice: purchasePrice ?? null,
+      idealRentalDate: idealRentalDate ? new Date(idealRentalDate) : null,
       status: 'AVAILABLE',
     });
 

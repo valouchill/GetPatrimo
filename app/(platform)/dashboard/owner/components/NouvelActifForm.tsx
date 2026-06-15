@@ -53,6 +53,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
     rentAmount: '',
     chargesAmount: '',
     purchasePrice: '',
+    idealRentalDate: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +139,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
           equipment: form.equipment,
           description: form.description,
           purchasePrice: form.purchasePrice ? parseFloat(form.purchasePrice) : undefined,
+          idealRentalDate: form.idealRentalDate || undefined,
         }),
       });
       if (!res.ok) { const j = await res.json().catch(() => ({})); setError(j.error || 'Erreur lors de la création.'); return; }
@@ -340,6 +342,12 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                 </p>
               )}
             </div>
+            <div className="mb-5">
+              <label htmlFor="actif-ideal-date" className={LabelCls}>Date idéale de location <span className="font-normal text-slate-400">optionnel</span></label>
+              <input id="actif-ideal-date" type="date" className={InputCls}
+                value={form.idealRentalDate} onChange={(e) => f('idealRentalDate', e.target.value)} />
+              <p className="mt-1 text-xs text-slate-400">À quelle date souhaitez-vous idéalement louer ce bien&nbsp;?</p>
+            </div>
             <div className="flex justify-between">
               <Btn variant="secondary" onClick={() => setStep(1)}>← Retour</Btn>
               <Btn variant="amber" disabled={!canNext(2)} onClick={() => setStep(3)}>Continuer <ArrowRight className="h-4 w-4" /></Btn>
@@ -362,6 +370,7 @@ export function NouvelActifForm({ onDone }: { onDone: () => void }) {
                 ['Loyer HC', `${parseFloat(form.rentAmount) || 0} €/mois`],
                 ['Charges', form.chargesAmount ? `${parseFloat(form.chargesAmount)} €/mois` : '—'],
                 ['Prix d\'achat', form.purchasePrice ? `${parseFloat(form.purchasePrice).toLocaleString('fr-FR')} €` : '—'],
+                ['Date idéale de location', form.idealRentalDate ? new Date(form.idealRentalDate).toLocaleDateString('fr-FR') : '—'],
               ] as [string, string][]).filter(([, v]) => v !== '—').map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between px-4 py-3 text-sm">
                   <span className="text-slate-500 shrink-0">{k}</span><span className="font-semibold text-slate-900 text-right break-words min-w-0">{v}</span>
