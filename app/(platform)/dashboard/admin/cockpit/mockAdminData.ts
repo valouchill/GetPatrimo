@@ -16,8 +16,8 @@
 export const API_COST_ESTIMATES = {
   /** GPT-4o vision (OCR des pièces) + scoring patrimomètre + forensic V2, par dossier. */
   llmPerDossier: 0.09,
-  /** Vérification biométrique eIDAS Didit, par KYC. */
-  diditPerKyc: 0.45,
+  /** Vérification biométrique eIDAS Didit, par KYC (500/mois gratuites, puis 0,25 €). */
+  diditPerKyc: 0.25,
   /** OCR/extraction complémentaire, par dossier. */
   ocrPerDossier: 0.02,
   /** Envoi transactionnel (Brevo), par email. */

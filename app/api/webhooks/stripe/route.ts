@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { logger } from '@/lib/server-logger';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { higherTier } from '@/lib/billing/tiers';
+import { captureServer } from '@/lib/analytics/posthog-server';
 
 const Property = require('@/models/Property');
 const User = require('@/models/User');
@@ -46,12 +47,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   //    au niveau du COMPTE, ne grèvent pas le quota payé du bien).
   //  - rachat payant→payant → CUMUL des crédits restants + niveau le plus élevé ;
   //    les analyses déjà faites ne sont jamais recomptées.
+  let wasFree = false;
   if (tier) {
     const current = (await Property.findById(propertyId)
       .select('tier dossiersQuota')
       .lean()) as { tier?: string; dossiersQuota?: number } | null;
     const newPackQuota = Number(quota || 0);
-    const wasFree = !current?.tier || current.tier === 'FREE';
+    wasFree = !current?.tier || current.tier === 'FREE';
     update.tier = higherTier(current?.tier, tier);
     if (wasFree) {
       update.dossiersQuota = newPackQuota;
@@ -63,6 +65,20 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   await Property.findByIdAndUpdate(propertyId, update);
+
+  captureServer(
+    'purchase_completed',
+    userId || (typeof session.customer === 'string' ? session.customer : undefined) || propertyId,
+    {
+    tier: tier || null,
+    amount:
+      typeof session.amount_total === 'number'
+        ? session.amount_total / 100
+        : null,
+    currency: session.currency || 'eur',
+    is_first_purchase: wasFree,
+    property_id: propertyId,
+  });
 
   if (userId && session.customer) {
     await User.findByIdAndUpdate(userId, {

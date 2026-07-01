@@ -19,7 +19,7 @@ const USD_TO_EUR = 0.92;
 
 // Coûts forfaitaires (EUR) — contractuels, pas de tokens.
 const FLAT_COST_EUR = {
-  diditKyc: 0.45, // vérification biométrique eIDAS
+  diditKyc: 0.25, // Didit eIDAS : 500 KYC/mois gratuites, puis 0,25 € (coût marginal réel)
   brevoMail: 0.0008, // email transactionnel
 };
 
