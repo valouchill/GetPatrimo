@@ -7,6 +7,7 @@ import { validateRequest } from '@/lib/validate-request';
 import { RegisterSchema } from '@/lib/validations/auth';
 import { logger } from '@/lib/server-logger';
 import { CONSENT_VERSION } from '@/lib/legal/consent';
+import { captureServer } from '@/lib/analytics/posthog-server';
  
 const User = require('@/models/User');
  
@@ -79,6 +80,11 @@ export async function POST(req: NextRequest) {
         partnerSharingConsent,
         partnerSharingConsentAt: partnerSharingConsent ? now : undefined,
       },
+    });
+
+    captureServer('signup_completed', String(user._id), {
+      role,
+      marketing_consent: marketingConsent,
     });
 
     return NextResponse.json({

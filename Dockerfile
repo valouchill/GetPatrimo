@@ -36,11 +36,17 @@ ARG MONGO_URI=mongodb://127.0.0.1:27017/doc2loc-build
 # Non-secret (clé d'envoi seulement). Passé via :
 #   --build-arg NEXT_PUBLIC_SENTRY_DSN="$(grep -E '^NEXT_PUBLIC_SENTRY_DSN=' /opt/doc2loc/.env | cut -d= -f2-)"
 ARG NEXT_PUBLIC_SENTRY_DSN=""
+# PostHog : clé publique (phc_...) inlinée au build pour le client. Passée via :
+#   --build-arg NEXT_PUBLIC_POSTHOG_KEY="$(grep -E '^NEXT_PUBLIC_POSTHOG_KEY=' /opt/doc2loc/.env | cut -d= -f2-)"
+ARG NEXT_PUBLIC_POSTHOG_KEY=""
+ARG NEXT_PUBLIC_POSTHOG_HOST="https://eu.i.posthog.com"
 ENV NODE_ENV=production \
     JWT_SECRET=$JWT_SECRET \
     NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
     MONGO_URI=$MONGO_URI \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+    NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 

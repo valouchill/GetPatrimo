@@ -33,6 +33,7 @@ import {
 } from '@/lib/billing/quota-service';
 import { FREE_TRIAL_LIMIT } from '@/lib/billing/tiers';
 import { isEnabled } from '@/lib/features';
+import { captureServer } from '@/lib/analytics/posthog-server';
 
 const COOLDOWN_MS = 30_000;
 
@@ -268,6 +269,10 @@ export async function POST(
       { enforced: isEnabled('BILLING_ENFORCED'), accountFreeUsed },
     );
     if (!quotaCheck.allowed) {
+      captureServer('paywall_viewed', String(userId), {
+        reason: quotaCheck.reason,
+        tier: quotaCheck.tier,
+      });
       // 402 : essai gratuit du compte épuisé (souscrire) ou quota payant épuisé (racheter).
       const quotaExceeded = quotaCheck.reason === 'QUOTA_EXCEEDED';
       return NextResponse.json(
@@ -364,6 +369,14 @@ export async function POST(
       quotaMode: quotaConsumption?.mode,
       quotaUsed: quotaConsumption?.used,
       overageBilled: quotaConsumption?.overageBilled,
+    });
+
+    captureServer('analysis_completed', String(userId), {
+      tier: quotaCheck.tier,
+      grade: result.resilience.level,
+      score: result.resilience.score,
+      decision: result.resilience.decision,
+      fraud_detected: result.ai?.flags?.isFraudDetected === true,
     });
 
     return NextResponse.json({

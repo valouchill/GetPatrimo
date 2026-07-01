@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "./providers/SessionProvider";
+import PostHogProvider from "./providers/PostHogProvider";
 import { NotificationProvider } from "./hooks/useNotification";
 
 export const metadata: Metadata = {
@@ -43,9 +44,11 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-slate-50 text-navy">
         <SessionProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
+          <PostHogProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </PostHogProvider>
         </SessionProvider>
       </body>
     </html>
