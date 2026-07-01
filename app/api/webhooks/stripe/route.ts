@@ -66,7 +66,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   await Property.findByIdAndUpdate(propertyId, update);
 
-  captureServer('purchase_completed', userId, {
+  captureServer(
+    'purchase_completed',
+    userId || (typeof session.customer === 'string' ? session.customer : undefined) || propertyId,
+    {
     tier: tier || null,
     amount:
       typeof session.amount_total === 'number'
