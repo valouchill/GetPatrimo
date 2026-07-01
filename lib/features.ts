@@ -25,6 +25,10 @@ export const FEATURES_V1_DEFAULTS = {
   //    Price IDs Stripe configurés.
   //    Override prod : NEXT_PUBLIC_FEATURES_V1='{"BILLING_ENFORCED":true}'
   BILLING_ENFORCED: true,
+  // Mode "dossier exemple" : démo d'analyse (fixture) pour l'aha moment sans
+  // locataire réel, sans quota, sans essai gratuit, sans Didit. Seul le scoring
+  // LLM (~0,04 €) tourne, taggé isSample → exclu de la COGS/marge du cockpit.
+  DEMO_MODE_ALLOWED: true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES_V1_DEFAULTS;

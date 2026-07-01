@@ -145,12 +145,14 @@ export async function getCockpitData(): Promise<CockpitData> {
       },
     ]),
     // Coûts API RÉELS du mois (ApiCostLog), agrégés par catégorie.
+    // Exclut les runs démo (meta.isSample) — leur coût ne doit PAS polluer la
+    // marge/COGS ni le coût réel par dossier (cf. mode « dossier exemple »).
     ApiCostLog.aggregate([
-      { $match: { createdAt: { $gte: monthStart } } },
+      { $match: { createdAt: { $gte: monthStart }, 'meta.isSample': { $ne: true } } },
       { $group: { _id: '$category', cost: { $sum: '$costEur' }, count: { $sum: '$units' } } },
     ]),
-    // Détail des derniers appels API loggés.
-    ApiCostLog.find({}).sort({ createdAt: -1 }).limit(12).lean(),
+    // Détail des derniers appels API loggés (hors runs démo).
+    ApiCostLog.find({ 'meta.isSample': { $ne: true } }).sort({ createdAt: -1 }).limit(12).lean(),
   ]);
 
   // — Abonnements par palier + MRR (prix réels depuis lib/billing/tiers) —
