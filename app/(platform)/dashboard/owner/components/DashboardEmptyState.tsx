@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Inbox, Copy, CheckCircle2, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/app/components/ui";
 import { useNotification } from "@/app/hooks/useNotification";
+import { isEnabled } from "@/lib/features";
+import { SampleDossierDemo } from "./SampleDossierDemo";
 import type { LocalBien } from "./ui";
 
 export interface DashboardEmptyStateProps {
@@ -36,6 +38,7 @@ export function DashboardEmptyState({
 }: DashboardEmptyStateProps) {
   const notify = useNotification();
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  const [showDemo, setShowDemo] = React.useState(false);
 
   const handleCopy = async (bien: LocalBien) => {
     const url = buildSesameUrl(bien.applyToken, baseUrl);
@@ -129,6 +132,29 @@ export function DashboardEmptyState({
             >
               Ajouter mon premier bien
             </Button>
+          </div>
+        )}
+
+        {isEnabled("DEMO_MODE_ALLOWED") && (
+          <div className="mt-8 w-full max-w-xl border-t border-slate-100 pt-6">
+            <p className="text-sm text-slate-600">
+              Pas encore de dossier reçu ?{" "}
+              <strong className="text-slate-800">
+                Voyez le résultat en 30 secondes
+              </strong>{" "}
+              sur un dossier exemple — sans attendre un candidat.
+            </p>
+            <div className="mt-3 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDemo((v) => !v)}
+                iconLeft={<Sparkles className="h-4 w-4" />}
+              >
+                {showDemo ? "Masquer la démo" : "Tester avec un dossier exemple"}
+              </Button>
+            </div>
+            {showDemo && <SampleDossierDemo className="mt-5 text-left" />}
           </div>
         )}
 

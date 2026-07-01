@@ -193,7 +193,7 @@ function buildUserPrompt(input: AnalysisInputType): string {
  */
 export async function analyzeApplication(
   input: AnalysisInputType,
-  options: { model?: string; timeoutMs?: number } = {},
+  options: { model?: string; timeoutMs?: number; costMeta?: Record<string, unknown> } = {},
 ): Promise<AIAnalysisType> {
   // Validation des entrées (filet anti-bug code appelant)
   const parsedInput = AnalysisInputSchema.parse(input);
@@ -226,7 +226,7 @@ export async function analyzeApplication(
       model,
       usage: completion.usage,
       category: 'LLM_SCORING',
-      meta: { source: 'tenant-analyzer' },
+      meta: { source: 'tenant-analyzer', ...(options.costMeta || {}) },
     });
   } catch {
     /* fire-and-forget */
@@ -282,7 +282,7 @@ export interface FullAnalysisResult {
  */
 export async function runFullAnalysis(
   input: AnalysisInputType,
-  options: { model?: string; timeoutMs?: number } = {},
+  options: { model?: string; timeoutMs?: number; costMeta?: Record<string, unknown> } = {},
 ): Promise<FullAnalysisResult> {
   const ai = await analyzeApplication(input, options);
   // V8.3 — Identité certifiée eIDAS (Didit) : la biométrie souveraine prime sur

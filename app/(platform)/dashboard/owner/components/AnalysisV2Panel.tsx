@@ -248,6 +248,17 @@ export interface AnalysisV2PanelProps {
   onResult?: (r: { score: number; level: string }) => void;
   /** Identité certifiée eIDAS (Didit) → neutralise les contrôles forensic d'identité. */
   diditVerified?: boolean;
+  /**
+   * Endpoint POST personnalisé (ex: mode « dossier exemple »
+   * `/api/owner/demo-analysis?variant=fraud`). Défaut : la route analyze-v2
+   * de la candidature (`applicationId`).
+   */
+  endpoint?: string;
+  /**
+   * Si false, ne lit PAS le cache Mongo au montage (GET) — utile en mode démo
+   * où il n'existe pas de candidature. Défaut : true.
+   */
+  autoCache?: boolean;
 }
 
 export function AnalysisV2Panel({
@@ -255,7 +266,11 @@ export function AnalysisV2Panel({
   className = '',
   onResult,
   diditVerified,
+  endpoint,
+  autoCache = true,
 }: AnalysisV2PanelProps): React.ReactElement {
+  const analyzeUrl =
+    endpoint ?? `/api/owner/applications/${applicationId}/analyze-v2`;
   const [loading, setLoading] = React.useState(false);
   const [cacheLoading, setCacheLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -281,6 +296,12 @@ export function AnalysisV2Panel({
 
   // ─── Auto-fetch du cache au montage (GET, pas d'appel OpenAI) ──────────
   React.useEffect(() => {
+    // Mode démo (autoCache=false) : pas de candidature en base → on saute le
+    // GET cache et on affiche directement l'état « Lancer l'analyse ».
+    if (autoCache === false) {
+      setCacheLoading(false);
+      return;
+    }
     let cancelled = false;
     async function fetchCached(): Promise<void> {
       try {
@@ -313,20 +334,17 @@ export function AnalysisV2Panel({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, notifyResult]);
+  }, [applicationId, notifyResult, autoCache]);
 
   async function runAnalysis(): Promise<void> {
     setLoading(true);
     setError(null);
     setPaymentRequired(null);
     try {
-      const res = await fetch(
-        `/api/owner/applications/${applicationId}/analyze-v2`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      const res = await fetch(analyzeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
       const body = (await res.json().catch(() => ({}))) as
         | AnalyzeV2Response
         | { error?: string; code?: string; pricingUrl?: string };
