@@ -141,10 +141,10 @@ const PRICING = [
     name: 'Essentiel',
     price: '19,90',
     unit: '€ / logement',
-    tagline: 'Débloquez la comparaison de tous vos candidats + 25 audits.',
+    tagline: 'Vérifiez votre finaliste — jusqu’à 3 candidats audités.',
     features: [
-      'Tout le plan Gratuit',
-      '25 audits forensic par l’IA',
+      'Comparaison détaillée de tous vos candidats',
+      '3 audits forensic par logement',
       'Détection de falsification',
       'Indice de Résilience institutionnel',
     ],
@@ -156,12 +156,12 @@ const PRICING = [
     name: 'Pro',
     price: '39,90',
     unit: '€ / logement',
-    tagline: 'Comparez tous vos candidats + 100 audits forensic.',
+    tagline: 'Comparez votre short-list — jusqu’à 10 candidats audités.',
     features: [
       'Tout le plan Essentiel',
-      '100 audits forensic par l’IA',
+      '10 audits forensic par l’IA',
       'Shortlist automatique des dossiers',
-      'Génération du bail ALUR',
+      'Passeport Locatif PDF premium',
     ],
     cta: 'Choisir Pro',
     href: '/pricing',
@@ -172,10 +172,10 @@ const PRICING = [
     name: 'Pro max',
     price: '59,90',
     unit: '€ / logement',
-    tagline: 'Volume & agences — comparaison + 250 audits.',
+    tagline: 'Zones tendues & relocations — jusqu’à 20 candidats audités.',
     features: [
       'Tout le plan Pro',
-      '250 audits forensic par l’IA',
+      '20 audits forensic par l’IA',
       'Idéal forte demande locative',
       'Support prioritaire',
     ],
@@ -479,8 +479,8 @@ export default function LandingClient() {
           <Reveal delay={0.16}>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
               L’Intelligence Artificielle de niveau institutionnel qui audite vos
-              dossiers locataires, détecte les falsifications et génère votre bail
-              en 3 clics.
+              dossiers locataires, détecte les falsifications et compare vos
+              candidats en 3 clics.
             </p>
           </Reveal>
 
@@ -613,8 +613,8 @@ export default function LandingClient() {
               Trois certitudes avant de signer.
             </h2>
             <p className="mt-4 text-lg text-slate-600">
-              Un audit de niveau bancaire, une notation lisible, un bail prêt à
-              signer. Vous décidez ; nous sécurisons.
+              Un audit de niveau bancaire, une notation lisible, une comparaison
+              qui tranche. Vous décidez ; nous sécurisons.
             </p>
           </Reveal>
 
@@ -654,7 +654,7 @@ export default function LandingClient() {
 
             {/* Pilier 3 */}
             <Pillar
-              eyebrow="Le Scellement"
+              eyebrow="Le Scellement — bientôt disponible"
               title="De la sélection à la signature en 3 minutes."
               visual={<SealMockup />}
               bullets={[
@@ -751,8 +751,8 @@ export default function LandingClient() {
 
           <p className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-2 text-center text-sm text-slate-500">
             <CreditCard className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-            0,49&nbsp;€ par dossier supplémentaire. Prix valable pour un logement
-            mis en location.
+            Quota épuisé ? Rachetez une offre : vos crédits restants sont conservés
+            et cumulés. Prix valable pour un logement mis en location.
           </p>
         </div>
       </section>

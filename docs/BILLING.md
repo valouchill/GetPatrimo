@@ -6,14 +6,20 @@ Chaque achat débloque un quota fixe d'analyses IA pour ce `Property`. Au-delà 
 
 ## Grille tarifaire
 
-| Offre | Prix (paiement unique) | Analyses IA incluses | Au-delà du quota |
+| Offre | Prix (paiement unique) | Audits forensic inclus | Au-delà du quota |
 |---|---|---|---|
 | **FREE** | 0 € | 3 (essai gratuit, par compte) | Souscrire une offre |
-| **ESSENTIAL** | 19,90 € | 25 | Racheter une offre |
-| **PREMIUM** (Analyse IA) | 39,90 € | 100 | Racheter une offre |
-| **MAX** (Analyse IA Max) | 59,90 € | 250 | Racheter une offre |
+| **ESSENTIAL** (Vérifier mon finaliste) | 19,90 € | 3 | Racheter une offre |
+| **PREMIUM** (Comparer ma short-list) | 39,90 € | 10 | Racheter une offre |
+| **MAX** (Sécuriser ma location) | 59,90 € | 20 | Racheter une offre |
 
 Source de vérité : `lib/billing/tiers.ts` (importable client + serveur).
+
+> **Offre orientée résultat (07/2026)** : chaque pack payant débloque en plus la
+> **comparaison détaillée de tous les candidats** du bien (`isManaged`) ; le quota =
+> nb d'audits forensic profonds. Les volumes historiques (25/100/250) sont réservés
+> à la future offre B2B. Les biens achetés avant le recut conservent leur
+> `dossiersQuota` stocké (cf. `effectiveQuota` : valeur DB prioritaire).
 
 ---
 

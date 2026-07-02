@@ -71,7 +71,9 @@ export function PropertyQuotaGauge({
   const safeQuota = Math.max(1, quota);
   const pct = Math.min(100, Math.round((used / safeQuota) * 100));
   const isOverage = used >= quota;
-  const isNearLimit = !isOverage && pct >= 90;
+  // Seuil relatif (90 %) inatteignable avec les petits quotas (3/10/20) → on
+  // alerte aussi quand il ne reste qu'un seul crédit.
+  const isNearLimit = !isOverage && (pct >= 90 || safeQuota - used === 1);
 
   const barColor = isOverage
     ? 'bg-red-500'
