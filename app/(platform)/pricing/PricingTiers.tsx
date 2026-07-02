@@ -138,12 +138,13 @@ export function PricingTiers({
             Tarifs · Paiement unique par logement
           </div>
           <h1 className="font-serif text-3xl font-bold leading-tight text-emerald-900 sm:text-5xl">
-            Sécurisez votre mise en location
+            Comparez vos candidats en toute confiance
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            Un <strong className="text-emerald-900">paiement unique par bien</strong>, sans
-            abonnement. L’analyse IA anti-fraude et l’Indice de Résilience sont inclus selon
-            l’offre choisie — au-delà du quota, il suffit de racheter une offre.
+            Recevez tous vos dossiers gratuitement avec un{' '}
+            <strong className="text-emerald-900">pré-tri automatique</strong>. Un{' '}
+            <strong className="text-emerald-900">paiement unique par bien — tout compris, sans frais cachés</strong>{' '}
+            débloque la comparaison détaillée de tous vos candidats et leurs audits anti-fraude.
           </p>
         </header>
 
@@ -248,14 +249,14 @@ export function PricingTiers({
                     {formatTierPrice(t.priceEur)}
                   </span>
                   {t.priceEur > 0 && (
-                    <span className="text-xs text-slate-500">paiement unique</span>
+                    <span className="text-xs text-slate-500">paiement unique · tout compris</span>
                   )}
                 </div>
                 <p className="mb-5 text-xs font-semibold uppercase tracking-wide text-amber-700">
                   {tierId === 'FREE'
-                    ? '3 analyses IA d’essai offertes'
+                    ? 'Pré-tri gratuit + 3 audits forensic offerts (au total)'
                     : t.quota > 0
-                    ? `${t.quota} analyses IA incluses`
+                    ? `Comparaison de tous + ${t.quota} audits forensic`
                     : 'Aucune analyse IA'}
                 </p>
 

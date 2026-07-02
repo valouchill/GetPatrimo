@@ -259,6 +259,29 @@ export default function SuccessClient({
           </div>
         </motion.div>
 
+        {/* Encart propriétaire — boucle Sésame (attribution utm_source=sesame, capté sur /auth/register) */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.45 }}
+          className="mt-6 flex flex-col items-start justify-between gap-4 rounded-[1.9rem] border border-emerald-200 bg-emerald-50 p-6 sm:flex-row sm:items-center"
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
+              Vous êtes propriétaire ?
+            </p>
+            <p className="mt-1 text-sm leading-6 text-emerald-900">
+              Recevez et pré-triez vos candidats gratuitement, et détectez les faux dossiers en 3 clics.
+            </p>
+          </div>
+          <a
+            href="/auth/register?role=owner&utm_source=sesame"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-emerald-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+          >
+            Créer mon lien gratuit
+          </a>
+        </motion.div>
+
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <motion.section
             initial={{ opacity: 0, y: 18 }}

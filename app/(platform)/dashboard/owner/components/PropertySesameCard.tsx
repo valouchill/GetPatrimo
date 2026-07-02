@@ -25,7 +25,10 @@ function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string)
   if (!applyToken) return null;
   const origin = baseUrl
     || (typeof window !== "undefined" ? window.location.origin : "https://maisonpatrimo.com");
-  return `${origin}/apply/${applyToken}`;
+  // utm_source=sesame : trace la boucle d'acquisition. Mesurable côté PostHog via
+  // l'encart owner de /apply/success → /auth/register (sur /apply le pageview est
+  // volontairement désactivé). La query est ignorée par la résolution du token.
+  return `${origin}/apply/${applyToken}?utm_source=sesame&utm_campaign=owner_acq`;
 }
 
 function truncateMiddle(url: string, max = 56): string {
