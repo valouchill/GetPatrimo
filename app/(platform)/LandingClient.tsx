@@ -34,6 +34,8 @@ import {
   Eye,
 } from 'lucide-react';
 import IdealTenantSimulator from '@/app/components/marketing/IdealTenantSimulator';
+import { WaitlistForm } from '@/app/components/marketing/WaitlistForm';
+import { isEnabled } from '@/lib/features';
 
 /* ──────────────────────────────────────────────────────────────
  * Animation helper : fade-in-up au scroll (sobre, élégant)
@@ -124,14 +126,14 @@ const PRICING = [
     name: 'Gratuit',
     price: '0',
     unit: '€',
-    tagline: 'Centralisez vos candidatures, sans risque.',
+    tagline: 'Recevez et pré-triez tous vos candidats, gratuitement.',
     features: [
       'Boîte de réception centralisée',
-      '1 lien de candidature',
-      '3 dossiers analysés gratuitement',
+      'Pré-tri automatique : score & grade',
+      '3 audits forensic offerts (au total)',
       'Stockage chiffré · conforme RGPD',
     ],
-    cta: 'Commencer',
+    cta: 'Créer mon lien gratuit',
     href: '/auth/register',
     highlight: false,
   },
@@ -139,7 +141,7 @@ const PRICING = [
     name: 'Essentiel',
     price: '19,90',
     unit: '€ / logement',
-    tagline: '25 analyses IA incluses.',
+    tagline: 'Débloquez la comparaison de tous vos candidats + 25 audits.',
     features: [
       'Tout le plan Gratuit',
       '25 audits forensic par l’IA',
@@ -154,7 +156,7 @@ const PRICING = [
     name: 'Pro',
     price: '39,90',
     unit: '€ / logement',
-    tagline: '100 analyses + shortlist automatique.',
+    tagline: 'Comparez tous vos candidats + 100 audits forensic.',
     features: [
       'Tout le plan Essentiel',
       '100 audits forensic par l’IA',
@@ -170,7 +172,7 @@ const PRICING = [
     name: 'Pro max',
     price: '59,90',
     unit: '€ / logement',
-    tagline: 'Pensé pour les zones tendues.',
+    tagline: 'Volume & agences — comparaison + 250 audits.',
     features: [
       'Tout le plan Pro',
       '250 audits forensic par l’IA',
@@ -537,6 +539,69 @@ export default function LandingClient() {
         </div>
       </section>
 
+      {/* ============ DIFFÉRENCIATION vs DossierFacile ============ */}
+      <section id="vs-dossierfacile" className="px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              Complémentaire, pas concurrent
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-emerald-900 sm:text-4xl">
+              Vous recevez un DossierFacile ? Vérifiez-le en 3 clics.
+            </h2>
+            <p className="mt-4 text-lg text-slate-600">
+              DossierFacile aide le locataire à présenter son dossier. Maison Patrimo aide le
+              propriétaire à <strong className="text-emerald-900">décider</strong> : détecter la
+              fraude, scorer le risque et comparer ses candidats.
+            </p>
+          </Reveal>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+            <Reveal className="rounded-3xl border border-slate-200 bg-white p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                DossierFacile · service public
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Constituer et partager un dossier de location, côté locataire.
+              </p>
+              <ul className="mt-4 space-y-2.5 text-sm text-slate-600">
+                {['Dossier locataire numérique', 'Pièces regroupées et partageables', 'Gratuit, côté candidat'].map(
+                  (f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                      <span>{f}</span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </Reveal>
+            <Reveal className="rounded-3xl border-2 border-emerald-200 bg-emerald-50/40 p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                Maison Patrimo · côté propriétaire
+              </p>
+              <p className="mt-2 text-sm text-emerald-900">
+                Décider en confiance — ce que Maison Patrimo ajoute :
+              </p>
+              <ul className="mt-4 space-y-2.5 text-sm text-slate-700">
+                {[
+                  'Audit forensic anti-fraude (faux bulletins détectés)',
+                  'Indice de Résilience + grade par candidat',
+                  'Comparaison classée de tous vos candidats',
+                  'Décision assistée, sans expertise requise',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+          <p className="mt-6 text-center text-xs text-slate-400">
+            Maison Patrimo est un outil d’aide à la décision et ne garantit pas la solvabilité future du locataire.
+          </p>
+        </div>
+      </section>
+
       {/* ======================== 3 PILIERS ========================== */}
       <section id="features" className="px-6 py-20 md:py-28">
         <div className="mx-auto max-w-6xl">
@@ -691,6 +756,28 @@ export default function LandingClient() {
           </p>
         </div>
       </section>
+
+      {/* ============ WAITLIST GESTION LOCATIVE ============ */}
+      {isEnabled('WAITLIST_MANAGEMENT') && (
+        <section id="waitlist-gestion" className="px-6 py-16 md:py-20">
+          <Reveal className="mx-auto max-w-3xl rounded-[2rem] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 to-white p-8 text-center sm:p-12">
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              Bientôt
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-emerald-900 sm:text-4xl">
+              La gestion locative, en autonomie
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-slate-600">
+              Quittances, avis d’échéance, courriers, coffre-fort et rappels — au même endroit,
+              une fois votre locataire choisi. Rejoignez la liste d’attente pour être prévenu au
+              lancement, et profiter du tarif fondateur.
+            </p>
+            <div className="mx-auto mt-6 max-w-md">
+              <WaitlistForm source="waitlist_gestion_locative" />
+            </div>
+          </Reveal>
+        </section>
+      )}
 
       {/* ====================== CTA FINAL (dark) ===================== */}
       <section className="px-6 py-20 md:py-24">

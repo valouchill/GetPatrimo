@@ -29,6 +29,9 @@ export const FEATURES_V1_DEFAULTS = {
   // locataire réel, sans quota, sans essai gratuit, sans Didit. Seul le scoring
   // LLM (~0,04 €) tourne, taggé isSample → exclu de la COGS/marge du cockpit.
   DEMO_MODE_ALLOWED: true,
+  // Section "waitlist gestion locative" sur la landing : collecte d'intérêt
+  // (modèle Lead via /api/public/lead) AVANT que la feature MANAGEMENT n'existe.
+  WAITLIST_MANAGEMENT: true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES_V1_DEFAULTS;

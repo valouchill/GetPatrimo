@@ -110,24 +110,34 @@ export default function CandidateComparisonMatrix({
               </div>
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-                  Accès complet
+                  Pré-tri gratuit
                 </div>
                 <h3 className="mt-2 font-serif text-2xl tracking-tight text-amber-950">
-                  Les finalistes sont comparables tout de suite
+                  Votre pré-tri gratuit est prêt
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-amber-900/85">
-                  Les indicateurs clés sont visibles ici. Ouvrez le détail complet uniquement quand vous êtes prêt à trancher.
+                  Le score, le grade et les indicateurs clés de chaque candidat sont gratuits. Un pack
+                  débloque la <strong>comparaison détaillée de tous vos candidats</strong> + leurs audits
+                  forensic anti-fraude.
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onUnlock}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-900"
-            >
-              <Lock className="h-4 w-4 text-amber-300" />
-              Accéder aux dossiers complets
-            </button>
+            <div className="flex shrink-0 flex-col items-stretch gap-2">
+              <button
+                type="button"
+                onClick={onUnlock}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+              >
+                <Lock className="h-4 w-4 text-amber-300" />
+                Débloquer la comparaison
+              </button>
+              <a
+                href="/pricing"
+                className="text-center text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
+              >
+                Voir les offres
+              </a>
+            </div>
           </div>
         </PremiumSurface>
       ) : null}

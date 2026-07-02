@@ -145,6 +145,18 @@ const ownerTunnelLimiter = rateLimit({
 });
 app.use('/api/owner-tunnel', ownerTunnelLimiter);
 
+// --- Securite : rate limiting sur la collecte de leads publique (waitlist / lead magnets) ---
+// Endpoint public non authentifie qui insere un Lead par appel → limite stricte anti-spam
+// (au-dela du globalLimiter 120/min). NB prod : completer par CAPTCHA/WAF edge.
+const leadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de soumissions. Patientez une minute puis reessayez.' },
+});
+app.use('/api/public/lead', leadLimiter);
+
 // --- Logging minimal ---
 app.use((req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
