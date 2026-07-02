@@ -58,7 +58,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     if (wasFree) {
       update.dossiersQuota = newPackQuota;
       update.dossiersAnalyzedCount = 0;
-      update.analyzedApplicationIds = [];
+      // On CONSERVE analyzedApplicationIds : les dossiers déjà audités pendant
+      // l'essai gratuit restent ALREADY_COUNTED (ré-analyse gratuite) et ne
+      // consomment pas les crédits fraîchement payés — critique avec les petits
+      // quotas (3/10/20) où re-payer son finaliste coûterait 1/3 du pack.
     } else {
       update.dossiersQuota = Number(current?.dossiersQuota || 0) + newPackQuota;
     }

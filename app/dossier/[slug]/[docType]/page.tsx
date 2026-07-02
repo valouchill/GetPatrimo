@@ -216,8 +216,8 @@ export default async function PublicDossierPage({
               </h2>
               <p className="mt-2 text-sm text-slate-700 sm:text-base">
                 Connectez-vous pour ajouter ce candidat à votre sélection,
-                générer le bail loi ALUR en 3 clics, et accéder au coffre-fort
-                numérique. <strong>Premier mois offert.</strong>
+                lancer son audit forensic anti-fraude et le comparer à vos
+                autres dossiers. <strong>3 audits offerts à l’inscription.</strong>
               </p>
             </div>
             <Link

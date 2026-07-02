@@ -668,9 +668,9 @@ export default function ProfilePage() {
                   </h3>
                   <p className="text-xs text-slate-400">
                     {props.length} bien{props.length > 1 ? 's' : ''} ·{' '}
-                    {bestTier === 'FREE'
-                      ? 'Aucune analyse IA incluse'
-                      : `${TIERS[bestTier].quota} analyses / bien`}
+                    {totalQuota > 0
+                      ? `${totalQuota} audit${totalQuota > 1 ? 's' : ''} forensic inclus (au total)`
+                      : 'Aucun audit forensic inclus'}
                   </p>
                 </div>
               </div>
@@ -698,7 +698,7 @@ export default function ProfilePage() {
                       }`}
                     />
                   </div>
-                  {usagePercent >= 90 && (
+                  {(usagePercent >= 90 || (totalQuota > 0 && totalQuota - totalUsed === 1)) && (
                     <p className="mt-2 text-[11px] text-amber-300">
                       Quota presque atteint — pensez à racheter une offre pour continuer.
                     </p>

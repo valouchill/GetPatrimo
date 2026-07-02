@@ -144,7 +144,7 @@ export function PricingTiers({
             Recevez tous vos dossiers gratuitement avec un{' '}
             <strong className="text-emerald-900">pré-tri automatique</strong>. Un{' '}
             <strong className="text-emerald-900">paiement unique par bien — tout compris, sans frais cachés</strong>{' '}
-            débloque la comparaison détaillée de tous vos candidats et leurs audits anti-fraude.
+            débloque la comparaison détaillée de tous vos candidats et les audits anti-fraude de votre short-list.
           </p>
         </header>
 

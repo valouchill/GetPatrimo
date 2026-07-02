@@ -6,8 +6,11 @@
  * de la Property (cf. models/Property.js : tier, dossiersQuota,
  * dossiersAnalyzedCount).
  *
- * Modèle économique : forfait de base (quota d'analyses IA inclus) +
- * facturation au dépassement (0,49€/dossier) via Stripe Metered Billing.
+ * Modèle économique : ACHAT ONE-TIME par bien (Stripe mode payment) — chaque
+ * pack débloque la comparaison détaillée de tous les candidats (isManaged) +
+ * un quota d'audits forensic. Au-delà : PLAFOND DUR, rachat = CUMUL des crédits.
+ * (Le metered billing 0,49 €/dossier a été abandonné — OVERAGE_PRICE_EUR ne
+ * sert plus que de seuil interne de COGS au cockpit admin.)
  *
  * Les Price IDs Stripe sont pilotés par variables d'environnement (les
  * vrais IDs sont créés dans le Dashboard Stripe). Voir docs/BILLING.md.
@@ -21,7 +24,7 @@ export interface TierConfig {
   label: string;
   /** Sous-titre marketing court */
   tagline: string;
-  /** Prix mensuel de base en euros (0 pour FREE) */
+  /** Prix du paiement unique en euros (0 pour FREE) */
   priceEur: number;
   /** Nombre d'analyses IA incluses dans le forfait */
   quota: number;
@@ -63,16 +66,18 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
   ESSENTIAL: {
     id: 'ESSENTIAL',
     label: 'Essentiel',
-    tagline: 'Débloquez la comparaison de tous vos candidats + 25 audits',
+    tagline: 'Vérifiez votre finaliste — jusqu’à 3 candidats audités',
     priceEur: 19.9,
-    quota: 25,
+    // Offre orientée résultat : on vend la DÉCISION sur une short-list, pas du
+    // volume d'analyses (les gros volumes = offre B2B). 3/10/20 audits par bien.
+    quota: 3,
     overagePriceEur: OVERAGE_PRICE_EUR,
     basePriceEnvKey: 'PRICE_ID_ESSENTIAL_BASE',
     meteredPriceEnvKey: 'PRICE_ID_ESSENTIAL_METERED',
-    cta: 'Comparer mes candidats',
+    cta: 'Vérifier mon finaliste',
     features: [
       'Comparaison détaillée de tous vos candidats',
-      '25 audits forensic anti-fraude',
+      '3 audits forensic anti-fraude (par logement)',
       'Coordonnées + pièces débloquées',
       'Paiement unique, sans abonnement',
     ],
@@ -80,16 +85,16 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
   PREMIUM: {
     id: 'PREMIUM',
     label: 'Pro',
-    tagline: 'Comparez vos candidats + 100 audits forensic',
+    tagline: 'Comparez votre short-list — jusqu’à 10 candidats audités',
     priceEur: 39.9,
-    quota: 100,
+    quota: 10,
     overagePriceEur: OVERAGE_PRICE_EUR,
     basePriceEnvKey: 'PRICE_ID_PREMIUM_BASE',
     meteredPriceEnvKey: 'PRICE_ID_PREMIUM_METERED',
     cta: 'Comparer mes candidats',
     features: [
       'Comparaison détaillée de tous vos candidats',
-      '100 audits forensic anti-fraude',
+      '10 audits forensic anti-fraude',
       'Passeport Locatif PDF premium',
       'Paiement unique, sans abonnement',
     ],
@@ -98,17 +103,17 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
   MAX: {
     id: 'MAX',
     label: 'Pro max',
-    tagline: 'Volume & agences — comparaison + 250 audits',
+    tagline: 'Zones tendues & relocations — jusqu’à 20 candidats audités',
     priceEur: 59.9,
-    quota: 250,
+    quota: 20,
     overagePriceEur: OVERAGE_PRICE_EUR,
     basePriceEnvKey: 'PRICE_ID_MAX_BASE',
     meteredPriceEnvKey: 'PRICE_ID_MAX_METERED',
-    cta: 'Comparer mes candidats',
+    cta: 'Sécuriser ma location',
     features: [
       'Comparaison détaillée de tous vos candidats',
-      '250 audits forensic anti-fraude',
-      'Priorité de traitement',
+      '20 audits forensic anti-fraude',
+      'Support prioritaire',
       'Paiement unique, sans abonnement',
     ],
   },
