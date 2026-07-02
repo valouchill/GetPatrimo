@@ -60,7 +60,7 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
       'Lien de candidature illimité',
       'Pré-tri automatique : score & grade de chaque candidat',
       'Boîte de réception centralisée',
-      '3 analyses forensic offertes (au total)',
+      '3 audits forensic offerts (au total)',
     ],
   },
   ESSENTIAL: {

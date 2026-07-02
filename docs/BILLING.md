@@ -10,7 +10,7 @@ Chaque achat débloque un quota fixe d'analyses IA pour ce `Property`. Au-delà 
 |---|---|---|---|
 | **FREE** | 0 € | 3 (essai gratuit, par compte) | Souscrire une offre |
 | **ESSENTIAL** (Vérifier mon finaliste) | 19,90 € | 3 | Racheter une offre |
-| **PREMIUM** (Comparer ma short-list) | 39,90 € | 10 | Racheter une offre |
+| **PREMIUM** (Comparer mes candidats) | 39,90 € | 10 | Racheter une offre |
 | **MAX** (Sécuriser ma location) | 59,90 € | 20 | Racheter une offre |
 
 Source de vérité : `lib/billing/tiers.ts` (importable client + serveur).

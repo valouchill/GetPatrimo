@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import posthog from 'posthog-js';
 import { AlertTriangle, ArrowRight, CheckCircle2, Crown, ExternalLink, Lock, ShieldCheck, XCircle } from 'lucide-react';
 
 import { ActionBar, cx, InfoRow, PremiumSurface, StatusBadge } from '@/app/components/ui/premium';
@@ -99,6 +101,19 @@ export default function CandidateComparisonMatrix({
   const hasMasked = candidates.some((candidate) => candidate.isSealed);
   const pendingCandidate = candidates.find((candidate) => candidate.id === pendingCandidateId) || null;
 
+  // Le mur "comparaison masquée" est un paywall à part entière : on le trace
+  // (le serveur ne capture paywall_viewed que sur le 402 d'analyze-v2).
+  useEffect(() => {
+    if (!hasMasked) return;
+    try {
+      if ((posthog as unknown as { __loaded?: boolean }).__loaded) {
+        posthog.capture('paywall_viewed', { reason: 'COMPARISON_MASKED', source: 'comparison_matrix' });
+      }
+    } catch {
+      /* analytics jamais bloquant */
+    }
+  }, [hasMasked]);
+
   return (
     <div className="space-y-6">
       {hasMasked ? (
@@ -132,7 +147,7 @@ export default function CandidateComparisonMatrix({
                 Débloquer la comparaison
               </button>
               <a
-                href="/pricing"
+                href={`/pricing?property=${propertyId}`}
                 className="text-center text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
               >
                 Voir les offres

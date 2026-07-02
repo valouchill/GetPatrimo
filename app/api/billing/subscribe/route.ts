@@ -106,8 +106,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // L'offre achetée (Price one-time). Un seul achat = un quota fixe.
         { price: base, quantity: 1 },
       ],
-      success_url: `${baseUrl}/dashboard/owner?tab=biens&checkout=success`,
-      cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
+      // Retour SUR LE BIEN acheté : referme la boucle de conversion (bannière
+      // succès + polling déverrouillage de PropertyDetailClient).
+      success_url: `${baseUrl}/dashboard/owner/property/${propertyId}?checkout=success`,
+      // Annulation : on conserve le contexte d'achat direct (?property=).
+      cancel_url: `${baseUrl}/pricing?property=${propertyId}&checkout=cancelled`,
       metadata,
       payment_intent_data: { metadata },
       payment_method_types: ['card'],

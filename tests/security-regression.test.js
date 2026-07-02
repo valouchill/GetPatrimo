@@ -205,9 +205,16 @@ describe('Fuites de message d\'erreur interne au client retirées (passe-5)', ()
   it('getAllCandidatures ne renvoie plus error.message', () => {
     assertNotContains('src/controllers/candidatureController.js', "msg: 'Erreur serveur',\n        error: error.message", 'candidature leak');
   });
-  it('create-checkout & billing portal ne renvoient plus e.message', () => {
-    assertNotContains('app/api/billing/create-checkout/route.ts', 'error: e.message ||', 'checkout leak');
+  it('billing portal ne renvoie plus e.message', () => {
     assertNotContains('app/api/billing/portal/route.ts', 'error: e.message ||', 'portal leak');
+  });
+  it('route legacy create-checkout supprimée (flux subscription mort, prix legacy)', () => {
+    // Verrou plus fort que l'ancien assertNotContains : la route entière a été
+    // retirée (remplacée par /api/billing/subscribe, achat one-time).
+    assert.ok(
+      !fs.existsSync(path.join(ROOT, 'app/api/billing/create-checkout/route.ts')),
+      'create-checkout ne doit pas réapparaître',
+    );
   });
 });
 describe('Passeport public — PII de tiers masquée (passe-5 batch-2, HIGH)', () => {

@@ -721,7 +721,7 @@ export default function ProfilePage() {
                 <Sparkles className="w-4 h-4" />
                 {bestTier === 'MAX'
                   ? 'Gérer mon offre Max'
-                  : `Passer à l'${TIERS[nextTier].label} pour ${formatTierPrice(TIERS[nextTier].priceEur)}`}
+                  : `Passer à l'offre ${TIERS[nextTier].label} — ${formatTierPrice(TIERS[nextTier].priceEur)}`}
               </Link>
 
               {/* Portail facturation Stripe (si abonnement actif) */}
