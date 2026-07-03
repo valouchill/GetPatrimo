@@ -26,7 +26,6 @@ import { PropertyEditModal } from '../../components/PropertyEditModal';
 import { PropertyQuotaGauge } from '../../components/PropertyQuotaGauge';
 import type { LocalBien } from '../../components/ui';
 
-import CheckoutModal from '@/app/components/CheckoutModal';
 import {
   ActionBar,
   EmptyState,
@@ -164,7 +163,6 @@ type CandidateRecord = {
   certifiedDocumentsCount?: number;
 };
 
-type CheckoutTarget = { propertyLabel: string; candidateCount: number } | null;
 type Tab = 'overview' | 'passports' | 'compare' | 'selection' | 'docs';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -364,7 +362,6 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
   const [candidatures, setCandidatures] = useState<CandidateRecord[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectionBusyId, setSelectionBusyId] = useState<string | null>(null);
@@ -459,11 +456,11 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
     return 'overview';
   }, [requestedTab, selectionState?.defaultTab, ownerSelected]);
 
+  // Déverrouillage : envoie vers la grille d'offres avec achat direct pour CE
+  // bien (?property=). Remplace l'ancien CheckoutModal legacy (89 €/9,99 €/mois)
+  // qui rendait null derrière OWNER_PAYWALL=false → tous les CTA étaient morts.
   const openUnlockModal = () => {
-    setCheckoutTarget({
-      propertyLabel: property?.address || property?.name || 'ce bien',
-      candidateCount: Number(property?.flow?.sealedCount || sorted.filter((c) => c.isSealed).length || 0),
-    });
+    router.push(`/pricing?property=${propertyId}`);
   };
 
   const handleCopyLink = async () => {
@@ -596,15 +593,6 @@ export default function PropertyDetailClient({ propertyId }: { propertyId: strin
           onSaved={() => { setEditOpen(false); loadData(); }}
         />
       )}
-      <CheckoutModal
-        open={Boolean(checkoutTarget)}
-        onClose={() => setCheckoutTarget(null)}
-        propertyId={propertyId}
-        propertyLabel={checkoutTarget?.propertyLabel || ''}
-        candidateCount={checkoutTarget?.candidateCount || 0}
-        unlockScope="property"
-      />
-
       {/* ── Banners ─────────────────────────────────────────────────── */}
       {checkoutSuccess && (
         <div className="flex items-start gap-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4">

@@ -19,7 +19,6 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import CheckoutModal from '@/app/components/CheckoutModal';
 import {
   ActionBar,
   cx,
@@ -283,7 +282,9 @@ export default function CandidateAuditClient({
   const [selectionBusy, setSelectionBusy] = useState(false);
   const [unselectBusy, setUnselectBusy] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Déverrouillage → grille d'offres avec achat direct pour ce bien (remplace
+  // l'ancien CheckoutModal legacy qui rendait null — CTA morts).
+  const goToUnlock = () => router.push(`/pricing?property=${propertyId}`);
 
   // V5.7 — Dossier documentaire (Trust-List) fetch
   const [dossierDocs, setDossierDocs] = useState<DossierDocument[]>([]);
@@ -371,7 +372,6 @@ export default function CandidateAuditClient({
   const isSealed = Boolean(candidate?.isSealed);
   const isOwnerSelected = Boolean(candidate?.isOwnerSelected);
   const canChangeSelection = !['LEASE_IN_PROGRESS', 'OCCUPIED'].includes(String(property?.status || '').toUpperCase());
-  const propertyLabel = property?.address || property?.name || 'le bien';
 
   const signals = useMemo(() => {
     if (!candidate?.ownerInsights) return [];
@@ -429,15 +429,6 @@ export default function CandidateAuditClient({
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-12">
-      <CheckoutModal
-        open={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        propertyId={propertyId}
-        propertyLabel={propertyLabel}
-        candidateCount={Number(property?.flow?.sealedCount || 0)}
-        unlockScope="property"
-      />
-
       {/* ── Back link ── */}
       <Link
         href={`/dashboard/owner/property/${propertyId}`}
@@ -461,7 +452,7 @@ export default function CandidateAuditClient({
               </p>
               <button
                 type="button"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={goToUnlock}
                 className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
               >
                 <Lock className="h-4 w-4 text-amber-300" />
@@ -562,10 +553,10 @@ export default function CandidateAuditClient({
                 {selectionBusy ? 'Sélection...' : 'Retenir ce locataire'}
               </button>
             )}
-            {isEnabled('OWNER_PAYWALL') && isSealed && (
+            {isSealed && (
               <button
                 type="button"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={goToUnlock}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
               >
                 <Lock className="h-4 w-4 text-amber-300" />
@@ -1017,7 +1008,7 @@ export default function CandidateAuditClient({
             {isSealed && (
               <button
                 type="button"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={goToUnlock}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
                 <Lock className="h-4 w-4 text-amber-300" />

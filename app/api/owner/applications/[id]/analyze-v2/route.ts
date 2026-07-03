@@ -272,19 +272,21 @@ export async function POST(
       captureServer('paywall_viewed', String(userId), {
         reason: quotaCheck.reason,
         tier: quotaCheck.tier,
+        source: 'analyze_v2',
       });
       // 402 : essai gratuit du compte épuisé (souscrire) ou quota payant épuisé (racheter).
       const quotaExceeded = quotaCheck.reason === 'QUOTA_EXCEEDED';
       return NextResponse.json(
         {
           error: quotaExceeded
-            ? `Quota d'analyses épuisé pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre pour analyser de nouveaux dossiers.`
-            : `Vos ${quotaCheck.quota} analyses d'essai gratuites sont épuisées. Souscrivez une offre pour continuer à analyser vos dossiers.`,
+            ? `Audits épuisés pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre : vos crédits se cumulent, rien n'est perdu.`
+            : `Vos ${quotaCheck.quota} audits d'essai sont utilisés. Débloquez l'identité, les coordonnées et les pièces de TOUS vos candidats + de nouveaux audits dès 19,90 €.`,
           code: quotaExceeded ? 'QUOTA_EXCEEDED' : 'PAYMENT_REQUIRED',
           tier: quotaCheck.tier,
           quota: quotaCheck.quota,
           used: quotaCheck.used,
-          pricingUrl: '/pricing',
+          // Achat direct pour CE bien (PricingTiers lit ?property=).
+          pricingUrl: `/pricing?property=${String((property as any)._id)}`,
         },
         { status: 402 },
       );
@@ -392,6 +394,16 @@ export async function POST(
             overageBilled: quotaConsumption.overageBilled,
           }
         : null,
+      // Essai gratuit : compteur APRÈS cette analyse (rappel doux côté front —
+      // évite le mur brutal au 4e dossier) + achat direct pour ce bien.
+      freeTrial:
+        quotaCheck.mode === 'FREE_TRIAL'
+          ? {
+              used: Math.min(accountFreeUsed + 1, FREE_TRIAL_LIMIT),
+              limit: FREE_TRIAL_LIMIT,
+              pricingUrl: `/pricing?property=${String((property as any)._id)}`,
+            }
+          : null,
     });
   } catch (error) {
     logger.error('POST /api/owner/applications/[id]/analyze-v2', {

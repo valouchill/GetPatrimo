@@ -440,7 +440,7 @@ export default function OwnerDashboardClient() {
                 <strong>Essai gratuit</strong> — {Math.min(used, limit)}/{limit} analyses IA utilisées sur votre compte.{' '}
                 {left > 0
                   ? `${left} restante${left > 1 ? 's' : ''}.`
-                  : 'Essai épuisé — souscrivez pour analyser sans limite.'}
+                  : 'Essai épuisé — débloquez de nouveaux audits dès 19,90 €.'}
               </p>
               <button
                 type="button"

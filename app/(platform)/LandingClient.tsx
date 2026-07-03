@@ -134,7 +134,7 @@ const PRICING = [
       'Stockage chiffré · conforme RGPD',
     ],
     cta: 'Créer mon lien gratuit',
-    href: '/auth/register',
+    href: '/auth/register?role=owner',
     highlight: false,
   },
   {
@@ -487,7 +487,7 @@ export default function LandingClient() {
           <Reveal delay={0.24}>
             <div className="mt-9 flex flex-col items-center gap-4">
               <Link
-                href="/auth/register"
+                href="/auth/register?role=owner"
                 className="group inline-flex items-center justify-center gap-2.5 rounded-2xl bg-emerald-900 px-7 py-4 text-base font-semibold text-white shadow-[0_16px_36px_-10px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-0.5 hover:bg-emerald-800 hover:shadow-[0_20px_44px_-10px_rgba(6,78,59,0.65)] sm:text-lg"
               >
                 Créer mon premier lien de candidature — 0€
@@ -797,7 +797,7 @@ export default function LandingClient() {
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/auth/register"
+                href="/auth/register?role=owner"
                 className="group inline-flex items-center justify-center gap-2.5 rounded-2xl bg-amber-500 px-7 py-4 text-base font-semibold text-white shadow-amber transition-all hover:-translate-y-0.5 hover:bg-amber-600"
               >
                 Créer mon lien gratuit

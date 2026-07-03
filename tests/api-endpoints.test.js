@@ -30,9 +30,6 @@ const VerifyOtpSchema = z.object({
   }).optional(),
 });
 
-const CreateCheckoutSchema = z.object({
-  propertyId: z.string().min(1),
-});
 
 const CompileLeaseSchema = z.object({
   propertyId: z.string().min(1),
@@ -195,21 +192,6 @@ describe('GET /api/user/export — contract', () => {
     // Response contract: { user, properties, applications, events }
     const expected = ['user', 'properties', 'applications', 'events'];
     expected.forEach((key) => assert.ok(typeof key === 'string'));
-  });
-});
-
-// ─── 9. POST /api/billing/create-checkout — CreateCheckoutSchema
-describe('POST /api/billing/create-checkout — CreateCheckoutSchema', () => {
-  it('accepts valid propertyId', () => {
-    expectValid(CreateCheckoutSchema, { propertyId: '665abc123' });
-  });
-
-  it('rejects empty propertyId', () => {
-    expectInvalid(CreateCheckoutSchema, { propertyId: '' });
-  });
-
-  it('rejects missing body', () => {
-    expectInvalid(CreateCheckoutSchema, {});
   });
 });
 

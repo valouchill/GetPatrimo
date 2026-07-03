@@ -57,6 +57,19 @@ export function PricingTiers({
   const urlPropertyId = searchParams.get('property');
   const [busyTier, setBusyTier] = React.useState<PropertyTier | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Retour navigateur depuis Stripe via bfcache : la page revit avec l'ancien
+  // state → bouton figé sur « Redirection… ». On le réarme.
+  React.useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent): void => {
+      if (e.persisted) {
+        setBusyTier(null);
+        setError(null);
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
   const [pickerTier, setPickerTier] = React.useState<PropertyTier | null>(null);
   const [needProperty, setNeedProperty] = React.useState(false);
 
@@ -97,15 +110,17 @@ export function PricingTiers({
         return;
       }
 
-      // Lien in-app ciblant déjà un bien → achat direct.
-      if (urlPropertyId) {
-        void startCheckout(urlPropertyId, tier);
+      // Visiteur déconnecté (ou session expirée) → inscription, puis retour au
+      // même contexte d'achat (?property= conservé) — évite un 401 brut au clic.
+      if (!authenticated) {
+        const back = urlPropertyId ? `/pricing?property=${urlPropertyId}` : '/pricing';
+        router.push(`/auth/register?role=owner&callbackUrl=${encodeURIComponent(back)}`);
         return;
       }
 
-      // Visiteur déconnecté → inscription, retour sur /pricing.
-      if (!authenticated) {
-        router.push('/auth/register?role=owner&callbackUrl=%2Fpricing');
+      // Lien in-app ciblant déjà un bien → achat direct.
+      if (urlPropertyId) {
+        void startCheckout(urlPropertyId, tier);
         return;
       }
 
@@ -252,6 +267,11 @@ export function PricingTiers({
                     <span className="text-xs text-slate-500">paiement unique · tout compris</span>
                   )}
                 </div>
+                {t.priceEur > 0 && t.quota > 0 && (
+                  <p className="text-[11px] text-slate-400">
+                    soit {(t.priceEur / t.quota).toFixed(2).replace('.', ',')} € par audit
+                  </p>
+                )}
                 <p className="mb-5 text-xs font-semibold uppercase tracking-wide text-amber-700">
                   {tierId === 'FREE'
                     ? 'Pré-tri gratuit + 3 audits forensic offerts (au total)'
@@ -272,6 +292,12 @@ export function PricingTiers({
                   ))}
                 </ul>
 
+                {tierId === 'FREE' && authenticated ? (
+                  <div className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                    Votre offre de départ — active
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => handleCta(tierId)}
@@ -289,21 +315,26 @@ export function PricingTiers({
                   ) : null}
                   {busy ? 'Redirection…' : t.cta}
                 </button>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Réassurance (page publique uniquement) */}
-        {variant === 'page' && (
-          <footer className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            Paiement unique sécurisé par Stripe · Sans abonnement · Sans engagement ·{' '}
-            <Link href="/" className="font-semibold text-emerald-900 hover:underline">
-              Retour à l’accueil
-            </Link>
-          </footer>
-        )}
+        {/* Réassurance — affichée aussi en embedded (dashboard) : c'est au moment
+            du clic d'achat qu'elle compte le plus. */}
+        <footer className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
+          <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+          Paiement unique sécurisé par Stripe · Sans abonnement · Crédits cumulés, jamais perdus
+          {variant === 'page' && (
+            <>
+              {' · '}
+              <Link href="/" className="font-semibold text-emerald-900 hover:underline">
+                Retour à l’accueil
+              </Link>
+            </>
+          )}
+        </footer>
       </div>
 
       {/* Sélecteur de bien (owner avec plusieurs biens) */}
