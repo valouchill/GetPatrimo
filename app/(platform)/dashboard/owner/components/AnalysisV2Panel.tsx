@@ -694,9 +694,12 @@ export function AnalysisV2Panel({
               <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-amber-900">
                   <span className="font-semibold">
-                    {result.freeTrial.used}/{result.freeTrial.limit} audits d&rsquo;essai utilisés.
+                    {result.freeTrial.limit === 1
+                      ? 'Votre audit d’essai est utilisé.'
+                      : `${result.freeTrial.used}/${result.freeTrial.limit} audits d’essai utilisés.`}
                   </span>{' '}
-                  Débloquez la comparaison de tous vos candidats + de nouveaux audits dès 19,90&nbsp;€.
+                  L&rsquo;identité et les pièces de vos candidats restent masquées — débloquez
+                  tout + de nouveaux audits dès 19,90&nbsp;€.
                 </p>
                 <a
                   href={result.freeTrial.pricingUrl}

@@ -59,8 +59,8 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
     features: [
       'Lien de candidature illimité',
       'Pré-tri automatique : score & grade de chaque candidat',
-      'Boîte de réception centralisée',
-      '3 audits forensic offerts (au total)',
+      'Démo illimitée sur dossier exemple',
+      '1 audit forensic offert',
     ],
   },
   ESSENTIAL: {
@@ -122,8 +122,12 @@ export const TIERS: Record<PropertyTier, TierConfig> = {
 /** Ordre d'affichage canonique (gauche → droite sur la page pricing). */
 export const TIER_ORDER: PropertyTier[] = ['FREE', 'ESSENTIAL', 'PREMIUM', 'MAX'];
 
-/** Essai gratuit : nb d'analyses IA offertes au niveau du COMPTE (total, pas par bien). */
-export const FREE_TRIAL_LIMIT = 3;
+/** Essai gratuit : nb d'audits forensic offerts au niveau du COMPTE (total, pas
+ *  par bien). 1 seul : le « aha » sans risque passe par la démo dossier exemple
+ *  (hors quota) ; l'audit réel unique prouve la valeur sur SON candidat, puis le
+ *  paywall arrive en plein mode décision (candidats restants masqués). À 3, le
+ *  gratuit couvrait tout le job du pack Essentiel (3/bien) → cannibalisation. */
+export const FREE_TRIAL_LIMIT = 1;
 
 /** Type-guard : convertit une valeur inconnue en PropertyTier (défaut FREE). */
 export function normalizeTier(value: unknown): PropertyTier {

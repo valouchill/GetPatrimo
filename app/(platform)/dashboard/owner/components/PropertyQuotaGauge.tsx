@@ -48,11 +48,11 @@ export function PropertyQuotaGauge({
               Offre Gratuite
             </p>
             <h3 className="mt-0.5 font-serif text-base font-semibold text-emerald-900">
-              Essai gratuit : 3 analyses IA offertes
+              Essai gratuit : 1 audit forensic offert
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Votre compte gratuit inclut 3 analyses IA anti-fraude (au total) pour tester
-              le service. Au-delà, souscrivez une offre.
+              Votre compte gratuit inclut 1 audit forensic anti-fraude pour le tester sur un
+              vrai candidat. Au-delà, débloquez la comparaison + de nouveaux audits dès 19,90 €.
             </p>
             <Link
               href={`/pricing?property=${propertyId}`}

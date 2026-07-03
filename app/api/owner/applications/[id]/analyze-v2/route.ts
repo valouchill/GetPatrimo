@@ -280,7 +280,7 @@ export async function POST(
         {
           error: quotaExceeded
             ? `Audits épuisés pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre : vos crédits se cumulent, rien n'est perdu.`
-            : `Vos ${quotaCheck.quota} audits d'essai sont utilisés. Débloquez l'identité, les coordonnées et les pièces de TOUS vos candidats + de nouveaux audits dès 19,90 €.`,
+            : `${quotaCheck.quota === 1 ? 'Votre audit d’essai est utilisé' : `Vos ${quotaCheck.quota} audits d’essai sont utilisés`}. Débloquez l'identité, les coordonnées et les pièces de TOUS vos candidats + de nouveaux audits dès 19,90 €.`,
           code: quotaExceeded ? 'QUOTA_EXCEEDED' : 'PAYMENT_REQUIRED',
           tier: quotaCheck.tier,
           quota: quotaCheck.quota,

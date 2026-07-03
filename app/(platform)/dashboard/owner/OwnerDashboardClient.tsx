@@ -437,9 +437,9 @@ export default function OwnerDashboardClient() {
           return (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <p className="text-sm text-amber-900">
-                <strong>Essai gratuit</strong> — {Math.min(used, limit)}/{limit} analyses IA utilisées sur votre compte.{' '}
+                <strong>Essai gratuit</strong> — {Math.min(used, limit)}/{limit} audit{limit > 1 ? 's' : ''} forensic utilisé{limit > 1 ? 's' : ''} sur votre compte.{' '}
                 {left > 0
-                  ? `${left} restante${left > 1 ? 's' : ''}.`
+                  ? `${left} restant${left > 1 ? 's' : ''}.`
                   : 'Essai épuisé — débloquez de nouveaux audits dès 19,90 €.'}
               </p>
               <button

@@ -274,7 +274,7 @@ export function PricingTiers({
                 )}
                 <p className="mb-5 text-xs font-semibold uppercase tracking-wide text-amber-700">
                   {tierId === 'FREE'
-                    ? 'Pré-tri gratuit + 3 audits forensic offerts (au total)'
+                    ? 'Pré-tri gratuit + 1 audit forensic offert'
                     : t.quota > 0
                     ? `Comparaison de tous + ${t.quota} audits forensic`
                     : 'Aucune analyse IA'}

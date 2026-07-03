@@ -217,7 +217,7 @@ export default async function PublicDossierPage({
               <p className="mt-2 text-sm text-slate-700 sm:text-base">
                 Connectez-vous pour ajouter ce candidat à votre sélection,
                 lancer son audit forensic anti-fraude et le comparer à vos
-                autres dossiers. <strong>3 audits offerts à l’inscription.</strong>
+                autres dossiers. <strong>1 audit forensic offert à l’inscription.</strong>
               </p>
             </div>
             <Link
