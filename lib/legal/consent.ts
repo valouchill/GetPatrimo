@@ -3,7 +3,7 @@
  * Réutilisée côté client (<ConsentCheckboxes>) ET serveur (register, tunnel locataire).
  * Incrémenter CONSENT_VERSION si les CGU/CGV/confidentialité changent matériellement.
  */
-export const CONSENT_VERSION = '2026-06-15';
+export const CONSENT_VERSION = '2026-07-03';
 
 export interface ConsentValues {
   /** CGU + CGV + politique de confidentialité — OBLIGATOIRE. */

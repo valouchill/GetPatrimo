@@ -93,10 +93,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       userId: session.user.id,
       tier,
       quota: String(quotaForTier(tier)),
+      // Preuve du renoncement au droit de rétractation (art. L221-28 1° C. conso) :
+      // l'exécution est immédiate et le renoncement est affiché au moment du paiement
+      // (custom_text.submit ci-dessous). Tracé dans Stripe + webhook.
+      retractationWaiver: 'accepted',
     };
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'payment',
+      // Consentement exprès affiché sous le bouton de paiement (CGV art. 4-5).
+      custom_text: {
+        submit: {
+          message:
+            'En payant, vous demandez l’exécution immédiate du service et renoncez à votre droit de rétractation (art. L221-28 du Code de la consommation). Voir CGV.',
+        },
+      },
       // On rattache (ou crée) un client Stripe pour conserver l'historique de
       // paiement + alimenter Property.stripeCustomerId via le webhook.
       ...(property.stripeCustomerId
