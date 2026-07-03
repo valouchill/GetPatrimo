@@ -8,7 +8,7 @@ Chaque achat débloque un quota fixe d'analyses IA pour ce `Property`. Au-delà 
 
 | Offre | Prix (paiement unique) | Audits forensic inclus | Au-delà du quota |
 |---|---|---|---|
-| **FREE** | 0 € | 3 (essai gratuit, par compte) | Souscrire une offre |
+| **FREE** | 0 € | 1 (essai gratuit, par compte) | Souscrire une offre |
 | **ESSENTIAL** (Vérifier mon finaliste) | 19,90 € | 3 | Racheter une offre |
 | **PREMIUM** (Comparer mes candidats) | 39,90 € | 10 | Racheter une offre |
 | **MAX** (Sécuriser ma location) | 59,90 € | 20 | Racheter une offre |
@@ -82,7 +82,7 @@ Webhook Stripe → `/api/webhooks/stripe`, events : `checkout.session.completed`
 
 1. Charge la `Property` liée au dossier.
 2. `checkAnalysisAllowed(property, applicationId, { enforced, accountFreeUsed })` :
-   - **FREE, essai dispo** (< `FREE_TRIAL_LIMIT`=3 au niveau du COMPTE) → `FREE_TRIAL`.
+   - **FREE, essai dispo** (< `FREE_TRIAL_LIMIT`=1 au niveau du COMPTE) → `FREE_TRIAL`.
    - **FREE, essai épuisé** (enforced) → `402` (`code: PAYMENT_REQUIRED`, reason `FREE_TRIAL_EXHAUSTED`) → souscrire.
    - **Payant, dossier déjà compté** → `ALREADY_COUNTED` (re-analyse gratuite).
    - **Payant, dans le quota** → `WITHIN_QUOTA`.

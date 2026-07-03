@@ -130,7 +130,7 @@ const PRICING = [
     features: [
       'Boîte de réception centralisée',
       'Pré-tri automatique : score & grade',
-      '3 audits forensic offerts (au total)',
+      '1 audit forensic offert + démo illimitée',
       'Stockage chiffré · conforme RGPD',
     ],
     cta: 'Créer mon lien gratuit',
