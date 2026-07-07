@@ -323,7 +323,14 @@ export function PricingTiers({
 
         {/* Réassurance — affichée aussi en embedded (dashboard) : c'est au moment
             du clic d'achat qu'elle compte le plus. */}
-        <footer className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
+        <p className="mt-8 text-center text-sm text-slate-500">
+          Agence ou administrateur de biens ?{' '}
+          <Link href="/pro" className="font-semibold text-emerald-900 hover:underline">
+            Découvrez l&rsquo;offre Pro (forfaits mensuels) →
+          </Link>
+        </p>
+
+        <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
           Paiement unique sécurisé par Stripe · Sans abonnement · Crédits cumulés, jamais perdus
           {variant === 'page' && (
