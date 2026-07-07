@@ -41,6 +41,10 @@ export const PropertyPatchSchema = z.object({
   purchaseDate: isoDate.nullable().optional(),
   vacantSince: isoDate.nullable().optional(),
   managed: z.boolean().optional(),
+  // Grant pilote B2B / support : pose l'offre et le quota d'audits du bien
+  // (superadmin uniquement, journalisé via logAdminAction).
+  tier: z.enum(['FREE', 'ESSENTIAL', 'PREMIUM', 'MAX']).optional(),
+  dossiersQuota: z.number().int().min(0).max(100000).optional(),
   archived: z.boolean().optional(),
   status: z.enum(['AVAILABLE', 'CANDIDATE_SELECTION', 'LEASE_IN_PROGRESS', 'OCCUPIED', 'VACANT']).optional(),
 }).strict();

@@ -867,6 +867,9 @@ export default function LandingClient() {
               <a href="#pricing" className="text-slate-500 transition-colors hover:text-emerald-800">
                 Tarifs
               </a>
+              <Link href="/pro" className="text-slate-500 transition-colors hover:text-emerald-800">
+                Professionnels &amp; agences
+              </Link>
             </nav>
           </div>
 
