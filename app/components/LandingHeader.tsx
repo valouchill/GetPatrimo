@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Key } from 'lucide-react';
+import { Menu, X, Key, Building2 } from 'lucide-react';
 import { Logo } from './Logo';
 
 const NAV_LINKS = [
@@ -33,6 +33,13 @@ export default function LandingHeader() {
               {l.label}
             </a>
           ))}
+          <Link
+            href="/pro"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+          >
+            <Building2 className="h-4 w-4" aria-hidden="true" />
+            Pros &amp; agences
+          </Link>
         </nav>
 
         {/* CTA (desktop) */}
@@ -86,6 +93,14 @@ export default function LandingHeader() {
             ))}
           </nav>
           <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4">
+            <Link
+              href="/pro"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-center text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+            >
+              <Building2 className="h-4 w-4" aria-hidden="true" />
+              Pros &amp; agences
+            </Link>
             <Link
               href="/locataire"
               onClick={() => setOpen(false)}

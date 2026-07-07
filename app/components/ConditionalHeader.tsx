@@ -31,7 +31,7 @@ export default function ConditionalHeader() {
   // Pages publiques d'information (tarifs, légal, contestation art. 22) : header
   // marketing cohérent — pas le LuxeHeader legacy (liens morts /patrimoine,
   // /messages, /dashboard-luxe.html).
-  const PUBLIC_INFO_PAGES = ['/pricing', '/contestation', '/privacy', '/terms', '/mentions-legales'];
+  const PUBLIC_INFO_PAGES = ['/pricing', '/pro', '/cgv', '/contestation', '/privacy', '/terms', '/mentions-legales'];
   if (PUBLIC_INFO_PAGES.includes(pathname || '')) {
     return <LandingHeader />;
   }
