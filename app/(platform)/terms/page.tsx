@@ -159,8 +159,11 @@ export default function Terms() {
           <h2 className="text-lg font-semibold text-slate-900 mb-2">10. Droit applicable et juridiction</h2>
           <p>
             Les présentes CGU sont régies par le droit français. Tout litige relatif à
-            l&apos;interprétation ou l&apos;exécution des présentes CGU sera soumis aux tribunaux
-            compétents de [À COMPLÉTER], sauf disposition légale contraire.
+            l&apos;interprétation ou l&apos;exécution des présentes CGU sera soumis aux juridictions
+            françaises compétentes. L&apos;utilisateur consommateur peut saisir, à son choix, l&apos;une
+            des juridictions territorialement compétentes en vertu du Code de procédure civile ou la
+            juridiction du lieu où il demeurait au moment de la conclusion du contrat (art. R631-3 du
+            Code de la consommation).
           </p>
         </div>
 
@@ -169,7 +172,8 @@ export default function Terms() {
           <p>
             Conformément aux articles L.611-1 et suivants du Code de la consommation, en cas de litige
             non résolu, l&apos;utilisateur consommateur peut recourir gratuitement au service de
-            médiation. Le médiateur compétent est : [À COMPLÉTER]. Site internet : [À COMPLÉTER].
+            médiation, après réclamation écrite préalable au service client. Le médiateur compétent
+            est : [MÉDIATEUR À DÉSIGNER — nom, adresse et site internet].
           </p>
           <p className="mt-2">
             L&apos;utilisateur peut également recourir à la plateforme européenne de règlement en ligne
