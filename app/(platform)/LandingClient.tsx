@@ -33,7 +33,7 @@ import {
   Building2,
   Eye,
 } from 'lucide-react';
-import IdealTenantSimulator from '@/app/components/marketing/IdealTenantSimulator';
+import LiveAuditDemo from '@/app/components/marketing/LiveAuditDemo';
 import { WaitlistForm } from '@/app/components/marketing/WaitlistForm';
 import { isEnabled } from '@/lib/features';
 
@@ -510,8 +510,8 @@ export default function LandingClient() {
         </Reveal>
       </section>
 
-      {/* ============ SIMULATEUR LOCATAIRE IDÉAL (lead magnet) ============ */}
-      <IdealTenantSimulator />
+      {/* ============ DÉMO AUDIT FORENSIC EN DIRECT (le « waouh ») ============ */}
+      <LiveAuditDemo />
 
       {/* ===================== RÉASSURANCE / TRUST ===================== */}
       <section id="securite" className="border-y border-slate-200 bg-white py-12">
