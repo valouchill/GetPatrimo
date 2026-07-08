@@ -16,6 +16,11 @@ const PilotGrantSchema = new mongoose.Schema(
     email: { type: String, required: true, lowercase: true, trim: true, index: true },
     /** Nombre d'audits offerts par ce grant (ajoutés au quota de chaque bien équipé). */
     audits: { type: Number, required: true, min: 1 },
+    /**
+     * PILOT : pilote B2B (offre PREMIUM + comparaison débloquée + audits).
+     * CREDIT : geste commercial (audits SEULS, offre inchangée — B2C ou B2B).
+     */
+    kind: { type: String, enum: ['PILOT', 'CREDIT'], default: 'PILOT', index: true },
     status: { type: String, enum: ['PENDING', 'APPLIED'], default: 'APPLIED', index: true },
     /** Date d'application effective (immédiate, ou à la création du 1er bien). */
     appliedAt: { type: Date, default: null },

@@ -13,6 +13,7 @@ interface PilotRow {
   userId: string | null;
   email: string;
   status: 'INVITED' | 'PENDING_PROPERTY' | 'ACTIVE';
+  kinds: Array<'PILOT' | 'CREDIT'>;
   pendingAudits: number;
   grants: number;
   totalAudits: number;
@@ -42,6 +43,7 @@ export default function AdminPilotsPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [audits, setAudits] = useState('10');
+  const [kind, setKind] = useState<'PILOT' | 'CREDIT'>('PILOT');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -64,7 +66,8 @@ export default function AdminPilotsPage() {
     e.preventDefault();
     const n = parseInt(audits, 10);
     if (!email.trim() || !Number.isFinite(n) || n < 1) return;
-    if (!window.confirm(`Octroyer ${n} audits offerts à ${email.trim()} (tous ses biens) ?`)) return;
+    const kindLabel = kind === 'PILOT' ? 'pilote B2B (offre Pro + comparaison)' : 'geste commercial (audits seuls)';
+    if (!window.confirm(`Octroyer ${n} audits offerts à ${email.trim()} — ${kindLabel} ?`)) return;
 
     setSubmitting(true);
     setFeedback(null);
@@ -72,7 +75,7 @@ export default function AdminPilotsPage() {
       const res = await fetch('/api/admin/pilots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), audits: n }),
+        body: JSON.stringify({ email: email.trim(), audits: n, kind }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -97,10 +100,10 @@ export default function AdminPilotsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">🤝 Pilotes B2B</h1>
+      <h1 className="font-serif text-2xl font-bold text-emerald-950">🤝 Pilotes &amp; crédits</h1>
       <p className="mt-1 text-sm text-gray-500">
-        Octroyez des audits offerts à une agence (pilote gratuit), puis suivez la consommation —
-        le débrief/closing se cale sur le « dernier audit », pas sur le calendrier seul.
+        Pilote B2B (offre Pro + comparaison débloquées) ou geste commercial (audits offerts, B2C
+        comme B2B) — puis suivez la consommation : le closing se cale sur le « dernier audit ».
       </p>
 
       {/* Formulaire d'octroi */}
@@ -121,6 +124,20 @@ export default function AdminPilotsPage() {
             placeholder="gerant@agence.fr"
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           />
+        </div>
+        <div>
+          <label htmlFor="pilot-kind" className="block text-xs font-semibold text-gray-600">
+            Type d&rsquo;octroi
+          </label>
+          <select
+            id="pilot-kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as 'PILOT' | 'CREDIT')}
+            className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          >
+            <option value="PILOT">🤝 Pilote B2B</option>
+            <option value="CREDIT">🎁 Geste commercial</option>
+          </select>
         </div>
         <div>
           <label htmlFor="pilot-audits" className="block text-xs font-semibold text-gray-600">
@@ -145,10 +162,11 @@ export default function AdminPilotsPage() {
           {submitting ? 'Octroi…' : 'Octroyer le pilote'}
         </button>
         <p className="w-full text-xs text-gray-400">
-          Compte existant avec biens → octroi immédiat (quota +X sur chaque bien, offre PREMIUM
-          minimum, comparaison débloquée). Pas encore de compte (ou pas de bien) → invitation
-          envoyée par email et audits appliqués automatiquement à la création du premier bien.
-          Relancer sur le même email = extension (cumul).
+          <strong>Pilote B2B</strong> : quota +X sur chaque bien + offre PREMIUM + comparaison
+          débloquée. <strong>Geste commercial</strong> : audits seuls — client déjà payant : rien
+          d&rsquo;autre ne change ; compte encore gratuit : mini-déblocage Essentiel (sinon les
+          audits seraient inutilisables). Sans compte ou sans bien → invitation email + application
+          automatique au premier bien. Relancer sur le même email = extension (cumul).
         </p>
       </form>
 
@@ -200,6 +218,11 @@ export default function AdminPilotsPage() {
                     <div className="text-xs text-gray-400">
                       {p.properties} bien{p.properties > 1 ? 's' : ''}
                       {p.grants > 1 ? ` · ${p.grants} octrois` : ''}
+                      {p.kinds?.includes('CREDIT') && (
+                        <span className="ml-1.5 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                          🎁 geste commercial
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 font-semibold text-gray-900">{p.totalAudits}</td>

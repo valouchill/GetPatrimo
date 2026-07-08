@@ -28,7 +28,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/dashboard/admin', label: 'Vue d’ensemble', icon: '📊' },
       { href: '/dashboard/admin/cockpit', label: 'Cockpit', icon: '🚀', superadminOnly: true },
-      { href: '/dashboard/admin/pilots', label: 'Pilotes B2B', icon: '🤝', superadminOnly: true },
+      { href: '/dashboard/admin/pilots', label: 'Pilotes & crédits', icon: '🤝', superadminOnly: true },
     ],
   },
   {
