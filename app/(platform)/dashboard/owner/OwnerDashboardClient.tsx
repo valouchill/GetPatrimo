@@ -98,6 +98,7 @@ export default function OwnerDashboardClient() {
     alerts: { id: string; severity: 'critical' | 'warning' | 'info'; message: string; actionLabel: string; actionTarget: string }[];
     recentEvents: { id: string; type: string; date: string; propertyLabel: string | null; meta: Record<string, unknown> }[];
     freeTrial?: { used: number; limit: number } | null;
+    pilotPendingAudits?: number;
     hasPaidProperty?: boolean;
   }>({ financial: null, kpis: null, alerts: [], recentEvents: [], freeTrial: null, hasPaidProperty: false });
 
@@ -430,8 +431,28 @@ export default function OwnerDashboardClient() {
           <Menu className="h-5 w-5 text-slate-700" />
         </button>
 
+        {/* Pilote B2B : audits offerts en attente du premier bien — prioritaire
+            sur la bannière d'essai gratuit (l'invité a reçu « 10 audits offerts »
+            par email, il ne doit PAS voir « 1 audit » à sa première connexion). */}
+        {(dashData.pilotPendingAudits ?? 0) > 0 && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-sm text-emerald-900">
+              🎁 <strong>{dashData.pilotPendingAudits} audits forensic offerts</strong> vous
+              attendent — ajoutez votre premier bien pour les activer (comparaison des candidats
+              incluse).
+            </p>
+            <button
+              type="button"
+              onClick={() => go('depot')}
+              className="shrink-0 rounded-lg bg-emerald-900 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
+            >
+              Ajouter mon premier bien
+            </button>
+          </div>
+        )}
+
         {/* Essai gratuit (compte) — tant qu'aucune offre payante n'est souscrite */}
-        {dashData.freeTrial && !dashData.hasPaidProperty && (() => {
+        {!(dashData.pilotPendingAudits ?? 0) && dashData.freeTrial && !dashData.hasPaidProperty && (() => {
           const { used, limit } = dashData.freeTrial;
           const left = Math.max(0, limit - used);
           return (

@@ -16,6 +16,8 @@ const Property = require('@/models/Property');
  
 const Event = require('@/models/Event');
 
+const PilotGrant = require('@/models/PilotGrant');
+
 /**
  * GET /api/dashboard
  * Returns aggregated dashboard data: financial summary, alerts, recent events.
@@ -178,9 +180,24 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     meta: e.meta instanceof Map ? Object.fromEntries(e.meta) : (e.meta || {}),
   }));
 
+  // ── Pilote B2B : audits octroyés AVANT le premier bien (grants PENDING) ──
+  // Sans ça, un compte invité « 10 audits offerts » voyait la bannière d'essai
+  // gratuit « 1 audit » à sa première connexion (incohérent avec l'email reçu).
+  const pendingGrants = await PilotGrant.find({
+    status: 'PENDING',
+    $or: [{ user: (user as { _id: unknown })._id }, { email: (user as { email?: string }).email }],
+  })
+    .select('audits')
+    .lean();
+  const pilotPendingAudits = pendingGrants.reduce(
+    (sum: number, g: { audits?: number }) => sum + (g.audits || 0),
+    0,
+  );
+
   return NextResponse.json({
     success: true,
     data: {
+      pilotPendingAudits,
       financial: {
         totalExpected,
         totalReceived,
