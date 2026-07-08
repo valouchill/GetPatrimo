@@ -321,8 +321,11 @@ export default function OwnerDashboardClient() {
     );
   }
 
+  // overflow-x-clip + min-w-0 (main) : sans eux, tout enfant plus large que
+  // l'écran étire la page sur mobile (défilement horizontal, contenu rogné,
+  // drawer hors-écran qui réapparaît).
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className="flex min-h-screen overflow-x-clip bg-slate-50 font-sans">
 
       {/* ── SIDEBAR BACKDROP (mobile) ──────────────────────────── */}
       {sidebarOpen && (
@@ -434,7 +437,7 @@ export default function OwnerDashboardClient() {
       </aside>
 
       {/* ── MAIN ────────────────────────────────────────────────── */}
-      <main className="flex-1 px-4 pt-16 pb-20 md:ml-60 md:px-8 md:pt-8 md:pb-8">
+      <main className="min-w-0 flex-1 px-4 pt-16 pb-20 md:ml-60 md:px-8 md:pt-8 md:pb-8">
 
         {/* Barre supérieure mobile : marque + burger (remplace l'ancien bouton
             flottant seul, peu lisible). Sous le backdrop (z-30 < z-40) pour
