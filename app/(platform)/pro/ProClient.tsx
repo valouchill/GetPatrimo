@@ -213,7 +213,12 @@ export function ProClient() {
             engagement.
           </p>
           <div className="mx-auto mt-6 max-w-md">
-            <WaitlistForm source="pilote-b2b" />
+            <WaitlistForm
+              source="pilote-b2b"
+              successMessage="C’est noté ! On revient vers vous sous 24 h pour lancer votre pilote gratuit."
+              buttonLabel="Demander le pilote gratuit"
+              placeholder="gerant@agence.fr"
+            />
           </div>
           <p className="mt-4 text-xs text-slate-400">
             Vous préférez l’email ?{' '}

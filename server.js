@@ -1397,14 +1397,45 @@ app.post('/api/public/lead', async (req,res)=>{
     const { email, source, utm } = req.body || {};
     if(!email || !String(email).includes('@')) return res.status(400).json({ msg:'Email invalide' });
  
+    const leadEmail = String(email).trim().toLowerCase();
+    const leadSource = source ? String(source) : 'landing';
+    const leadUtm = utm && typeof utm === 'object' ? utm : {};
     await Lead.create({
-      email: String(email).trim().toLowerCase(),
-      source: source ? String(source) : 'landing',
-      utm: utm && typeof utm === 'object' ? utm : {},
+      email: leadEmail,
+      source: leadSource,
+      utm: leadUtm,
       ip: req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : (req.ip || ''),
       userAgent: String(req.headers['user-agent'] || '')
     });
- 
+
+    // Notification interne (fire-and-forget : ne bloque ni ne fait échouer la
+    // réponse). Un lead B2B attend une réponse sous 24 h — sans cet email, il
+    // dormait en base.
+    if (transporter) {
+      const isPilot = leadSource === 'pilote-b2b';
+      const notifyTo = process.env.LEAD_NOTIFY_EMAIL
+        || (/<([^>]+)>/.exec(process.env.MAIL_REPLY_TO || '') || [])[1]
+        || (process.env.MAIL_REPLY_TO || '').trim()
+        || 'contact@maisonpatrimo.com';
+      transporter.sendMail({
+        from: process.env.MAIL_FROM || '"Maison Patrimo" <no-reply@maisonpatrimo.com>',
+        to: notifyTo,
+        subject: isPilot
+          ? `🤝 Nouvelle demande de pilote B2B — ${leadEmail}`
+          : `📥 Nouveau lead (${leadSource}) — ${leadEmail}`,
+        text: [
+          `Email : ${leadEmail}`,
+          `Source : ${leadSource}`,
+          `UTM : ${JSON.stringify(leadUtm)}`,
+          `Date : ${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`,
+          '',
+          isPilot
+            ? 'Action : répondre sous 24 h pour caler la démo (process pilote B2B).'
+            : 'Lead waitlist/landing — pas d\'action immédiate requise.'
+        ].join('\n')
+      }).catch((e) => logger.warn('Lead notify email failed', { error: e?.message || e }));
+    }
+
     return res.json({ msg:'OK' });
   }catch(e){
     logger.error('Erreur serveur', { error: e?.message || e });

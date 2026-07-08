@@ -13,9 +13,16 @@ import { Button } from '@/app/components/ui';
 export function WaitlistForm({
   source = 'waitlist_gestion_locative',
   className = '',
+  successMessage = 'C’est noté ! On vous prévient dès l’ouverture de la gestion locative.',
+  buttonLabel = 'Rejoindre la waitlist',
+  placeholder = 'vous@exemple.fr',
 }: {
   source?: string;
   className?: string;
+  /** Message de confirmation — à adapter au contexte (waitlist vs pilote B2B). */
+  successMessage?: string;
+  buttonLabel?: string;
+  placeholder?: string;
 }): React.ReactElement {
   const [email, setEmail] = React.useState('');
   const [company, setCompany] = React.useState(''); // honeypot (doit rester vide)
@@ -59,7 +66,7 @@ export function WaitlistForm({
         className={`flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ${className}`}
       >
         <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-        C&rsquo;est noté ! On vous prévient dès l&rsquo;ouverture de la gestion locative.
+        {successMessage}
       </div>
     );
   }
@@ -77,7 +84,7 @@ export function WaitlistForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="vous@exemple.fr"
+            placeholder={placeholder}
             aria-label="Votre email"
             className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-emerald-400"
           />
@@ -94,7 +101,7 @@ export function WaitlistForm({
           aria-hidden="true"
         />
         <Button type="submit" variant="primary" size="md" loading={status === 'loading'}>
-          Rejoindre la waitlist
+          {buttonLabel}
         </Button>
       </div>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
