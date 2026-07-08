@@ -37,7 +37,11 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        {/* maximum-scale=1 : neutralise l'auto-zoom iOS au focus des champs (le
+            zoom persistait après login → dashboard « zoomé », sidebar visuellement
+            coupée). Le pinch-zoom manuel reste actif sur iOS (Safari l'ignore
+            pour le geste utilisateur depuis iOS 10). */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#064E3B" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font -- chargement global des polices via <link>, volontaire (app router) */}
         <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet" />
