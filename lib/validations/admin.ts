@@ -49,6 +49,12 @@ export const PropertyPatchSchema = z.object({
   status: z.enum(['AVAILABLE', 'CANDIDATE_SELECTION', 'LEASE_IN_PROGRESS', 'OCCUPIED', 'VACANT']).optional(),
 }).strict();
 
+/** Octroi pilote B2B : X audits offerts sur tous les biens d'un compte. */
+export const PilotGrantCreateSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  audits: z.number().int().min(1).max(500).default(10),
+}).strict();
+
 export const LeasePatchSchema = z.object({
   tenantFirstName: z.string().max(100).optional(),
   tenantLastName: z.string().max(100).optional(),

@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/admin/payments', label: 'Paiements', icon: '💶' },
   { href: '/dashboard/admin/applications', label: 'Candidatures', icon: '📥' },
   { href: '/dashboard/admin/verifications', label: 'KYC Didit', icon: '🪪' },
+  { href: '/dashboard/admin/pilots', label: 'Pilotes B2B', icon: '🤝', superadminOnly: true },
   { href: '/dashboard/admin/audit', label: 'Audit log', icon: '📜' },
 ];
 
