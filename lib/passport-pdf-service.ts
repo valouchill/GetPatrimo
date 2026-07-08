@@ -72,7 +72,7 @@ function getBrandDomain(): string {
     process.env.PASSPORT_BRAND_DOMAIN ||
     process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '').replace(/\/$/, '') ||
     process.env.NEXTAUTH_URL?.replace(/^https?:\/\//, '').replace(/\/$/, '') ||
-    'doc2loc.com'
+    'maisonpatrimo.com'
   );
 }
 
@@ -80,7 +80,7 @@ function getBaseUrl(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
-    'https://doc2loc.com'
+    'https://maisonpatrimo.com'
   ).replace(/\/$/, '');
 }
 

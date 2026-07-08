@@ -105,7 +105,7 @@ export async function sendGuarantorInvitation(
       : tenantInfo?.email || 'Le candidat';
 
     // Construire l'URL de vérification
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://doc2loc.com';
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://maisonpatrimo.com';
     const verificationUrl = `${baseUrl}/verify-guarantor/${invitationToken}`;
 
     // Envoyer l'email d'invitation
@@ -259,7 +259,7 @@ Maison Patrimo - Plateforme de certification immobilière
     `;
 
     const sent = await sendMailWithRetry(transporter, {
-      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@doc2loc.com'}>`,
+      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@maisonpatrimo.com'}>`,
       to: guarantorEmail,
       subject: `Invitation Garant - ${tenantName} a besoin de votre garantie`,
       text: emailText,
