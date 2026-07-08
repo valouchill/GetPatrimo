@@ -31,6 +31,42 @@ const { buildOwnerPropertyFlow, decorateCandidatesForOwner } = require('@/src/ut
 const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
 
 const User = require('@/models/User');
+const PilotGrant = require('@/models/PilotGrant');
+
+/**
+ * Pilote B2B : applique les grants octroyés AVANT l'inscription (ou avant le
+ * premier bien) — cf. POST /api/admin/pilots (status PENDING). Appelé après la
+ * création d'un bien ; non-bloquant (un échec ne casse jamais la création).
+ */
+async function applyPendingPilotGrants(userId: string, sessionEmail: string | undefined, propertyId: unknown): Promise<void> {
+  try {
+    const ownerEmail = String(
+      sessionEmail || ((await User.findById(userId).select('email').lean()) as any)?.email || '',
+    ).toLowerCase();
+    const pending = await PilotGrant.find({
+      status: 'PENDING',
+      $or: [{ user: userId }, ...(ownerEmail ? [{ email: ownerEmail }] : [])],
+    }).lean();
+    if (!pending.length) return;
+
+    const totalAudits = pending.reduce((sum: number, g: any) => sum + (g.audits || 0), 0);
+    await Property.updateOne(
+      { _id: propertyId },
+      { $set: { tier: 'PREMIUM', managed: true }, $inc: { dossiersQuota: totalAudits } },
+    );
+    await PilotGrant.updateMany(
+      { _id: { $in: pending.map((g: any) => g._id) } },
+      { $set: { status: 'APPLIED', appliedAt: new Date(), user: userId, propertiesCount: 1 } },
+    );
+    logger.info('Pilot grants appliqués au premier bien', {
+      email: ownerEmail,
+      audits: totalAudits,
+      grants: pending.length,
+    });
+  } catch (e) {
+    logger.warn('applyPendingPilotGrants failed', { error: e instanceof Error ? e.message : e });
+  }
+}
 
 async function resolveUserId(session: any): Promise<string | null> {
   let userId = session?.user?.id;
@@ -306,6 +342,8 @@ export async function POST(request: NextRequest) {
       idealRentalDate: idealRentalDate ? new Date(idealRentalDate) : null,
       status: 'AVAILABLE',
     });
+
+    await applyPendingPilotGrants(userId, session?.user?.email, property._id);
 
     return NextResponse.json({
       ok: true,
