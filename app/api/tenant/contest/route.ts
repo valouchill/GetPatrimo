@@ -88,7 +88,7 @@ async function notifyDpo(userEmail: string, message: string, reference: string, 
 
     // Destinataire : DPO_EMAIL dédié, sinon la boîte du MAIL_FROM.
     const mailFrom = process.env.MAIL_FROM || '';
-    const fromAddress = /<([^>]+)>/.exec(mailFrom)?.[1] || mailFrom.trim() || 'no-reply@doc2loc.com';
+    const fromAddress = /<([^>]+)>/.exec(mailFrom)?.[1] || mailFrom.trim() || 'no-reply@maisonpatrimo.com';
     const dpoEmail = process.env.DPO_EMAIL || fromAddress;
 
     const nodemailer = (await import('nodemailer')).default;

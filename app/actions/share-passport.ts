@@ -361,7 +361,7 @@ La technologie au service de votre patrimoine
     `;
     
     const sent = await sendMailWithRetry(transporter, {
-      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@doc2loc.com'}>`,
+      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@maisonpatrimo.com'}>`,
       to: data.recipientEmail,
       subject: `🛡️ Dossier de candidature certifié : ${data.tenantName} — Niveau ${data.grade}`,
       text: emailText,
@@ -460,7 +460,7 @@ export async function notifyPassportViewed(
     `;
     
     const sent = await sendMailWithRetry(transporter, {
-      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@doc2loc.com'}>`,
+      from: process.env.MAIL_FROM || `"Maison Patrimo" <${process.env.BREVO_FROM_EMAIL || 'no-reply@maisonpatrimo.com'}>`,
       to: tenantEmail,
       subject: `🎉 Bonne nouvelle ${tenantName} ! Un propriétaire consulte votre Passeport`,
       html: emailHtml,
