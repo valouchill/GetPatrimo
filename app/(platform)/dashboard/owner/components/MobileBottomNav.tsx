@@ -89,8 +89,10 @@ export function MobileBottomNav({ page, onNavigate }: MobileBottomNavProps) {
         )}
       </AnimatePresence>
 
-      {/* Bottom Tab Bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-slate-200 bg-white/95 backdrop-blur-xl pb-safe md:hidden">
+      {/* Bottom Tab Bar — z-30 : SOUS le backdrop (z-40) et le drawer (z-50)
+          du menu latéral, sinon la barre restait visible par-dessus le drawer
+          ouvert (menu « coupé » en bas). */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-slate-200 bg-white/95 backdrop-blur-xl pb-safe md:hidden">
         {PRIMARY_TABS.map(({ id, label, Icon }) => {
           const active = page === id;
           return (
