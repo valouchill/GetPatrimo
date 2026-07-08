@@ -19,6 +19,11 @@ export default function ConditionalMain({ children }: { children: React.ReactNod
   if (pathname?.startsWith('/dashboard/owner')) {
     return <main className="w-full">{children}</main>;
   }
+  // Console admin : layout autonome (sidebar + barre mobile propres) — le pt-24
+  // par défaut créait un grand vide au-dessus de la barre admin sur mobile.
+  if (pathname?.startsWith('/dashboard/admin')) {
+    return <main className="w-full">{children}</main>;
+  }
   if (pathname?.includes('/contract')) {
     return <main className="w-full">{children}</main>;
   }
