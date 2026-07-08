@@ -17,11 +17,31 @@ const AdminAuditLog = require('@/models/AdminAuditLog');
 
 export const dynamic = 'force-dynamic';
 
-function Kpi({ label, value, href }: { label: string; value: number | string; href?: string }) {
+function Kpi({
+  label,
+  value,
+  href,
+  alert = false,
+}: {
+  label: string;
+  value: number | string;
+  href?: string;
+  /** Rouge quand la valeur signale un problème (impayés, suspendus…). */
+  alert?: boolean;
+}) {
+  const isAlert = alert && Number(value) > 0;
   const body = (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
-      <div className="text-xs text-gray-500 uppercase font-semibold">{label}</div>
-      <div className="text-2xl font-semibold text-gray-900 mt-1">{value}</div>
+    <div
+      className={`rounded-xl border bg-white p-4 transition-all ${
+        href ? 'hover:-translate-y-0.5 hover:shadow-md' : ''
+      } ${isAlert ? 'border-red-200 bg-red-50/50' : 'border-slate-200'}`}
+    >
+      <div className={`text-[11px] font-semibold uppercase tracking-wide ${isAlert ? 'text-red-600' : 'text-slate-500'}`}>
+        {label}
+      </div>
+      <div className={`mt-1 font-serif text-2xl font-bold tabular-nums ${isAlert ? 'text-red-700' : 'text-emerald-950'}`}>
+        {value}
+      </div>
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;
@@ -59,28 +79,28 @@ export default async function AdminOverviewPage() {
 
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Admin — Vue d&apos;ensemble</h1>
-        <p className="text-sm text-gray-600">Supervision globale de la plateforme</p>
+      <header className="mb-7">
+        <h1 className="font-serif text-2xl font-bold text-emerald-950">Vue d&apos;ensemble</h1>
+        <p className="mt-0.5 text-sm text-slate-500">Supervision globale de la plateforme</p>
       </header>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi label="Utilisateurs" value={usersTotal} href="/dashboard/admin/users" />
-        <Kpi label="Suspendus" value={usersSuspended} href="/dashboard/admin/users?suspended=true" />
+        <Kpi label="Suspendus" value={usersSuspended} href="/dashboard/admin/users?suspended=true" alert />
         <Kpi label="Propriétaires" value={byRole.owner || 0} />
         <Kpi label="Locataires" value={byRole.tenant || 0} />
         <Kpi label="Biens" value={propertiesTotal} href="/dashboard/admin/properties" />
         <Kpi label="Biens archivés" value={propertiesArchived} />
         <Kpi label="Baux actifs" value={leasesActive} href="/dashboard/admin/leases" />
         <Kpi label="Candidatures" value={applicationsTotal} href="/dashboard/admin/applications" />
-        <Kpi label="Paiements en retard" value={paymentsLate} href="/dashboard/admin/payments?status=LATE" />
-        <Kpi label="Paiements impayés" value={paymentsUnpaid} href="/dashboard/admin/payments?status=UNPAID" />
+        <Kpi label="Paiements en retard" value={paymentsLate} href="/dashboard/admin/payments?status=LATE" alert />
+        <Kpi label="Paiements impayés" value={paymentsUnpaid} href="/dashboard/admin/payments?status=UNPAID" alert />
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Dernières actions admin</h2>
-          <Link href="/dashboard/admin/audit" className="text-sm text-indigo-600 hover:underline">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-slate-900">Dernières actions admin</h2>
+          <Link href="/dashboard/admin/audit" className="text-sm font-medium text-emerald-800 hover:underline">
             Voir tout →
           </Link>
         </div>
