@@ -22,6 +22,11 @@ export default function ConditionalHeader() {
   if (pathname?.startsWith('/dashboard/owner')) {
     return null;
   }
+  // La console admin a sa propre sidebar (AdminSidebar via son layout) — le
+  // LuxeHeader legacy s'affichait par-dessus.
+  if (pathname?.startsWith('/dashboard/admin')) {
+    return null;
+  }
   if (pathname?.startsWith('/auth/')) {
     return null;
   }
