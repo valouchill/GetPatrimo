@@ -10,8 +10,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 interface PilotRow {
-  userId: string;
+  userId: string | null;
   email: string;
+  status: 'INVITED' | 'PENDING_PROPERTY' | 'ACTIVE';
+  pendingAudits: number;
   grants: number;
   totalAudits: number;
   grantedAt: string;
@@ -76,7 +78,9 @@ export default function AdminPilotsPage() {
       if (res.ok) {
         setFeedback({
           ok: true,
-          msg: `✅ ${data.audits} audits octroyés à ${data.email} (${data.properties} bien${data.properties > 1 ? 's' : ''} équipé${data.properties > 1 ? 's' : ''}).`,
+          msg: data.pending
+            ? `⏳ ${data.message}`
+            : `✅ ${data.audits} audits octroyés à ${data.email} (${data.properties} bien${data.properties > 1 ? 's' : ''} équipé${data.properties > 1 ? 's' : ''}).`,
         });
         setEmail('');
         setAudits('10');
@@ -141,9 +145,10 @@ export default function AdminPilotsPage() {
           {submitting ? 'Octroi…' : 'Octroyer le pilote'}
         </button>
         <p className="w-full text-xs text-gray-400">
-          Le compte doit exister et avoir au moins un bien. L’octroi ajoute les audits au quota de
-          chaque bien, passe l’offre à PREMIUM minimum et débloque la comparaison. Une relance du
-          formulaire sur le même email = extension (cumul).
+          Compte existant avec biens → octroi immédiat (quota +X sur chaque bien, offre PREMIUM
+          minimum, comparaison débloquée). Pas encore de compte (ou pas de bien) → invitation
+          envoyée par email et audits appliqués automatiquement à la création du premier bien.
+          Relancer sur le même email = extension (cumul).
         </p>
       </form>
 
@@ -189,7 +194,7 @@ export default function AdminPilotsPage() {
             )}
             {!loading &&
               pilots.map((p) => (
-                <tr key={p.userId} className="border-b border-gray-100 last:border-0">
+                <tr key={p.email} className="border-b border-gray-100 last:border-0">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{p.email}</div>
                     <div className="text-xs text-gray-400">
@@ -207,17 +212,37 @@ export default function AdminPilotsPage() {
                   <td className="px-4 py-3 text-gray-600">{fmtDate(p.firstAuditAt)}</td>
                   <td className="px-4 py-3 text-gray-600">{fmtDate(p.lastAuditAt)}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        p.consumed === 0
-                          ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
-                          : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                      }`}
-                    >
-                      {p.consumed}/{p.quota} audit{p.quota > 1 ? 's' : ''}
-                    </span>
-                    {p.consumed === 0 && (
-                      <div className="mt-1 text-xs text-amber-600">à relancer (activation)</div>
+                    {p.status === 'INVITED' && (
+                      <>
+                        <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
+                          ✉️ Invitation envoyée
+                        </span>
+                        <div className="mt-1 text-xs text-sky-600">en attente d’inscription</div>
+                      </>
+                    )}
+                    {p.status === 'PENDING_PROPERTY' && (
+                      <>
+                        <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                          Compte créé
+                        </span>
+                        <div className="mt-1 text-xs text-violet-600">en attente du 1ᵉʳ bien</div>
+                      </>
+                    )}
+                    {p.status === 'ACTIVE' && (
+                      <>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            p.consumed === 0
+                              ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                          }`}
+                        >
+                          {p.consumed}/{p.quota} audit{p.quota > 1 ? 's' : ''}
+                        </span>
+                        {p.consumed === 0 && (
+                          <div className="mt-1 text-xs text-amber-600">à relancer (activation)</div>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>
