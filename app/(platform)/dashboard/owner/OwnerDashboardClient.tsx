@@ -324,7 +324,7 @@ export default function OwnerDashboardClient() {
       )}
 
       {/* ── SIDEBAR ─────────────────────────────────────────────── */}
-      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 backdrop-blur-xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-slate-200 bg-white/95 shadow-xl backdrop-blur-xl transition-transform duration-300 [height:100dvh] md:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="border-b border-slate-200 px-5 py-5">
           <div className="flex items-center gap-3">
             <div className="flex-1">
@@ -337,7 +337,7 @@ export default function OwnerDashboardClient() {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-4">
           {[...new Set(NAV.filter(isNavVisible).map((n) => n.group))].map((grp) => (
             <div key={grp} className="mb-5">
               <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
@@ -421,15 +421,20 @@ export default function OwnerDashboardClient() {
       {/* ── MAIN ────────────────────────────────────────────────── */}
       <main className="flex-1 px-4 pt-16 pb-20 md:ml-60 md:px-8 md:pt-8 md:pb-8">
 
-        {/* Hamburger mobile */}
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 shadow-md backdrop-blur-xl md:hidden"
-          aria-label="Ouvrir le menu"
-        >
-          <Menu className="h-5 w-5 text-slate-700" />
-        </button>
+        {/* Barre supérieure mobile : marque + burger (remplace l'ancien bouton
+            flottant seul, peu lisible). Sous le backdrop (z-30 < z-40) pour
+            disparaître proprement quand le drawer est ouvert. */}
+        <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-xl md:hidden">
+          <Logo variant="light" className="text-base" />
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition-colors hover:bg-slate-100"
+            aria-label="Ouvrir le menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
 
         {/* Pilote B2B : audits offerts en attente du premier bien — prioritaire
             sur la bannière d'essai gratuit (l'invité a reçu « 10 audits offerts »
