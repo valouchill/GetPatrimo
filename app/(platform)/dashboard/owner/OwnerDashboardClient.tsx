@@ -5,7 +5,8 @@ import { Logo } from '@/app/components/Logo';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Menu, Plus, RefreshCw, ScrollText, Search, TrendingUp, Users, Wallet, X } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, ClipboardList, Clock, Copy, Download, ExternalLink, FileSignature, FileText, Home, Lock, MapPin, Menu, Plus, RefreshCw, ScrollText, Search, ShieldCheck, TrendingUp, Users, Wallet, X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { LoadingSpinner } from '@/app/components/shared';
 import { isEnabled } from '@/lib/features';
 import { useOwner } from './OwnerContext';
@@ -83,6 +84,11 @@ export default function OwnerDashboardClient() {
   const [deleteBienId, setDeleteBienId] = useState<string | null>(null);
   const [showAddManagement, setShowAddManagement] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Bouton « Console d'administration » dans la sidebar pour les comptes admin.
+  const { data: session } = useSession();
+  const isAdminAccount = ['admin', 'superadmin'].includes(
+    String((session?.user as { role?: string } | undefined)?.role || ''),
+  );
   const [selectionOverrides, setSelectionOverrides] = useState<Record<string, string>>({});
 
   // Biens page filters
@@ -399,6 +405,15 @@ export default function OwnerDashboardClient() {
         </nav>
 
         <div className="border-t border-slate-200 px-4 py-4">
+          {isAdminAccount && (
+            <Link
+              href="/dashboard/admin"
+              className="mb-3 flex items-center gap-2 rounded-lg bg-emerald-950 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-900"
+            >
+              <ShieldCheck className="h-4 w-4 text-amber-400" aria-hidden="true" />
+              Console d&rsquo;administration
+            </Link>
+          )}
           <div className="flex items-center gap-3">
             <Link href="/dashboard/owner/profile" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-xs font-bold text-white hover:opacity-90 transition-opacity">
               {userEmail ? userEmail[0].toUpperCase() : 'P'}
