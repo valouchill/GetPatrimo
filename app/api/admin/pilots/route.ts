@@ -35,8 +35,8 @@ function getBaseUrl(): string {
   return (process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://maisonpatrimo.com').replace(/\/$/, '');
 }
 
-/** Email d'invitation pilote (grant PENDING) — fire-and-forget côté route. */
-async function sendPilotInvitationEmail(email: string, audits: number): Promise<boolean> {
+/** Email d'invitation (grant PENDING) — fire-and-forget côté route. */
+async function sendPilotInvitationEmail(email: string, audits: number, kind: 'PILOT' | 'CREDIT'): Promise<boolean> {
   const BREVO_USER = process.env.BREVO_USER;
   const BREVO_PASS = process.env.BREVO_PASS;
   if (!BREVO_USER || !BREVO_PASS) {
@@ -61,11 +61,10 @@ async function sendPilotInvitationEmail(email: string, audits: number): Promise<
       html: `
 <div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
   <h1 style="font-size:22px;margin:0 0 4px;">Maison Patrimo</h1>
-  <p style="font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;margin:0 0 24px;">Pilote professionnel</p>
+  <p style="font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;margin:0 0 24px;">${kind === 'PILOT' ? 'Pilote professionnel' : 'Audits offerts'}</p>
   <p style="font-size:15px;line-height:1.7;">Bonjour,</p>
   <p style="font-size:15px;line-height:1.7;">
-    <strong>${audits} audits forensic anti-fraude</strong> ont été offerts à votre agence pour tester
-    Maison Patrimo sur vos vrais dossiers locataires : détection de faux bulletins (métadonnées,
+    <strong>${audits} audits forensic anti-fraude</strong> ${kind === 'PILOT' ? 'ont été offerts à votre agence pour tester Maison Patrimo sur vos vrais dossiers locataires' : 'vous ont été offerts sur Maison Patrimo'} : détection de faux bulletins (métadonnées,
     cohérence des cumuls, recoupement fiscal), score par candidat et comparaison par lot.
   </p>
   <p style="font-size:15px;line-height:1.7;">
@@ -95,7 +94,7 @@ export const POST = withAdmin(
     if (!parsed.success) {
       throw new AdminHttpError(400, 'Données invalides (email + audits entre 1 et 500)');
     }
-    const { email, audits } = parsed.data;
+    const { email, audits, kind } = parsed.data;
 
     const user = await User.findOne({ email }).select('email role').lean();
     const properties = user
@@ -110,13 +109,14 @@ export const POST = withAdmin(
         user: user ? user._id : null,
         email,
         audits,
+        kind,
         status: 'PENDING',
         grantedBy: admin.email,
       });
-      const emailSent = await sendPilotInvitationEmail(email, audits);
+      const emailSent = await sendPilotInvitationEmail(email, audits, kind);
       await logAdminAction({
         actor: admin,
-        action: 'pilot.grant.pending',
+        action: kind === 'CREDIT' ? 'credit.grant.pending' : 'pilot.grant.pending',
         targetType: 'User',
         targetId: user ? String(user._id) : email,
         after: { email, audits, accountExists: !!user, emailSent },
@@ -136,22 +136,31 @@ export const POST = withAdmin(
     }
 
     // ── Cas immédiat : compte + biens → octroi tout de suite.
+    // CREDIT (geste commercial) : client déjà payant → audits seuls (offre
+    // inchangée). Bien encore FREE → mini-déblocage ESSENTIAL (un bien FREE
+    // ignore dossiersQuota : le moteur de quota passe par l'essai compte,
+    // cf. quota-service — sans tier le cadeau serait inutilisable).
     await Property.bulkWrite(
-      properties.map((p: any) => ({
-        updateOne: {
-          filter: { _id: p._id },
-          update: {
-            $set: { tier: higherTier(p.tier || 'FREE', 'PREMIUM'), managed: true },
-            $inc: { dossiersQuota: audits },
-          },
-        },
-      })),
+      properties.map((p: any) => {
+        const isPaid = (p.tier && p.tier !== 'FREE') || p.managed === true;
+        const update =
+          kind === 'CREDIT'
+            ? isPaid
+              ? { $inc: { dossiersQuota: audits } }
+              : { $set: { tier: 'ESSENTIAL', managed: true }, $inc: { dossiersQuota: audits } }
+            : {
+                $set: { tier: higherTier(p.tier || 'FREE', 'PREMIUM'), managed: true },
+                $inc: { dossiersQuota: audits },
+              };
+        return { updateOne: { filter: { _id: p._id }, update } };
+      }),
     );
 
     const grant = await PilotGrant.create({
       user: user._id,
       email,
       audits,
+      kind,
       status: 'APPLIED',
       appliedAt: new Date(),
       propertiesCount: properties.length,
@@ -160,7 +169,7 @@ export const POST = withAdmin(
 
     await logAdminAction({
       actor: admin,
-      action: 'pilot.grant',
+      action: kind === 'CREDIT' ? 'credit.grant' : 'pilot.grant',
       targetType: 'User',
       targetId: String(user._id),
       after: { email, audits, properties: properties.length },
@@ -170,6 +179,7 @@ export const POST = withAdmin(
     return NextResponse.json({
       ok: true,
       pending: false,
+      kind,
       grantId: String(grant._id),
       email,
       audits,
@@ -197,6 +207,7 @@ export const GET = withAdmin(
         grantedAt: Date;
         lastGrantAt: Date;
         grants: number;
+        kinds: Set<string>;
       }
     >();
     for (const g of grants as any[]) {
@@ -209,8 +220,10 @@ export const GET = withAdmin(
         grantedAt: g.createdAt,
         lastGrantAt: g.createdAt,
         grants: 0,
+        kinds: new Set<string>(),
       };
       row.totalAudits += g.audits;
+      row.kinds.add(g.kind || 'PILOT');
       if (g.status === 'PENDING') row.pendingAudits += g.audits;
       if (g.user) row.userId = String(g.user);
       row.lastGrantAt = g.createdAt;
@@ -300,6 +313,7 @@ export const GET = withAdmin(
           email: r.email,
           userId: r.userId,
           status,
+          kinds: Array.from(r.kinds),
           grants: r.grants,
           totalAudits: r.totalAudits,
           pendingAudits: r.pendingAudits,

@@ -50,9 +50,15 @@ async function applyPendingPilotGrants(userId: string, sessionEmail: string | un
     if (!pending.length) return;
 
     const totalAudits = pending.reduce((sum: number, g: any) => sum + (g.audits || 0), 0);
+    // PILOT → offre PREMIUM ; CREDIT seul → mini-déblocage ESSENTIAL (un bien
+    // FREE ignore dossiersQuota, le quota serait inutilisable sans tier).
+    const includesPilot = pending.some((g: any) => (g.kind || 'PILOT') === 'PILOT');
     await Property.updateOne(
       { _id: propertyId },
-      { $set: { tier: 'PREMIUM', managed: true }, $inc: { dossiersQuota: totalAudits } },
+      {
+        $set: { tier: includesPilot ? 'PREMIUM' : 'ESSENTIAL', managed: true },
+        $inc: { dossiersQuota: totalAudits },
+      },
     );
     await PilotGrant.updateMany(
       { _id: { $in: pending.map((g: any) => g._id) } },
