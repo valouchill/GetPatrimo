@@ -13,6 +13,25 @@ const DEFAULT_SUSPICIOUS_SOFTWARE = [
   'Sejda',
 ];
 
+// Outils de GÉNÉRATION par IA : présence dans Creator/Producer/XMP = document
+// synthétique quasi certain (aucun logiciel de paie ni scanner ne les émet).
+const DEFAULT_AI_SOFTWARE = [
+  'Adobe Firefly',
+  'Firefly',
+  'DALL-E',
+  'DALL·E',
+  'Midjourney',
+  'Stable Diffusion',
+  'Ideogram',
+  'Leonardo.Ai',
+  'Recraft',
+  'Flux.1',
+  'ChatGPT',
+  'OpenAI',
+  'Gemini',
+  'Copilot',
+];
+
 const DEFAULT_LEGITIMATE_SOFTWARE = [
   'Payfit',
   'Sage',
@@ -94,12 +113,17 @@ function getPhase1AuditConfig(overrides = {}) {
       overrides.legitimateSoftware ?? process.env.FORENSIC_LEGITIMATE_SOFTWARE,
       DEFAULT_LEGITIMATE_SOFTWARE
     ),
+    aiSoftware: parseList(
+      overrides.aiSoftware ?? process.env.FORENSIC_AI_SOFTWARE,
+      DEFAULT_AI_SOFTWARE
+    ),
   };
 }
 
 module.exports = {
   DEFAULT_SUSPICIOUS_SOFTWARE,
   DEFAULT_LEGITIMATE_SOFTWARE,
+  DEFAULT_AI_SOFTWARE,
   getPhase1AuditConfig,
   normalizeThresholds,
 };

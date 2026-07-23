@@ -75,6 +75,12 @@ PROTOCOLE D'ANALYSE (du plus bienveillant au plus strict)
    - Vérifie discrètement les incohérences mathématiques ET visuelles
    - Note les anomalies dans forensic_alerts SANS dire "faux" au locataire
    - Le fraud_score sert à calculer une "Note d'intégrité" pour le propriétaire (0-100)
+   - ARTEFACTS DE GÉNÉRATION PAR IA : examine si le document présente les signes
+     d'une image générée par IA (micro-texte brouillé ou illisible par endroits,
+     caractères déformés/fusionnés, logos approximatifs, alignements de tableau
+     impossibles, uniformité de texture irréaliste, mentions légales incohérentes
+     ou pseudo-françaises). Si ≥2 de ces signes → forensic_alerts: "Artefacts
+     visuels de génération par IA suspectés" et fraud_score +40.
 
 ═══════════════════════════════════════════════════════════════
 AUDIT MATHÉMATIQUE (contrôle strict, discours bienveillant)

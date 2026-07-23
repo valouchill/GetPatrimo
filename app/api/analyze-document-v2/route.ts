@@ -13,7 +13,7 @@ const { getPdfConversionUserMessage, isDetachedArrayBufferError, toStableBuffer 
  
 const { buildE2EDocumentAnalysis } = require('@/src/utils/e2eDocumentAnalysis');
  
-const { extractPDFMetadata, convertPDFToImages } = require('@/src/services/pdfDocumentService');
+const { extractPDFMetadata, convertPDFToImages, scanBufferForAiSignatures } = require('@/src/services/pdfDocumentService');
  
 const { getExtractionPrompt } = require('@/src/services/documentPromptService');
  
@@ -156,7 +156,10 @@ export async function POST(request: NextRequest) {
     }
 
     let images: string[] = [];
-    let pdfMetadata: { creator?: string; producer?: string; suspicious: boolean; details: string[] } | undefined;
+    let pdfMetadata: { creator?: string; producer?: string; suspicious: boolean; aiGenerated?: boolean; details: string[] } | undefined;
+    // Détection « généré par IA » sur les images (C2PA/XMP/Stable Diffusion) —
+    // pour les PDF, le même scan est déjà intégré à extractPDFMetadata.
+    let imageAiScan: { detected: boolean; markers: string[] } | undefined;
 
     if (isPDF) {
       try {
@@ -231,6 +234,9 @@ export async function POST(request: NextRequest) {
       if (file.type.includes('png')) mimeType = 'image/png';
       if (file.type.includes('webp')) mimeType = 'image/webp';
       images = [`data:${mimeType};base64,${base64}`];
+      try {
+        imageAiScan = scanBufferForAiSignatures(buffer);
+      } catch { /* non critique */ }
     }
 
     if (images.length === 0) {
@@ -259,6 +265,19 @@ export async function POST(request: NextRequest) {
     if (pdfMetadata?.suspicious) {
       result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 50);
       result.trust_and_security.forensic_alerts.push('PDF créé ou modifié avec un logiciel de design – analyse sous doute renforcé.');
+    }
+
+    // Ajustement : signature de génération par IA (C2PA / XMP trainedAlgorithmicMedia /
+    // outil IA / paramètres Stable Diffusion) — signal quasi certain de document synthétique.
+    const aiGenerated = pdfMetadata?.aiGenerated === true || imageAiScan?.detected === true;
+    if (aiGenerated) {
+      const markers = imageAiScan?.markers?.length
+        ? imageAiScan.markers
+        : (pdfMetadata?.details || []).filter((d) => /IA|C2PA|Stable Diffusion|trainedAlgorithmicMedia/i.test(d));
+      result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 60);
+      result.trust_and_security.forensic_alerts.push(
+        `Signature de génération par IA détectée — document très probablement synthétique (${markers[0] || 'marqueur embarqué'}).`,
+      );
     }
 
     // Audit mathématique strict côté backend

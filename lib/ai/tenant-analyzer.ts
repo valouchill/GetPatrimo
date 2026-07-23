@@ -118,6 +118,12 @@ RÈGLES STRICTES :
       - "Authenticité CNI / titre"  — format, lisibilité, MRZ, hologrammes
       - "Cohérence inter-pièces"    — nom, employeur, montants concordants
       - "Avis d'imposition"         — référence fiscale plausible, format DGFiP
+      - "Origine IA / synthèse"     — signatures C2PA/Content Credentials,
+        XMP trainedAlgorithmicMedia, outil de génération IA, artefacts visuels
+    RÈGLE DURE : si l'audit forensic global indique « contenu généré par IA
+    détecté », le forensicAudit DOIT contenir un contrôle "Origine IA / synthèse"
+    avec status ALERT, et isFraudDetected DOIT être true (un document synthétique
+    n'a aucune raison légitime d'exister dans un dossier locataire).
     Le 'details' DOIT être court, technique, rassurant en cas de VERIFIED
     ("Aucune trace de logiciel d'édition grand public détectée") et factuel
     en cas de WARNING/ALERT ("Métadonnées indiquent Photoshop 24.0 — vérifier").
@@ -178,6 +184,9 @@ function buildUserPrompt(input: AnalysisInputType): string {
   }
   if (forensic.mathematicalInconsistencies) {
     lines.push('- ⚠ Incohérences mathématiques détectées');
+  }
+  if (forensic.aiGeneratedContentDetected) {
+    lines.push('- 🚨 CONTENU GÉNÉRÉ PAR IA détecté sur au moins une pièce (signature C2PA / XMP trainedAlgorithmicMedia / outil IA)');
   }
 
   return lines.join('\n');
