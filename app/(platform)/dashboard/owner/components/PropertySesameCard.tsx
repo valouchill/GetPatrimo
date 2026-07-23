@@ -31,6 +31,14 @@ function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string)
   return `${origin}/apply/${applyToken}?utm_source=sesame&utm_campaign=owner_acq`;
 }
 
+/**
+ * Texte du kit annonce — SOURCE UNIQUE pour le presse-papier ET l'aperçu
+ * (sinon les deux divergent à la première retouche de copy).
+ */
+function buildAdKitText(url: string): string {
+  return `✅ CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE — Ne m'envoyez pas vos documents par email. Déposez votre dossier en ligne, sécurisé et vérifié (aucune pièce ne circule) : ${url} — Les dossiers complets sont étudiés en priorité.`;
+}
+
 function truncateMiddle(url: string, max = 56): string {
   if (url.length <= max) return url;
   const head = url.slice(0, Math.floor(max / 2) - 1);
@@ -219,6 +227,40 @@ export function PropertySesameCard({
           </div>
         </div>
       </div>
+
+      {/* Kit annonce : paragraphe prêt à coller dans LeBonCoin/PAP — transforme
+          chaque annonce du bailleur en point d'entrée vérifié (+ acquisition). */}
+      {isHero && (
+        <div className="mt-4 rounded-card border border-slate-200 bg-white p-4 shadow-card">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              📋 Kit annonce — à coller dans votre annonce
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(buildAdKitText(url));
+                  notify.success('Texte d’annonce copié !');
+                } catch {
+                  notify.error('Impossible de copier le texte.');
+                }
+              }}
+              iconLeft={<Copy className="h-3.5 w-3.5" />}
+            >
+              Copier
+            </Button>
+          </div>
+          <p className="mt-2 rounded-card bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600 ring-1 ring-slate-200">
+            {buildAdKitText(truncateMiddle(url, 34))}
+          </p>
+          <p className="mt-1.5 text-[10px] text-slate-400">
+            Bonus : ce texte filtre les fraudeurs (ils évitent les dossiers vérifiés) et fait gagner
+            du temps aux bons candidats.
+          </p>
+        </div>
+      )}
 
       {/* Pied de carte : explication courte */}
       {isHero && (

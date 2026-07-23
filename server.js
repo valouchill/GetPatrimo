@@ -1486,7 +1486,43 @@ if (process.env.NODE_ENV !== 'test') {
     }, 24 * 60 * 60 * 1000); // 24 heures
   }, getMsUntil9AM());
 }
- 
+
+// -------------------- CRON: Growth emails (quotidien 08:30 + digest le lundi)
+// Relance paywall J+2, relance dossier incomplet J+2 ; digest hebdo fondateur.
+// Fail-safe : le service ne lève jamais, chaque envoi est marqué en base
+// (paywallReminderSentAt / incompleteReminderSentAt) → jamais de double-envoi.
+if (process.env.NODE_ENV !== 'test') {
+  function getMsUntil830AM() {
+    const now = new Date();
+    const next = new Date();
+    next.setHours(8, 30, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next.getTime() - now.getTime();
+  }
+
+  setTimeout(() => {
+    // try/catch : un échec de require (édition future du service) ne doit pas
+    // devenir une exception non gérée dans un timer → crash du serveur.
+    try {
+      const { runDailyGrowthEmails, runWeeklyDigest } = require('./src/services/growthEmailService');
+      const tick = () => {
+        runDailyGrowthEmails()
+          .then((r) => logger.info('Growth emails quotidiens', { result: r }))
+          .catch((e) => logger.error('Erreur growth emails', { error: e?.message || e }));
+        if (new Date().getDay() === 1) {
+          runWeeklyDigest()
+            .then((ok) => logger.info('Digest hebdo', { sent: ok }))
+            .catch((e) => logger.error('Erreur digest hebdo', { error: e?.message || e }));
+        }
+      };
+      tick();
+      setInterval(tick, 24 * 60 * 60 * 1000);
+    } catch (e) {
+      logger.error('Cron growth emails indisponible', { error: e?.message || e });
+    }
+  }, getMsUntil830AM());
+}
+
 // -------------------- ADMIN: leads
 app.get('/api/admin/leads', auth, adminOnly, async (req,res)=>{
   try{
