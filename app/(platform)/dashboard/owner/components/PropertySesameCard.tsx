@@ -32,9 +32,17 @@ function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string)
 }
 
 /**
- * Texte du kit annonce — SOURCE UNIQUE pour le presse-papier ET l'aperçu
+ * Textes du kit annonce — SOURCE UNIQUE pour le presse-papier ET l'aperçu
  * (sinon les deux divergent à la première retouche de copy).
+ *
+ * Deux variantes car LeBonCoin SUPPRIME les liens (annonces + messagerie,
+ * politique anti-arnaque) : là-bas, seul le parcours « code d'accès » passe
+ * (maisonpatrimo.com → Espace locataire → saisie du code, page /locataire).
  */
+function buildAdKitTextLbc(code: string): string {
+  return `✅ CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE — Merci de ne pas envoyer vos documents par messagerie. Pour candidater : rendez-vous sur le site Maison Patrimo (maisonpatrimo.com), cliquez « Espace locataire » et saisissez le code ${code} — Dossier sécurisé, aucune pièce ne circule. Les dossiers complets sont étudiés en priorité.`;
+}
+
 function buildAdKitText(url: string): string {
   return `✅ CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE — Ne m'envoyez pas vos documents par email. Déposez votre dossier en ligne, sécurisé et vérifié (aucune pièce ne circule) : ${url} — Les dossiers complets sont étudiés en priorité.`;
 }
@@ -232,32 +240,70 @@ export function PropertySesameCard({
           chaque annonce du bailleur en point d'entrée vérifié (+ acquisition). */}
       {isHero && (
         <div className="mt-4 rounded-card border border-slate-200 bg-white p-4 shadow-card">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              📋 Kit annonce — à coller dans votre annonce
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(buildAdKitText(url));
-                  notify.success('Texte d’annonce copié !');
-                } catch {
-                  notify.error('Impossible de copier le texte.');
-                }
-              }}
-              iconLeft={<Copy className="h-3.5 w-3.5" />}
-            >
-              Copier
-            </Button>
-          </div>
-          <p className="mt-2 rounded-card bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600 ring-1 ring-slate-200">
-            {buildAdKitText(truncateMiddle(url, 34))}
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            📋 Kit annonce — à coller dans votre annonce
           </p>
-          <p className="mt-1.5 text-[10px] text-slate-400">
-            Bonus : ce texte filtre les fraudeurs (ils évitent les dossiers vérifiés) et fait gagner
-            du temps aux bons candidats.
+
+          {/* Variante LeBonCoin : SANS lien (LBC supprime les URL des annonces
+              et de la messagerie) → parcours code d'accès. */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold text-orange-700">
+                🟠 LeBonCoin — version SANS lien
+                <span className="ml-1 font-normal text-slate-400">(les liens y sont bloqués)</span>
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(buildAdKitTextLbc(code));
+                    notify.success('Texte LeBonCoin copié !');
+                  } catch {
+                    notify.error('Impossible de copier le texte.');
+                  }
+                }}
+                iconLeft={<Copy className="h-3.5 w-3.5" />}
+              >
+                Copier
+              </Button>
+            </div>
+            <p className="mt-1.5 rounded-card bg-orange-50/60 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600 ring-1 ring-orange-200">
+              {buildAdKitTextLbc(code)}
+            </p>
+          </div>
+
+          {/* Variante avec lien : tous les canaux qui l'acceptent. */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold text-emerald-800">
+                🔗 Avec lien — WhatsApp, SMS, email, PAP…
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(buildAdKitText(url));
+                    notify.success('Texte avec lien copié !');
+                  } catch {
+                    notify.error('Impossible de copier le texte.');
+                  }
+                }}
+                iconLeft={<Copy className="h-3.5 w-3.5" />}
+              >
+                Copier
+              </Button>
+            </div>
+            <p className="mt-1.5 rounded-card bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600 ring-1 ring-slate-200">
+              {buildAdKitText(truncateMiddle(url, 34))}
+            </p>
+          </div>
+
+          <p className="mt-2 text-[10px] text-slate-400">
+            Astuce messagerie LeBonCoin : les liens y sont aussi bloqués — répondez aux candidats
+            avec la version code. Bonus : ce texte filtre les fraudeurs (ils évitent les dossiers
+            vérifiés) et fait gagner du temps aux bons candidats.
           </p>
         </div>
       )}
