@@ -28,7 +28,7 @@ const BENEFITS = [
   {
     icon: FileSearch,
     title: 'Un rapport d’audit par dossier',
-    text: 'Métadonnées, traces d’édition, cohérence des cumuls, recoupement fiscal : chaque candidature reçoit un rapport documenté. Votre diligence vis-à-vis des mandants est tracée, noir sur blanc.',
+    text: 'Métadonnées, traces d’édition, signatures de génération par IA (C2PA), cohérence des cumuls, recoupement fiscal : chaque candidature reçoit un rapport documenté. Votre diligence vis-à-vis des mandants est tracée, noir sur blanc.',
   },
   {
     icon: Clock3,

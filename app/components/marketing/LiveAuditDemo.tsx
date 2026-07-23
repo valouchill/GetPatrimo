@@ -44,6 +44,11 @@ const CHECKS: Array<{ name: string; status: CheckStatus; detail: string }> = [
     detail: '4 200 €/mois déclarés vs avis d’imposition ≈ 1 500 €/mois : revenus falsifiés',
   },
   {
+    name: 'Signature de génération IA',
+    status: 'ALERT',
+    detail: 'Manifeste C2PA embarqué (Adobe Firefly) — visuel généré par IA, document synthétique',
+  },
+  {
     name: 'Identité (eIDAS)',
     status: 'VERIFIED',
     detail: 'Pièce d’identité conforme — la fraude porte sur les revenus, pas l’identité',
@@ -173,7 +178,7 @@ export default function LiveAuditDemo() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Audit forensic</p>
-                  <p className="text-[11px] text-slate-500">4 contrôles anti-fraude</p>
+                  <p className="text-[11px] text-slate-500">{CHECKS.length} contrôles anti-fraude</p>
                 </div>
               </div>
               {/* Score */}

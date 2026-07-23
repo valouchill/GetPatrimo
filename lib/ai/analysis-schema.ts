@@ -155,6 +155,8 @@ export const AnalysisInputSchema = z.object({
     globalStatus: z.enum(['CLEAR', 'REVIEW', 'ALERT', 'PENDING']),
     suspiciousSoftwareDetected: z.boolean().optional(),
     mathematicalInconsistencies: z.boolean().optional(),
+    /** Signature de génération par IA (C2PA, XMP trainedAlgorithmicMedia, outil IA) sur ≥1 pièce. */
+    aiGeneratedContentDetected: z.boolean().optional(),
   }),
 });
 

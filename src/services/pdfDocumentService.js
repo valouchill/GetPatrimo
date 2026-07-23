@@ -17,6 +17,52 @@ const {
 const { getPhase1AuditConfig } = require('../config/phase1Audit');
 
 /**
+ * Détection « contenu généré par IA » par balayage binaire du fichier (PDF ou
+ * image). Cherche les signatures NORMALISÉES que les outils IA embarquent :
+ *  - manifeste C2PA / Content Credentials (Adobe Firefly, DALL·E, Photoshop IA…) ;
+ *  - marqueur IPTC officiel XMP `DigitalSourceType = trainedAlgorithmicMedia` ;
+ *  - paramètres de génération Stable Diffusion (tEXt PNG « Negative prompt: ») ;
+ *  - nom d'un outil IA connu dans le flux (liste FORENSIC_AI_SOFTWARE).
+ * Zéro coût réseau ; fail-safe (jamais d'exception).
+ *
+ * @param {ArrayBuffer|Uint8Array|Buffer} fileBuffer
+ * @returns {{ detected: boolean, markers: string[] }}
+ */
+function scanBufferForAiSignatures(fileBuffer) {
+  const out = { detected: false, markers: [] };
+  try {
+    const raw = toStableBuffer(fileBuffer).toString('latin1').toLowerCase();
+
+    if (raw.includes('trainedalgorithmicmedia')) {
+      out.markers.push('XMP DigitalSourceType = trainedAlgorithmicMedia (marqueur officiel « média généré par IA »)');
+    }
+    if (raw.includes('urn:c2pa') || raw.includes('c2pa.org') || raw.includes('contentauth')) {
+      out.markers.push('Manifeste C2PA / Content Credentials embarqué (contenu généré ou modifié par un outil IA)');
+    }
+    if (raw.includes('negative prompt:')) {
+      out.markers.push('Paramètres de génération Stable Diffusion embarqués dans le fichier');
+    }
+    // Noms d'outils IA : cherchés UNIQUEMENT dans le paquet XMP (métadonnées),
+    // jamais dans tout le binaire — le texte d'un document légitime peut contenir
+    // « Gemini » ou « Copilot » sans rien prouver.
+    const xmpStart = raw.indexOf('<x:xmpmeta');
+    if (xmpStart !== -1) {
+      const xmp = raw.slice(xmpStart, raw.indexOf('</x:xmpmeta>', xmpStart) + 12 || xmpStart + 20000);
+      const { aiSoftware } = getPhase1AuditConfig();
+      const aiTool = (aiSoftware || []).find((sw) => sw && xmp.includes(String(sw).toLowerCase()));
+      if (aiTool) {
+        out.markers.push(`Outil de génération IA dans les métadonnées XMP (${aiTool})`);
+      }
+    }
+
+    out.detected = out.markers.length > 0;
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/**
  * Module A — Forensic PDF (pdf-lib).
  * Lit les métadonnées embarquées (Creator / Producer / CreationDate / ModDate)
  * et détecte une éventuelle altération. Échec de lecture ⇒ fail-safe (aucun flag).
@@ -27,6 +73,7 @@ const { getPhase1AuditConfig } = require('../config/phase1Audit');
 async function analyzePdfForensics(pdfBuffer) {
   const out = {
     isAltered: false,
+    aiGenerated: false,
     reasons: [],
     creator: undefined,
     producer: undefined,
@@ -71,6 +118,23 @@ async function analyzePdfForensics(pdfBuffer) {
     if (!suspect && !legit && producer && !creator) {
       out.reasons.push(`Producer « ${producer} » sans Creator — origine non identifiée.`);
     }
+
+    // ── Détection « généré par IA » ──
+    // 1. Outil IA déclaré dans Creator/Producer.
+    const { aiSoftware } = getPhase1AuditConfig();
+    const aiTool = (aiSoftware || []).find((sw) => sw && haystack.includes(String(sw).toLowerCase()));
+    if (aiTool) {
+      out.aiGenerated = true;
+      out.isAltered = true;
+      out.reasons.push(`Outil de génération IA détecté (${aiTool}) : ${creator || producer}`);
+    }
+    // 2. Signatures embarquées (C2PA / XMP trainedAlgorithmicMedia / Stable Diffusion).
+    const aiScan = scanBufferForAiSignatures(buffer);
+    if (aiScan.detected) {
+      out.aiGenerated = true;
+      out.isAltered = true;
+      for (const m of aiScan.markers) out.reasons.push(m);
+    }
     return out;
   } catch {
     return out;
@@ -93,6 +157,7 @@ async function extractPDFMetadata(pdfBuffer) {
     creationDate: f.creationDate,
     modificationDate: f.modificationDate,
     suspicious: f.isAltered,
+    aiGenerated: f.aiGenerated,
     details: f.reasons,
   };
 }
@@ -168,4 +233,4 @@ async function convertPDFToImages(pdfBuffer, maxPages = 3, dpi = 200) {
   throw new Error('Impossible de convertir le PDF. Format non supporté ou PDF corrompu.');
 }
 
-module.exports = { extractPDFMetadata, analyzePdfForensics, convertPDFToImages };
+module.exports = { extractPDFMetadata, analyzePdfForensics, convertPDFToImages, scanBufferForAiSignatures };
