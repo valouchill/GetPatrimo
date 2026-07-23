@@ -31,6 +31,14 @@ function buildSesameUrl(applyToken: string | undefined | null, baseUrl?: string)
   return `${origin}/apply/${applyToken}?utm_source=sesame&utm_campaign=owner_acq`;
 }
 
+/**
+ * Texte du kit annonce — SOURCE UNIQUE pour le presse-papier ET l'aperçu
+ * (sinon les deux divergent à la première retouche de copy).
+ */
+function buildAdKitText(url: string): string {
+  return `✅ CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE — Ne m'envoyez pas vos documents par email. Déposez votre dossier en ligne, sécurisé et vérifié (aucune pièce ne circule) : ${url} — Les dossiers complets sont étudiés en priorité.`;
+}
+
 function truncateMiddle(url: string, max = 56): string {
   if (url.length <= max) return url;
   const head = url.slice(0, Math.floor(max / 2) - 1);
@@ -233,9 +241,7 @@ export function PropertySesameCard({
               size="sm"
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(
-                    `✅ CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE — Ne m'envoyez pas vos documents par email. Déposez votre dossier en ligne, sécurisé et vérifié (aucune pièce ne circule) : ${url} — Les dossiers complets sont étudiés en priorité.`,
-                  );
+                  await navigator.clipboard.writeText(buildAdKitText(url));
                   notify.success('Texte d’annonce copié !');
                 } catch {
                   notify.error('Impossible de copier le texte.');
@@ -247,10 +253,7 @@ export function PropertySesameCard({
             </Button>
           </div>
           <p className="mt-2 rounded-card bg-slate-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600 ring-1 ring-slate-200">
-            ✅ <strong>CANDIDATURE SIMPLIFIÉE ET VÉRIFIÉE</strong> — Ne m&apos;envoyez pas vos documents
-            par email. Déposez votre dossier en ligne, sécurisé et vérifié (aucune pièce ne circule) :{' '}
-            <span className="font-mono">{truncateMiddle(url, 34)}</span> — Les dossiers complets sont
-            étudiés en priorité.
+            {buildAdKitText(truncateMiddle(url, 34))}
           </p>
           <p className="mt-1.5 text-[10px] text-slate-400">
             Bonus : ce texte filtre les fraudeurs (ils évitent les dossiers vérifiés) et fait gagner

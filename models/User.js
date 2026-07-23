@@ -122,6 +122,8 @@ const UserSchema = new mongoose.Schema({
 UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ suspended: 1 });
+// Cron growth (relance paywall J+2) : évite un COLLSCAN quotidien des users.
+UserSchema.index({ freeTrialExhaustedAt: 1, paywallReminderSentAt: 1 });
 
 // Politique de mot de passe : min 12 caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/;

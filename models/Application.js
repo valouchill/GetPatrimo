@@ -261,6 +261,8 @@ ApplicationSchema.index({ userId: 1, status: 1 });
 ApplicationSchema.index({ property: 1 });
 ApplicationSchema.index({ property: 1, status: 1 });
 ApplicationSchema.index({ 'tunnel.lastActiveAt': -1 });
+// Cron growth (relance dossier non soumis J+2) : évite un COLLSCAN quotidien.
+ApplicationSchema.index({ status: 1, incompleteReminderSentAt: 1, updatedAt: 1 });
 
 // Méthode pour calculer le grade basé sur le score
 ApplicationSchema.methods.calculateGrade = function() {

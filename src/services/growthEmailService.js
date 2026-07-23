@@ -1,15 +1,21 @@
 /**
  * growthEmailService — les boucles email de croissance (fire-and-forget).
  *
- *  1. notifyOwnerNewApplication : email au propriétaire à chaque dossier soumis
+ *  1. notifyOwnerNewApplication : email au propriétaire au PREMIER dossier soumis
  *     (rétention — appelé par la server action submitApplication).
  *  2. runDailyGrowthEmails (cron 08:30, server.js) :
  *     - relance paywall J+2 (essai gratuit épuisé, pas d'offre payante) ;
- *     - relance candidat J+2 (dossier resté DRAFT/IN_PROGRESS).
+ *     - relance candidat J+2 (dossier resté DRAFT/IN_PROGRESS/COMPLETE non soumis).
  *  3. runWeeklyDigest (cron lundi 08:30) : KPIs de la semaine au fondateur.
  *
- * Toutes les fonctions sont fail-safe (jamais d'exception propagée) et bornées
- * (caps par run) — un incident email ne doit jamais toucher le produit.
+ * Garde-fous (revue 8-angles) :
+ *  - SMTP non configuré → le run s'arrête AVANT tout marquage (jamais de
+ *    relance « brûlée » sans email parti) ;
+ *  - transporteur SMTP unique et poolé par process (pas une connexion/email) ;
+ *  - retry ×2 avec backoff sur chaque envoi (pattern lib/email-retry) ;
+ *  - toute valeur contrôlée par l'utilisateur est échappée avant interpolation
+ *    HTML (anti-phishing dans les emails propriétaires/fondateur) ;
+ *  - marquage en base par lot (updateMany) → jamais de double-envoi.
  */
 
 const nodemailer = require('nodemailer');
@@ -24,9 +30,18 @@ const MAX_EMAILS_PER_RUN = 50;
 
 function log(level, msg, meta) {
   // console volontaire : le service tourne aussi bien sous server.js (winston
-  // redirige stdout) que dans les server actions Next.
+  // capte stdout) que dans les server actions Next.
   // eslint-disable-next-line no-console
   console[level === 'error' ? 'error' : 'log'](`[growth-email] ${msg}`, meta || '');
+}
+
+/** Échappe toute valeur interpolée dans du HTML d'email (données utilisateur). */
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function getBaseUrl() {
@@ -43,35 +58,51 @@ function getFounderEmail() {
   );
 }
 
-function buildTransporter() {
-  const user = process.env.BREVO_USER;
-  const pass = process.env.BREVO_PASS;
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: { user, pass },
-  });
+function isSmtpConfigured() {
+  return Boolean(process.env.BREVO_USER && process.env.BREVO_PASS);
 }
 
-async function sendMail(transporter, options) {
-  const t = transporter || buildTransporter();
-  if (!t) {
-    log('error', 'BREVO non configuré — email non envoyé', { subject: options.subject });
-    return false;
-  }
-  try {
-    await t.sendMail({
-      from: process.env.MAIL_FROM || '"Maison Patrimo" <no-reply@maisonpatrimo.com>',
-      replyTo: process.env.MAIL_REPLY_TO || 'contact@maisonpatrimo.com',
-      ...options,
+/** Transporteur unique par process (poolé) — jamais une connexion par email. */
+let sharedTransporter = null;
+function getTransporter() {
+  if (!isSmtpConfigured()) return null;
+  if (!sharedTransporter) {
+    sharedTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      pool: true,
+      maxConnections: 1,
+      auth: { user: process.env.BREVO_USER, pass: process.env.BREVO_PASS },
     });
-    return true;
-  } catch (e) {
-    log('error', 'envoi échoué', { subject: options.subject, error: e?.message });
+  }
+  return sharedTransporter;
+}
+
+/** Envoi avec retry ×2 (backoff linéaire — pattern lib/email-retry). Ne lève jamais. */
+async function sendMail(options) {
+  const transporter = getTransporter();
+  if (!transporter) {
+    log('error', 'SMTP non configuré — email non envoyé', { subject: options.subject });
     return false;
   }
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM || '"Maison Patrimo" <no-reply@maisonpatrimo.com>',
+        replyTo: process.env.MAIL_REPLY_TO || 'contact@maisonpatrimo.com',
+        ...options,
+      });
+      return true;
+    } catch (e) {
+      if (attempt === 2) {
+        log('error', 'envoi échoué après retry', { subject: options.subject, error: e?.message });
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+  return false;
 }
 
 function wrapHtml(title, bodyHtml) {
@@ -92,7 +123,8 @@ function wrapHtml(title, bodyHtml) {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Fire-and-forget — appelé après submitApplication. Ne lève jamais.
+ * Fire-and-forget — appelé après la PREMIÈRE soumission (submitApplication
+ * vérifie submittedAt). Ne lève jamais.
  * @param {string} applicationId
  */
 async function notifyOwnerNewApplication(applicationId) {
@@ -107,15 +139,18 @@ async function notifyOwnerNewApplication(applicationId) {
     const owner = await User.findById(property.user).select('email').lean();
     if (!owner?.email) return;
 
-    const candidate =
+    // esc() : prénom/nom et adresse sont des données utilisateur → jamais
+    // interpolées brutes dans le HTML (anti-phishing).
+    const candidate = esc(
       [app.profile?.firstName, app.profile?.lastName].filter(Boolean).join(' ') ||
-      app.userEmail || 'Un candidat';
-    const address = property.address || property.name || 'votre bien';
-    const url = `${getBaseUrl()}/dashboard/owner?page=candidatures`;
+        app.userEmail || 'Un candidat',
+    );
+    const address = esc(property.address || property.name || 'votre bien');
+    const url = `${getBaseUrl()}/dashboard/owner?tab=candidatures`;
 
-    await sendMail(null, {
+    await sendMail({
       to: owner.email,
-      subject: `📥 Nouveau dossier reçu — ${address}`,
+      subject: `📥 Nouveau dossier reçu — ${property.address || property.name || 'votre bien'}`,
       html: wrapHtml(
         'Nouvelle candidature',
         `
@@ -149,20 +184,27 @@ async function sendPaywallReminders() {
     .select('email')
     .limit(MAX_EMAILS_PER_RUN)
     .lean();
+  if (!users.length) return { candidates: 0, sent: 0 };
+
+  const ids = users.map((u) => u._id);
+  // Une requête pour tous : déjà clients (offre payante sur ≥1 bien) → exclus.
+  const paidOwners = new Set(
+    (
+      await Property.distinct('user', {
+        user: { $in: ids },
+        $or: [{ managed: true }, { tier: { $exists: true, $nin: ['', 'FREE'] } }],
+      })
+    ).map(String),
+  );
+  // Marquage PAR LOT avant envoi (anti double-envoi). Le garde SMTP en amont
+  // (runDailyGrowthEmails) garantit qu'on n'arrive ici qu'avec un transport
+  // configuré — un échec individuel résiduel est loggé, jamais re-tenté.
+  await User.updateMany({ _id: { $in: ids } }, { $set: { paywallReminderSentAt: new Date() } });
 
   let sent = 0;
   for (const u of users) {
-    // Déjà client (offre payante sur au moins un bien) → jamais de relance.
-    const hasPaid = await Property.exists({
-      user: u._id,
-      $or: [{ managed: true }, { tier: { $exists: true, $nin: ['', 'FREE'] } }],
-    });
-    // Marqué AVANT l'envoi (jamais de double-envoi, même si l'envoi échoue :
-    // on préfère perdre une relance que spammer).
-    await User.updateOne({ _id: u._id }, { $set: { paywallReminderSentAt: new Date() } });
-    if (hasPaid) continue;
-
-    const ok = await sendMail(null, {
+    if (paidOwners.has(String(u._id))) continue;
+    const ok = await sendMail({
       to: u.email,
       subject: 'Vos candidats vous attendent — audits et comparaison à débloquer',
       html: wrapHtml(
@@ -189,55 +231,72 @@ async function sendPaywallReminders() {
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
-/* 2b. Relance candidat J+2 : dossier incomplet                               */
+/* 2b. Relance candidat J+2 : dossier incomplet ou complet non envoyé         */
 /* ────────────────────────────────────────────────────────────────────────── */
 
 const CATEGORY_LABELS = {
-  IDENTITY: "pièce d'identité",
-  INCOME: 'justificatifs de revenus',
-  ADDRESS: 'justificatif de domicile',
-  GUARANTOR: 'pièces du garant',
+  IDENTITY: "votre pièce d'identité",
+  INCOME: 'vos justificatifs de revenus',
 };
 
 async function sendIncompleteApplicationReminders() {
   const now = Date.now();
+  // COMPLETE inclus : le segment le plus chaud est le dossier fini mais jamais
+  // ENVOYÉ (le candidat n'a pas cliqué « Soumettre » — submittedAt absent).
   const apps = await Application.find({
-    status: { $in: ['DRAFT', 'IN_PROGRESS'] },
+    status: { $in: ['DRAFT', 'IN_PROGRESS', 'COMPLETE'] },
+    submittedAt: null,
     incompleteReminderSentAt: null,
     updatedAt: { $lte: new Date(now - 2 * DAY_MS), $gte: new Date(now - 30 * DAY_MS) },
     userEmail: { $exists: true, $ne: '' },
     applyToken: { $exists: true, $ne: '' },
   })
-    .select('userEmail applyToken documents profile')
+    .select('userEmail applyToken documents profile status')
     .limit(MAX_EMAILS_PER_RUN)
     .lean();
+  if (!apps.length) return { candidates: 0, sent: 0 };
+
+  await Application.updateMany(
+    { _id: { $in: apps.map((a) => a._id) } },
+    { $set: { incompleteReminderSentAt: new Date() } },
+  );
 
   let sent = 0;
   for (const app of apps) {
-    await Application.updateOne({ _id: app._id }, { $set: { incompleteReminderSentAt: new Date() } });
-
-    const present = new Set((app.documents || []).map((d) => String(d.category || '').toUpperCase()));
-    const missing = ['IDENTITY', 'INCOME']
+    // Pièces du LOCATAIRE uniquement — les pièces du garant (subjectType
+    // GUARANTOR/VISALE) ne doivent pas masquer celles qui manquent au candidat.
+    const present = new Set(
+      (app.documents || [])
+        .filter((d) => !d.subjectType || d.subjectType === 'TENANT')
+        .map((d) => String(d.category || '').toUpperCase()),
+    );
+    const missing = Object.keys(CATEGORY_LABELS)
       .filter((c) => !present.has(c))
       .map((c) => CATEGORY_LABELS[c]);
-    const missingText = missing.length
-      ? `Il manque notamment : <strong>${missing.join(' et ')}</strong>.`
-      : 'Quelques pièces restent à finaliser pour que le propriétaire puisse étudier votre dossier.';
 
-    const ok = await sendMail(null, {
+    const isReadyToSend = app.status === 'COMPLETE' && missing.length === 0;
+    const bodyLine = isReadyToSend
+      ? 'Bonne nouvelle : votre dossier est <strong>complet</strong> — il ne vous reste qu\'à cliquer « Envoyer » pour le transmettre au propriétaire.'
+      : missing.length
+        ? `Il manque notamment : <strong>${missing.map(esc).join(' et ')}</strong>.`
+        : 'Quelques pièces restent à finaliser pour que le propriétaire puisse étudier votre dossier.';
+
+    const ok = await sendMail({
       to: app.userEmail,
-      subject: 'Votre dossier de location est presque prêt 📋',
+      subject: isReadyToSend
+        ? 'Votre dossier est prêt — il ne reste qu\'à l\'envoyer ✉️'
+        : 'Votre dossier de location est presque prêt 📋',
       html: wrapHtml(
         'Votre candidature',
         `
-  <p style="font-size:15px;line-height:1.7;">Bonjour${app.profile?.firstName ? ' ' + app.profile.firstName : ''},</p>
-  <p style="font-size:15px;line-height:1.7;">Votre dossier de candidature est en attente : il n'a pas
-  encore été transmis au propriétaire. ${missingText}</p>
+  <p style="font-size:15px;line-height:1.7;">Bonjour${app.profile?.firstName ? ' ' + esc(app.profile.firstName) : ''},</p>
+  <p style="font-size:15px;line-height:1.7;">Votre dossier de candidature n'a pas encore été transmis
+  au propriétaire. ${bodyLine}</p>
   <p style="font-size:15px;line-height:1.7;">Un dossier complet et vérifié passe devant les autres —
   cela prend moins de 5 minutes.</p>
   <p style="text-align:center;margin:24px 0;">
-    <a href="${getBaseUrl()}/apply/${app.applyToken}" style="background:#064e3b;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;display:inline-block;">
-      Finaliser mon dossier
+    <a href="${getBaseUrl()}/apply/${encodeURIComponent(app.applyToken)}" style="background:#064e3b;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;display:inline-block;">
+      ${isReadyToSend ? 'Envoyer mon dossier' : 'Finaliser mon dossier'}
     </a>
   </p>`,
       ),
@@ -249,6 +308,12 @@ async function sendIncompleteApplicationReminders() {
 
 async function runDailyGrowthEmails() {
   try {
+    // Garde-fou CRITIQUE : sans SMTP, on n'entame RIEN (sinon les marquages
+    // « relance envoyée » brûleraient le stock de relances sans aucun email).
+    if (!isSmtpConfigured()) {
+      log('error', 'BREVO_USER/BREVO_PASS absents — run annulé, aucun marquage effectué');
+      return { skipped: 'smtp_unconfigured' };
+    }
     const paywall = await sendPaywallReminders();
     const incomplete = await sendIncompleteApplicationReminders();
     log('log', 'daily run', { paywall, incomplete });
@@ -273,11 +338,14 @@ async function fetchStripeWeekRevenue(sinceTs) {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    const succeeded = (data.data || []).filter((c) => c.status === 'succeeded' && !c.refunded);
+    // EUR livemode uniquement (pas de mélange devises/mode test dans le total).
+    const succeeded = (data.data || []).filter(
+      (c) => c.status === 'succeeded' && !c.refunded && c.currency === 'eur' && c.livemode !== false,
+    );
     return {
       count: succeeded.length,
       totalEur: succeeded.reduce((s, c) => s + (c.amount || 0), 0) / 100,
-      livemode: succeeded[0]?.livemode ?? null,
+      truncated: data.has_more === true,
     };
   } catch {
     return null;
@@ -289,7 +357,6 @@ async function runWeeklyDigest() {
     const since = new Date(Date.now() - 7 * DAY_MS);
     const sinceTs = Math.floor(since.getTime() / 1000);
 
-    // Chaque métrique est indépendante et fail-safe.
     const safe = async (p, fallback) => { try { return await p; } catch { return fallback; } };
 
     const [newOwners, newProps, analyses, trialsExhausted, leads, revenue] = await Promise.all([
@@ -303,7 +370,8 @@ async function runWeeklyDigest() {
 
     const leadsBySource = {};
     for (const l of leads) leadsBySource[l.source || 'landing'] = (leadsBySource[l.source || 'landing'] || 0) + 1;
-    const leadsText = Object.entries(leadsBySource).map(([s, n]) => `${s} : ${n}`).join(' · ') || 'aucun';
+    // esc() : `source` est fourni par le client du POST /api/public/lead.
+    const leadsText = Object.entries(leadsBySource).map(([s, n]) => `${esc(s)} : ${n}`).join(' · ') || 'aucun';
 
     let pilotsText = 'module non disponible';
     try {
@@ -314,20 +382,20 @@ async function runWeeklyDigest() {
     } catch { /* modèle absent sur vieux déploiements */ }
 
     const revenueText = revenue
-      ? `${revenue.count} paiement(s) — ${revenue.totalEur.toFixed(2).replace('.', ',')} € ${revenue.livemode === false ? '(⚠️ mode test)' : ''}`
+      ? `${revenue.count}${revenue.truncated ? '+' : ''} paiement(s) — ${revenue.totalEur.toFixed(2).replace('.', ',')} €${revenue.truncated ? ' (tronqué à 100)' : ''}`
       : 'indisponible';
 
     const row = (label, value) =>
       `<tr><td style="padding:8px 12px;color:#64748b;font-size:13px;">${label}</td><td style="padding:8px 12px;font-weight:700;font-size:14px;">${value}</td></tr>`;
 
-    await sendMail(null, {
+    await sendMail({
       to: getFounderEmail(),
       subject: `📊 Maison Patrimo — digest de la semaine (${new Date().toLocaleDateString('fr-FR')})`,
       html: wrapHtml(
         'Digest hebdomadaire',
         `
   <table style="width:100%;border-collapse:collapse;background:#f8fafc;border-radius:12px;">
-    ${row('💶 Encaissements Stripe (7 j)', revenueText)}
+    ${row('💶 Encaissements Stripe live (7 j, EUR)', revenueText)}
     ${row('👤 Nouveaux propriétaires', newOwners)}
     ${row('🏠 Nouveaux biens', newProps)}
     ${row('🔍 Audits lancés', analyses)}

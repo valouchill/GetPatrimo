@@ -276,6 +276,15 @@ export async function POST(
       });
       // 402 : essai gratuit du compte épuisé (souscrire) ou quota payant épuisé (racheter).
       const quotaExceeded = quotaCheck.reason === 'QUOTA_EXCEEDED';
+      if (quotaCheck.reason === 'FREE_TRIAL_EXHAUSTED') {
+        // Rattrapage growth : marque l'épuisement pour la relance paywall J+2 —
+        // couvre la cohorte épuisée AVANT le déploiement du champ et le cas où
+        // le marquage au moment du franchissement a échoué. Non bloquant.
+        User.updateOne(
+          { _id: propertyOwner, freeTrialExhaustedAt: null },
+          { $set: { freeTrialExhaustedAt: new Date() } },
+        ).catch(() => { /* fire-and-forget */ });
+      }
       return NextResponse.json(
         {
           error: quotaExceeded
@@ -313,15 +322,16 @@ export async function POST(
           { _id: propertyOwner, freeAnalysesUsed: { $lt: FREE_TRIAL_LIMIT } },
           { $inc: { freeAnalysesUsed: 1 } },
         );
-        // Growth : horodate l'épuisement de l'essai (déclencheur de la relance
-        // paywall J+2 — growthEmailService). Posé une seule fois.
-        await User.updateOne(
-          { _id: propertyOwner, freeAnalysesUsed: { $gte: FREE_TRIAL_LIMIT }, freeTrialExhaustedAt: null },
-          { $set: { freeTrialExhaustedAt: new Date() } },
-        );
         await Property.updateOne(
           { _id: (property as any)._id, analyzedApplicationIds: { $ne: id } },
           { $addToSet: { analyzedApplicationIds: id } },
+        );
+        // Growth : horodate l'épuisement de l'essai (relance paywall J+2).
+        // APRÈS le dédup Property (un échec ici ne doit pas casser l'invariant
+        // « un crédit par dossier ») ; le chemin 402 sert de rattrapage.
+        await User.updateOne(
+          { _id: propertyOwner, freeAnalysesUsed: { $gte: FREE_TRIAL_LIMIT }, freeTrialExhaustedAt: null },
+          { $set: { freeTrialExhaustedAt: new Date() } },
         );
       } else {
         quotaConsumption = await consumeAnalysisQuota(

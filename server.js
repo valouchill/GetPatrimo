@@ -1501,19 +1501,25 @@ if (process.env.NODE_ENV !== 'test') {
   }
 
   setTimeout(() => {
-    const { runDailyGrowthEmails, runWeeklyDigest } = require('./src/services/growthEmailService');
-    const tick = () => {
-      runDailyGrowthEmails()
-        .then((r) => logger.info('Growth emails quotidiens', { result: r }))
-        .catch((e) => logger.error('Erreur growth emails', { error: e?.message || e }));
-      if (new Date().getDay() === 1) {
-        runWeeklyDigest()
-          .then((ok) => logger.info('Digest hebdo', { sent: ok }))
-          .catch((e) => logger.error('Erreur digest hebdo', { error: e?.message || e }));
-      }
-    };
-    tick();
-    setInterval(tick, 24 * 60 * 60 * 1000);
+    // try/catch : un échec de require (édition future du service) ne doit pas
+    // devenir une exception non gérée dans un timer → crash du serveur.
+    try {
+      const { runDailyGrowthEmails, runWeeklyDigest } = require('./src/services/growthEmailService');
+      const tick = () => {
+        runDailyGrowthEmails()
+          .then((r) => logger.info('Growth emails quotidiens', { result: r }))
+          .catch((e) => logger.error('Erreur growth emails', { error: e?.message || e }));
+        if (new Date().getDay() === 1) {
+          runWeeklyDigest()
+            .then((ok) => logger.info('Digest hebdo', { sent: ok }))
+            .catch((e) => logger.error('Erreur digest hebdo', { error: e?.message || e }));
+        }
+      };
+      tick();
+      setInterval(tick, 24 * 60 * 60 * 1000);
+    } catch (e) {
+      logger.error('Cron growth emails indisponible', { error: e?.message || e });
+    }
   }, getMsUntil830AM());
 }
 

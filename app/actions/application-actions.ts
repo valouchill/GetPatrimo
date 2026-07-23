@@ -18,6 +18,8 @@ const { deriveApplicationFinancialProfile } = require('@/src/utils/financialExtr
  
 const { resolveResilienceScore } = require('@/src/utils/resilienceScore');
 
+const { notifyOwnerNewApplication } = require('@/src/services/growthEmailService');
+
 /**
  * Sécurité (revue V1 — S3) : ces server actions reçoivent `userEmail` en argument
  * mais sont des endpoints POST publics. On exige une session authentifiée dont
@@ -614,15 +616,19 @@ export async function submitApplication(applicationId: string) {
       return { success: false, error: 'Le dossier doit être complet pour être soumis' };
     }
 
+    // Première soumission = pas encore de submittedAt. Les re-soumissions
+    // (passeport ré-appliqué → statut redescendu à COMPLETE puis re-soumis)
+    // ne doivent PAS re-notifier le propriétaire (anti-spam).
+    const isFirstSubmission = !application.submittedAt;
+
     application.status = 'SUBMITTED';
-    application.submittedAt = new Date();
+    application.submittedAt = application.submittedAt || new Date();
     await application.save();
 
     // Growth : notifie le propriétaire (fire-and-forget — n'affecte jamais la soumission).
-    try {
-      const { notifyOwnerNewApplication } = require('@/src/services/growthEmailService');
+    if (isFirstSubmission) {
       void notifyOwnerNewApplication(String(application._id));
-    } catch { /* service indisponible : non bloquant */ }
+    }
 
     return { success: true };
   } catch (error) {
