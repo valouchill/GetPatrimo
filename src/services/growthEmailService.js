@@ -146,7 +146,7 @@ async function notifyOwnerNewApplication(applicationId) {
         app.userEmail || 'Un candidat',
     );
     const address = esc(property.address || property.name || 'votre bien');
-    const url = `${getBaseUrl()}/dashboard/owner?tab=candidatures`;
+    const url = `${getBaseUrl()}/dashboard/owner?tab=candidatures&utm_source=email&utm_medium=email&utm_campaign=notif-dossier`;
 
     await sendMail({
       to: owner.email,
@@ -217,7 +217,7 @@ async function sendPaywallReminders() {
   + de nouveaux audits <strong>dès 19,90 € (paiement unique, sans abonnement)</strong> — vos crédits
   se cumulent et ne sont jamais perdus.</p>
   <p style="text-align:center;margin:24px 0;">
-    <a href="${getBaseUrl()}/pricing" style="background:#f59e0b;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;display:inline-block;">
+    <a href="${getBaseUrl()}/pricing?utm_source=email&utm_medium=email&utm_campaign=paywall-j2" style="background:#f59e0b;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;display:inline-block;">
       Débloquer mes candidats
     </a>
   </p>
