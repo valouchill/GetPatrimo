@@ -313,6 +313,12 @@ export async function POST(
           { _id: propertyOwner, freeAnalysesUsed: { $lt: FREE_TRIAL_LIMIT } },
           { $inc: { freeAnalysesUsed: 1 } },
         );
+        // Growth : horodate l'épuisement de l'essai (déclencheur de la relance
+        // paywall J+2 — growthEmailService). Posé une seule fois.
+        await User.updateOne(
+          { _id: propertyOwner, freeAnalysesUsed: { $gte: FREE_TRIAL_LIMIT }, freeTrialExhaustedAt: null },
+          { $set: { freeTrialExhaustedAt: new Date() } },
+        );
         await Property.updateOne(
           { _id: (property as any)._id, analyzedApplicationIds: { $ne: id } },
           { $addToSet: { analyzedApplicationIds: id } },

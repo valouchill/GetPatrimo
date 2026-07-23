@@ -618,6 +618,12 @@ export async function submitApplication(applicationId: string) {
     application.submittedAt = new Date();
     await application.save();
 
+    // Growth : notifie le propriétaire (fire-and-forget — n'affecte jamais la soumission).
+    try {
+      const { notifyOwnerNewApplication } = require('@/src/services/growthEmailService');
+      void notifyOwnerNewApplication(String(application._id));
+    } catch { /* service indisponible : non bloquant */ }
+
     return { success: true };
   } catch (error) {
     console.error('Erreur submitApplication:', error);

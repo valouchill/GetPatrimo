@@ -225,6 +225,8 @@ const ApplicationSchema = new mongoose.Schema({
   
   // Métadonnées
   submittedAt: { type: Date },
+  // Growth : relance « dossier incomplet » J+2 envoyée (une seule fois — growthEmailService).
+  incompleteReminderSentAt: { type: Date, default: null },
   viewedByOwnerAt: { type: Date },
   ownerDecision: { type: String, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'WAITLIST'], default: 'PENDING' },
   ownerNotes: { type: String },

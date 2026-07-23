@@ -58,6 +58,11 @@ const UserSchema = new mongoose.Schema({
 
   // Essai gratuit : nb d'analyses IA consommées au niveau du COMPTE (plafond FREE_TRIAL_LIMIT).
   freeAnalysesUsed: { type: Number, default: 0 },
+  // Growth : date d'épuisement de l'essai gratuit (posée par analyze-v2) — déclenche
+  // la relance paywall J+2 (growthEmailService). null = essai non épuisé.
+  freeTrialExhaustedAt: { type: Date, default: null },
+  // Relance paywall envoyée (une seule fois par compte).
+  paywallReminderSentAt: { type: Date, default: null },
 
   // Magic Auth — token à usage unique pour connexion sans mot de passe (Fast-Track)
   magicSignInToken: { type: String, default: '' },
