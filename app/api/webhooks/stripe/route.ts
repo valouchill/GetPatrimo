@@ -115,6 +115,73 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription annulée).`);
 }
 
+/**
+ * Remboursement (charge.refunded) — anti-abus : retire du bien les crédits
+ * ajoutés par le pack remboursé, pour empêcher « achète → consomme → se fait
+ * rembourser → garde les audits ». On ne traite que les remboursements TOTAUX
+ * (les partiels sont rares sur un one-time ; loggés pour revue manuelle).
+ *
+ * Robustesse multi-source : on décrémente `dossiersQuota` de la quantité du pack
+ * remboursé. Si le solde retombe à 0, le bien redevient FREE (managed off) — mais
+ * un octroi pilote/geste ou un autre pack laisse un solde résiduel > 0, ce qui
+ * PRÉSERVE automatiquement l'accès légitime (on ne rétrograde jamais à tort).
+ */
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  if ((charge.amount_refunded || 0) < (charge.amount || 0)) {
+    logger.info(`[stripe-webhook] Remboursement PARTIEL charge ${charge.id} — quota inchangé (revue manuelle si besoin).`);
+    return;
+  }
+
+  const piId = typeof charge.payment_intent === 'string'
+    ? charge.payment_intent
+    : charge.payment_intent?.id;
+  if (!piId) {
+    logger.warn(`[stripe-webhook] Remboursement charge ${charge.id} sans payment_intent — ignoré.`);
+    return;
+  }
+
+  const stripe = getStripe();
+  const pi = await stripe.paymentIntents.retrieve(piId);
+  const { propertyId, quota, userId, tier } = pi.metadata || {};
+  if (!propertyId) {
+    logger.warn(`[stripe-webhook] Remboursement charge ${charge.id} sans propertyId dans les metadata — ignoré.`);
+    return;
+  }
+
+  const property = (await Property.findById(propertyId)
+    .select('dossiersQuota')
+    .lean()) as { dossiersQuota?: number } | null;
+  if (!property) {
+    logger.warn(`[stripe-webhook] Remboursement : bien ${propertyId} introuvable.`);
+    return;
+  }
+
+  const packQuota = Number(quota || 0);
+  const oldQuota = Number(property.dossiersQuota || 0);
+  const newQuota = Math.max(0, oldQuota - packQuota);
+
+  const update: Record<string, unknown> = { dossiersQuota: newQuota };
+  // Plus aucun crédit → retour à l'offre Gratuite (comparaison re-verrouillée).
+  if (newQuota === 0) {
+    update.tier = 'FREE';
+    update.managed = false;
+  }
+  await Property.findByIdAndUpdate(propertyId, update);
+
+  captureServer('purchase_refunded', userId || propertyId, {
+    property_id: propertyId,
+    pack_quota: packQuota,
+    quota_before: oldQuota,
+    quota_after: newQuota,
+    reverted_to_free: newQuota === 0,
+    tier: tier || null,
+  });
+
+  logger.info(
+    `[stripe-webhook] Remboursement charge ${charge.id} → bien ${propertyId} : quota ${oldQuota}→${newQuota}${newQuota === 0 ? ' (retour FREE)' : ''}.`,
+  );
+}
+
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
@@ -185,6 +252,9 @@ export async function POST(request: NextRequest) {
           break;
         case 'invoice.payment_failed':
           await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+        case 'charge.refunded':
+          await handleChargeRefunded(event.data.object as Stripe.Charge);
           break;
         default:
           logger.info(`[stripe-webhook] Event non géré: ${event.type}`);
