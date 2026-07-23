@@ -9,6 +9,10 @@ const AiAnalysisSchema = new mongoose.Schema({
   flags: [{ type: String }],
   summary: { type: String, default: '' },
   fraudScore: { type: Number, default: 0, min: 0, max: 1 },
+  /** Logiciel détecté dans les métadonnées (Photoshop, Canva…) — lu par buildAnalysisInput. */
+  detectedSoftware: { type: String, default: '' },
+  /** Signature de génération par IA détectée (C2PA / XMP trainedAlgorithmicMedia / outil IA). */
+  aiGenerated: { type: Boolean, default: false },
 }, { _id: false });
 
 const GuaranteeSchema = new mongoose.Schema({

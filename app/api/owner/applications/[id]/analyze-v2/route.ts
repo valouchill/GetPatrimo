@@ -57,6 +57,7 @@ interface MongoApplicationDoc {
     aiAnalysis?: {
       flags?: string[];
       detectedSoftware?: string;
+      aiGenerated?: boolean;
     };
   }>;
   didit?: { status?: string };
@@ -122,10 +123,20 @@ function buildAnalysisInput(
       ((d.aiAnalysis?.flags || []) as string[]).length > 0,
   ).length;
 
-  // Suspicions software
+  // Suspicions software — via detectedSoftware (persisté depuis peu) OU le texte
+  // des flags par pièce (couvre les documents analysés avant l'ajout du champ).
   const suspiciousSoftwareDetected = documents.some((d) => {
     const detected = d.aiAnalysis?.detectedSoftware || '';
-    return /photoshop|canva|illustrator|gimp/i.test(detected);
+    const flagsText = ((d.aiAnalysis?.flags || []) as string[]).join(' ');
+    return /photoshop|canva|illustrator|gimp|logiciel de design/i.test(`${detected} ${flagsText}`);
+  });
+
+  // Contenu généré par IA — champ dédié OU alerte textuelle poussée à l'upload
+  // (analyze-document-v2 : « Signature de génération par IA détectée… »).
+  const aiGeneratedContentDetected = documents.some((d) => {
+    if (d.aiAnalysis?.aiGenerated === true) return true;
+    const flagsText = ((d.aiAnalysis?.flags || []) as string[]).join(' ');
+    return /génération par ia|généré par ia|c2pa|trainedalgorithmicmedia/i.test(flagsText);
   });
 
   // Forensic global status — réutilise patrimometer.flags si présent
@@ -190,9 +201,10 @@ function buildAnalysisInput(
       forensicAlertCount,
     },
     forensic: {
-      globalStatus: forensicStatus,
+      globalStatus: aiGeneratedContentDetected ? 'ALERT' : forensicStatus,
       suspiciousSoftwareDetected,
       mathematicalInconsistencies: forensicAlertCount > 0,
+      aiGeneratedContentDetected,
     },
   };
 }
