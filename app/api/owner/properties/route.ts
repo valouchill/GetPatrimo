@@ -64,6 +64,10 @@ async function applyPendingPilotGrants(userId: string, sessionEmail: string | un
       { _id: { $in: pending.map((g: any) => g._id) } },
       { $set: { status: 'APPLIED', appliedAt: new Date(), user: userId, propertiesCount: 1 } },
     );
+    // Pilote B2B appliqué → le compte devient B2B (onglet « Mon offre Pro »).
+    if (includesPilot) {
+      await User.updateOne({ _id: userId }, { $set: { accountType: 'B2B' } });
+    }
     logger.info('Pilot grants appliqués au premier bien', {
       email: ownerEmail,
       audits: totalAudits,

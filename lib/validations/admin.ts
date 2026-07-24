@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const UserPatchSchema = z.object({
   plan: z.enum(['FREE', 'PRO']).optional(),
+  /** B2B = ne voit jamais les offres B2C (onglet « Mon offre Pro », /pricing contextuel). */
+  accountType: z.enum(['B2C', 'B2B']).optional(),
   credits: z.number().int().min(0).max(100000).optional(),
   suspended: z.boolean().optional(),
   suspendedReason: z.string().max(500).optional(),

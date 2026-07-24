@@ -113,6 +113,12 @@ export const POST = withAdmin(
         status: 'PENDING',
         grantedBy: admin.email,
       });
+      // Pilote B2B : le compte (s'il existe déjà) bascule en B2B immédiatement
+      // (onglet « Mon offre Pro », jamais d'offres B2C). Sans compte : posé à
+      // l'application du grant (applyPendingPilotGrants).
+      if (kind === 'PILOT' && user) {
+        await User.updateOne({ _id: user._id }, { $set: { accountType: 'B2B' } });
+      }
       const emailSent = await sendPilotInvitationEmail(email, audits, kind);
       await logAdminAction({
         actor: admin,
@@ -166,6 +172,9 @@ export const POST = withAdmin(
       propertiesCount: properties.length,
       grantedBy: admin.email,
     });
+    if (kind === 'PILOT') {
+      await User.updateOne({ _id: user._id }, { $set: { accountType: 'B2B' } });
+    }
 
     await logAdminAction({
       actor: admin,
@@ -249,6 +258,13 @@ export const GET = withAdmin(
       .map((r) => r.userId)
       .filter(Boolean) as string[];
 
+    // Type de compte (B2C/B2B) pour le badge + toggle admin.
+    const accountTypeByUser = new Map<string, string>();
+    if (userIds.length) {
+      const typed = await User.find({ _id: { $in: userIds } }).select('accountType').lean();
+      for (const u of typed as any[]) accountTypeByUser.set(String(u._id), u.accountType || 'B2C');
+    }
+
     // État quota par compte (source de vérité de la consommation).
     const props = userIds.length
       ? await Property.find({ user: { $in: userIds }, archived: { $ne: true } })
@@ -313,6 +329,7 @@ export const GET = withAdmin(
           email: r.email,
           userId: r.userId,
           status,
+          accountType: r.userId ? accountTypeByUser.get(r.userId) || 'B2C' : null,
           kinds: Array.from(r.kinds),
           grants: r.grants,
           totalAudits: r.totalAudits,

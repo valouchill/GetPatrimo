@@ -180,6 +180,8 @@ async function sendPaywallReminders() {
     freeTrialExhaustedAt: { $ne: null, $lte: cutoff },
     paywallReminderSentAt: null,
     suspended: { $ne: true },
+    // B2B : jamais de relance à prix B2C (« dès 19,90 € ») vers un compte pro.
+    accountType: { $ne: 'B2B' },
   })
     .select('email')
     .limit(MAX_EMAILS_PER_RUN)

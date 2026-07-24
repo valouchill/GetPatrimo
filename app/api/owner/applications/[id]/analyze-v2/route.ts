@@ -268,9 +268,10 @@ export async function POST(
 
     // Essai gratuit au niveau du COMPTE : compteur du propriétaire (plafond FREE_TRIAL_LIMIT).
     const ownerUser = (await User.findById(propertyOwner)
-      .select('freeAnalysesUsed')
-      .lean()) as { freeAnalysesUsed?: number } | null;
+      .select('freeAnalysesUsed accountType')
+      .lean()) as { freeAnalysesUsed?: number; accountType?: string } | null;
     const accountFreeUsed = Number(ownerUser?.freeAnalysesUsed || 0);
+    const isB2BAccount = ownerUser?.accountType === 'B2B';
 
     // ─── V8.0 — Garde-fou Pay-per-Listing ──────────────────────────────
     // Vérifie l'offre du bien AVANT de lancer l'analyse (économise un
@@ -300,7 +301,10 @@ export async function POST(
       return NextResponse.json(
         {
           error: quotaExceeded
-            ? `Audits épuisés pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre : vos crédits se cumulent, rien n'est perdu.`
+            ? isB2BAccount
+              // B2B : jamais de prix B2C — l'extension de forfait est consultative.
+              ? `Votre forfait Pro est épuisé sur ce lot (${quotaCheck.used}/${quotaCheck.quota}). Contactez-nous (contact@maisonpatrimo.com) pour l'étendre — activation immédiate.`
+              : `Audits épuisés pour ce bien (${quotaCheck.used}/${quotaCheck.quota}). Rachetez une offre : vos crédits se cumulent, rien n'est perdu.`
             : `${quotaCheck.quota === 1 ? 'Votre audit d’essai est utilisé' : `Vos ${quotaCheck.quota} audits d’essai sont utilisés`}. Débloquez l'identité, les coordonnées et les pièces de TOUS vos candidats + de nouveaux audits dès 19,90 €.`,
           code: quotaExceeded ? 'QUOTA_EXCEEDED' : 'PAYMENT_REQUIRED',
           tier: quotaCheck.tier,
