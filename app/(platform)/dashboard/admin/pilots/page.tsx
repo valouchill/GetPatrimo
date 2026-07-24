@@ -13,6 +13,7 @@ interface PilotRow {
   userId: string | null;
   email: string;
   status: 'INVITED' | 'PENDING_PROPERTY' | 'ACTIVE';
+  accountType: 'B2C' | 'B2B' | null;
   kinds: Array<'PILOT' | 'CREDIT'>;
   pendingAudits: number;
   grants: number;
@@ -214,7 +215,33 @@ export default function AdminPilotsPage() {
               pilots.map((p) => (
                 <tr key={p.email} className="border-b border-gray-100 last:border-0">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{p.email}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{p.email}</span>
+                      {p.userId && (
+                        <button
+                          type="button"
+                          title="Basculer B2C / B2B (B2B = onglet « Mon offre Pro », jamais d'offres grand public)"
+                          onClick={async () => {
+                            const next = p.accountType === 'B2B' ? 'B2C' : 'B2B';
+                            if (!window.confirm(`Basculer ${p.email} en ${next} ?`)) return;
+                            const res = await fetch(`/api/admin/users/${p.userId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ accountType: next }),
+                            });
+                            if (res.ok) { await load(); }
+                            else { setFeedback({ ok: false, msg: 'Échec du changement de type de compte.' }); }
+                          }}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 transition-colors ${
+                            p.accountType === 'B2B'
+                              ? 'bg-emerald-900 text-amber-300 ring-emerald-900 hover:bg-emerald-800'
+                              : 'bg-slate-100 text-slate-500 ring-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          {p.accountType === 'B2B' ? 'B2B' : 'B2C'}
+                        </button>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-400">
                       {p.properties} bien{p.properties > 1 ? 's' : ''}
                       {p.grants > 1 ? ` · ${p.grants} octrois` : ''}

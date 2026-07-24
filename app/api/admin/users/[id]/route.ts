@@ -55,7 +55,10 @@ export const PATCH = withAdmin(async (req: NextRequest, ctx: any, admin) => {
   // avantage commercial ou coupent l'accès → réservés au SUPERADMIN. Un simple admin ne peut
   // éditer que les champs de contact (prénom/nom/téléphone).
   const touchesPrivileged =
-    input.plan !== undefined || input.credits !== undefined || input.suspended !== undefined;
+    input.plan !== undefined ||
+    input.credits !== undefined ||
+    input.suspended !== undefined ||
+    input.accountType !== undefined;
   if (touchesPrivileged && admin.role !== 'superadmin') {
     throw new AdminHttpError(403, 'Action réservée au superadmin (plan, crédits, suspension).');
   }
@@ -70,6 +73,7 @@ export const PATCH = withAdmin(async (req: NextRequest, ctx: any, admin) => {
 
   const update: Record<string, any> = {};
   if (input.plan !== undefined) update.plan = input.plan;
+  if (input.accountType !== undefined) update.accountType = input.accountType;
   if (input.credits !== undefined) update.credits = input.credits;
   if (input.firstName !== undefined) update.firstName = input.firstName;
   if (input.lastName !== undefined) update.lastName = input.lastName;

@@ -198,6 +198,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     success: true,
     data: {
       pilotPendingAudits,
+      // B2B : pilote l'onglet « Mon offre Pro » (jamais d'offres B2C pour un pro).
+      accountType: (user as { accountType?: string }).accountType === 'B2B' ? 'B2B' : 'B2C',
       financial: {
         totalExpected,
         totalReceived,

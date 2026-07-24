@@ -42,6 +42,7 @@ import { ApplicationPipeline } from './components/ApplicationPipeline';
 import { OwnerCandidatesStack } from './components/OwnerCandidatesStack';
 import { PropertiesPortfolio, type PortfolioAsset, type AssetStatus } from '@/app/components/audit';
 import { PricingTiers } from '../../pricing/PricingTiers';
+import { ProOfferPanel } from '../../pricing/ProOfferPanel';
 import { BauxPanel } from './components/BauxPanel';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -105,6 +106,7 @@ export default function OwnerDashboardClient() {
     recentEvents: { id: string; type: string; date: string; propertyLabel: string | null; meta: Record<string, unknown> }[];
     freeTrial?: { used: number; limit: number } | null;
     pilotPendingAudits?: number;
+    accountType?: 'B2C' | 'B2B';
     hasPaidProperty?: boolean;
   }>({ financial: null, kpis: null, alerts: [], recentEvents: [], freeTrial: null, hasPaidProperty: false });
 
@@ -350,7 +352,10 @@ export default function OwnerDashboardClient() {
           {[...new Set(NAV.filter(isNavVisible).map((n) => n.group))].map((grp) => (
             <div key={grp} className="mb-5">
               <p className="mb-2 px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">{grp}</p>
-              {NAV.filter((n) => n.group === grp && isNavVisible(n)).map(({ id, label, Icon, badge, href }) => {
+              {NAV.filter((n) => n.group === grp && isNavVisible(n)).map(({ id, label: navLabel, Icon, badge, href }) => {
+                // Compte B2B : l'onglet tarifs devient « Mon offre Pro » (les
+                // offres B2C ne sont jamais montrées à un compte pro).
+                const label = id === 'tarifs' && dashData.accountType === 'B2B' ? 'Mon offre Pro' : navLabel;
                 const active = page === id;
                 // V7.4 — Entrées avec href (route réelle Next.js) rendues
                 // comme <Link>, distinctes du dispatcher SPA `go(id)`.
@@ -710,8 +715,18 @@ export default function OwnerDashboardClient() {
           </motion.div>
         )}
 
-        {/* ─ TARIFS & OFFRES (onglet interne → menu latéral conservé) ─ */}
-        {page === 'tarifs' && (
+        {/* ─ TARIFS & OFFRES (onglet interne → menu latéral conservé) ─
+            Compte B2B : vue « Mon offre Pro » (forfait + grille pro + contact),
+            JAMAIS les offres B2C. */}
+        {page === 'tarifs' && dashData.accountType === 'B2B' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <ProOfferPanel
+              quotaTotal={biens.reduce((s, b) => s + (b.dossiersQuota || 0), 0)}
+              consumed={biens.reduce((s, b) => s + (b.dossiersAnalyzedCount || 0), 0)}
+            />
+          </motion.div>
+        )}
+        {page === 'tarifs' && dashData.accountType !== 'B2B' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <PricingTiers
               variant="embedded"

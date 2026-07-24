@@ -56,6 +56,11 @@ const UserSchema = new mongoose.Schema({
   // Stripe
   stripeCustomerId: { type: String, default: '' },
 
+  // Type de compte : B2B (agences/pros — pilotes, forfaits mensuels) ne voit
+  // JAMAIS les offres B2C (intégrité de la grille Pro). Posé automatiquement
+  // par un grant Pilote B2B, togglable depuis l'admin (UserPatchSchema).
+  accountType: { type: String, enum: ['B2C', 'B2B'], default: 'B2C' },
+
   // Essai gratuit : nb d'analyses IA consommées au niveau du COMPTE (plafond FREE_TRIAL_LIMIT).
   freeAnalysesUsed: { type: Number, default: 0 },
   // Growth : date d'épuisement de l'essai gratuit (posée par analyze-v2) — déclenche
