@@ -27,12 +27,13 @@ import Property from '@/models/Property';
 
  
 const User = require('@/models/User');
+const Payment = require('@/models/Payment');
 
 const MAX_NOTIFICATIONS = 30;
 const RECENT_DAYS = 7;
 
 type NotificationType = 'ALERT' | 'SUCCESS' | 'INFO';
-type NotificationIcon = 'ShieldAlert' | 'FileCheck' | 'Star';
+type NotificationIcon = 'ShieldAlert' | 'FileCheck' | 'Star' | 'Wallet' | 'BellRing';
 
 interface NotificationDTO {
   id: string;
@@ -230,6 +231,66 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
           time: formatRelativeTime(ts),
           occurredAt: ts.toISOString(),
           icon: 'FileCheck',
+          color: 'text-emerald-700 bg-emerald-50',
+          read: false,
+        });
+      }
+    }
+
+    // D. LOYERS — impayés (alerte) et encaissements récents (succès).
+    // Prévu au plan du module loyers : sans cette source, le bailleur
+    // n'apprenait un impayé que par l'email « critical_alert » à J+45.
+    const payments = (await Payment.find({
+      owner: userId,
+      $or: [
+        { status: { $in: ['LATE', 'UNPAID'] } },
+        { status: 'CONFIRMED', confirmedAt: { $gte: recentCutoff } },
+      ],
+    })
+      .select('status period amounts property confirmedAt receiptSentAt updatedAt createdAt')
+      .lean()) as Array<{
+      _id: any;
+      status?: string;
+      period?: { month?: number; year?: number };
+      amounts?: { totalTTC?: number; paidAmount?: number };
+      property?: any;
+      confirmedAt?: Date;
+      receiptSentAt?: Date | null;
+      updatedAt?: Date;
+      createdAt?: Date;
+    }>;
+
+    const MONTHS_FR = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    for (const pay of payments) {
+      const prop = propertyById.get(String(pay.property));
+      const propertyLabel = (prop?.name || prop?.address || 'votre bien').trim();
+      const periodLabel = `${MONTHS_FR[pay.period?.month || 0] || ''} ${pay.period?.year || ''}`.trim();
+      const amount = (pay.amounts?.totalTTC || 0).toLocaleString('fr-FR');
+
+      if (pay.status === 'LATE' || pay.status === 'UNPAID') {
+        const ts = (pay.updatedAt as Date) || (pay.createdAt as Date) || new Date();
+        notifications.push({
+          id: `rent-late-${String(pay._id)}`,
+          type: 'ALERT',
+          title: pay.status === 'UNPAID' ? 'Loyer impayé (45 j et plus)' : 'Loyer en retard',
+          message: `Le loyer de ${periodLabel} (${amount} €) pour « ${propertyLabel} » n'est toujours pas encaissé. Les relances automatiques sont en cours — vous pouvez aussi importer votre relevé pour vérifier.`,
+          time: formatRelativeTime(ts),
+          occurredAt: ts.toISOString(),
+          icon: 'BellRing',
+          color: 'text-red-600 bg-red-50',
+          read: false,
+        });
+      } else if (pay.status === 'CONFIRMED' && pay.confirmedAt) {
+        const ts = new Date(pay.confirmedAt);
+        notifications.push({
+          id: `rent-paid-${String(pay._id)}`,
+          type: 'SUCCESS',
+          title: 'Loyer encaissé',
+          message: `Le loyer de ${periodLabel} (${amount} €) pour « ${propertyLabel} » est confirmé${pay.receiptSentAt ? ' — quittance envoyée au locataire' : ''}.`,
+          time: formatRelativeTime(ts),
+          occurredAt: ts.toISOString(),
+          icon: 'Wallet',
           color: 'text-emerald-700 bg-emerald-50',
           read: false,
         });
