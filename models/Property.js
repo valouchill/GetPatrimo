@@ -75,6 +75,16 @@ const PropertySchema = new mongoose.Schema({
   managed: { type: Boolean, default: false },
   stripeCustomerId: { type: String, default: '' },
   stripeSubscriptionId: { type: String, default: '' },
+
+  // Abonnement « Gestion locative » (récurrent, 4,99 €/mois/bien) — DISTINCT
+  // des crédits d'audit achetés en one-time : une résiliation ne doit jamais
+  // toucher tier/dossiersQuota (cf. handleSubscriptionDeleted).
+  management: {
+    active: { type: Boolean, default: false },
+    subscriptionId: { type: String, default: '' },
+    since: { type: Date, default: null },
+    canceledAt: { type: Date, default: null },
+  },
   acceptedTenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Application', default: null },
 
   // V8.0 — Pay-per-Listing : suivi des quotas d'analyse IA par bien.

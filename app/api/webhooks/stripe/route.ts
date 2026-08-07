@@ -25,10 +25,33 @@ async function markEventProcessed(eventId: string, eventType: string) {
 // ── Handlers ────────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { propertyId, userId, tier, quota } = session.metadata || {};
+  const { propertyId, userId, tier, quota, kind } = session.metadata || {};
 
   if (!propertyId) {
     logger.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
+    return;
+  }
+
+  // Abonnement « Gestion locative » : n'affecte QUE le bloc management —
+  // surtout pas tier/dossiersQuota (crédits d'audit payés en one-time).
+  if (kind === 'management') {
+    await Property.findByIdAndUpdate(propertyId, {
+      $set: {
+        'management.active': true,
+        'management.subscriptionId': (session.subscription as string) || '',
+        'management.since': new Date(),
+        'management.canceledAt': null,
+        stripeCustomerId: session.customer as string,
+      },
+    });
+    if (userId && session.customer) {
+      await User.findByIdAndUpdate(userId, { stripeCustomerId: session.customer as string });
+    }
+    captureServer('management_subscribed', userId || propertyId, {
+      property_id: propertyId,
+      amount: typeof session.amount_total === 'number' ? session.amount_total / 100 : null,
+    });
+    logger.info(`[stripe-webhook] Gestion activée sur le bien ${propertyId} (sub ${session.subscription}).`);
     return;
   }
 
@@ -97,6 +120,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const subscriptionId = subscription.id;
 
+  // Abonnement GESTION : on coupe l'accès aux modules, JAMAIS les crédits
+  // d'audit (achetés séparément en paiement unique). Sans ce test, résilier
+  // la gestion à 4,99 € effaçait tier + dossiersQuota du bien.
+  const managed = await Property.findOne({ 'management.subscriptionId': subscriptionId });
+  if (managed) {
+    await Property.findByIdAndUpdate(managed._id, {
+      $set: { 'management.active': false, 'management.canceledAt': new Date() },
+    });
+    logger.info(`[stripe-webhook] Gestion résiliée sur le bien ${managed._id} (crédits d'audit conservés).`);
+    return;
+  }
+
+  // Abonnement d'audit legacy (modèle pré-V8) : retour à l'offre Gratuite.
   const property = await Property.findOne({ stripeSubscriptionId: subscriptionId });
   if (!property) {
     logger.warn(`[stripe-webhook] Aucun bien trouvé pour subscription ${subscriptionId}`);
@@ -106,13 +142,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await Property.findByIdAndUpdate(property._id, {
     managed: false,
     stripeSubscriptionId: null,
-    // V8.0 — Retour à l'offre Gratuite (plus d'analyses IA incluses)
     tier: 'FREE',
     dossiersQuota: 0,
     stripeUsageItemId: '',
   });
 
-  logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription annulée).`);
+  logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription audit legacy annulée).`);
 }
 
 /**
