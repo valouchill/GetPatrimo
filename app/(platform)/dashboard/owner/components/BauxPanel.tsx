@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, Clock, FileSignature, FileText, PenLine, Plus, RefreshCw, UserCheck, UserX, X } from 'lucide-react';
+import { SignatureQueue } from './SignatureQueue';
 import { Btn, Tag, Avatar, StatCard } from './ui';
 import type { TagType } from './ui';
 
@@ -369,7 +370,11 @@ export function BauxPanel({
                   </span>
                 </div>
 
-                {/* Signature detail */}
+                {/* File de signature en direct : qui bloque, renvoi du lien,
+                    téléchargement du bail signé (PDF + certificat) une fois complet */}
+                {(status === 'PENDING_SIGNATURE' || lease.signatureStatus === 'SIGNED_BOTH') && (
+                  <SignatureQueue leaseId={lease._id} />
+                )}
                 {status === 'PENDING_SIGNATURE' && (
                   <div className="mb-2 flex flex-wrap gap-2 text-xs">
                     <span className={`rounded-full px-2 py-0.5 ${lease.tenantSignedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>

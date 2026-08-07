@@ -1641,6 +1641,7 @@ const { cleanupExpiredTokens } = require('./src/cron/cleanupExpiredTokens');
 const { generateAllMonthlyPayments, sendLateReminders } = require('./src/cron/monthlyPayments');
 const { runRGPDPurge } = require('./src/cron/rgpdPurge');
 const { runMongoBackup } = require('./src/cron/mongoBackup');
+const { runSignatureReminders } = require('./src/services/leaseSignatureService');
 
 // Wrap cron handler to catch errors without crashing the process
 function safeCron(name, fn) {
@@ -1666,6 +1667,10 @@ cron.schedule('0 6 1 * *', safeCron('monthly-payments', generateAllMonthlyPaymen
 // avec l'ancienne cadence (5, 10, 15 du mois) les niveaux partaient dans le désordre
 // (mise en demeure AVANT la relance formelle).
 cron.schedule('0 9 * * *', safeCron('late-reminders', sendLateReminders));
+
+// Tous les jours à 9h30 : relances des signataires de bail (J+2/J+5 après
+// l'invitation, token régénéré à chaque relance, alerte bailleur si muet).
+cron.schedule('30 9 * * *', safeCron('signature-reminders', runSignatureReminders));
 
 // Tous les jours à 2h : purge RGPD
 cron.schedule('0 2 * * *', safeCron('rgpd-purge', runRGPDPurge));

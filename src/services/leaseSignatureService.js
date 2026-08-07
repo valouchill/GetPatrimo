@@ -31,6 +31,10 @@ const OTP_TTL_MINUTES = 15;
 const MAX_OTP_ATTEMPTS = 5;
 /** Revue F3 : fenêtre de validité du consentement OTP (anti-rejeu du lien). */
 const OTP_CONSENT_WINDOW_MINUTES = 20;
+/** Relances automatiques du signataire courant : J+2 puis J+5 après l'invitation. */
+const SIGNATURE_REMINDER_DAYS = [2, 5];
+/** Au-delà (signataire muet malgré les relances), on alerte le bailleur une fois. */
+const SIGNATURE_STALE_ALERT_DAYS = 8;
 
 function getBaseUrl() {
   return (
@@ -371,6 +375,9 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
     if (fresh.property) {
       await Property.updateOne({ _id: fresh.property }, { $set: { status: 'OCCUPIED' } }).catch(() => {});
     }
+    // Remise d'un exemplaire à chaque partie (art. 3, loi du 6/7/1989) :
+    // le PDF signé + certificat part en pièce jointe à tous les signataires.
+    await sendFinalPdfToParties(String(lease._id)).catch(() => {});
     return { complete: true, nextSentTo: null };
   }
 
@@ -390,6 +397,158 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
   nextSentTo = next.email;
 
   return { complete: false, nextSentTo };
+}
+
+/**
+ * Signataire courant d'une campagne : le premier de la file (order croissant)
+ * qui n'a pas encore signé. Les EXPIRED sont inclus : un renvoi régénère leur
+ * token et les remet en course.
+ */
+async function getCurrentSigner(leaseId) {
+  return LeaseSignature.findOne({
+    lease: leaseId,
+    status: { $in: ['PENDING', 'VIEWED', 'EXPIRED'] },
+  }).sort({ order: 1 });
+}
+
+/**
+ * Renvoie son lien au signataire courant, avec un token FRAIS (le brut n'est
+ * jamais stocké → impossible de re-envoyer l'ancien ; la régénération prolonge
+ * aussi la validité, ce qui ressuscite une campagne expirée).
+ *
+ * Utilisé par le bouton « Renvoyer le lien » du bailleur ET par le cron de
+ * relance quotidien.
+ * @returns {Promise<{sentTo: string, role: string}>}
+ */
+async function resendInviteToCurrentSigner(leaseId) {
+  const lease = await Lease.findById(leaseId);
+  if (!lease) throw new Error('Bail introuvable');
+  if (lease.leaseStatus !== 'PENDING_SIGNATURE') {
+    throw new Error("Ce bail n'est pas en cours de signature.");
+  }
+  const signer = await getCurrentSigner(lease._id);
+  if (!signer) throw new Error('Aucun signataire en attente.');
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  signer.tokenHash = sha256(rawToken);
+  signer.tokenExpiresAt = new Date(Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  if (signer.status === 'EXPIRED') signer.status = signer.viewedAt ? 'VIEWED' : 'PENDING';
+  await signer.save();
+
+  const sent = await sendSignatureInvite(lease, signer, rawToken)
+    .then(() => true)
+    .catch(() => false);
+  signer.inviteSentAt = sent ? new Date() : signer.inviteSentAt;
+  signer.inviteError = sent ? '' : 'Envoi email impossible';
+  if (sent) signer.remindersSentAt.push(new Date());
+  await signer.save();
+  if (!sent) throw new Error("L'email n'a pas pu être envoyé. Vérifiez l'adresse du signataire.");
+  return { sentTo: signer.email, role: signer.role };
+}
+
+/**
+ * Envoie le PDF final signé à TOUTES les parties (pièce jointe).
+ * La remise d'un exemplaire à chaque partie est une obligation du bail
+ * (art. 3, loi n° 89-462 du 6 juillet 1989). Best-effort par destinataire.
+ * @returns {Promise<number>} nombre d'envois réussis
+ */
+async function sendFinalPdfToParties(leaseId) {
+  const lease = await Lease.findById(leaseId).lean();
+  if (!lease?.signedPdfPath) return 0;
+  const abs = safeUploadsPath(lease.signedPdfPath);
+  if (!abs) return 0;
+  const pdfBuffer = fs.readFileSync(abs);
+  const signatures = await LeaseSignature.find({ lease: lease._id }).sort({ order: 1 }).lean();
+
+  let sent = 0;
+  for (const s of signatures) {
+    if (!s.email) continue;
+    const ok = await sendEmail({
+      to: s.email,
+      subject: '🎉 Votre bail est signé par toutes les parties — Maison Patrimo',
+      html: `
+<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
+  <h1 style="font-size:20px;margin:0 0 4px;">Maison Patrimo</h1>
+  <p style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#64748b;margin:0 0 20px;">Bail signé</p>
+  <p style="font-size:15px;line-height:1.7;">${escapeHtml(s.fullName || 'Bonjour')},</p>
+  <p style="font-size:15px;line-height:1.7;">Toutes les parties ont signé le contrat de location.
+  Vous trouverez en pièce jointe <strong>votre exemplaire du bail signé</strong>, accompagné du
+  certificat de signature électronique (horodatage, empreinte SHA-256, identités vérifiées).</p>
+  <p style="font-size:13px;line-height:1.6;color:#64748b;">Conservez ce document : il fait foi
+  au sens de l'article 1367 du Code civil. Chaque partie en reçoit un exemplaire.</p>
+</div>`,
+      text: 'Toutes les parties ont signé le bail. Votre exemplaire signé est en pièce jointe.',
+      attachments: [{ filename: 'bail-signe-maison-patrimo.pdf', content: pdfBuffer }],
+    })
+      .then(() => true)
+      .catch(() => false);
+    if (ok) sent += 1;
+  }
+  return sent;
+}
+
+/**
+ * Cron quotidien : relance les signataires silencieux (J+2 puis J+5 après
+ * l'invitation — plan produit), ressuscite les tokens expirés au passage
+ * (chaque relance = token frais), et alerte le bailleur UNE fois quand un
+ * signataire reste muet malgré les deux relances.
+ * @returns {Promise<{reminded:number, ownerAlerts:number}>}
+ */
+async function runSignatureReminders() {
+  const pending = await Lease.find({ leaseStatus: 'PENDING_SIGNATURE' }).select('_id').lean();
+  let reminded = 0;
+  let ownerAlerts = 0;
+
+  for (const { _id: leaseId } of pending) {
+    try {
+      const signer = await getCurrentSigner(leaseId);
+      if (!signer) continue;
+
+      // Invitation jamais partie (échec SMTP à l'ouverture) → on retente.
+      if (!signer.inviteSentAt) {
+        await resendInviteToCurrentSigner(leaseId).then(() => { reminded += 1; }).catch(() => {});
+        continue;
+      }
+
+      const daysSinceInvite = (Date.now() - new Date(signer.inviteSentAt).getTime()) / 86400000;
+      const remindersSent = (signer.remindersSentAt || []).length;
+
+      if (
+        remindersSent < SIGNATURE_REMINDER_DAYS.length &&
+        daysSinceInvite >= SIGNATURE_REMINDER_DAYS[remindersSent]
+      ) {
+        await resendInviteToCurrentSigner(leaseId).then(() => { reminded += 1; }).catch(() => {});
+        continue;
+      }
+
+      // Signataire muet malgré les relances → le bailleur doit le savoir
+      // (appel téléphonique, autre email…), sinon la campagne meurt en silence.
+      if (
+        daysSinceInvite >= SIGNATURE_STALE_ALERT_DAYS &&
+        !signer.ownerAlertedAt &&
+        signer.role !== 'OWNER'
+      ) {
+        const owner = await LeaseSignature.findOne({ lease: leaseId, role: 'OWNER' }).lean();
+        if (owner?.email) {
+          const ok = await sendEmail({
+            to: owner.email,
+            subject: '⚠️ Votre bail attend toujours une signature — Maison Patrimo',
+            text: `${signer.fullName || signer.email} n'a pas signé le bail malgré nos relances (invitation envoyée il y a ${Math.floor(daysSinceInvite)} jours, 2 rappels). Vous pouvez renvoyer le lien depuis votre espace (onglet Baux) ou le contacter directement.`,
+          })
+            .then(() => true)
+            .catch(() => false);
+          if (ok) {
+            signer.ownerAlertedAt = new Date();
+            await signer.save();
+            ownerAlerts += 1;
+          }
+        }
+      }
+    } catch {
+      // un bail en erreur ne doit pas bloquer les autres
+    }
+  }
+  return { reminded, ownerAlerts };
 }
 
 /** HTML du certificat de signature (annexé au PDF final). */
@@ -500,12 +659,16 @@ async function finalizeSignedPdf(leaseId) {
 module.exports = {
   buildSignerList,
   finalizeSignedPdf,
+  getCurrentSigner,
   openSignatureCampaign,
+  resendInviteToCurrentSigner,
+  runSignatureReminders,
+  sendFinalPdfToParties,
   resolveSignatureByToken,
   sendSignatureOtp,
   verifySignatureOtp,
   recordSignature,
   buildCertificateHtml,
   // exportés pour les tests
-  _internals: { sha256, isSafeSignatureImage, safeUploadsPath, TOKEN_TTL_DAYS, MAX_OTP_ATTEMPTS, OTP_CONSENT_WINDOW_MINUTES },
+  _internals: { sha256, isSafeSignatureImage, safeUploadsPath, TOKEN_TTL_DAYS, MAX_OTP_ATTEMPTS, OTP_CONSENT_WINDOW_MINUTES, SIGNATURE_REMINDER_DAYS, SIGNATURE_STALE_ALERT_DAYS },
 };

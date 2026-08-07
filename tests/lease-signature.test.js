@@ -165,3 +165,69 @@ describe('correctifs de revue adversariale', () => {
     assert.ok(resetIdx > sendIdx);
   });
 });
+
+describe('améliorations module contrat (relances, renvoi, livraison finale)', () => {
+  const service = require(SERVICE);
+
+  it('les relances automatiques suivent le plan produit : J+2 puis J+5', () => {
+    const { SIGNATURE_REMINDER_DAYS, SIGNATURE_STALE_ALERT_DAYS } = _internals;
+    assert.deepEqual(SIGNATURE_REMINDER_DAYS, [2, 5]);
+    // l'alerte bailleur ne part qu'APRÈS l'épuisement des relances
+    assert.ok(SIGNATURE_STALE_ALERT_DAYS > SIGNATURE_REMINDER_DAYS[1]);
+  });
+
+  it('le service expose relance, renvoi et livraison finale', () => {
+    assert.equal(typeof service.runSignatureReminders, 'function');
+    assert.equal(typeof service.resendInviteToCurrentSigner, 'function');
+    assert.equal(typeof service.sendFinalPdfToParties, 'function');
+  });
+
+  it('le renvoi régénère TOUJOURS un token frais (le brut n’est jamais stocké)', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    const fn = src.slice(
+      src.indexOf('async function resendInviteToCurrentSigner'),
+      src.indexOf('async function sendFinalPdfToParties'),
+    );
+    assert.match(fn, /crypto\.randomBytes\(32\)/);
+    assert.match(fn, /tokenHash = sha256\(rawToken\)/);
+    // un renvoi ressuscite un lien expiré
+    assert.match(fn, /status === 'EXPIRED'/);
+  });
+
+  it('à la complétion, chaque partie reçoit son exemplaire signé en pièce jointe', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    // branché dans recordSignature (obligation de remise, art. 3 loi 89-462)
+    const complete = src.slice(src.indexOf("fresh.leaseStatus = 'ACTIVE'"), src.indexOf('return { complete: true'));
+    assert.match(complete, /sendFinalPdfToParties/);
+    // et l'email embarque bien le PDF
+    const deliver = src.slice(src.indexOf('async function sendFinalPdfToParties'), src.indexOf('async function runSignatureReminders'));
+    assert.match(deliver, /attachments: \[\{ filename: 'bail-signe-maison-patrimo\.pdf', content: pdfBuffer \}\]/);
+    // chemin confiné (pas de lecture disque arbitraire)
+    assert.match(deliver, /safeUploadsPath/);
+  });
+
+  it('le cron de relance est câblé dans server.js', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+    assert.match(server, /safeCron\('signature-reminders', runSignatureReminders\)/);
+  });
+
+  it('le bailleur peut renvoyer le lien et télécharger le bail signé (ownership vérifiée)', () => {
+    for (const rel of [
+      'app/api/leases/[id]/signature/remind/route.ts',
+      'app/api/leases/[id]/signature/document/route.ts',
+    ]) {
+      const src = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+      assert.match(src, /String\(lease\.user\) !== String\(user\._id\)/, `${rel} doit vérifier l'ownership`);
+    }
+    // le téléchargement bailleur reste confiné sous uploads/
+    const doc = fs.readFileSync(path.join(__dirname, '..', 'app/api/leases/[id]/signature/document/route.ts'), 'utf8');
+    assert.match(doc, /startsWith\(uploadsRoot \+ path\.sep\)/);
+  });
+
+  it('l’alerte « signataire muet » ne part qu’une fois et jamais au bailleur pour lui-même', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    const cron = src.slice(src.indexOf('async function runSignatureReminders'));
+    assert.match(cron, /!signer\.ownerAlertedAt/);
+    assert.match(cron, /signer\.role !== 'OWNER'/);
+  });
+});
