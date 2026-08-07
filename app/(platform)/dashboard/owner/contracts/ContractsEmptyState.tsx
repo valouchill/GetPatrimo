@@ -20,9 +20,7 @@ import { useNotification } from '@/app/hooks/useNotification';
 export function ContractsEmptyState(): React.ReactElement {
   const notify = useNotification();
   const notifyDownload = (filename: string): void => {
-    notify.info(
-      `Téléchargement de ${filename} — vérifiez que la ressource est publiée.`,
-    );
+    notify.info(`Téléchargement de ${filename} lancé.`);
   };
 
   return (
@@ -98,7 +96,7 @@ export function ContractsEmptyState(): React.ReactElement {
                   Modèle Officiel Loi ALUR
                 </p>
                 <p className="mt-0.5 truncate text-xs text-slate-500">
-                  PDF · prêt à imprimer ou signer
+                  Word (.docx) · prêt à compléter
                 </p>
               </div>
               <Download

@@ -21,6 +21,12 @@ const GuaranteeSchema = new mongoose.Schema({
   amount: { type: Number, default: 0 },
   provider: { type: String, default: '' },
   visaleNumber: { type: String, default: '' },
+  // Le tunnel écrit aussi mode/guarantors/visale — le schéma strict les DROPPAIT
+  // silencieusement à la persistance (même piège que lastReanalyzedAt, cf. plus
+  // bas) : la détection Visale et les slots garant du bail ne recevaient rien.
+  mode: { type: String, default: '' }, // NONE | PHYSICAL | VISALE
+  guarantors: { type: [mongoose.Schema.Types.Mixed], default: undefined },
+  visale: { type: mongoose.Schema.Types.Mixed, default: undefined },
 }, { _id: false });
 
 const BreakdownSchema = new mongoose.Schema({

@@ -257,6 +257,18 @@ async function resolveSignatureByToken(rawToken) {
 
 /** Envoie le code OTP de consentement au signataire. */
 async function sendSignatureOtp(signature) {
+  // Anti-spam : 30 s minimum entre deux envois de code (le bouton « Renvoyer »
+  // est public — sans garde-fou il permettait d'arroser la boîte du signataire).
+  const existing = await OtpToken.findOne({ email: `sign:${signature._id}` }).lean();
+  if (existing?.expiresAt) {
+    const sentAt = new Date(existing.expiresAt).getTime() - OTP_TTL_MINUTES * 60 * 1000;
+    const waitMs = sentAt + 30 * 1000 - Date.now();
+    if (waitMs > 0) {
+      const err = new Error(`Un code vient d'être envoyé — patientez ${Math.ceil(waitMs / 1000)} s avant d'en redemander un.`);
+      err.statusCode = 429;
+      throw err;
+    }
+  }
   const code = String(crypto.randomInt(100000, 999999));
   await OtpToken.deleteMany({ email: `sign:${signature._id}` });
   // Revue F4 : un nouvel envoi rouvre la fenêtre de tentatives (sinon 5 erreurs

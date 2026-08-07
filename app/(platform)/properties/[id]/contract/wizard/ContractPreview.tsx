@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback, useRef } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import type { TemplateParagraph, LeaseFormData } from './types';
 import { resolveFieldForVariable, isReadonlyVariable } from './fieldRegistry';
 import type { FieldMeta } from './fieldRegistry';
@@ -15,6 +16,10 @@ interface ContractPreviewProps {
   formData?: LeaseFormData;
   onFieldChange?: (field: string, value: string | number | boolean) => void;
   requiredVarNames?: Set<string>;
+  /** Variables issues d'une identité certifiée eIDAS (Didit) → pastille ✓. */
+  verifiedVarNames?: Set<string>;
+  error?: string;
+  onRetry?: () => void;
 }
 
 const MISSING_PATTERNS = ['[ A COMPLETER ]', '..........'];
@@ -80,6 +85,9 @@ export function ContractPreview({
   formData,
   onFieldChange,
   requiredVarNames,
+  verifiedVarNames,
+  error,
+  onRetry,
 }: ContractPreviewProps) {
   const [activeVar, setActiveVar] = useState<{ name: string; rect: DOMRect } | null>(null);
   const editable = Boolean(formData && onFieldChange);
@@ -243,6 +251,12 @@ export function ContractPreview({
               >
                 {resolvedValue}
               </span>
+              {verifiedVarNames?.has(v.name) && !isMissing(rawValue) && (
+                <ShieldCheck
+                  className="h-3 w-3 shrink-0 text-emerald-700"
+                  aria-label="Identité vérifiée biométriquement (eIDAS Didit)"
+                />
+              )}
               {tooltip && <InfoBubble text={tooltip} />}
             </span>
           );
@@ -262,14 +276,37 @@ export function ContractPreview({
       );
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendances volontairement limitées (chargement au montage / sur changement ciblé)
-  }, [paragraphs, mergeData, rawData, requiredVarNames, activeVar, editable, handleVarClick]);
+  }, [paragraphs, mergeData, rawData, requiredVarNames, verifiedVarNames, activeVar, editable, handleVarClick]);
 
-  if (isLoading) {
+  // Le spinner plein écran ne s'affiche qu'au PREMIER chargement : pendant les
+  // refetchs débincés, le document reste visible (il « clignotait » à chaque
+  // frappe — le retour anticipé démontait tout l'aperçu).
+  if (isLoading && paragraphs.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
           <p className="text-sm text-slate-500">Chargement du contrat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && paragraphs.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <p className="text-sm font-semibold text-slate-700">L&apos;aperçu n&apos;a pas pu être chargé</p>
+          <p className="mt-1 text-xs text-slate-500">{error}</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Réessayer
+            </button>
+          )}
         </div>
       </div>
     );
@@ -285,7 +322,7 @@ export function ContractPreview({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10 lg:py-10">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className={`rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-opacity ${isLoading ? 'opacity-60' : ''}`}>
         <div className="prose prose-sm max-w-none font-serif text-[13px] leading-relaxed">
           {rendered}
         </div>
@@ -305,6 +342,12 @@ export function ContractPreview({
           <span className="inline-block h-3 w-6 rounded bg-slate-100 border border-dashed border-slate-300" />
           Optionnel
         </div>
+        {verifiedVarNames && verifiedVarNames.size > 0 && (
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3 w-3 text-emerald-700" />
+            Identité vérifiée (eIDAS)
+          </div>
+        )}
         {editable && <span className="text-slate-400">Cliquez sur un champ pour \u00e9crire directement dessus</span>}
       </div>
 

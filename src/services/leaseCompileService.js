@@ -300,6 +300,17 @@ function persistArtifact(userId, baseName, extension, buffer) {
   };
 }
 
+/** Lit un champ extrait par l'IA (extractedFields est un Map en Mongoose, un objet en lean). */
+function readExtractedField(doc, ...keys) {
+  const fields = doc?.aiAnalysis?.extractedFields;
+  if (!fields) return undefined;
+  for (const key of keys) {
+    const v = typeof fields.get === 'function' ? fields.get(key) : fields[key];
+    if (v !== undefined && v !== null && v !== '') return v;
+  }
+  return undefined;
+}
+
 function normalizeApplication(application) {
   const guarantorRecord = application?.guarantor?.guarantorId || null;
   const primaryGuaranteeSlot = Array.isArray(application?.guarantee?.guarantors)
@@ -307,22 +318,63 @@ function normalizeApplication(application) {
     : null;
   const fallbackGuarantor = guarantorRecord || primaryGuaranteeSlot;
 
+  // Détection Visale ROBUSTE : le mode seul était droppé par l'ancien schéma
+  // strict → un dossier Visale avec un guarantorId legacy générait quand même
+  // un acte de caution solidaire.
+  const isVisale =
+    String(application?.guarantee?.mode || '').toUpperCase() === 'VISALE' ||
+    Boolean(application?.guarantee?.visaleNumber) ||
+    String(application?.guarantor?.certificationMethod || '').toUpperCase() === 'VISALE';
+
+  // Sur un document légal, l'identité certifiée biométriquement (Didit) prime
+  // sur le déclaratif.
+  const diditVerified = String(application?.didit?.status || '').toUpperCase() === 'VERIFIED';
+  const identity = application?.didit?.identityData || {};
+  const gIdentity = fallbackGuarantor?.identityVerification || {};
+
+  // Revenus du garant extraits par l'IA de ses justificatifs (jamais exploités).
+  const guarantorIncomeDoc = (application?.documents || []).find(
+    (d) => String(d?.subjectType || '').toUpperCase() === 'GUARANTOR'
+      && String(d?.category || '').toUpperCase() === 'INCOME'
+      && d?.aiAnalysis,
+  );
+  const guarantorIncome = Number(
+    readExtractedField(guarantorIncomeDoc, 'monthly_net_income', 'net_monthly_income', 'monthly_income', 'net_income')
+    ?? fallbackGuarantor?.monthlyIncome ?? fallbackGuarantor?.income ?? 0,
+  ) || 0;
+
   return {
     source: 'application',
     id: String(application?._id || ''),
-    firstName: application?.profile?.firstName || application?.didit?.identityData?.firstName || '',
-    lastName: application?.profile?.lastName || application?.didit?.identityData?.lastName || '',
+    firstName: (diditVerified && identity.firstName) || application?.profile?.firstName || identity.firstName || '',
+    lastName: (diditVerified && identity.lastName) || application?.profile?.lastName || identity.lastName || '',
     email: application?.userEmail || '',
     phone: application?.profile?.phone || '',
-    birthDate: application?.profile?.birthDate || application?.didit?.identityData?.birthDate || '',
+    birthDate: (diditVerified && identity.birthDate) || application?.profile?.birthDate || identity.birthDate || '',
     monthlyIncome: Number(application?.financialSummary?.totalMonthlyIncome || 0) || 0,
     contractType: application?.financialSummary?.incomeSource || '',
-    guarantor: fallbackGuarantor && String(application?.guarantee?.mode || '').toUpperCase() !== 'VISALE'
+    profileStatus: application?.profile?.status || '',
+    // Colocation : les colocataires existaient en base mais n'étaient JAMAIS
+    // injectés — le bail ne listait que le locataire principal.
+    coTenants: (Array.isArray(application?.coTenants) ? application.coTenants : []).map((ct) => ({
+      firstName: ct?.didit?.identityData?.firstName || ct?.firstName || '',
+      lastName: ct?.didit?.identityData?.lastName || ct?.lastName || '',
+      email: ct?.email || '',
+      phone: ct?.phone || '',
+    })),
+    guaranteeType: application?.guarantee?.type || (isVisale ? 'VISALE' : fallbackGuarantor ? 'PHYSIQUE' : ''),
+    visaleNumber: application?.guarantee?.visaleNumber || application?.guarantee?.visale?.visaleNumber || '',
+    guarantor: fallbackGuarantor && !isVisale
       ? {
-          firstName: fallbackGuarantor.firstName || '',
-          lastName: fallbackGuarantor.lastName || '',
+          firstName: gIdentity.firstName || fallbackGuarantor.firstName || '',
+          lastName: gIdentity.lastName || fallbackGuarantor.lastName || '',
           email: fallbackGuarantor.email || '',
-          birthDate: fallbackGuarantor.identityVerification?.birthDate || fallbackGuarantor.birthDate || '',
+          birthDate: gIdentity.birthDate || fallbackGuarantor.birthDate || '',
+          address: fallbackGuarantor.address || '',
+          zipCode: fallbackGuarantor.zipCode || '',
+          city: fallbackGuarantor.city || '',
+          profession: fallbackGuarantor.profession || '',
+          income: guarantorIncome,
         }
       : null,
     raw: application,
@@ -556,4 +608,6 @@ module.exports = {
   compileLeaseBundle,
   extractDocxText,
   prepareLeaseCompilation,
+  // fonctions pures exposées pour les tests
+  _internals: { normalizeApplication },
 };

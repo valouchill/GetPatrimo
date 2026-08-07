@@ -136,12 +136,32 @@ export async function POST(request: NextRequest) {
       (v: string) => !isMissingValue(prepared.rawData?.[v])
     ).length;
 
+    // Variables issues d'une identité VÉRIFIÉE biométriquement (eIDAS Didit) :
+    // l'UI les badge — c'est l'argument différenciant du bail Maison Patrimo.
+    const rawApp = (prepared.tenant as { raw?: Record<string, any> } | null)?.raw;
+    const diditVerified = String(rawApp?.didit?.status || '').toUpperCase() === 'VERIFIED';
+    const guarantorKyc = rawApp?.guarantor?.guarantorId?.identityVerification;
+    const verifiedVariables: string[] = [];
+    if (diditVerified) {
+      verifiedVariables.push(
+        'locataire_nom_prenom',
+        'locataire_identite_ligne_1',
+        'locataire_identite_ligne_2',
+        'locataires_nom_prenoms_emails',
+        'locataires_nom_prenoms_emails_ligne_1',
+      );
+    }
+    if (guarantorKyc?.firstName || guarantorKyc?.birthDate) {
+      verifiedVariables.push('caution_nom_prenom', 'caution_date_naissance', 'garant_nom_adresse');
+    }
+
     return NextResponse.json({
       paragraphs,
       mergeData: prepared.mergeData || {},
       rawData: prepared.rawData || {},
       totalVariables: allVarNames.length,
       filledVariables,
+      verifiedVariables,
       warnings: prepared.warnings || [],
       compileMeta: prepared.compileMeta || null,
     });
