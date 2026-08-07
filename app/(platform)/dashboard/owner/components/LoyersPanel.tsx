@@ -2,6 +2,7 @@
 
 import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RentReconciliation } from './RentReconciliation';
 import {
   AlertTriangle,
   Bell,
@@ -407,6 +408,11 @@ const LoyersPanel = memo(function LoyersPanel() {
             Générer les loyers
           </button>
         </div>
+      </div>
+
+      {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto */}
+      <div className="mb-5">
+        <RentReconciliation onDone={fetchPayments} />
       </div>
 
       {/* Banner: génération suggérée */}
