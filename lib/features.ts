@@ -9,7 +9,7 @@
  */
 
 export const FEATURES_V1_DEFAULTS = {
-  LEASES: false,         // baux, signatures électroniques
+  LEASES: true,          // baux + signature électronique interne (eIDAS simple)
   EDL: false,            // états des lieux
   RECEIPTS: false,       // quittances / loyers
   MANAGEMENT: false,     // gestion locative

@@ -155,6 +155,7 @@ export default async function OwnerContractsPage(): Promise<React.ReactElement> 
           <LeasePreparationPage
             data={data}
             applicationLabel={applicationLabel}
+            contractHref={`/properties/${contract.propertyId}/contract?applicationId=${contract.applicationId}`}
           />
         </OwnerShell>
       );

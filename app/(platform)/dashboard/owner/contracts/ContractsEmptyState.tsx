@@ -85,9 +85,9 @@ export function ContractsEmptyState(): React.ReactElement {
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <a
-              href="/templates/bail-alur.pdf"
-              download="bail-alur.pdf"
-              onClick={() => notifyDownload('bail-alur.pdf')}
+              href="/templates/bail-vide.docx"
+              download="bail-vide.docx"
+              onClick={() => notifyDownload('bail-vide.docx')}
               className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-emerald-300 hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
@@ -107,9 +107,9 @@ export function ContractsEmptyState(): React.ReactElement {
               />
             </a>
             <a
-              href="/templates/bail-alur.docx"
-              download="bail-alur.docx"
-              onClick={() => notifyDownload('bail-alur.docx')}
+              href="/templates/bail-vide.docx"
+              download="bail-vide.docx"
+              onClick={() => notifyDownload('bail-vide.docx')}
               className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-amber-300 hover:bg-amber-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 ring-1 ring-amber-100">

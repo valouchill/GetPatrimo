@@ -171,7 +171,7 @@ app.use((req, res, next) => {
 // elles-mêmes ; si Express consomme le flux d'abord, le handler Next PEND à jamais).
 // Liste UNIQUE partagée json+urlencoded — elle était dupliquée et /api/tenant/ +
 // /api/admin/ manquaient : POST /api/tenant/contest et les PATCH admin pendaient (504).
-const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/inspections', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
+const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/public/sign/', '/api/inspections', '/api/leases', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
 const isNextSelfParsedRoute = (url) => NEXT_SELF_PARSED_PREFIXES.some((p) => url.startsWith(p));
 
 app.use((req, res, next) => {
@@ -1590,13 +1590,11 @@ try {
   logger.error('Erreur chargement routes documents', { error: e?.message || e });
 }
 
-try {
-  const leaseRoutes = require('./src/routes/leaseRoutes');
-  app.use('/api/leases', leaseRoutes);
-  logger.info('Routes leases montees');
-} catch (e) {
-  logger.error('Erreur chargement routes leases', { error: e?.message || e });
-}
+// Routes bail : servies par Next (app/api/leases/*) — le contrôleur Express
+// legacy (src/routes/leaseRoutes.js) montait les MÊMES chemins et prenait le
+// pas sur les handlers Next (compile/preview/signature). Démonté à l'activation
+// du module bail ; le code legacy reste en place mais n'est plus routé.
+// (/api/leases est déjà déclaré dans NEXT_SELF_PARSED_PREFIXES.)
 
 try {
   const propertyRoutes = require('./src/routes/propertyRoutes');

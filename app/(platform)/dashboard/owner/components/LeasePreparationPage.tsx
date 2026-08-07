@@ -194,6 +194,8 @@ function TemplateCard({
 export interface LeasePreparationPageProps {
   /** Données pré-remplies (par défaut : données de démo V1) */
   data?: LeasePreparationData;
+  /** Lien vers le wizard de génération automatique (bail pré-rempli). */
+  contractHref?: string | null;
   /** Chemin du modèle PDF (à uploader dans /public/templates/) */
   pdfTemplateHref?: string;
   /** Chemin du modèle DOCX (à uploader dans /public/templates/) */
@@ -216,8 +218,9 @@ const LEASE_TYPES = [
 
 export function LeasePreparationPage({
   data = DEMO_LEASE_DATA,
-  pdfTemplateHref = '/templates/bail-alur.pdf',
-  docxTemplateHref = '/templates/bail-alur.docx',
+  contractHref = null,
+  pdfTemplateHref = '/templates/bail-vide.docx',
+  docxTemplateHref = '/templates/bail-vide.docx',
   applicationLabel = null,
 }: LeasePreparationPageProps): React.ReactElement {
   const isRealData = !!applicationLabel;
@@ -295,7 +298,7 @@ export function LeasePreparationPage({
               format="PDF"
               title={`Modèle ${activeType.label} (PDF)`}
               subtitle="Format PDF · prêt à imprimer (si déposé)"
-              href={`/templates/${activeType.file}.pdf`}
+              href={`/templates/${activeType.file}.docx`}
               filename={`${activeType.file}.pdf`}
               variant="gold"
             />
@@ -410,13 +413,25 @@ export function LeasePreparationPage({
           </div>
         </section>
 
-        {/* ─── Footer informatif ────────────────────────────────────── */}
-        <footer className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-xs leading-relaxed text-slate-500">
-          <span className="font-semibold text-emerald-900">À venir.</span>{' '}
-          La génération automatique du bail pré-rempli depuis le dossier sélectionné
-          arrivera dans une prochaine version. Cette page V1 vous offre un plan
-          de travail pour gagner du temps lors de la rédaction manuelle.
-        </footer>
+        {/* ─── CTA génération automatique (wizard bail + signature) ──── */}
+        {contractHref && (
+          <footer className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-50 via-white to-emerald-50/40 px-6 py-5">
+            <p className="font-serif text-lg font-bold text-emerald-950">
+              Générez le bail automatiquement — et faites-le signer en ligne
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              Plus besoin de recopier : le contrat conforme (loi ALUR) se remplit tout seul avec
+              les données du dossier vérifié, puis part en signature électronique horodatée.
+              L&rsquo;identité du locataire est déjà certifiée eIDAS.
+            </p>
+            <a
+              href={contractHref}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-900 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-800"
+            >
+              Générer mon bail pré-rempli →
+            </a>
+          </footer>
+        )}
 
         {/* ─── V7.11 — Mention légale (responsabilité IA) ─────────────
             Disclaimer obligatoire en bas de la "modale de succès" rappelant

@@ -351,14 +351,17 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
     if (!savedLeaseId) return;
     setSignatureStatus("loading");
     try {
-      const response = await fetch(`/api/leases/${savedLeaseId}/opensign/launch`, {
+      // Signature électronique INTERNE (eIDAS simple : lien personnel + code
+      // email + horodatage + empreinte SHA-256 + certificat annexé au PDF).
+      const response = await fetch(`/api/leases/${savedLeaseId}/signature`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible de lancer la signature");
       setSignatureStatus("success");
-      window.setTimeout(() => router.push("/dashboard/owner?page=baux"), 2000);
+      window.setTimeout(() => router.push("/dashboard/owner?tab=baux"), 2000);
     } catch {
       setSignatureStatus("error");
     }
