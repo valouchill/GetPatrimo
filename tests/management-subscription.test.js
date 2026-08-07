@@ -103,3 +103,29 @@ describe('conformité CGV de l’offre récurrente', () => {
     assert.ok(!cgv.includes('sans abonnement ni reconduction'));
   });
 });
+
+describe('suspension / reprise de l’abonnement (subscription.updated)', () => {
+  const webhook = read('app/api/webhooks/stripe/route.ts');
+
+  it('le handler est câblé sur customer.subscription.updated', () => {
+    assert.match(webhook, /case 'customer\.subscription\.updated':/);
+    assert.match(webhook, /handleSubscriptionUpdated/);
+  });
+
+  it('suspend sur échec de paiement, réactive sur récupération — sans toucher aux crédits', () => {
+    const fn = webhook.slice(
+      webhook.indexOf('async function handleSubscriptionUpdated'),
+      webhook.indexOf('async function handleInvoicePaymentFailed'),
+    );
+    // sans ce handler, une carte en échec laissait l'accès ouvert indéfiniment
+    assert.match(fn, /'past_due', 'unpaid'/);
+    assert.match(fn, /'active', 'trialing'/);
+    assert.ok(!/dossiersQuota|\btier\b/.test(fn), 'jamais les crédits d’audit');
+  });
+
+  it('le bailleur abonné a un accès direct au portail (résiliation en ligne, CGV art. 2 bis)', () => {
+    const panel = read('app/(platform)/dashboard/owner/components/LoyersPanel.tsx');
+    assert.match(panel, /\/api\/billing\/portal/);
+    assert.match(panel, /gérer ou résilier/);
+  });
+});

@@ -424,6 +424,22 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
         ) : (
           <RentReconciliation onDone={fetchPayments} />
         )}
+        {management?.anyActive && (
+          /* Résiliation en ligne : promesse des CGV art. 2 bis (L215-1-1) */
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/billing/portal', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data?.url) window.location.href = data.url as string;
+              } catch { /* silent */ }
+            }}
+            className="mt-2 text-[11px] text-slate-400 underline decoration-slate-300 hover:text-slate-600 transition-colors"
+          >
+            Abonnement Gestion actif · gérer ou résilier
+          </button>
+        )}
       </div>
 
       {/* Banner: génération suggérée */}

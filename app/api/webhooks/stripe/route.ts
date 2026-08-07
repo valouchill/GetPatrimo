@@ -229,6 +229,37 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   );
 }
 
+/**
+ * customer.subscription.updated — suspension et reprise de l'abonnement Gestion.
+ *
+ * Sans ce handler, une carte en échec laissait l'accès ouvert indéfiniment :
+ * Stripe passe l'abonnement en past_due/unpaid pendant le dunning et n'émet
+ * `deleted` qu'à la toute fin (voire jamais selon la configuration). Symétrique :
+ * un paiement récupéré réactive l'accès sans intervention.
+ * Ne concerne QUE le bloc management — jamais les crédits d'audit.
+ */
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const property = await Property.findOne({ 'management.subscriptionId': subscription.id });
+  if (!property) return; // abonnement d'audit legacy ou inconnu : rien à faire ici
+
+  const suspended = ['past_due', 'unpaid', 'incomplete_expired', 'canceled'].includes(subscription.status);
+  const active = ['active', 'trialing'].includes(subscription.status);
+  if (!suspended && !active) return; // états transitoires (incomplete…) : on ne bouge pas
+
+  const wasActive = Boolean(property.management?.active);
+  if (suspended && wasActive) {
+    await Property.findByIdAndUpdate(property._id, {
+      $set: { 'management.active': false, 'management.canceledAt': new Date() },
+    });
+    logger.warn(`[stripe-webhook] Gestion SUSPENDUE sur le bien ${property._id} (subscription ${subscription.status}).`);
+  } else if (active && !wasActive) {
+    await Property.findByIdAndUpdate(property._id, {
+      $set: { 'management.active': true, 'management.canceledAt': null },
+    });
+    logger.info(`[stripe-webhook] Gestion RÉACTIVÉE sur le bien ${property._id} (paiement récupéré).`);
+  }
+}
+
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
@@ -293,6 +324,9 @@ export async function POST(request: NextRequest) {
       switch (event.type) {
         case 'checkout.session.completed':
           await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
           break;
         case 'customer.subscription.deleted':
           await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
