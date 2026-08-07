@@ -79,7 +79,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const protectedRoutes = ['/dashboard/tenant', '/dashboard/owner', '/dashboard/admin'];
+  // '/properties' : le wizard bail y vit — il n'était protégé QUE par le gate LEASES
+  // (retiré à l'activation du module) → route explicitement authentifiée.
+  const protectedRoutes = ['/dashboard/tenant', '/dashboard/owner', '/dashboard/admin', '/properties'];
   const authRoutes = ['/auth/login', '/auth/signin', '/auth/verify-request', '/auth/register'];
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));

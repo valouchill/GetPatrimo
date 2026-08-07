@@ -29,6 +29,8 @@ const { sendEmail } = require('./emailService');
 const TOKEN_TTL_DAYS = 7;
 const OTP_TTL_MINUTES = 15;
 const MAX_OTP_ATTEMPTS = 5;
+/** Revue F3 : fenêtre de validité du consentement OTP (anti-rejeu du lien). */
+const OTP_CONSENT_WINDOW_MINUTES = 20;
 
 function getBaseUrl() {
   return (
@@ -43,12 +45,38 @@ function sha256(value) {
 }
 
 /** Empreinte du document au moment de la signature (intégrité). */
+/**
+ * Sécurité (revue F1) : tout chemin issu de la base est confiné sous
+ * <cwd>/uploads (les artefacts de bail viennent de uploads/leases/...).
+ * @returns {string|null} chemin absolu sûr, ou null
+ */
+function safeUploadsPath(relOrAbs) {
+  if (!relOrAbs) return null;
+  const uploadsRoot = path.join(process.cwd(), 'uploads');
+  const abs = path.resolve(
+    path.isAbsolute(relOrAbs) ? relOrAbs : path.join(process.cwd(), relOrAbs),
+  );
+  return abs.startsWith(uploadsRoot + path.sep) && fs.existsSync(abs) ? abs : null;
+}
+
 function hashFile(absolutePath) {
   try {
     return sha256(fs.readFileSync(absolutePath));
   } catch {
     return '';
   }
+}
+
+/**
+ * Sécurité (revue F2) : l'image de signature est la SEULE valeur injectée non
+ * échappée dans le HTML du certificat (attribut src). WeasyPrint résout file://
+ * et http:// → une chaîne arbitraire permettrait d'exfiltrer un fichier local
+ * dans le PDF. On n'accepte donc qu'un data-URL PNG/JPEG base64 strict.
+ */
+const SAFE_DATA_IMAGE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
+function isSafeSignatureImage(value) {
+  const v = String(value || '');
+  return v.length <= 400000 && SAFE_DATA_IMAGE.test(v);
 }
 
 function escapeHtml(value) {
@@ -117,7 +145,14 @@ async function openSignatureCampaign(leaseId, { ownerEmail, ownerFullName, didit
   const signers = buildSignerList(enriched);
   if (signers.length < 2) throw new Error('Signataires insuffisants (bailleur + locataire requis)');
 
-  await LeaseSignature.deleteMany({ lease: lease._id, status: { $in: ['PENDING', 'VIEWED'] } });
+  // Revue F4 : purge COMPLÈTE (l'index unique {lease,role,slot} faisait échouer
+  // toute relance dès qu'une signature existait). Les campagnes annulées sont
+  // tracées par les events ; une campagne déjà complète n'est pas relançable.
+  const already = await LeaseSignature.countDocuments({ lease: lease._id, status: 'SIGNED' });
+  if (already > 0 && lease.leaseStatus === 'ACTIVE') {
+    throw new Error('Ce bail est déjà signé par toutes les parties.');
+  }
+  await LeaseSignature.deleteMany({ lease: lease._id });
 
   const expiresAt = new Date(Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
   const created = [];
@@ -138,6 +173,15 @@ async function openSignatureCampaign(leaseId, { ownerEmail, ownerFullName, didit
     created.push({ doc, rawToken });
   }
 
+  // Revue F6 : empreinte de RÉFÉRENCE du document présenté aux signataires,
+  // figée à l'ouverture. Toute recompilation du bail en cours de campagne sera
+  // détectée (les parties doivent signer le MÊME document).
+  const refDoc = (lease.generatedDocuments || []).find((d) => d.kind === 'LEASE')
+    || (lease.generatedDocuments || [])[0];
+  if (refDoc?.pdfPath) {
+    const abs = safeUploadsPath(refDoc.pdfPath);
+    lease.signatureDocumentHash = abs ? hashFile(abs) : '';
+  }
   lease.leaseStatus = 'PENDING_SIGNATURE';
   lease.signatureStatus = 'PENDING';
   await lease.save();
@@ -145,11 +189,19 @@ async function openSignatureCampaign(leaseId, { ownerEmail, ownerFullName, didit
   // Signature séquentielle : seul le premier reçoit son lien maintenant.
   const first = created.sort((a, b) => a.doc.order - b.doc.order)[0];
   let firstSentTo = null;
+  let inviteSent = false;
   if (first) {
-    await sendSignatureInvite(lease, first.doc, first.rawToken).catch(() => {});
+    // Revue F7 : l'échec d'envoi était avalé → campagne gelée en silence (le
+    // token brut n'est pas récupérable). On remonte l'info à l'appelant.
+    inviteSent = await sendSignatureInvite(lease, first.doc, first.rawToken)
+      .then(() => true)
+      .catch(() => false);
+    first.doc.inviteSentAt = inviteSent ? new Date() : null;
+    first.doc.inviteError = inviteSent ? '' : 'Envoi email impossible';
+    await first.doc.save();
     firstSentTo = first.doc.email;
   }
-  return { signers: created.length, firstSentTo };
+  return { signers: created.length, firstSentTo, inviteSent };
 }
 
 async function sendSignatureInvite(lease, signature, rawToken) {
@@ -203,6 +255,11 @@ async function resolveSignatureByToken(rawToken) {
 async function sendSignatureOtp(signature) {
   const code = String(crypto.randomInt(100000, 999999));
   await OtpToken.deleteMany({ email: `sign:${signature._id}` });
+  // Revue F4 : un nouvel envoi rouvre la fenêtre de tentatives (sinon 5 erreurs
+  // verrouillaient le signataire définitivement, sans recours).
+  signature.otpAttempts = 0;
+  signature.otpVerifiedAt = null;
+  await signature.save();
   await OtpToken.create({
     email: `sign:${signature._id}`,
     code: sha256(code),
@@ -244,6 +301,18 @@ async function verifySignatureOtp(signature, code) {
  */
 async function recordSignature(signature, { signatureImage, ip, userAgent }) {
   if (!signature.otpVerifiedAt) throw new Error('Code de confirmation non validé');
+  // Revue F3 : le consentement OTP expire — le seul lien ne suffit pas à signer
+  // des jours plus tard (lien transféré, navigateur partagé).
+  const consentAgeMs = Date.now() - new Date(signature.otpVerifiedAt).getTime();
+  if (consentAgeMs > OTP_CONSENT_WINDOW_MINUTES * 60 * 1000) {
+    signature.otpVerifiedAt = null;
+    await signature.save();
+    throw new Error('Session de signature expirée — demandez un nouveau code.');
+  }
+  // Revue F2 : image de signature strictement validée (anti-injection HTML).
+  if (!isSafeSignatureImage(signatureImage)) {
+    throw new Error('Signature manuscrite invalide.');
+  }
 
   const lease = await Lease.findById(signature.lease);
   if (!lease) throw new Error('Bail introuvable');
@@ -251,11 +320,18 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
   // Intégrité : empreinte du PDF présenté au signataire.
   const docs = Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
   const leaseDoc = docs.find((d) => d.kind === 'LEASE') || docs[0];
-  if (leaseDoc?.pdfPath) {
-    const abs = path.isAbsolute(leaseDoc.pdfPath)
-      ? leaseDoc.pdfPath
-      : path.join(process.cwd(), leaseDoc.pdfPath);
-    signature.documentHash = hashFile(abs);
+  const abs = leaseDoc?.pdfPath ? safeUploadsPath(leaseDoc.pdfPath) : null;
+  signature.documentHash = abs ? hashFile(abs) : '';
+  // Revue F6 : toutes les parties doivent signer le MÊME document. Si le bail a
+  // été recompilé depuis l'ouverture de la campagne, on refuse la signature.
+  if (
+    lease.signatureDocumentHash &&
+    signature.documentHash &&
+    lease.signatureDocumentHash !== signature.documentHash
+  ) {
+    throw new Error(
+      'Le contrat a été modifié depuis l’envoi en signature. Le bailleur doit relancer une nouvelle campagne.',
+    );
   }
 
   signature.signatureImage = String(signatureImage || '').slice(0, 400000);
@@ -279,11 +355,21 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
 
   let nextSentTo = null;
   if (remaining.length === 0) {
-    lease.leaseStatus = 'ACTIVE';
+    // Revue F5 : le PDF définitif (bail + certificat) DOIT exister avant de
+    // déclarer le bail actif — sinon le bien est marqué occupé alors que les
+    // parties n'ont aucun document signé, sans reprise possible.
     await lease.save();
-    // Le bien passe en occupé (parité avec l'ancien flux OpenSign).
-    if (lease.property) {
-      await Property.updateOne({ _id: lease.property }, { $set: { status: 'OCCUPIED' } }).catch(() => {});
+    const finalPath = await finalizeSignedPdf(String(lease._id));
+    if (!finalPath) {
+      throw new Error(
+        'Signature enregistrée mais le document définitif n’a pas pu être produit. Réessayez dans un instant.',
+      );
+    }
+    const fresh = await Lease.findById(lease._id);
+    fresh.leaseStatus = 'ACTIVE';
+    await fresh.save();
+    if (fresh.property) {
+      await Property.updateOne({ _id: fresh.property }, { $set: { status: 'OCCUPIED' } }).catch(() => {});
     }
     return { complete: true, nextSentTo: null };
   }
@@ -295,7 +381,12 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
   next.tokenHash = sha256(rawToken);
   next.tokenExpiresAt = new Date(Date.now() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
   await next.save();
-  await sendSignatureInvite(lease, next, rawToken).catch(() => {});
+  const nextSent = await sendSignatureInvite(lease, next, rawToken)
+    .then(() => true)
+    .catch(() => false);
+  next.inviteSentAt = nextSent ? new Date() : null;
+  next.inviteError = nextSent ? '' : 'Envoi email impossible';
+  await next.save();
   nextSentTo = next.email;
 
   return { complete: false, nextSentTo };
@@ -320,7 +411,7 @@ function buildCertificateHtml(lease, signatures) {
         <span style="color:#94a3b8;">IP ${escapeHtml(s.ip || '—')}</span>
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">
-        ${s.signatureImage ? `<img src="${s.signatureImage}" style="max-height:52px;max-width:150px;" />` : '—'}
+        ${isSafeSignatureImage(s.signatureImage) ? `<img src="${s.signatureImage}" style="max-height:52px;max-width:150px;" />` : '—'}
       </td>
     </tr>`,
     )
@@ -416,5 +507,5 @@ module.exports = {
   recordSignature,
   buildCertificateHtml,
   // exportés pour les tests
-  _internals: { sha256, TOKEN_TTL_DAYS, MAX_OTP_ATTEMPTS },
+  _internals: { sha256, isSafeSignatureImage, safeUploadsPath, TOKEN_TTL_DAYS, MAX_OTP_ATTEMPTS, OTP_CONSENT_WINDOW_MINUTES },
 };

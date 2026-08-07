@@ -92,6 +92,10 @@ const LeaseSchema = new mongoose.Schema({
   },
   
   // Signature
+  /** Empreinte SHA-256 du PDF présenté aux signataires (figée à l'ouverture de
+   *  la campagne) : garantit que toutes les parties signent le MÊME document. */
+  signatureDocumentHash: { type: String, default: '' },
+
   signatureStatus: { 
     type: String, 
     enum: ['PENDING', 'SIGNED_BY_OWNER', 'SIGNED_BY_TENANT', 'SIGNED_BOTH', 'CANCELLED'], 

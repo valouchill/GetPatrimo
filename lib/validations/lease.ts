@@ -28,8 +28,12 @@ export const CreateLeaseSchema = z.object({
     template: z.string().optional().default(''),
     fileName: z.string(),
     mimeType: z.string(),
-    docxPath: z.string().optional(),
-    pdfPath: z.string().optional(),
+    // Sécurité : ces chemins viennent du CLIENT et sont ensuite lus sur disque
+    // (et servis publiquement au signataire) → strictement confinés au dossier
+    // des baux compilés, sans traversal. L'appartenance au compte est vérifiée
+    // en plus côté route (préfixe userId posé par persistArtifact).
+    docxPath: z.string().regex(/^uploads\/leases\/compiled\/[A-Za-z0-9._-]+\.docx$/).optional(),
+    pdfPath: z.string().regex(/^uploads\/leases\/compiled\/[A-Za-z0-9._-]+\.pdf$/).optional(),
   })).optional().default([]),
 });
 

@@ -91,7 +91,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     paymentDay: data.paymentDay,
     durationMonths: data.durationMonths,
     additionalClauses: data.additionalClauses || '',
-    generatedDocuments: (data.generatedDocuments || []).map((doc: Record<string, unknown>) => ({
+    // Sécurité (revue F1) : les artefacts compilés sont nommés `<userId>-...`
+    // par persistArtifact — on n'accepte QUE les fichiers du compte courant,
+    // sinon un bail pourrait pointer (et faire servir publiquement au
+    // signataire) le PDF d'un autre bailleur.
+    generatedDocuments: (data.generatedDocuments || [])
+      .filter((doc: Record<string, unknown>) => {
+        const own = (v: unknown) =>
+          !v || String(v).split('/').pop()!.startsWith(`${String(user._id)}-`);
+        return own(doc.pdfPath) && own(doc.docxPath);
+      })
+      .map((doc: Record<string, unknown>) => ({
       kind: doc.kind === 'guarantee' ? 'GUARANTEE' : 'LEASE',
       template: doc.template || '',
       fileName: doc.fileName || '',
@@ -99,7 +109,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       docxPath: doc.docxPath || '',
       pdfPath: doc.pdfPath || '',
       createdAt: new Date(),
-    })),
+      })),
   });
 
   // Check diagnostic expiry (loi ALUR — art. L.271-4)

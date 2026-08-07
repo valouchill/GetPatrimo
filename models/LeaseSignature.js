@@ -66,6 +66,10 @@ const LeaseSignatureSchema = new mongoose.Schema(
     /** Identité vérifiée eIDAS (Didit) au moment de la candidature. */
     diditVerified: { type: Boolean, default: false },
 
+    /** Traçabilité de l'invitation (revue F7 : échec d'email = campagne gelée). */
+    inviteSentAt: { type: Date, default: null },
+    inviteError: { type: String, default: '' },
+
     remindersSentAt: [{ type: Date }],
   },
   { timestamps: true },

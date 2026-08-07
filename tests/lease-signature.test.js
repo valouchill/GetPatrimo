@@ -120,3 +120,48 @@ describe('certificat de signature (piste d’audit)', () => {
     assert.match(html, /&lt;script&gt;/);
   });
 });
+
+describe('correctifs de revue adversariale', () => {
+  const { isSafeSignatureImage, safeUploadsPath, OTP_CONSENT_WINDOW_MINUTES } = _internals;
+
+  it('F2 — refuse toute image de signature hors data-URL PNG/JPEG strict', () => {
+    assert.ok(isSafeSignatureImage('data:image/png;base64,AAAA'));
+    assert.ok(isSafeSignatureImage('data:image/jpeg;base64,AAA='));
+    // injection HTML (exfiltration de fichier local dans le PDF via WeasyPrint)
+    assert.ok(!isSafeSignatureImage('data:image/png;base64,AA" /><link rel="attachment" href="file:///etc/passwd" /><img src="x'));
+    assert.ok(!isSafeSignatureImage('data:image/svg+xml,<svg onload=alert(1)>'));
+    assert.ok(!isSafeSignatureImage('file:///etc/passwd'));
+    assert.ok(!isSafeSignatureImage('data:image/png;base64,' + 'A'.repeat(500000)));
+  });
+
+  it('F1 — confine les chemins de documents sous uploads/', () => {
+    assert.equal(safeUploadsPath('/etc/passwd'), null);
+    assert.equal(safeUploadsPath('uploads/../../etc/passwd'), null);
+    assert.equal(safeUploadsPath(''), null);
+  });
+
+  it('F3 — la fenêtre de consentement OTP est courte (anti-rejeu du lien)', () => {
+    assert.ok(OTP_CONSENT_WINDOW_MINUTES > 0 && OTP_CONSENT_WINDOW_MINUTES <= 60);
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    assert.match(src, /Session de signature expirée/);
+  });
+
+  it('F5 — le PDF final est produit AVANT de basculer le bail en ACTIVE', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    const finalizeIdx = src.indexOf('const finalPath = await finalizeSignedPdf');
+    const activeIdx = src.indexOf("fresh.leaseStatus = 'ACTIVE'");
+    assert.ok(finalizeIdx > 0 && activeIdx > finalizeIdx);
+  });
+
+  it('F6 — une recompilation en cours de campagne bloque la signature', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    assert.match(src, /signatureDocumentHash !== signature\.documentHash/);
+  });
+
+  it('F4 — un nouvel envoi de code réinitialise le compteur de tentatives', () => {
+    const src = fs.readFileSync(SERVICE, 'utf8');
+    const sendIdx = src.indexOf('async function sendSignatureOtp');
+    const resetIdx = src.indexOf('signature.otpAttempts = 0', sendIdx);
+    assert.ok(resetIdx > sendIdx);
+  });
+});
