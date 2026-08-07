@@ -105,3 +105,46 @@ describe('câblage du module EDL', () => {
     assert.match(src, /data\?\.data\?\.url/);
   });
 });
+
+describe('PDF EDL : migration WeasyPrint (photos + signatures)', () => {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'lib/services/inspectionPdfService.ts'),
+    'utf8',
+  );
+
+  it('utilise le renderer partagé, plus PDFKit', () => {
+    assert.match(src, /renderHtmlToPdf/);
+    assert.ok(!src.includes("require('pdfkit')"), 'PDFKit ne doit plus être chargé');
+  });
+
+  it('embarque les photos, confinées au dossier de CET état des lieux', () => {
+    assert.match(src, /safePhotoSrc/);
+    // le chemin doit contenir l'id de l'inspection (pas de photo d'un autre EDL)
+    assert.match(src, /uploads\/edl\/\$\{inspectionId\}/);
+    assert.match(src, /fs\.existsSync/);
+  });
+
+  it('appose les signatures réelles (data-URL strictement validé)', () => {
+    // l'ancien générateur imprimait « ____ » alors que les images existaient
+    assert.match(src, /SAFE_DATA_IMAGE = \/\^data:image\\\/\(png\|jpeg\);base64,/);
+    assert.match(src, /SAFE_DATA_IMAGE\.test\(String\(sig\.data\)\)/);
+  });
+
+  it('chiffre les retenues sur dépôt dans le PDF de sortie', () => {
+    assert.match(src, /Retenues sur dépôt de garantie/);
+    assert.match(src, /totalRetention/);
+    assert.match(src, /refundAmount/);
+  });
+
+  it('échappe toutes les données utilisateur (anti-injection WeasyPrint)', () => {
+    // noms de pièces, commentaires, légendes, clés : tout passe par esc()
+    for (const call of ['esc(room.name)', 'esc(room.comment)', 'esc(ph.caption', 'esc(k.type)', 'esc(eq.name)', 'esc(ownerName)', 'esc(tenantName)']) {
+      assert.ok(src.includes(call), `${call} manquant`);
+    }
+  });
+
+  it('conserve les mentions légales (ALUR art. 3-2, décret 2016-382)', () => {
+    assert.match(src, /2016-382/);
+    assert.match(src, /10 jours calendaires/);
+  });
+});
