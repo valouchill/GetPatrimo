@@ -20,8 +20,7 @@
  * (cf. Dockerfile production stage).
  */
 
-import { spawn } from 'child_process';
-import path from 'path';
+import { renderHtmlToPdf } from './pdf/render';
 import { createElement } from 'react';
 import { buildPassportHtml } from './passport-html-template';
 import {
@@ -241,9 +240,6 @@ function viewModelToV2Props(
   };
 }
 
-const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
-const SCRIPT_PATH = path.join(process.cwd(), 'scripts', 'generate_passport_pdf.py');
-
 /**
  * Génère un buffer PDF via WeasyPrint Python subprocess.
  *
@@ -264,77 +260,5 @@ export async function generatePassportPdf({
       )
     : buildPassportHtml({ data, qrCodeDataUrl, ownerSignupUrl });
 
-  return new Promise<Buffer>((resolve, reject) => {
-    const proc = spawn(PYTHON_BIN, [SCRIPT_PATH], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      // Désactive le buffering Python pour récupérer stderr en temps réel
-      env: { ...process.env, PYTHONUNBUFFERED: '1' },
-    });
-
-    const chunks: Buffer[] = [];
-    const errChunks: Buffer[] = [];
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      proc.kill('SIGKILL');
-      reject(
-        new Error(
-          `[passport-pdf-service] Timeout après ${timeoutMs}ms lors de la génération WeasyPrint`,
-        ),
-      );
-    }, timeoutMs);
-
-    proc.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
-    proc.stderr.on('data', (chunk: Buffer) => errChunks.push(chunk));
-
-    proc.on('error', (err) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(
-        new Error(
-          `[passport-pdf-service] Échec spawn python : ${err.message}. Vérifier que python3 et weasyprint sont installés (cf. Dockerfile).`,
-        ),
-      );
-    });
-
-    proc.on('close', (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-
-      const stderr = Buffer.concat(errChunks).toString('utf8').trim();
-      if (code !== 0) {
-        reject(
-          new Error(
-            `[passport-pdf-service] WeasyPrint exit code ${code}. stderr: ${stderr || '(vide)'}`,
-          ),
-        );
-        return;
-      }
-
-      const pdfBuffer = Buffer.concat(chunks);
-      if (pdfBuffer.length === 0) {
-        reject(new Error('[passport-pdf-service] PDF généré vide.'));
-        return;
-      }
-      // Validation rapide : un PDF commence par "%PDF-"
-      if (!pdfBuffer.subarray(0, 5).toString('utf8').startsWith('%PDF-')) {
-        reject(
-          new Error(
-            `[passport-pdf-service] Sortie invalide (n'est pas un PDF). stderr: ${stderr || '(vide)'}`,
-          ),
-        );
-        return;
-      }
-
-      resolve(pdfBuffer);
-    });
-
-    // Envoi du HTML sur stdin
-    proc.stdin.write(html, 'utf8');
-    proc.stdin.end();
-  });
+  return renderHtmlToPdf(html, { timeoutMs, label: 'passport-pdf-service' });
 }
