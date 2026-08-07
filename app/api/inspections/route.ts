@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
-import { withErrorHandler } from '@/lib/with-error-handler';
+import { withErrorHandler, withFeatureGuard } from '@/lib/with-error-handler';
 
  
 const User = require('@/models/User');
@@ -19,7 +19,7 @@ const { logEvent } = require('@/src/services/eventService');
  * GET /api/inspections
  * List all inspections for the authenticated owner.
  */
-export const GET = withErrorHandler(async () => {
+const _GET = withErrorHandler(async () => {
   const session = await getServerSession(authOptions as Record<string, unknown>);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
@@ -43,7 +43,7 @@ export const GET = withErrorHandler(async () => {
  * POST /api/inspections
  * Create a new inspection (entry or exit).
  */
-export const POST = withErrorHandler(async (request: NextRequest) => {
+const _POST = withErrorHandler(async (request: NextRequest) => {
   const session = await getServerSession(authOptions as Record<string, unknown>);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
@@ -93,3 +93,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   return NextResponse.json({ success: true, data: inspection.toObject() });
 });
+
+// Le module EDL est gaté par le flag EDL : les routes renvoient 404 s'il est off
+// (helper withFeatureGuard, jusqu'ici jamais câblé → API ouvertes malgré le flag).
+export const GET = withFeatureGuard('EDL', _GET);
+export const POST = withFeatureGuard('EDL', _POST);

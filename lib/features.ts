@@ -10,9 +10,9 @@
 
 export const FEATURES_V1_DEFAULTS = {
   LEASES: true,          // baux + signature électronique interne (eIDAS simple)
-  EDL: false,            // états des lieux
-  RECEIPTS: false,       // quittances / loyers
-  MANAGEMENT: false,     // gestion locative
+  EDL: true,             // états des lieux (entrée/sortie, photos, comparaison)
+  RECEIPTS: true,        // quittances / loyers
+  MANAGEMENT: true,      // gestion locative (loyers, rapprochement, EDL)
   TENANT_PAYMENT: false, // paiement 4,99€ locataire (Passeport)
   PASSPORT_PDF: true,    // Passeport Locatif PDF partageable (nouveau V1)
   LANDING_V1: true,      // landing commerciale V1
