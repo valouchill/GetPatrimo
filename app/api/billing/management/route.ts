@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDiditDb();
-    const user = await User.findOne({ email: session.user.email }).select('_id email').lean();
+    const user = await User.findOne({ email: session.user.email }).select('_id email stripeCustomerId').lean();
     if (!user?._id) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
 
     // Ownership : on ne peut souscrire que pour SON bien.
@@ -71,9 +71,13 @@ export async function POST(request: NextRequest) {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      ...(property.stripeCustomerId
-        ? { customer: property.stripeCustomerId }
-        : { customer_email: session.user.email, customer_creation: 'always' as const }),
+      // En mode `subscription`, Stripe crée le client automatiquement :
+      // `customer_creation` n'est accepté qu'en mode payment/setup (sinon 400
+      // → 500 pour tout primo-souscripteur). On réutilise le client existant
+      // du compte s'il y en a un, pour ne pas fragmenter l'historique Stripe.
+      ...(property.stripeCustomerId || user.stripeCustomerId
+        ? { customer: property.stripeCustomerId || user.stripeCustomerId }
+        : { customer_email: session.user.email }),
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${baseUrl}/dashboard/owner/property/${propertyId}?management=success`,
       cancel_url: `${baseUrl}/dashboard/owner/property/${propertyId}?management=cancelled`,

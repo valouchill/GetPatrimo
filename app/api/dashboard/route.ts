@@ -219,6 +219,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         used: Number((user as { freeAnalysesUsed?: number }).freeAnalysesUsed || 0),
         limit: FREE_TRIAL_LIMIT,
       },
+      // Gestion locative : est-ce qu'AU MOINS un logement est abonné, et si non,
+      // lequel proposer en priorité (le plus récent) → point de vente de l'offre.
+      management: {
+        offerLive: Boolean(process.env.PRICE_ID_MANAGEMENT_MONTHLY),
+        anyActive: properties.some((p: { management?: { active?: boolean } }) => p.management?.active === true),
+        upsellPropertyId: (() => {
+          const candidate = properties.find((p: { management?: { active?: boolean }; _id?: unknown }) => !p.management?.active);
+          return candidate ? String((candidate as { _id: unknown })._id) : null;
+        })(),
+      },
       hasPaidProperty: properties.some(
         (p: { tier?: string; managed?: boolean }) =>
           (p.tier && p.tier !== 'FREE') || p.managed === true,

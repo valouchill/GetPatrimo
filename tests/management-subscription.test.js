@@ -40,10 +40,20 @@ describe('cloisonnement abonnement gestion / crédits d’audit', () => {
   it('un checkout « management » n’écrit que le bloc management', () => {
     const start = webhook.indexOf("if (kind === 'management')");
     assert.ok(start > 0, 'le routage par kind doit exister');
-    const block = webhook.slice(start, webhook.indexOf('return;', start));
+    // toute la branche, jusqu'au log de fin
+    const block = webhook.slice(start, webhook.indexOf('Gestion activée sur le bien', start));
     assert.match(block, /management\.active/);
     assert.ok(!/dossiersQuota/.test(block));
     assert.ok(!/\btier\b/.test(block));
+  });
+
+  it('n’active pas la gestion sans paiement encaissé ni identifiant d’abonnement', () => {
+    // Sans ces gardes : accès ouvert sur un SEPA impayé, et surtout un
+    // subscriptionId vide rend toute résiliation future inopérante (accès à vie).
+    const start = webhook.indexOf("if (kind === 'management')");
+    const block = webhook.slice(start, webhook.indexOf('Gestion activée sur le bien', start));
+    assert.match(block, /payment_status === 'unpaid'/);
+    assert.match(block, /!subscriptionId/);
   });
 });
 

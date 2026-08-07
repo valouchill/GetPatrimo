@@ -160,3 +160,61 @@ describe('politique de relance unifiée', () => {
     assert.match(cron, /'UNPAID'/);
   });
 });
+
+describe('correctifs de revue adversariale (lots 2-4)', () => {
+  it('F1 — un relevé OFX hostile ne bloque plus l’event loop (DoS mesuré à 208 s)', () => {
+    // 2 Mo de <STMTTRN> jamais fermés : l'ancienne regex lazy re-scannait la fin
+    // du fichier depuis chaque occurrence.
+    const hostile = '<OFX>' + '<STMTTRN><TRNAMT>1.00'.repeat(90000);
+    const t0 = Date.now();
+    const rows = parseStatement(hostile, 'hostile.ofx');
+    const elapsed = Date.now() - t0;
+    assert.equal(rows.length, 0);
+    assert.ok(elapsed < 1000, `parsing trop lent : ${elapsed}ms`);
+  });
+
+  it('F1 — le nombre de transactions est borné', () => {
+    const { MAX_TRANSACTIONS } = require('../src/services/bankReconciliationService');
+    const huge =
+      'Date;Libellé;Montant\n' +
+      Array.from({ length: MAX_TRANSACTIONS + 5000 }, () => '05/03/2026;VIR;10,00').join('\n');
+    assert.equal(parseStatement(huge, 'x.csv').length, MAX_TRANSACTIONS);
+  });
+
+  it('F2 — le montant de la quittance est borné au montant dû côté serveur', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const route = fs.readFileSync(
+      path.join(__dirname, '..', 'app/api/payments/reconcile/route.ts'),
+      'utf8',
+    );
+    // sans ce clamp, un client pouvait faire imprimer « reçu 999999 € » sur la quittance
+    assert.match(route, /Math\.min\(claimed, due\)/);
+  });
+
+  it('F7 — une confirmation rejouée ne renvoie pas une seconde quittance', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const route = fs.readFileSync(
+      path.join(__dirname, '..', 'app/api/payments/reconcile/route.ts'),
+      'utf8',
+    );
+    assert.match(route, /alreadyConfirmed/);
+    assert.match(route, /payment\.status === 'CONFIRMED' && payment\.receiptSentAt/);
+  });
+
+  it('F5/F6 — cron quotidien et paiements partiels préservés', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+    // seuils J+5/15/30/45 → passage quotidien obligatoire
+    assert.match(server, /cron\.schedule\('0 9 \* \* \*', safeCron\('late-reminders'/);
+
+    const cron = fs.readFileSync(
+      path.join(__dirname, '..', 'src/cron/monthlyPayments.js'),
+      'utf8',
+    );
+    assert.match(cron, /status === 'PARTIAL'\s*\?\s*'PARTIAL'/s); // statut préservé
+    assert.match(cron, /totalTTC \|\| 0\) - Number\(payment\.amounts\?\.paidAmount/); // solde réclamé
+  });
+});

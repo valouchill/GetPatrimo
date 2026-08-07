@@ -3,6 +3,7 @@
 import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RentReconciliation } from './RentReconciliation';
+import { ManagementUpsell } from './ManagementUpsell';
 import {
   AlertTriangle,
   Bell,
@@ -249,7 +250,12 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
 
 // ─── Main Panel ─────────────────────────────────────────────────
 
-const LoyersPanel = memo(function LoyersPanel() {
+interface LoyersPanelProps {
+  /** État de l'offre Gestion (vient de /api/dashboard) : pilote l'upsell. */
+  management?: { offerLive?: boolean; anyActive?: boolean; upsellPropertyId?: string | null };
+}
+
+const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps = {}) {
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -410,9 +416,14 @@ const LoyersPanel = memo(function LoyersPanel() {
         </div>
       </div>
 
-      {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto */}
+      {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto.
+          Si l'offre Gestion est ouverte et non souscrite, on vend d'abord. */}
       <div className="mb-5">
-        <RentReconciliation onDone={fetchPayments} />
+        {management?.offerLive && !management?.anyActive && management?.upsellPropertyId ? (
+          <ManagementUpsell propertyId={management.upsellPropertyId} />
+        ) : (
+          <RentReconciliation onDone={fetchPayments} />
+        )}
       </div>
 
       {/* Banner: génération suggérée */}

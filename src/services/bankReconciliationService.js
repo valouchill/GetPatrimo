@@ -11,6 +11,10 @@
  * (Bridge/Powens) = écrire un nouvel adaptateur, sans toucher au matching.
  */
 
+/** Bornes de sûreté : un relevé mensuel réaliste tient largement dedans. */
+const MAX_TRANSACTIONS = 5000;
+const MAX_LINES = 20000;
+
 /** Normalise un montant FR/EN ("1 234,56", "-1,234.56", "1234.56") → Number. */
 function parseAmount(raw) {
   if (typeof raw === 'number') return raw;
@@ -63,7 +67,8 @@ function parseCsvStatement(content) {
   const lines = String(content || '')
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, MAX_LINES); // borne anti-DoS
   if (!lines.length) return [];
 
   const sep = [';', ',', '\t']
@@ -102,18 +107,33 @@ function parseCsvStatement(content) {
     if (!date || !Number.isFinite(amount)) continue;
     // Seuls les ENCAISSEMENTS nous intéressent.
     if (amount > 0) rows.push({ date, amount, label });
+    if (rows.length >= MAX_TRANSACTIONS) break;
   }
   return rows;
 }
 
-/** Parse un fichier OFX/QFX (balises SGML <STMTTRN>). */
+/**
+ * Parse un fichier OFX/QFX (balises SGML <STMTTRN>).
+ *
+ * Sécurité : balayage par indexOf, JAMAIS de regex `([\s\S]*?)` sur le
+ * document entier — sur un fichier hostile de 2 Mo rempli de <STMTTRN> non
+ * fermés, le retour arrière bloquait l'event loop plusieurs minutes (Express et
+ * Next partagent le process → site entier gelé). Nombre de blocs borné.
+ */
 function parseOfxStatement(content) {
   const text = String(content || '');
   const rows = [];
-  const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
-  let m;
-  while ((m = re.exec(text))) {
-    const block = m[1];
+  let cursor = 0;
+  let guard = 0;
+  while (guard < MAX_TRANSACTIONS) {
+    guard += 1;
+    const start = text.indexOf('<STMTTRN>', cursor);
+    if (start === -1) break;
+    const end = text.indexOf('</STMTTRN>', start);
+    // Balise non fermée → on s'arrête (fichier tronqué ou malveillant).
+    if (end === -1) break;
+    const block = text.slice(start + 9, end);
+    cursor = end + 10;
     const get = (tag) => {
       const r = new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i').exec(block);
       return r ? r[1].trim() : '';
@@ -159,10 +179,18 @@ function matchTransactions(transactions, expected) {
   const usedTx = new Set();
   const usedPayment = new Set();
 
+  // Pré-calcul : normalize() (NFD Unicode) était appelé dans la boucle interne
+  // → jusqu'à plusieurs millions d'appels sur un gros relevé.
+  const expectedPrepared = expected.map((exp) => ({
+    exp,
+    nameParts: normalize(exp.tenantName).split(/\s+/).filter((p) => p.length >= 3),
+  }));
+
   const candidates = [];
-  transactions.forEach((tx, txIndex) => {
+  transactions.slice(0, MAX_TRANSACTIONS).forEach((tx, txIndex) => {
     const labelNorm = normalize(tx.label);
-    expected.forEach((exp) => {
+    const hasRentKeyword = /(loyer|rent|location|bail)/.test(labelNorm);
+    expectedPrepared.forEach(({ exp, nameParts }) => {
       let score = 0;
       const reasons = [];
 
@@ -171,12 +199,11 @@ function matchTransactions(transactions, expected) {
       else if (exp.amount > 0 && diff / exp.amount <= 0.02) { score += 35; reasons.push('montant proche'); }
       else return; // écart de montant trop important → jamais proposé
 
-      const parts = normalize(exp.tenantName).split(/\s+/).filter((p) => p.length >= 3);
-      if (parts.length && parts.some((p) => labelNorm.includes(p))) {
+      if (nameParts.length && nameParts.some((p) => labelNorm.includes(p))) {
         score += 25;
         reasons.push('nom du locataire');
       }
-      if (/(loyer|rent|location|bail)/.test(labelNorm)) { score += 12; reasons.push('libellé « loyer »'); }
+      if (hasRentKeyword) { score += 12; reasons.push('libellé « loyer »'); }
 
       if (exp.dueDate) {
         const days = Math.abs((new Date(tx.date) - new Date(exp.dueDate)) / 86400000);
@@ -212,6 +239,7 @@ function matchTransactions(transactions, expected) {
 }
 
 module.exports = {
+  MAX_TRANSACTIONS,
   parseStatement,
   parseCsvStatement,
   parseOfxStatement,

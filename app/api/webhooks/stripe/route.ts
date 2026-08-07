@@ -35,10 +35,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Abonnement « Gestion locative » : n'affecte QUE le bloc management —
   // surtout pas tier/dossiersQuota (crédits d'audit payés en one-time).
   if (kind === 'management') {
+    // Un paiement asynchrone (SEPA) peut arriver `unpaid` : on n'ouvre pas
+    // l'accès tant qu'il n'est pas réglé. Et sans identifiant d'abonnement,
+    // aucune résiliation ne pourrait plus retrouver le bien → accès à vie.
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : '';
+    if (session.payment_status === 'unpaid' || !subscriptionId) {
+      logger.warn('[stripe-webhook] Gestion NON activée', {
+        propertyId,
+        paymentStatus: session.payment_status,
+        hasSubscription: Boolean(subscriptionId),
+      });
+      return;
+    }
     await Property.findByIdAndUpdate(propertyId, {
       $set: {
         'management.active': true,
-        'management.subscriptionId': (session.subscription as string) || '',
+        'management.subscriptionId': subscriptionId,
         'management.since': new Date(),
         'management.canceledAt': null,
         stripeCustomerId: session.customer as string,

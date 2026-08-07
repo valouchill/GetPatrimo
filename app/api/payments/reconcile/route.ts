@@ -6,9 +6,11 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { withErrorHandler } from '@/lib/with-error-handler';
 import { logger } from '@/lib/server-logger';
 import { generateAndSendReceipt } from '@/lib/services/paymentService';
+import { hasManagementAccess, MANAGEMENT_UPSELL_MESSAGE } from '@/lib/billing/management-access';
 
 const Payment = require('@/models/Payment');
 const User = require('@/models/User');
+const Property = require('@/models/Property');
 const { parseStatement, matchTransactions } = require('@/src/services/bankReconciliationService');
 
 const { logEvent } = require('@/src/services/eventService');
@@ -37,6 +39,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const body = await request.json().catch(() => ({}));
 
+  // Accès module (revue F4) : l'abonnement Gestion ne débloquait rien — tout le
+  // monde utilisait les modules facturés par les CGV art. 2 bis. Le contrôle
+  // s'active automatiquement dès que le prix Stripe est configuré.
+  const subscribed = await Property.exists({
+    user: user._id,
+    archived: { $ne: true },
+    'management.active': true,
+  });
+  if (!hasManagementAccess(subscribed ? { management: { active: true } } : null)) {
+    return NextResponse.json(
+      { error: MANAGEMENT_UPSELL_MESSAGE, code: 'MANAGEMENT_REQUIRED' },
+      { status: 402 },
+    );
+  }
+
   // ── Mode 2 : confirmation des rapprochements validés ──
   if (Array.isArray(body?.confirm) && body.confirm.length > 0) {
     const results: Array<Record<string, unknown>> = [];
@@ -44,12 +61,25 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       try {
         // Ownership : on ne confirme QUE les loyers du bailleur connecté.
         const payment = await Payment.findOne({ _id: item.paymentId, owner: user._id })
-          .select('lease period amounts')
+          .select('lease period amounts status receiptSentAt')
           .lean();
         if (!payment) {
           results.push({ paymentId: item.paymentId, ok: false, error: 'Loyer introuvable' });
           continue;
         }
+        // Idempotence (revue F7) : un rejeu (retry réseau, double soumission,
+        // onglet resté ouvert) renvoyait une SECONDE quittance au locataire
+        // pour le même mois, en écrasant montant et dates.
+        if (payment.status === 'CONFIRMED' && payment.receiptSentAt) {
+          results.push({ paymentId: String(payment._id), ok: true, alreadyConfirmed: true });
+          continue;
+        }
+        // Le montant vient du CLIENT (revue F2) : il était imprimé tel quel sur
+        // la quittance (« reconnaît avoir reçu la somme de … »). On le borne au
+        // montant réellement dû, jamais au-delà.
+        const due = Number(payment.amounts?.totalTTC || 0);
+        const claimed = Number(item.amount);
+        const paidAmount = Number.isFinite(claimed) && claimed > 0 ? Math.min(claimed, due) : due;
         // Chaîne complète : confirme le paiement, génère la quittance PDF ET
         // l'envoie au locataire (le service one-click fait les trois).
         const receipt = await generateAndSendReceipt(
@@ -57,7 +87,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           Number(payment.period?.month),
           Number(payment.period?.year),
           String(user._id),
-          Number(item.amount) || Number(payment.amounts?.totalTTC),
+          paidAmount,
         );
         results.push({
           paymentId: String(payment._id),

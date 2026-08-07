@@ -1661,8 +1661,11 @@ cron.schedule('0 * * * *', safeCron('cleanup-tokens', cleanupExpiredTokens));
 // Le 1er du mois à 6h : génération paiements mensuels
 cron.schedule('0 6 1 * *', safeCron('monthly-payments', generateAllMonthlyPayments));
 
-// Les 5, 10, 15 du mois à 9h : relances impayés
-cron.schedule('0 9 5,10,15 * *', safeCron('late-reminders', sendLateReminders));
+// Tous les jours à 9h : relances impayés.
+// QUOTIDIEN car les seuils d'escalade sont J+5/15/30/45 (src/cron/monthlyPayments.js) :
+// avec l'ancienne cadence (5, 10, 15 du mois) les niveaux partaient dans le désordre
+// (mise en demeure AVANT la relance formelle).
+cron.schedule('0 9 * * *', safeCron('late-reminders', sendLateReminders));
 
 // Tous les jours à 2h : purge RGPD
 cron.schedule('0 2 * * *', safeCron('rgpd-purge', runRGPDPurge));

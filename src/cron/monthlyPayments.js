@@ -181,7 +181,10 @@ async function sendLateReminders() {
         nom: payment.tenant?.lastName || '',
         adresse: payment.property?.address || payment.property?.name || 'votre logement',
         mois: `${months[payment.period?.month] || ''} ${payment.period?.year || ''}`.trim(),
-        montant: `${Number(payment.amounts?.totalTTC || 0).toLocaleString('fr-FR')} €`,
+        // Paiement partiel : on réclame le SOLDE, jamais le total déjà
+        // partiellement réglé (une mise en demeure pour 1000 € alors que 950 €
+        // ont été payés est juridiquement fausse et commercialement violente).
+        montant: `${Math.max(0, Number(payment.amounts?.totalTTC || 0) - Number(payment.amounts?.paidAmount || 0)).toLocaleString('fr-FR')} €`,
         jours_retard: String(daysLate),
         date_rappel: new Date(payment.remindersSent?.[0]?.date || payment.createdAt).toLocaleDateString('fr-FR'),
       });
@@ -195,7 +198,14 @@ async function sendLateReminders() {
       await Payment.findByIdAndUpdate(payment._id, {
         $push: { remindersSent: { date: now, type: level } },
         // UNPAID au-delà de 45 j : l'état n'était jamais écrit nulle part.
-        $set: { status: daysLate >= 45 ? 'UNPAID' : daysLate >= 15 ? 'LATE' : payment.status },
+        // On NE dégrade PAS un paiement partiel : écraser PARTIAL en LATE/UNPAID
+        // perdait l'information « il a déjà payé une partie » et le renvoyait en
+        // boucle dans les relances ET dans les propositions de rapprochement.
+        $set: {
+          status: payment.status === 'PARTIAL'
+            ? 'PARTIAL'
+            : daysLate >= 45 ? 'UNPAID' : daysLate >= 15 ? 'LATE' : payment.status,
+        },
       });
 
       sent++;
