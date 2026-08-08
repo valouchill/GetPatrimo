@@ -106,9 +106,20 @@ export function SectionFinancier({ formData, onFieldChange, onDepositChange }: S
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">€</span>
             </div>
-            <p className="mt-1 text-xs text-slate-400">
-              Recommandé : {recommendedDeposit.toFixed(0)} € — {depositConstraints.hint}
-            </p>
+            {Number(formData.deposit) > depositConstraints.max ? (
+              /* L'attribut HTML max ne bloque pas la saisie : sans cette alerte,
+                 un dépôt illégal partait dans le bail (clause nulle, art. 22
+                 loi 89-462 ; dépôt interdit en bail mobilité, loi ELAN). */
+              <p className="mt-1 text-xs font-semibold text-red-600" role="alert">
+                ⚠ {depositConstraints.max === 0
+                  ? "Le dépôt de garantie est interdit pour un bail mobilité (loi ELAN) — la clause serait nulle."
+                  : `Dépôt supérieur au plafond légal (${depositConstraints.hint.toLowerCase()}) — la clause serait nulle (art. 22, loi 89-462).`}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-400">
+                Recommandé : {recommendedDeposit.toFixed(0)} € — {depositConstraints.hint}
+              </p>
+            )}
           </div>
         )}
       </div>

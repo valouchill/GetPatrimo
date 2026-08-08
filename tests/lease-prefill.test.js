@@ -224,3 +224,45 @@ describe('backlog audit — finitions wizard', () => {
     assert.match(header, /champs du bail remplis sur/); // aria-label du ring
   });
 });
+
+describe('IRL, dépôt légal, zone tendue', () => {
+  const ROOT3 = path.join(__dirname, '..');
+  const read3 = (rel) => fs.readFileSync(path.join(ROOT3, rel), 'utf8');
+
+  it('la table IRL est triée du plus récent au plus ancien, valeurs au format FR', () => {
+    const src = read3('lib/lease/irl.ts');
+    assert.match(src, /148,37/); // T2 2026 — vérifié sur insee.fr
+    assert.match(src, /146,60/); // T1 2026
+    const dates = [...src.matchAll(/publishedAt: '(\d{4}-\d{2}-\d{2})'/g)].map((m) => m[1]);
+    assert.ok(dates.length >= 2);
+    const sorted = [...dates].sort().reverse();
+    assert.deepEqual(dates, sorted, 'du plus récent au plus ancien');
+  });
+
+  it('le pré-remplissage IRL se désactive si la table devient périmée', () => {
+    const src = read3('lib/lease/irl.ts');
+    assert.match(src, /MAX_AGE_DAYS = 240/);
+    assert.match(src, /ageDays >= 0 && ageDays <= MAX_AGE_DAYS/);
+  });
+
+  it('activer la révision pré-remplit le dernier IRL, sans écraser une saisie', () => {
+    const src = read3('app/(platform)/properties/[id]/contract/wizard/SectionRevision.tssx'.replace('tssx','tsx'));
+    assert.match(src, /!formData\.irlReference/); // prefill seulement si vide
+    assert.match(src, /getLatestIrl/);
+    assert.match(src, /Dernier indice publié par l&apos;INSEE/);
+  });
+
+  it('la section révision pointe vers le simulateur officiel zone tendue', () => {
+    const irl = read3('lib/lease/irl.ts');
+    assert.match(irl, /service-public\.fr\/simulateur\/calcul\/zones-tendues/);
+    const section = read3('app/(platform)/properties/[id]/contract/wizard/SectionRevision.tsx');
+    assert.match(section, /ZONE_TENDUE_SIMULATOR_URL/);
+  });
+
+  it('un dépôt au-dessus du plafond légal est signalé (clause nulle)', () => {
+    const src = read3('app/(platform)/properties/[id]/contract/wizard/SectionFinancier.tsx');
+    assert.match(src, /deposit\) > depositConstraints\.max/);
+    assert.match(src, /art\. 22, loi 89-462/);
+    assert.match(src, /interdit pour un bail mobilité/);
+  });
+});
