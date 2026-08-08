@@ -363,7 +363,20 @@ export async function confirmPayment(
 /**
  * Génère une quittance de loyer PDF conforme aux mentions obligatoires.
  */
+/**
+ * Quittance — POINT D'ENTRÉE UNIQUE.
+ *
+ * Deux générateurs coexistaient (~350 lignes de dessin PDF chacun) : selon le
+ * chemin emprunté, deux locataires du même bailleur recevaient des quittances
+ * de mise en page DIFFÉRENTE pour le même mois. `generateReceipt` délègue
+ * désormais à la V2 (design retenu) ; l'implémentation V1 est conservée sous
+ * `generateReceiptLegacyV1` le temps de vérifier qu'aucun cas ne la requiert.
+ */
 export async function generateReceipt(payment: Record<string, unknown>): Promise<string> {
+  return generateReceiptV2(payment);
+}
+
+async function generateReceiptLegacyV1(payment: Record<string, unknown>): Promise<string> {
   const PDFDocument = require('pdfkit');
   const fs = require('fs');
   const path = require('path');

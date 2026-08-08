@@ -240,6 +240,16 @@ async function sendSignatureInvite(lease, signature, rawToken) {
   });
 }
 
+/**
+ * Montant d'engagement de la caution : loyer + charges × durée du bail.
+ * Sert à VÉRIFIER la mention saisie par la caution, jamais à la pré-remplir.
+ */
+function computeGuaranteeAmount(lease) {
+  const monthly = Number(lease?.rentAmount || 0) + Number(lease?.chargesAmount || 0);
+  const months = Math.max(Number(lease?.durationMonths || 12), 1);
+  return Math.round(monthly * months * 100) / 100;
+}
+
 /** Résout un token brut → document de signature (null si invalide/expiré). */
 async function resolveSignatureByToken(rawToken) {
   if (!rawToken || typeof rawToken !== 'string' || rawToken.length < 32) return null;
@@ -315,7 +325,7 @@ async function verifySignatureOtp(signature, code) {
  * Enregistre la signature (après OTP validé) et fait avancer la file.
  * @returns {Promise<{complete:boolean, nextSentTo:string|null}>}
  */
-async function recordSignature(signature, { signatureImage, ip, userAgent }) {
+async function recordSignature(signature, { signatureImage, ip, userAgent, guaranteeMention }) {
   if (!signature.otpVerifiedAt) throw new Error('Code de confirmation non validé');
   // Revue F3 : le consentement OTP expire — le seul lien ne suffit pas à signer
   // des jours plus tard (lien transféré, navigateur partagé).
@@ -348,6 +358,30 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
     throw new Error(
       'Le contrat a été modifié depuis l’envoi en signature. Le bailleur doit relancer une nouvelle campagne.',
     );
+  }
+
+  // Art. 2297 C. civ. : la caution personne physique appose ELLE-MÊME la mention
+  // exprimant la nature et l'étendue de son engagement, à peine de NULLITÉ.
+  // Une mention pré-imprimée par le système ne vaut pas engagement.
+  if (signature.role === 'GUARANTOR') {
+    const expected = computeGuaranteeAmount(lease);
+    const mention = String(guaranteeMention || '').trim();
+    if (mention.length < 20) {
+      throw new Error(
+        'La caution doit écrire elle-même la mention d’engagement (art. 2297 du Code civil).',
+      );
+    }
+    // La mention doit porter le montant : on vérifie que le nombre y figure,
+    // en tolérant les séparateurs (1 234,56 / 1234.56 / 1 234).
+    const digitsOnly = mention.replace(/[^0-9]/g, '');
+    const expectedDigits = String(Math.round(expected));
+    if (!digitsOnly.includes(expectedDigits)) {
+      throw new Error(
+        `La mention doit indiquer le montant exact de votre engagement : ${expected.toLocaleString('fr-FR')} €.`,
+      );
+    }
+    signature.guaranteeMention = mention.slice(0, 1000);
+    signature.guaranteeAmount = expected;
   }
 
   signature.signatureImage = String(signatureImage || '').slice(0, 400000);
@@ -584,6 +618,7 @@ function buildCertificateHtml(lease, signatures) {
           s.role === 'OWNER' ? 'Bailleur' : s.role === 'GUARANTOR' ? 'Garant' : 'Locataire'
         }</span>
         ${s.diditVerified ? '<br/><span style="color:#047857;font-size:11px;">✔ Identité vérifiée par contrôle biométrique lors de la candidature</span>' : ''}
+        ${s.guaranteeMention ? `<br/><span style="color:#334155;font-size:10px;font-style:italic;">Mention apposée par la caution (art. 2297 C. civ.) :<br/>« ${escapeHtml(s.guaranteeMention)} »</span>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:11px;color:#334155;">
         ${s.signedAt ? new Date(s.signedAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : '—'}<br/>
@@ -689,6 +724,7 @@ async function finalizeSignedPdf(leaseId) {
 
 module.exports = {
   buildSignerList,
+  computeGuaranteeAmount,
   finalizeSignedPdf,
   getCurrentSigner,
   openSignatureCampaign,
