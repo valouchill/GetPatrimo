@@ -16,14 +16,12 @@ async function googleAuth(req, res) {
     if (!idToken && !accessToken) {
       return res.status(400).json({ msg: 'Token Google requis' });
     }
-
-    // TODO: Vérifier le token avec Google OAuth API
-    // const googleUser = await verifyGoogleToken(idToken);
-    // const email = googleUser.email;
-    // const firstName = googleUser.given_name;
-    // const lastName = googleUser.family_name;
-    
-    // Placeholder pour la démo
+    // NOTE DE SÉCURITÉ — ne PAS ré-introduire ici un bloc de création d'utilisateur
+    // « à décommenter ». Toute implémentation OAuth doit d'abord VÉRIFIER le token
+    // auprès du fournisseur (google-auth-library / vérification du JWT Apple avec
+    // les clés publiques, contrôle de `aud` et `iss`) AVANT de créer une session :
+    // sans cette étape, n'importe quel token accepté = contournement complet de
+    // l'authentification. Utiliser de préférence le provider NextAuth existant.
     return res.status(501).json({ 
       msg: 'OAuth Google non encore implémenté. Utilisez la connexion classique.',
       placeholder: true

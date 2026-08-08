@@ -171,7 +171,10 @@ app.use((req, res, next) => {
 // elles-mêmes ; si Express consomme le flux d'abord, le handler Next PEND à jamais).
 // Liste UNIQUE partagée json+urlencoded — elle était dupliquée et /api/tenant/ +
 // /api/admin/ manquaient : POST /api/tenant/contest et les PATCH admin pendaient (504).
-const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/public/sign/', '/api/inspections', '/api/leases', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
+const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/public/sign/', '/api/inspections', '/api/leases', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password',
+  // Détectés par le garde-fou tests/next-express-parsing.test.js : ces routes
+  // lisent request.json() mais n'étaient couvertes par aucun préfixe → hang 504.
+  '/api/applications', '/api/documents'];
 const isNextSelfParsedRoute = (url) => NEXT_SELF_PARSED_PREFIXES.some((p) => url.startsWith(p));
 
 app.use((req, res, next) => {
