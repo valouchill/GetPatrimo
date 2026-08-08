@@ -9,6 +9,7 @@
 // déjà stockés en BDD côté owner.
 
 const { extractPDFMetadata, convertPDFToImages } = require('./pdfDocumentService');
+const { openaiFetch } = require('../utils/openaiFetch');
 const { applyPayslipArithmeticVerdict } = require('../utils/payslipArithmetic');
 const { getExtractionPrompt } = require('./documentPromptService');
 const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidateAnalysis } = require('./visionAnalysisService');
@@ -81,7 +82,7 @@ async function analyzeDocumentBuffer({
             candidateContext.diditIdentity,
             documentCategory,
           );
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${OPENAI_API_KEY}`,

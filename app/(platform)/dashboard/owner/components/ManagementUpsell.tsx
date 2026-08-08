@@ -28,6 +28,10 @@ export function ManagementUpsell({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // L'annuel aligne le prix face à la concurrence (49 €/an) et améliore la
+  // rétention. Si le prix Stripe annuel n'existe pas encore, le serveur
+  // retombe automatiquement sur le mensuel.
+  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   async function subscribe() {
     setBusy(true);
@@ -36,7 +40,7 @@ export function ManagementUpsell({
       const res = await fetch('/api/billing/management', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId }),
+        body: JSON.stringify({ propertyId, billingCycle: cycle }),
       });
       const data = await res.json();
       if (!res.ok || !data?.url) throw new Error(data?.error || 'Souscription impossible.');
@@ -76,14 +80,44 @@ export function ManagementUpsell({
         </p>
       )}
 
+      <div className="mt-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Périodicité de facturation">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={cycle === 'monthly'}
+          onClick={() => setCycle('monthly')}
+          className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+            cycle === 'monthly' ? 'border-emerald-700 bg-emerald-50' : 'border-slate-200 bg-white'
+          }`}
+        >
+          <span className="block text-sm font-bold text-emerald-950">4,99 €</span>
+          <span className="block text-[11px] text-slate-500">par mois</span>
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={cycle === 'yearly'}
+          onClick={() => setCycle('yearly')}
+          className={`relative rounded-xl border px-3 py-2.5 text-left transition-colors ${
+            cycle === 'yearly' ? 'border-emerald-700 bg-emerald-50' : 'border-slate-200 bg-white'
+          }`}
+        >
+          <span className="absolute -top-2 right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-950">
+            2 mois offerts
+          </span>
+          <span className="block text-sm font-bold text-emerald-950">49,90 €</span>
+          <span className="block text-[11px] text-slate-500">par an</span>
+        </button>
+      </div>
+
       <button
         type="button"
         onClick={subscribe}
         disabled={busy}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-60"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Activer la gestion — 4,99 €/mois
+        Activer la gestion — {cycle === 'yearly' ? '49,90 €/an' : '4,99 €/mois'}
       </button>
       <p className="mt-2 text-center text-[11px] text-slate-400">
         Résiliable en un clic à tout moment · vos crédits d&rsquo;audit ne sont jamais affectés

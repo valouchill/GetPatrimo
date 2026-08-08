@@ -85,8 +85,19 @@ export default function Privacy() {
                 <td className="px-4 py-2">Exécution du contrat (art. 6.1.b)</td>
               </tr>
               <tr className="border-b border-slate-100">
-                <td className="px-4 py-2">Vérification d&apos;identité (Didit KYC)</td>
-                <td className="px-4 py-2">Obligation légale (art. 6.1.c)</td>
+                <td className="px-4 py-2">
+                  Vérification d&apos;identité (Didit)
+                  <span className="block text-xs text-slate-500">
+                    Traitement de données biométriques — catégorie particulière (art. 9)
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <strong>Consentement explicite</strong> (art. 6.1.a et art. 9.2.a)
+                  <span className="block text-xs text-slate-500">
+                    Facultatif et révocable : le refus n&apos;empêche pas de candidater,
+                    seule la mention « identité vérifiée » n&apos;est pas apposée.
+                  </span>
+                </td>
               </tr>
               <tr className="border-b border-slate-100">
                 <td className="px-4 py-2">Scoring de dossier locataire</td>
@@ -128,9 +139,12 @@ export default function Privacy() {
               des fichiers (CNI, passeport) dès la sélection d&apos;un candidat par le propriétaire.
             </li>
             <li>
-              <strong>Données biométriques (Didit) :</strong> les selfies, données de liveness et données
-              de comparaison faciale sont purgées automatiquement après la fin de la vérification.
-              Seuls le statut de vérification et le nom certifié sont conservés.
+              <strong>Données biométriques et identité vérifiée (Didit) :</strong> les selfies, données
+              de liveness et données de comparaison faciale ne sont jamais stockées sur nos serveurs —
+              elles restent chez notre prestataire de vérification. L&apos;identité certifiée transmise
+              (nom, prénom, date de naissance) est <strong>effacée automatiquement 90 jours</strong> après
+              la vérification ; seule la preuve que la vérification a eu lieu (statut, date) est conservée.
+              En cas de demande d&apos;effacement, l&apos;identité est supprimée immédiatement.
             </li>
             <li>
               <strong>Leads marketing :</strong> suppression automatique après 3 ans sans interaction.

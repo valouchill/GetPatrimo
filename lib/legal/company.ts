@@ -39,6 +39,14 @@ export const COMPANY: CompanyIdentity = {
   dpo: null,
 };
 
+/**
+ * Médiateur de la consommation (art. L611-1 C. conso) — OBLIGATOIRE pour tout
+ * professionnel vendant à des consommateurs. Il faut adhérer à un organisme
+ * agréé (ex. CM2C, Medicys, AME Conso) : ~100-500 €/an. Tant que `null`, les
+ * CGV l'annoncent comme en cours de désignation.
+ */
+export const MEDIATOR: { name: string; address: string; website: string } | null = null;
+
 /** Hébergeur — obligation LCEN art. 6-III (identification de l'hébergeur). */
 // Hébergeur effectif du serveur de production (vérifié : AS16276 OVH SAS).
 export const HOST = {

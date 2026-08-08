@@ -84,6 +84,9 @@ export function BauxPanel({
   const [renewingId, setRenewingId] = useState<string | null>(null);
   const [terminateId, setTerminateId] = useState<string | null>(null);
   const [showPropertyPicker, setShowPropertyPicker] = useState(false);
+  // Les échecs de renouvellement/résiliation étaient totalement muets : le
+  // bailleur cliquait, rien ne se passait, il ne savait pas pourquoi.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchLeases = useCallback(async () => {
     try {
@@ -91,8 +94,12 @@ export function BauxPanel({
       if (res.ok) {
         const json = await res.json();
         setLeases(json.data || []);
+      } else {
+        setActionError('Impossible de charger vos baux — rechargez la page.');
       }
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — vérifiez votre réseau.');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -100,25 +107,39 @@ export function BauxPanel({
 
   const handleRenew = async (leaseId: string) => {
     setRenewingId(leaseId);
+    setActionError(null);
     try {
       const res = await fetch(`/api/leases/${leaseId}/renew`, { method: 'POST' });
       if (res.ok) {
         await fetchLeases();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setActionError(json?.error || 'Le renouvellement a échoué. Réessayez.');
       }
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — le renouvellement n\'a pas été enregistré.');
+    }
     finally { setRenewingId(null); }
   };
 
   const handleTerminate = async (leaseId: string, initiatedBy: string) => {
+    setActionError(null);
     try {
-      await fetch(`/api/leases/${leaseId}/terminate`, {
+      const res = await fetch(`/api/leases/${leaseId}/terminate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ initiatedBy }),
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setActionError(json?.error || 'La résiliation a échoué. Réessayez.');
+        return;
+      }
       setTerminateId(null);
       await fetchLeases();
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — la résiliation n\'a pas été enregistrée.');
+    }
   };
 
   // Compute KPIs
@@ -139,6 +160,15 @@ export function BauxPanel({
 
   return (
     <div>
+      {actionError && (
+        <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          <span className="flex-1">{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="shrink-0 text-xs font-semibold underline">
+            Fermer
+          </button>
+        </div>
+      )}
+
       {/* KPI row */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={active} label="Baux actifs" bg="bg-emerald-50" />

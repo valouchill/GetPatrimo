@@ -389,7 +389,16 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
     }
     // Remise d'un exemplaire à chaque partie (art. 3, loi du 6/7/1989) :
     // le PDF signé + certificat part en pièce jointe à tous les signataires.
-    await sendFinalPdfToParties(String(lease._id)).catch(() => {});
+    // Best-effort MAIS tracé : l'échec était totalement avalé, or c'est une
+    // obligation de remise (art. 3, loi du 6/7/1989). Le bail reste actif — on
+    // ne défait pas une signature valide pour un email —, mais l'incident
+    // remonte pour permettre un renvoi manuel.
+    await sendFinalPdfToParties(String(lease._id)).catch((err) => {
+      console.error('[lease-signature] livraison du bail signé échouée', {
+        leaseId: String(lease._id),
+        error: err?.message || err,
+      });
+    });
     return { complete: true, nextSentTo: null };
   }
 

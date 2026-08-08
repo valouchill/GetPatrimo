@@ -1,3 +1,4 @@
+import { MEDIATOR } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata = {
@@ -8,8 +9,9 @@ export const metadata = {
  * CGV — alignées sur le modèle commercial courant (packs one-time par bien,
  * plafond dur, rachat = cumul ; cf. lib/billing/tiers.ts et docs/BILLING.md).
  * Restent à renseigner avant la mise en vente : l'identité complète de
- * l'éditeur (mentions légales) et le médiateur de la consommation désigné
- * ([MÉDIATEUR À DÉSIGNER]). Relecture par un avocat recommandée avant go-live.
+ * l'éditeur (lib/legal/company.ts → COMPANY) et le médiateur de la consommation
+ * (lib/legal/company.ts → MEDIATOR, adhésion à un organisme agréé requise).
+ * Relecture par un avocat recommandée avant go-live.
  */
 export default function CGV() {
   return (
@@ -66,8 +68,9 @@ export default function CGV() {
             </li>
           </ul>
           <p className="mt-2">
-            Les prix sont indiqués en euros <strong>toutes taxes comprises (TVA française de 20 %
-            incluse)</strong>. Chaque offre payante ouvre un quota d&apos;audits attaché au logement
+            Les prix sont indiqués en euros <strong>toutes taxes comprises</strong>. Le taux de TVA
+            applicable et, le cas échéant, la mention « TVA non applicable, art. 293 B du CGI »
+            (franchise en base) figurent sur la facture émise à chaque commande. Chaque offre payante ouvre un quota d&apos;audits attaché au logement
             concerné. Le quota constitue un <strong>plafond</strong> : aucune facturation à l&apos;usage
             n&apos;est appliquée au-delà. En cas de nouvel achat sur un logement disposant déjà d&apos;une
             offre, <strong>les audits non consommés se cumulent</strong> avec ceux du nouveau pack et le
@@ -90,7 +93,7 @@ export default function CGV() {
           <p>
             En complément des offres à paiement unique, l&apos;utilisateur peut souscrire un
             abonnement <strong>« Gestion locative » au prix de 4,99 € TTC par mois et par
-            logement</strong> (TVA française de 20 % incluse). Il donne accès aux modules de
+            logement</strong> (toutes taxes comprises). Il donne accès aux modules de
             gestion : génération et signature électronique du contrat de bail, suivi des loyers,
             quittances et relances automatiques, états des lieux d&apos;entrée et de sortie.
           </p>
@@ -208,8 +211,13 @@ export default function CGV() {
             Conformément aux articles L611-1 et suivants du Code de la consommation, tout consommateur a
             le droit de recourir gratuitement à un médiateur de la consommation en vue de la résolution
             amiable d&apos;un litige, après avoir adressé une réclamation écrite au service client restée
-            infructueuse. Le médiateur compétent est : <strong>[MÉDIATEUR À DÉSIGNER — nom, adresse et
-            site internet]</strong>. Le consommateur peut également utiliser la plateforme européenne de
+            infructueuse. {MEDIATOR ? (
+              <>Le médiateur compétent est : <strong>{MEDIATOR.name}</strong>, {MEDIATOR.address} —{' '}
+              <a href={MEDIATOR.website} className="text-cobalt hover:underline" rel="noopener noreferrer" target="_blank">{MEDIATOR.website}</a>.</>
+            ) : (
+              <>La désignation de notre médiateur de la consommation est en cours ; ses coordonnées
+              seront publiées ici et communiquées sur simple demande à contact@maisonpatrimo.com.</>
+            )} Le consommateur peut également utiliser la plateforme européenne de
             règlement en ligne des litiges :{' '}
             <a
               href="https://ec.europa.eu/consumers/odr"

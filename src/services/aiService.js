@@ -1,5 +1,6 @@
 // Service IA pour l'extraction de données et détection de fraude documentaire (Maison Patrimo)
 const fs = require('fs');
+const { openaiFetch } = require('../utils/openaiFetch');
 const path = require('path');
 const { pickBestDocumentNetIncome } = require('../utils/financialExtraction');
 
@@ -48,7 +49,7 @@ async function extractDocumentData(filePath, documentType = 'auto') {
     const base64Image = await fileToBase64(filePath);
 
     // Appel à l'API OpenAI Vision (gpt-4o)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -617,7 +618,7 @@ RÉPONDS UNIQUEMENT EN JSON VALIDE :
   "summary": "Résumé en 1-2 phrases"
 }`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,

@@ -4,6 +4,7 @@ import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RentReconciliation } from './RentReconciliation';
 import { ManagementUpsell } from './ManagementUpsell';
+import { Modal } from '@/app/components/ui/Modal';
 import {
   AlertTriangle,
   Bell,
@@ -327,7 +328,12 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
     finally { setGenerating(false); }
   }, [fetchPayments]);
 
+  // Une relance en masse envoie de VRAIS emails à des locataires : action
+  // sortante et irréversible, elle ne doit jamais partir sur un clic isolé.
+  const [confirmRemindAll, setConfirmRemindAll] = useState(false);
+
   const handleRemindAll = useCallback(async () => {
+    setConfirmRemindAll(false);
     setReminding(true); setMessage('');
     try {
       const res = await fetch('/api/payments/remind', { method: 'POST' });
@@ -403,7 +409,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             <Download className="h-4 w-4" /> Export
           </button>
-          <button onClick={handleRemindAll} disabled={reminding || lateCount === 0}
+          <button onClick={() => setConfirmRemindAll(true)} disabled={reminding || lateCount === 0}
             className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-40 transition-colors">
             {reminding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
             Relancer ({lateCount})
@@ -415,6 +421,36 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
           </button>
         </div>
       </div>
+
+      <Modal
+        open={confirmRemindAll}
+        onClose={() => setConfirmRemindAll(false)}
+        title="Envoyer les relances ?"
+        description={`${lateCount} locataire${lateCount > 1 ? 's' : ''} en retard ${lateCount > 1 ? 'vont' : 'va'} recevoir un email de relance. Le niveau du message (rappel, relance, mise en demeure) dépend de l'ancienneté de l'impayé.`}
+        size="sm"
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmRemindAll(false)}
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleRemindAll}
+              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700"
+            >
+              Envoyer {lateCount} relance{lateCount > 1 ? 's' : ''}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Cette action est irréversible : les emails partent immédiatement.
+        </p>
+      </Modal>
 
       {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto.
           Si l'offre Gestion est ouverte et non souscrite, on vend d'abord. */}
