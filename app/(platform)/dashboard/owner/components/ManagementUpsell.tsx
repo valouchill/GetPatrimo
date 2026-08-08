@@ -119,7 +119,7 @@ export function ManagementUpsell({
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Activer la gestion — {cycle === 'yearly' ? '49,90 €/an' : '4,99 €/mois'}
       </button>
-      <p className="mt-2 text-center text-[11px] text-slate-400">
+      <p className="mt-2 text-center text-[11px] text-slate-500">
         Résiliable en un clic à tout moment · vos crédits d&rsquo;audit ne sont jamais affectés
       </p>
     </div>

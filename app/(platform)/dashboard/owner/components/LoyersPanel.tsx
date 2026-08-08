@@ -146,7 +146,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Notes <span className="font-normal text-slate-400">optionnel</span></label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Notes <span className="font-normal text-slate-500">optionnel</span></label>
                   <input type="text" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
                     placeholder="Ex: reçu le 03/03" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
@@ -174,7 +174,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
                 Quittance générée pour <span className="font-semibold text-slate-700">{tenantLabel}</span>
               </p>
               <QuittanceActions paymentId={payment._id} period={payment.period} variant="modal" />
-              <button onClick={onDone} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={onDone} className="mt-4 text-sm text-slate-500 hover:text-slate-600 transition-colors">
                 Fermer
               </button>
             </motion.div>
@@ -211,7 +211,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
           <div className="font-semibold text-slate-900 text-sm">{tenantLabel}</div>
           <div className="text-xs text-slate-500">{p.property?.name || p.property?.address?.split(',')[0] || '—'}</div>
           {lastReminder && (
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-[11px] text-slate-500 mt-0.5">
               Relancé le {new Date(lastReminder.date).toLocaleDateString('fr-FR')}
             </div>
           )}
@@ -471,7 +471,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                 if (res.ok && data?.url) window.location.href = data.url as string;
               } catch { /* silent */ }
             }}
-            className="mt-2 text-[11px] text-slate-400 underline decoration-slate-300 hover:text-slate-600 transition-colors"
+            className="mt-2 text-[11px] text-slate-500 underline decoration-slate-300 hover:text-slate-600 transition-colors"
           >
             Abonnement Gestion actif · gérer ou résilier
           </button>
@@ -513,7 +513,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
             Encaissement — {MONTHS[viewMonth - 1]} {viewYear}
           </span>
           <span className="text-sm font-bold text-slate-900">
-            {fmt(totalPaid)} <span className="font-normal text-slate-400">/ {fmt(totalDue)}</span>
+            {fmt(totalPaid)} <span className="font-normal text-slate-500">/ {fmt(totalDue)}</span>
           </span>
         </div>
         <Bar value={collectionRate} color={barColor} />
@@ -521,7 +521,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
           <span className="font-bold text-slate-700">{collectionRate}%</span>
           <span>encaissé</span>
           {totalDue - totalPaid > 0 && (
-            <span className="text-slate-400">— Reste : {fmt(totalDue - totalPaid)}</span>
+            <span className="text-slate-500">— Reste : {fmt(totalDue - totalPaid)}</span>
           )}
         </div>
         {monthPayments.length > 0 && (
@@ -573,7 +573,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
               <option value="LATE">En retard</option>
               <option value="UNPAID">Impayé</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           {properties.length > 1 && (
             <div className="relative">
@@ -584,7 +584,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                   <option key={id} value={id}>{label}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
           )}
         </div>
@@ -592,7 +592,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
 
       {/* Légende statuts */}
       {monthPayments.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
           <span><span className="font-semibold text-blue-600">En attente</span> = non encore échu ou paiement non reçu</span>
           <span><span className="font-semibold text-red-600">En retard</span> = impayé depuis &gt;5 jours</span>
           <span><span className="font-semibold text-red-800">Impayé</span> = relance formelle envoyée (&gt;30 jours)</span>
@@ -617,7 +617,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
       ) : monthPayments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
-            <Wallet className="h-6 w-6 text-slate-400" />
+            <Wallet className="h-6 w-6 text-slate-500" />
           </div>
           <p className="font-medium text-slate-700">Aucun loyer pour {MONTHS[viewMonth - 1]} {viewYear}</p>
           <p className="mt-1 text-sm text-slate-500">
@@ -660,12 +660,12 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                         <td className="px-4 py-3.5">
                           <div className="text-sm font-semibold text-slate-900">{tenantLabel}</div>
                           {p.confirmedAt && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
+                            <div className="text-[11px] text-slate-500 mt-0.5">
                               payé le {new Date(p.confirmedAt).toLocaleDateString('fr-FR')}
                             </div>
                           )}
                           {lastReminder && !p.confirmedAt && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
+                            <div className="text-[11px] text-slate-500 mt-0.5">
                               Relancé le {new Date(lastReminder.date).toLocaleDateString('fr-FR')}
                             </div>
                           )}
@@ -748,7 +748,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="font-semibold text-emerald-600">{fmt(totalPaid)}</span>
-                      <span className="text-slate-400"> encaissé</span>
+                      <span className="text-slate-500"> encaissé</span>
                     </td>
                     <td />
                   </tr>

@@ -237,10 +237,10 @@ export function BauxPanel({
       {leases.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
-            <FileText className="h-6 w-6 text-slate-400" />
+            <FileText className="h-6 w-6 text-slate-500" />
           </div>
           <p className="mb-2 text-slate-500">Aucun bail généré pour le moment.</p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {contractsToPrepare.length > 0
               ? 'Reprenez un contrat à préparer ci-dessus pour lancer la génération.'
               : 'Sélectionnez un locataire depuis vos candidatures pour créer un bail.'}
@@ -293,7 +293,7 @@ export function BauxPanel({
                       <td className="px-4 py-3.5 text-right">
                         <span className="text-sm font-semibold text-slate-900">{lease.rentAmount.toLocaleString('fr-FR')} €</span>
                         {lease.chargesAmount > 0 && (
-                          <span className="text-xs text-slate-400 ml-1">+ {lease.chargesAmount} €</span>
+                          <span className="text-xs text-slate-500 ml-1">+ {lease.chargesAmount} €</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-sm text-slate-600">
@@ -436,9 +436,9 @@ export function BauxPanel({
                 <div className="mb-3 flex items-baseline gap-1">
                   <span className="text-sm font-semibold text-slate-900">{lease.rentAmount.toLocaleString('fr-FR')} €</span>
                   {lease.chargesAmount > 0 && (
-                    <span className="text-xs text-slate-400">+ {lease.chargesAmount} €</span>
+                    <span className="text-xs text-slate-500">+ {lease.chargesAmount} €</span>
                   )}
-                  <span className="text-xs text-slate-400">/ mois</span>
+                  <span className="text-xs text-slate-500">/ mois</span>
                 </div>
 
                 {/* Dates */}
@@ -502,7 +502,7 @@ export function BauxPanel({
           <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">Sélectionner un bien</h3>
-              <button type="button" onClick={() => setShowPropertyPicker(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+              <button type="button" onClick={() => setShowPropertyPicker(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -561,7 +561,7 @@ function TerminateModal({
       <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Résiliation du bail</h3>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
             <X className="h-5 w-5" />
           </button>
         </div>

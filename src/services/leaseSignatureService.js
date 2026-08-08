@@ -481,6 +481,15 @@ async function resendInviteToCurrentSigner(leaseId) {
   if (lease.leaseStatus !== 'PENDING_SIGNATURE') {
     throw new Error("Ce bail n'est pas en cours de signature.");
   }
+  // Relancer vers un bail dont le PDF est absent enverrait le signataire sur un
+  // document introuvable : on bloque en amont plutôt qu'à l'ouverture du lien.
+  const leaseDocs = Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
+  const refDoc = leaseDocs.find((d) => d.kind === 'LEASE') || leaseDocs[0];
+  if (!refDoc?.pdfPath || !safeUploadsPath(refDoc.pdfPath)) {
+    throw new Error(
+      'Le document du bail est introuvable — régénérez-le avant de relancer les signataires.',
+    );
+  }
   const signer = await getCurrentSigner(lease._id);
   if (!signer) throw new Error('Aucun signataire en attente.');
 

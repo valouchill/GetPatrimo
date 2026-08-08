@@ -3401,7 +3401,15 @@ export default function ApplyClient({ token }: { token: string }) {
                 return (
                   <React.Fragment key={item.step}>
                     {/* Step Item */}
-                    <motion.div
+                    {/* Accessibilité : c'était un motion.div cliquable — les étapes
+                        étaient donc inatteignables au clavier, et le message
+                        expliquant un verrouillage n'était jamais lisible sans
+                        souris, sur le parcours le plus critique du produit. */}
+                    <motion.button
+                      type="button"
+                      aria-current={isActive ? 'step' : undefined}
+                      aria-disabled={isLocked || undefined}
+                      aria-label={`Chapitre ${item.step}${isLocked ? ' (verrouillé)' : ''}`}
                       onClick={() => {
                         if (isLocked) {
                           setAiFeedback({
@@ -3416,7 +3424,7 @@ export default function ApplyClient({ token }: { token: string }) {
                         }
                         setCurrentStep(item.step);
                       }}
-                      className={`relative flex items-center gap-3 cursor-pointer group ${isLocked ? 'cursor-not-allowed' : ''}`}
+                      className={`relative flex items-center gap-3 text-left cursor-pointer group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${isLocked ? 'cursor-not-allowed' : ''}`}
                       whileHover={!isLocked ? { y: -2 } : {}}
                     >
                       {/* Point de la timeline */}
@@ -3468,7 +3476,7 @@ export default function ApplyClient({ token }: { token: string }) {
                           <span className="text-[8px] text-slate-300">Verrouillé</span>
                         )}
                       </div>
-                    </motion.div>
+                    </motion.button>
                     
                     {/* Ligne de connexion */}
                     {index < arr.length - 1 && (

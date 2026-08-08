@@ -103,11 +103,11 @@ export function SignatureQueue({ leaseId }: { leaseId: string }) {
             ) : s.status === 'VIEWED' ? (
               <Eye className="h-3.5 w-3.5 shrink-0 text-amber-500" />
             ) : (
-              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
             )}
             <span className="min-w-0 flex-1 truncate">
               <strong className="text-slate-800">{s.fullName || s.email}</strong>
-              <span className="text-slate-400"> · {ROLE_LABEL[s.role]}</span>
+              <span className="text-slate-500"> · {ROLE_LABEL[s.role]}</span>
             </span>
             <span className={
               s.status === 'SIGNED' ? 'text-emerald-600 font-medium' :

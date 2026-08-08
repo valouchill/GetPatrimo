@@ -169,7 +169,7 @@ export function RentReconciliation({ onDone }: { onDone?: () => void }) {
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5 text-emerald-700" />}
             {busy ? 'Analyse du relevé…' : 'Déposer mon relevé bancaire'}
           </button>
-          <p className="mt-2 text-[11px] text-slate-400">
+          <p className="mt-2 text-[11px] text-slate-500">
             Aucune connexion à votre banque, aucune donnée bancaire conservée : le fichier est
             analysé puis oublié. Seules vos confirmations sont enregistrées.
           </p>

@@ -177,7 +177,7 @@ export function ContractPreview({
           // Missing required = red, missing optional = gray
           const style = isRequired
             ? 'bg-red-50 text-red-600 border border-dashed border-red-300'
-            : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300';
+            : 'bg-slate-100 text-slate-500 border border-dashed border-slate-300';
 
           const missingMeta = resolveFieldForVariable(v.name);
           const canEditMissing = editable && isDirectEditable(missingMeta);
@@ -366,7 +366,7 @@ export function ContractPreview({
             Identité vérifiée (eIDAS)
           </div>
         )}
-        {editable && <span className="text-slate-400">Cliquez sur un champ pour \u00e9crire directement dessus</span>}
+        {editable && <span className="text-slate-500">Cliquez sur un champ pour \u00e9crire directement dessus</span>}
       </div>
 
       {/* Inline editor */}

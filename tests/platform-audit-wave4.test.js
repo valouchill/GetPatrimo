@@ -68,3 +68,50 @@ describe('upsell Gestion — présent au bon moment', () => {
     assert.match(bauxBlock, /ManagementUpsell/);
   });
 });
+
+describe('vague 4b — UX, accessibilité, onboarding', () => {
+  it('le tunnel de candidature est navigable au clavier', () => {
+    const src = read('app/apply/[id]/ApplyClient.tsx');
+    // les étapes étaient des motion.div cliquables : inatteignables au clavier
+    assert.match(src, /<motion\.button\s+type="button"\s+aria-current=\{isActive \? 'step' : undefined\}/);
+    assert.match(src, /focus-visible:ring-2/);
+  });
+
+  it('le tableau de comparaison EDL scrolle sur mobile', () => {
+    const src = read('app/(platform)/dashboard/owner/components/EdlPanel.tsx');
+    assert.match(src, /overflow-x-auto rounded-xl border border-slate-200/);
+    assert.match(src, /min-w-\[34rem\]/);
+  });
+
+  it('les modules gestion respectent le contraste AA (plus de slate-400)', () => {
+    for (const rel of [
+      'app/(platform)/dashboard/owner/components/LoyersPanel.tsx',
+      'app/(platform)/dashboard/owner/components/BauxPanel.tsx',
+      'app/(platform)/dashboard/owner/components/EdlPanel.tsx',
+      'app/(platform)/dashboard/owner/components/SignatureQueue.tsx',
+    ]) {
+      assert.ok(!read(rel).includes('text-slate-400'), `${rel} : slate-400 ≈ 2,9:1, sous le seuil AA`);
+    }
+  });
+
+  it('plus de statistique marketing inventée dans l’état vide', () => {
+    const src = read('app/(platform)/dashboard/owner/components/DashboardEmptyState.tsx');
+    assert.ok(!src.includes('78 %'), 'chiffre non mesurable affiché comme un fait');
+  });
+
+  it('un email de bienvenue part à l’inscription, sans jamais la bloquer', () => {
+    const route = read('app/api/auth/register/route.ts');
+    assert.match(route, /sendWelcomeEmail/);
+    assert.match(route, /\.catch\(/); // best-effort
+    const mod = read('lib/emails/welcome.ts');
+    assert.match(mod, /role === 'tenant'/); // contenu différencié par rôle
+    assert.match(mod, /isEmailConfigured/);
+  });
+
+  it('on ne relance jamais un signataire vers un bail sans document', () => {
+    const src = read('src/services/leaseSignatureService.js');
+    const fn = src.slice(src.indexOf('async function resendInviteToCurrentSigner'), src.indexOf('async function sendFinalPdfToParties'));
+    assert.match(fn, /Le document du bail est introuvable/);
+    assert.match(fn, /safeUploadsPath\(refDoc\.pdfPath\)/);
+  });
+});
