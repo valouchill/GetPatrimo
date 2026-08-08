@@ -117,7 +117,7 @@ export default function EdlWizardClient({ inspectionId }: { inspectionId: string
   }
 
   function goBack() {
-    router.push('/dashboard/owner?page=edl');
+    router.push('/dashboard/owner?tab=edl');
   }
 
   // Update handlers

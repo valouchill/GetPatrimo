@@ -6,6 +6,7 @@ import { logger } from '@/lib/server-logger';
 
 const Lease = require('@/models/Lease');
 const Property = require('@/models/Property');
+const LeaseSignature = require('@/models/LeaseSignature');
 const {
   resolveSignatureByToken,
   sendSignatureOtp,
@@ -43,10 +44,22 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
 
     const signature = await resolveSignatureByToken(token);
     if (!signature) {
-      return NextResponse.json({ error: 'Lien invalide ou expiré.' }, { status: 404 });
+      // Distinguer « lien expiré » (hash connu, date dépassée) de « lien
+      // invalide » : le recours affiché au signataire n'est pas le même.
+      const { _internals } = require('@/src/services/leaseSignatureService');
+      const expired = await LeaseSignature.exists({ tokenHash: _internals.sha256(String(token || '')) });
+      return NextResponse.json(
+        { error: expired ? 'Ce lien a expiré.' : 'Lien invalide.', reason: expired ? 'expired' : 'invalid' },
+        { status: 404 },
+      );
     }
     if (signature.status === 'SIGNED') {
-      return NextResponse.json({ alreadySigned: true });
+      // `complete` pilote le bouton de téléchargement de l'écran de succès.
+      const signedLease = await Lease.findById(signature.lease).select('signedPdfPath').lean();
+      return NextResponse.json({
+        alreadySigned: true,
+        complete: Boolean(signedLease?.signedPdfPath),
+      });
     }
 
     const lease = await Lease.findById(signature.lease)
@@ -67,7 +80,20 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
     const docs = Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
     const leaseDoc = docs.find((d: any) => d.kind === 'LEASE') || docs[0];
 
+    // Avancement global, ANONYMISÉ : rôles et statuts seulement — le signataire
+    // voit où en est la campagne sans exposer les emails des autres parties.
+    const allSignatures = await LeaseSignature.find({ lease: signature.lease })
+      .select('role status order')
+      .sort({ order: 1 })
+      .lean();
+    const parties = allSignatures.map((s: any) => ({
+      role: s.role,
+      signed: s.status === 'SIGNED',
+      you: String(s._id) === String(signature._id),
+    }));
+
     return NextResponse.json({
+      parties,
       signer: {
         fullName: signature.fullName,
         email: signature.email,

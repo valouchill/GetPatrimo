@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
-import { withErrorHandler } from '@/lib/with-error-handler';
+import { withErrorHandler, withFeatureGuard } from '@/lib/with-error-handler';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -16,7 +16,7 @@ const Inspection = require('@/models/Inspection');
  * POST /api/inspections/[id]/photos
  * Upload a photo for a specific room in an inspection.
  */
-export const POST = withErrorHandler(async (
+const _POST = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
@@ -84,3 +84,7 @@ export const POST = withErrorHandler(async (
 
   return NextResponse.json({ success: true, data: { url, fileName } });
 });
+
+// Le module EDL est gaté par le flag EDL : les routes renvoient 404 s'il est off
+// (helper withFeatureGuard, jusqu'ici jamais câblé → API ouvertes malgré le flag).
+export const POST = withFeatureGuard('EDL', _POST);

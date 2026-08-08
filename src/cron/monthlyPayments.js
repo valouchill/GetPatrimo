@@ -114,11 +114,25 @@ async function generateAllMonthlyPayments() {
   return report;
 }
 
+/**
+ * Relances automatiques des loyers impayés.
+ *
+ * Politique UNIQUE, alignée sur POST /api/payments/remind (lib/templates/rent-reminders.ts) :
+ *   J+5 friendly · J+15 formal · J+30 formal_notice (mise en demeure) · J+45 critical_alert (bailleur)
+ *
+ * Correctifs (le cron divergeait et cassait l'escalade) :
+ *  - il poussait `type:'EMAIL'` → determineReminderLevel() ne reconnaissait
+ *    jamais les niveaux déjà envoyés et restait bloqué sur `friendly` ;
+ *  - ses seuils (5/10/15) différaient de ceux de l'API (5/15/30/45) ;
+ *  - il ignorait User.emailPreferences.reminders (RGPD art. 21) ;
+ *  - le statut UNPAID n'était jamais posé.
+ */
 async function sendLateReminders() {
   await connectDB();
 
   const Payment = require('../../models/Payment');
   const { sendEmail, isEmailConfigured } = require('../services/emailService');
+  const { fillReminderTemplate } = require('../templates/rentReminders');
 
   if (!isEmailConfigured()) {
     logger.warn('Cron: email non configuré, relances ignorées');
@@ -126,43 +140,72 @@ async function sendLateReminders() {
   }
 
   const now = new Date();
-  const thresholds = [5, 10, 15]; // jours de retard
+  const baseUrl = (process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://maisonpatrimo.com').replace(/\/$/, '');
 
-  const pendingPayments = await Payment.find({
-    status: 'PENDING',
-  }).populate('tenant', 'email firstName lastName').lean();
+  function determineReminderLevel(daysLate, alreadySent) {
+    if (daysLate >= 45 && !alreadySent.includes('critical_alert')) return 'critical_alert';
+    if (daysLate >= 30 && !alreadySent.includes('formal_notice')) return 'formal_notice';
+    if (daysLate >= 15 && !alreadySent.includes('formal')) return 'formal';
+    if (daysLate >= 5 && !alreadySent.includes('friendly')) return 'friendly';
+    return null;
+  }
+
+  const pendingPayments = await Payment.find({ status: { $in: ['PENDING', 'LATE', 'PARTIAL'] } })
+    .populate('tenant', 'email firstName lastName emailPreferences')
+    .populate('owner', 'email firstName lastName')
+    .populate('property', 'address name')
+    .lean();
 
   let sent = 0;
 
   for (const payment of pendingPayments) {
     const daysLate = Math.floor((now - new Date(payment.createdAt)) / (1000 * 60 * 60 * 24));
+    const alreadySent = (payment.remindersSent || []).map((r) => r.type);
+    const level = determineReminderLevel(daysLate, alreadySent);
+    if (!level) continue;
 
-    // Envoyer une relance à J+5, J+10, J+15
-    const shouldRemind = thresholds.some(threshold => {
-      const alreadySent = (payment.remindersSent || []).some(r =>
-        Math.floor((new Date(r.date) - new Date(payment.createdAt)) / (1000 * 60 * 60 * 24)) >= threshold - 1
-        && Math.floor((new Date(r.date) - new Date(payment.createdAt)) / (1000 * 60 * 60 * 24)) <= threshold + 1
-      );
-      return daysLate >= threshold && !alreadySent;
-    });
+    // critical_alert : destinataire = le BAILLEUR (alerte, pas relance locataire).
+    const toOwner = level === 'critical_alert';
+    const recipientUser = toOwner ? payment.owner : payment.tenant;
+    const recipient = recipientUser?.email;
+    if (!recipient) continue;
 
-    if (!shouldRemind || !payment.tenant?.email) continue;
+    // RGPD art. 21 : opposition aux emails de relance (locataire uniquement).
+    if (!toOwner && recipientUser?.emailPreferences?.reminders === false) continue;
 
     try {
-      const tenantName = `${payment.tenant.firstName || ''} ${payment.tenant.lastName || ''}`.trim() || 'Locataire';
       const months = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-      const periodLabel = `${months[payment.period.month]} ${payment.period.year}`;
+      const filled = fillReminderTemplate(level, {
+        prenom: payment.tenant?.firstName || 'Locataire',
+        nom: payment.tenant?.lastName || '',
+        adresse: payment.property?.address || payment.property?.name || 'votre logement',
+        mois: `${months[payment.period?.month] || ''} ${payment.period?.year || ''}`.trim(),
+        // Paiement partiel : on réclame le SOLDE, jamais le total déjà
+        // partiellement réglé (une mise en demeure pour 1000 € alors que 950 €
+        // ont été payés est juridiquement fausse et commercialement violente).
+        montant: `${Math.max(0, Number(payment.amounts?.totalTTC || 0) - Number(payment.amounts?.paidAmount || 0)).toLocaleString('fr-FR')} €`,
+        jours_retard: String(daysLate),
+        date_rappel: new Date(payment.remindersSent?.[0]?.date || payment.createdAt).toLocaleDateString('fr-FR'),
+      });
 
       await sendEmail({
-        to: payment.tenant.email,
-        subject: `Rappel — Loyer ${periodLabel} en attente`,
-        text: `Bonjour ${tenantName},\n\nNous vous rappelons que le loyer de ${periodLabel} (${payment.amounts.totalTTC.toFixed(2)} €) n'a pas encore été confirmé.\n\nMerci de procéder au règlement dès que possible.\n\nCordialement,\nMaison Patrimo`,
+        to: recipient,
+        subject: filled.subject,
+        text: `${filled.body}\n\n---\nSe désinscrire : ${baseUrl}/api/user/unsubscribe?category=reminders`,
       });
 
       await Payment.findByIdAndUpdate(payment._id, {
-        $push: { remindersSent: { date: now, type: 'EMAIL' } },
-        status: daysLate >= 15 ? 'LATE' : 'PENDING',
+        $push: { remindersSent: { date: now, type: level } },
+        // UNPAID au-delà de 45 j : l'état n'était jamais écrit nulle part.
+        // On NE dégrade PAS un paiement partiel : écraser PARTIAL en LATE/UNPAID
+        // perdait l'information « il a déjà payé une partie » et le renvoyait en
+        // boucle dans les relances ET dans les propositions de rapprochement.
+        $set: {
+          status: payment.status === 'PARTIAL'
+            ? 'PARTIAL'
+            : daysLate >= 45 ? 'UNPAID' : daysLate >= 15 ? 'LATE' : payment.status,
+        },
       });
 
       sent++;

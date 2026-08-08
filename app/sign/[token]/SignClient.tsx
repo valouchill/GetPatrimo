@@ -26,6 +26,11 @@ interface SignerInfo {
   role: 'OWNER' | 'TENANT' | 'COTENANT' | 'GUARANTOR';
   otpVerified: boolean;
 }
+interface PartyInfo {
+  role: 'OWNER' | 'TENANT' | 'COTENANT' | 'GUARANTOR';
+  signed: boolean;
+  you: boolean;
+}
 interface LeaseInfo {
   tenantName: string;
   address: string;
@@ -45,6 +50,15 @@ const ROLE_LABEL: Record<string, string> = {
   GUARANTOR: 'garant',
 };
 
+const LEASE_TYPE_LABEL: Record<string, string> = {
+  FURNISHED: 'Meublé',
+  UNFURNISHED: 'Non meublé',
+  MOBILITY: 'Bail mobilité',
+  MEUBLE: 'Meublé',
+  VIDE: 'Non meublé',
+  MOBILITE: 'Bail mobilité',
+};
+
 function euro(n?: number): string {
   return typeof n === 'number' ? `${n.toLocaleString('fr-FR')} €` : '—';
 }
@@ -56,11 +70,17 @@ export function SignClient({ token }: { token: string }) {
   const [lease, setLease] = useState<LeaseInfo | null>(null);
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [done, setDone] = useState<{ complete: boolean } | null>(null);
+  const [parties, setParties] = useState<PartyInfo[]>([]);
+  const [expiredLink, setExpiredLink] = useState(false);
 
   const [step, setStep] = useState<'read' | 'otp' | 'sign'>('read');
   const [otpSent, setOtpSent] = useState(false);
+  const [otpFeedback, setOtpFeedback] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [hasReadConfirmed, setHasReadConfirmed] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -74,11 +94,14 @@ export function SignClient({ token }: { token: string }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error || 'Lien invalide.');
+        setExpiredLink(data?.reason === 'expired');
       } else if (data.alreadySigned) {
         setAlreadySigned(true);
+        if (data.complete) setDone({ complete: true });
       } else {
         setSigner(data.signer);
         setLease(data.lease);
+        setParties(Array.isArray(data.parties) ? data.parties : []);
         if (data.signer?.otpVerified) setStep('sign');
       }
     } catch {
@@ -103,13 +126,22 @@ export function SignClient({ token }: { token: string }) {
     return data;
   }
 
-  async function handleSendOtp() {
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = window.setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [resendCooldown]);
+
+  async function handleSendOtp(isResend = false) {
     setBusy(true);
     setError(null);
+    setOtpFeedback(null);
     try {
       await post('send-otp');
       setOtpSent(true);
       setStep('otp');
+      setResendCooldown(45);
+      if (isResend) setOtpFeedback(`Code renvoyé à ${signer?.email || 'votre adresse'}.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
     } finally {
@@ -150,8 +182,14 @@ export function SignClient({ token }: { token: string }) {
 
   // ── Canvas ──
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    // Le buffer fait 520×200 mais le canvas est affiché en w-full : sans mise à
+    // l'échelle, le trait était décalé et étiré sur mobile.
+    const c = canvasRef.current!;
+    const rect = c.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (c.width / rect.width),
+      y: (e.clientY - rect.top) * (c.height / rect.height),
+    };
   }
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
     drawing.current = true;
@@ -196,10 +234,14 @@ export function SignClient({ token }: { token: string }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
         <div className="max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center">
-          <p className="font-serif text-xl font-bold text-emerald-950">Lien indisponible</p>
-          <p className="mt-2 text-sm text-slate-600">{error}</p>
-          <p className="mt-4 text-xs text-slate-400">
-            Demandez un nouveau lien au bailleur — les liens de signature expirent après 7 jours.
+          <p className="font-serif text-xl font-bold text-emerald-950">
+            {expiredLink ? 'Lien expiré' : 'Lien indisponible'}
+          </p>
+          <p className="mt-2 text-sm text-slate-600" role="alert">{error}</p>
+          <p className="mt-4 text-sm text-slate-600">
+            {expiredLink
+              ? 'Les liens de signature sont valables 7 jours. Demandez au bailleur de vous renvoyer un nouveau lien — il le fait en un clic depuis son espace.'
+              : 'Ouvrez le lien directement depuis votre email, ou demandez au bailleur de vous le renvoyer.'}
           </p>
         </div>
       </div>
@@ -219,7 +261,23 @@ export function SignClient({ token }: { token: string }) {
               ? 'Le contrat définitif, accompagné de son certificat de signature, est disponible pour toutes les parties.'
               : 'Merci ! Les autres signataires ont été invités à signer à leur tour. Vous recevrez le contrat définitif une fois toutes les signatures recueillies.'}
           </p>
-          <p className="mt-5 text-[11px] leading-relaxed text-slate-400">
+          {done?.complete && (
+            <a
+              href={`/api/public/sign/${encodeURIComponent(token)}/document`}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-bold text-white"
+            >
+              <FileText className="h-4 w-4" />
+              Télécharger le contrat signé (PDF)
+            </a>
+          )}
+          <p className="mt-2 text-xs text-slate-500">
+            {done?.complete
+              ? 'Votre exemplaire vous a également été envoyé par email.'
+              : parties.filter((p) => !p.signed && !p.you).length > 0
+                ? `En attente : ${parties.filter((p) => !p.signed && !p.you).map((p) => ROLE_LABEL[p.role]).join(', ')}.`
+                : ''}
+          </p>
+          <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
             Signature électronique horodatée, conforme à l&rsquo;article 1367 du Code civil
             (règlement eIDAS). Une copie du certificat de preuve est jointe au contrat.
           </p>
@@ -288,41 +346,108 @@ export function SignClient({ token }: { token: string }) {
               </dd>
             </div>
           </dl>
-          {lease?.documentUrl && (
-            <a
-              href={lease.documentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900"
-            >
-              <FileText className="h-4 w-4" />
-              Lire le contrat en entier (PDF)
-            </a>
+          <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 text-sm">
+            <div>
+              <dt className="text-[11px] text-slate-500">Durée</dt>
+              <dd className="font-semibold text-slate-900">
+                {lease?.durationMonths ? `${lease.durationMonths} mois` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] text-slate-500">Type de bail</dt>
+              <dd className="font-semibold text-slate-900">
+                {LEASE_TYPE_LABEL[lease?.leaseType || ''] || lease?.leaseType || '—'}
+              </dd>
+            </div>
+          </dl>
+
+          {parties.length > 1 && (
+            <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
+              Signatures : {parties.filter((p) => p.signed).length}/{parties.length}
+              {parties.some((p) => !p.signed && !p.you)
+                ? ` — signeront après vous : ${parties.filter((p) => !p.signed && !p.you).map((p) => ROLE_LABEL[p.role]).join(', ')}`
+                : ''}
+            </p>
+          )}
+
+          {lease?.documentUrl ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowPdfViewer((v) => !v)}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900"
+              >
+                <FileText className="h-4 w-4" />
+                {showPdfViewer ? 'Replier le contrat' : 'Lire le contrat en entier'}
+              </button>
+              {showPdfViewer && (
+                <>
+                  {/* Lecture SANS quitter la page : quitter = perdre le signataire */}
+                  <iframe
+                    src={lease.documentUrl}
+                    title="Contrat de bail"
+                    className="mt-3 h-[60vh] w-full rounded-xl border border-slate-200 bg-white"
+                  />
+                  <a
+                    href={lease.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 block text-center text-xs text-slate-500 underline"
+                  >
+                    Ouvrir dans un nouvel onglet
+                  </a>
+                </>
+              )}
+            </>
+          ) : (
+            <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
+              Le document n&rsquo;est pas encore disponible — contactez votre bailleur avant de signer.
+            </p>
           )}
         </div>
 
         {error && (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200">
+          <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200">
             {error}
           </p>
         )}
 
         {/* Étape 1 → 2 */}
         {step === 'read' && (
-          <button
-            type="button"
-            onClick={handleSendOtp}
-            disabled={busy}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-4 text-sm font-bold text-white disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-            J&rsquo;ai lu le contrat — recevoir mon code
-          </button>
+          <div className="mt-5">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={hasReadConfirmed}
+                onChange={(e) => setHasReadConfirmed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-emerald-700"
+              />
+              <span>
+                Je reconnais avoir pris connaissance de l&rsquo;intégralité du contrat de bail et de
+                ses annexes.
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={() => handleSendOtp()}
+              disabled={busy || !hasReadConfirmed || !lease?.documentUrl}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-4 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              Recevoir mon code de signature
+            </button>
+          </div>
         )}
 
         {/* Étape 2 : OTP */}
         {step === 'otp' && (
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+          <form
+            className="mt-5 rounded-2xl border border-slate-200 bg-white p-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!busy && code.length === 6) handleVerify();
+            }}
+          >
             <p className="text-sm text-slate-700">
               Un code à 6 chiffres vient d&rsquo;être envoyé à <strong>{signer?.email}</strong>.
               Il vaut consentement à signer.
@@ -330,6 +455,9 @@ export function SignClient({ token }: { token: string }) {
             <input
               type="text"
               inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              aria-label="Code de confirmation à 6 chiffres"
               maxLength={6}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
@@ -337,23 +465,28 @@ export function SignClient({ token }: { token: string }) {
               className="mt-3 w-full rounded-xl border-2 border-slate-200 py-3.5 text-center text-2xl font-bold tracking-[0.4em] text-slate-900 outline-none focus:border-emerald-400"
             />
             <button
-              type="button"
-              onClick={handleVerify}
+              type="submit"
               disabled={busy || code.length < 6}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-bold text-white disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
               Valider le code
             </button>
+            {otpFeedback && (
+              <p className="mt-2 text-center text-xs text-emerald-700" role="status">{otpFeedback}</p>
+            )}
             <button
               type="button"
-              onClick={handleSendOtp}
-              disabled={busy}
-              className="mt-2 w-full text-xs text-slate-500 underline"
+              onClick={() => handleSendOtp(true)}
+              disabled={busy || resendCooldown > 0}
+              className="mt-2 w-full text-xs text-slate-500 underline disabled:no-underline disabled:opacity-60"
             >
-              {otpSent ? 'Renvoyer le code' : 'Envoyer le code'}
+              {resendCooldown > 0 ? `Renvoyer le code (${resendCooldown} s)` : 'Renvoyer le code'}
             </button>
-          </div>
+            <p className="mt-1.5 text-center text-[11px] text-slate-500">
+              Pas reçu ? Vérifiez vos courriers indésirables.
+            </p>
+          </form>
         )}
 
         {/* Étape 3 : signature */}
@@ -367,6 +500,8 @@ export function SignClient({ token }: { token: string }) {
               ref={canvasRef}
               width={520}
               height={200}
+              aria-label="Zone de signature manuscrite — tracez votre signature au doigt ou à la souris"
+              role="img"
               onPointerDown={down}
               onPointerMove={move}
               onPointerUp={up}
@@ -392,7 +527,7 @@ export function SignClient({ token }: { token: string }) {
           </div>
         )}
 
-        <p className="mt-6 flex items-start gap-2 text-[11px] leading-relaxed text-slate-400">
+        <p className="mt-6 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
           Signature électronique simple (règlement eIDAS, art. 1367 C. civ.) : votre consentement
           est recueilli par code email, la signature est horodatée et l&rsquo;empreinte du document

@@ -107,6 +107,7 @@ export default function OwnerDashboardClient() {
     freeTrial?: { used: number; limit: number } | null;
     pilotPendingAudits?: number;
     accountType?: 'B2C' | 'B2B';
+    management?: { offerLive?: boolean; anyActive?: boolean; upsellPropertyId?: string | null };
     hasPaidProperty?: boolean;
   }>({ financial: null, kpis: null, alerts: [], recentEvents: [], freeTrial: null, hasPaidProperty: false });
 
@@ -884,7 +885,7 @@ export default function OwnerDashboardClient() {
         )}
 
         {/* ─ LOYERS & QUITTANCES ─ */}
-        {page === 'loyers' && isEnabled('RECEIPTS') && <LoyersPanel />}
+        {page === 'loyers' && isEnabled('RECEIPTS') && <LoyersPanel management={dashData.management} />}
 
         {/* ─ ÉTATS DES LIEUX ─ */}
         {page === 'edl' && isEnabled('EDL') && (

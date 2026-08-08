@@ -20,8 +20,10 @@
 import * as React from 'react';
 import {
   Bell,
+  BellRing,
   FileCheck,
   ShieldAlert,
+  Wallet,
   Sparkles,
   Star,
   type LucideIcon,
@@ -32,7 +34,7 @@ import { useNotifications } from '../NotificationsContext';
 // ─── Types ───────────────────────────────────────────────────────────────
 
 export type NotificationType = 'ALERT' | 'SUCCESS' | 'INFO';
-export type NotificationIcon = 'ShieldAlert' | 'FileCheck' | 'Star';
+export type NotificationIcon = 'ShieldAlert' | 'FileCheck' | 'Star' | 'Wallet' | 'BellRing';
 
 export interface AINotification {
   /** ID opaque string (ex: "alert-69aed9da", "lease-69ae88bd") */
@@ -51,6 +53,8 @@ const ICON_MAP: Record<NotificationIcon, LucideIcon> = {
   ShieldAlert,
   FileCheck,
   Star,
+  Wallet,
+  BellRing,
 };
 
 // ─── Mock data V1 ────────────────────────────────────────────────────────

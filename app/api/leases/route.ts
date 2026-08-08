@@ -61,6 +61,29 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Verify property ownership
   const property = await Property.findOne({ _id: data.propertyId, user: user._id }).lean();
+
+  // Colocation + Visale : copiés depuis le DOSSIER côté serveur (le client ne
+  // les envoie pas). Lease.coTenants alimente les variables plurielles du bail
+  // ET la file de signature séquentielle ; guarantor.visaleNumber exclut le
+  // garant Visale des signataires (la garantie est portée par Action Logement).
+  let appCoTenants: Array<{ firstName: string; lastName: string; email: string; phone: string }> = [];
+  let appVisaleNumber = '';
+  if (data.applicationId) {
+    const Application = require('@/models/Application');
+    const app = await Application.findOne({ _id: data.applicationId, property: data.propertyId })
+      .select('coTenants guarantee guarantor')
+      .lean()
+      .catch(() => null);
+    if (app) {
+      appCoTenants = (Array.isArray(app.coTenants) ? app.coTenants : []).map((ct: any) => ({
+        firstName: ct?.didit?.identityData?.firstName || ct?.firstName || '',
+        lastName: ct?.didit?.identityData?.lastName || ct?.lastName || '',
+        email: ct?.email || '',
+        phone: ct?.phone || '',
+      })).filter((ct: any) => ct.email || ct.firstName);
+      appVisaleNumber = app.guarantee?.visaleNumber || app.guarantee?.visale?.visaleNumber || '';
+    }
+  }
   if (!property) {
     return NextResponse.json({ error: 'Bien introuvable ou non autorisé' }, { status: 404 });
   }
@@ -74,6 +97,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     user: user._id,
     property: data.propertyId,
     applicationId: data.applicationId || undefined,
+    ...(appCoTenants.length > 0 && { coTenants: appCoTenants }),
+    ...(appVisaleNumber && { guarantor: { visaleNumber: appVisaleNumber } }),
     candidature: data.candidatureId || undefined,
     source: 'FLOW',
     leaseStatus: 'DRAFT',

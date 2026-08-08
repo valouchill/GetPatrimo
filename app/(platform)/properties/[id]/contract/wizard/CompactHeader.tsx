@@ -67,7 +67,11 @@ export function CompactHeader({
           </span>
 
           <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2"
+              role="img"
+              aria-label={`${filledCount} champs du bail remplis sur ${totalCount}`}
+            >
               <ProgressRing filled={filledCount} total={totalCount} />
               <span className="hidden lg:block text-xs text-slate-500">
                 {filledCount}/{totalCount}
@@ -75,6 +79,17 @@ export function CompactHeader({
             </div>
           </div>
         </div>
+
+        {/* Mobile : le contexte (locataire, type de bail, compteur) était
+            entièrement masqué sous sm — seul un anneau sans libellé restait. */}
+        {(tenantName || leaseType) && (
+          <div className="flex items-center gap-2 border-t border-slate-100 px-4 pb-2 pt-1.5 text-xs text-slate-500 sm:hidden">
+            {tenantName && <span className="min-w-0 truncate font-medium text-slate-700">{tenantName}</span>}
+            {tenantName && <span aria-hidden="true">·</span>}
+            <span>{LEASE_LABELS[leaseType] || leaseType}</span>
+            <span className="ml-auto tabular-nums">{filledCount}/{totalCount} champs</span>
+          </div>
+        )}
       </header>
 
       {selectionRequired ? (

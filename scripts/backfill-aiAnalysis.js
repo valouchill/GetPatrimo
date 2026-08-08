@@ -15,7 +15,12 @@ require('../models/Application');
 const { deriveApplicationFinancialProfile } = require('../src/utils/financialExtraction');
 const { getDocumentCertificationDecision } = require('../src/utils/documentCertificationRules');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://admin:password123@mongodb:27017/doc2loc?authSource=admin';
+// Sécurité : jamais de credentials en dur (repli supprimé) — échec explicite si absent.
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('MONGO_URI manquant — définissez-le dans l\'environnement.');
+  process.exit(1);
+}
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const UPLOADS_DIR = '/opt/doc2loc';
 

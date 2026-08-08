@@ -42,7 +42,8 @@ export default function CGV() {
           <h2 className="text-lg font-semibold text-slate-900 mb-2">2. Offres et prix</h2>
           <p>
             Les services sont commercialisés sous forme d&apos;<strong>offres à paiement unique</strong>
-            {' '}(sans abonnement ni reconduction), achetées <strong>par logement</strong> :
+            {' '}(sans reconduction), achetées <strong>par logement</strong> — auxquelles s&apos;ajoute
+            l&apos;abonnement facultatif « Gestion locative » décrit à l&apos;article 2 bis :
           </p>
           <ul className="list-disc pl-6 space-y-1 mt-2">
             <li>
@@ -79,6 +80,40 @@ export default function CGV() {
             Maison Patrimo se réserve le droit de modifier ses prix à tout moment ; l&apos;offre
             applicable est celle en vigueur au moment de la commande, telle qu&apos;affichée sur la page
             de commande.
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">
+            2 bis. Abonnement « Gestion locative » (offre facultative)
+          </h2>
+          <p>
+            En complément des offres à paiement unique, l&apos;utilisateur peut souscrire un
+            abonnement <strong>« Gestion locative » au prix de 4,99 € TTC par mois et par
+            logement</strong> (TVA française de 20 % incluse). Il donne accès aux modules de
+            gestion : génération et signature électronique du contrat de bail, suivi des loyers,
+            quittances et relances automatiques, états des lieux d&apos;entrée et de sortie.
+          </p>
+          <p className="mt-2">
+            <strong>Durée et reconduction.</strong> L&apos;abonnement est conclu pour une durée
+            d&apos;un mois, <strong>reconduit tacitement</strong> chaque mois par prélèvement
+            automatique via Stripe, tant qu&apos;il n&apos;est pas résilié.
+          </p>
+          <p className="mt-2">
+            <strong>Résiliation.</strong> L&apos;utilisateur peut résilier <strong>à tout moment,
+            sans frais ni préavis</strong>, directement depuis son espace client (fonctionnalité de
+            résiliation en ligne, art. L215-1-1 du Code de la consommation) ou par simple email à
+            contact@maisonpatrimo.com. La résiliation prend effet à la fin de la période mensuelle
+            en cours, déjà réglée ; aucun remboursement au prorata n&apos;est dû. Les documents déjà
+            générés (baux signés, quittances, états des lieux) restent accessibles et téléchargeables.
+            <strong> Les crédits d&apos;audit achetés séparément ne sont jamais affectés par la
+            résiliation de l&apos;abonnement.</strong>
+          </p>
+          <p className="mt-2">
+            <strong>Rétractation.</strong> Le consommateur dispose de quatorze (14) jours pour se
+            rétracter de la souscription (art. L221-18) ; s&apos;il a demandé l&apos;exécution
+            immédiate du service, il est redevable du montant correspondant au service fourni
+            jusqu&apos;à sa décision de se rétracter (art. L221-25).
           </p>
         </div>
 

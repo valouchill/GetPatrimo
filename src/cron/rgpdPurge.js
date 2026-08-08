@@ -199,36 +199,49 @@ async function purgeNonSelectedApplications(report) {
 /**
  * 3. Purge des données biométriques Didit après vérification
  */
+// Rétention légale de l'identité KYC après vérification (art. 5 RGPD, minimisation).
+// Au-delà, on efface nom/prénom/date de naissance ; la preuve de vérification
+// (humanVerified, verifiedAt) est conservée sans donnée personnelle.
+const IDENTITY_RETENTION_DAYS = 90;
+
 async function purgeDiditBiometricData(report) {
   const IdentitySession = require('../../models/IdentitySession');
 
-  // Sessions Didit terminées (vérifiées ou expirées) non encore purgées
+  const cutoff = new Date(Date.now() - IDENTITY_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
+  // Sessions Didit terminées et anciennes, encore porteuses d'identité en clair.
+  // Correctifs (audit) : (a) statut comparé en insensible à la casse — le webhook
+  // écrit 'approved'/'declined' en minuscules, l'ancien filtre en MAJUSCULES ne
+  // matchait JAMAIS ; (b) on cible les VRAIS champs (firstName/lastName/birthDate),
+  // pas des `verificationData.*` inexistants dans le schéma.
   const sessions = await IdentitySession.find({
-    status: { $in: ['VERIFIED', 'APPROVED', 'DECLINED', 'EXPIRED'] },
-    biometricPurged: { $ne: true },
+    status: { $in: [/^approved$/i, /^declined$/i, /^expired$/i, /^verified$/i] },
+    $or: [
+      { firstName: { $nin: ['', null] } },
+      { lastName: { $nin: ['', null] } },
+      { birthDate: { $nin: ['', null] } },
+    ],
+    $and: [{ $or: [{ verifiedAt: { $lte: cutoff } }, { verifiedAt: null, updatedAt: { $lte: cutoff } }] }],
   });
 
   for (const session of sessions) {
     try {
-      // Supprimer les données biométriques brutes (selfie, liveness data)
+      // Efface l'identité en clair ; conserve la preuve de vérification.
       await IdentitySession.updateOne(
         { _id: session._id },
         {
           $set: {
-            biometricPurged: true,
+            firstName: '',
+            lastName: '',
+            birthDate: '',
             biometricPurgedAt: new Date(),
           },
-          $unset: {
-            'verificationData.selfie': '',
-            'verificationData.livenessData': '',
-            'verificationData.faceMatch': '',
-            'verificationData.rawResponse': '',
-          },
-        }
+        },
+        { strict: false }, // biometricPurgedAt hors schéma : forcer l'écriture
       );
 
       report.diditDataPurged += 1;
-      logger.info('[RGPD] Donnees biometriques purgees', { sessionId: session._id });
+      logger.info('[RGPD] Identite KYC purgee (retention depassee)', { sessionId: session._id });
     } catch (err) {
       const msg = `Erreur purge biométrique session ${session._id}: ${err.message}`;
       report.errors.push(msg);

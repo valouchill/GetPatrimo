@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaseSchema } from "@/lib/schemas/lease";
 import { CompactHeader } from "./wizard/CompactHeader";
@@ -8,7 +9,7 @@ import { ContractPreview } from "./wizard/ContractPreview";
 import { SmartLeaseEditor } from "./wizard/SmartLeaseEditor";
 import { DocumentCards } from "./wizard/DocumentCards";
 import { LeaseFooter } from "./wizard/LeaseFooter";
-import { useLeaseVariables } from "./wizard/useLeaseVariables";
+import { FORM_TO_VARS, useLeaseVariables } from "./wizard/useLeaseVariables";
 import { useFormCompletion } from "./wizard/useFormCompletion";
 import type {
   ApplicationRecord,
@@ -103,6 +104,8 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const [saveError, setSaveError] = useState("");
   const [savedLeaseId, setSavedLeaseId] = useState("");
   const [signatureStatus, setSignatureStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [signatureError, setSignatureError] = useState("");
+  const [signatureResult, setSignatureResult] = useState<{ signers?: number; firstSentTo?: string | null; inviteSent?: boolean } | null>(null);
   const [activeTab, setActiveTab] = useState<"editeur" | "rendu">("editeur");
 
   const explicitApplicationId = searchParams.get("applicationId") || searchParams.get("tenantId") || "";
@@ -350,6 +353,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const handleLaunchSignature = async () => {
     if (!savedLeaseId) return;
     setSignatureStatus("loading");
+    setSignatureError("");
     try {
       // Signature électronique INTERNE (eIDAS simple : lien personnel + code
       // email + horodatage + empreinte SHA-256 + certificat annexé au PDF).
@@ -360,9 +364,12 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Impossible de lancer la signature");
+      // On affiche À QUI part le lien et la suite — l'ancienne version
+      // redirigeait aveuglément (échec d'email invisible, destinataires inconnus).
+      setSignatureResult({ signers: data.signers, firstSentTo: data.firstSentTo, inviteSent: data.inviteSent });
       setSignatureStatus("success");
-      window.setTimeout(() => router.push("/dashboard/owner?tab=baux"), 2000);
-    } catch {
+    } catch (error) {
+      setSignatureError(error instanceof Error ? error.message : "Impossible de lancer la signature");
       setSignatureStatus("error");
     }
   };
@@ -381,6 +388,18 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
   const { canCompile: formComplete, missingRequired } = useFormCompletion(formData, hasGuarantor);
   const canCompile = Boolean(activeTenant) && !contractLocked && !selectionRequired && formComplete;
 
+  // Champs obligatoires manquants → noms de variables à surligner en rouge
+  // dans l'aperçu (la prop existait dans ContractPreview mais n'était jamais
+  // alimentée : rien ne ressortait en « Requis »).
+  const requiredVarNames = useMemo(
+    () => new Set(missingRequired.flatMap((m) => FORM_TO_VARS[m.field] || [])),
+    [missingRequired],
+  );
+  const verifiedVarNames = useMemo(
+    () => new Set(preview.verifiedVariables),
+    [preview.verifiedVariables],
+  );
+
   return (
     <div className="min-h-screen bg-slate-50">
       <CompactHeader
@@ -394,6 +413,19 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         contractLocked={contractLocked}
         onBack={handleBack}
       />
+
+      {/* L'argument de vente n°1, enfin visible : le bail se remplit tout seul
+          depuis le dossier vérifié. */}
+      {preview.initialFilledCount > 0 && !selectionRequired && !contractLocked && (
+        <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50/70 px-4 py-2 text-xs text-emerald-900 sm:px-6">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+          <span>
+            <strong>{preview.initialFilledCount} champs remplis automatiquement</strong> depuis le
+            dossier{verifiedVarNames.size > 0 ? " et l'identité vérifiée eIDAS" : " vérifié"}
+            {tenantName ? ` de ${tenantName}` : ""} — relisez, complétez, signez.
+          </span>
+        </div>
+      )}
 
       {/* Desktop: split-view 35/65 (editor LEFT, preview RIGHT) */}
       <div className="hidden lg:grid" style={{ height: "calc(100vh - 56px - 73px)", gridTemplateColumns: "35fr 65fr" }}>
@@ -412,6 +444,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             formData={formData}
             hasGuarantor={hasGuarantor}
             mergeData={preview.mergeData}
+            resolvedGuarantor={preview.resolvedGuarantor}
             onFieldChange={handleFieldChange}
             onDepositChange={handleDepositChange}
             onReturnToComparison={handleReturnToComparison}
@@ -436,6 +469,11 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             isLoading={preview.isLoading}
             formData={formData}
             onFieldChange={handleFieldChange}
+            requiredVarNames={requiredVarNames}
+            verifiedVarNames={verifiedVarNames}
+            warnings={preview.warnings}
+            error={preview.error}
+            onRetry={preview.refetch}
           />
         </div>
       </div>
@@ -467,7 +505,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
           </button>
         </div>
 
-        <div className="pb-24">
+        <div className="pb-40">
           {activeTab === "editeur" ? (
             <div className="p-4">
               <SmartLeaseEditor
@@ -483,6 +521,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
                 formData={formData}
                 hasGuarantor={hasGuarantor}
                 mergeData={preview.mergeData}
+                resolvedGuarantor={preview.resolvedGuarantor}
                 onFieldChange={handleFieldChange}
                 onDepositChange={handleDepositChange}
                 onReturnToComparison={handleReturnToComparison}
@@ -506,6 +545,11 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
                 isLoading={preview.isLoading}
                 formData={formData}
                 onFieldChange={handleFieldChange}
+                requiredVarNames={requiredVarNames}
+                verifiedVarNames={verifiedVarNames}
+                warnings={preview.warnings}
+                error={preview.error}
+                onRetry={preview.refetch}
               />
             </div>
           )}
@@ -522,10 +566,14 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
         missingRequired={missingRequired}
         leaseId={savedLeaseId}
         signatureStatus={signatureStatus}
+        signatureError={signatureError}
+        signatureResult={signatureResult}
+        tenantEmail={tenantEmail}
         onCompile={handleCompile}
         onSave={handleSaveLease}
         onDownload={handleDownload}
         onLaunchSignature={handleLaunchSignature}
+        onGoToBaux={() => router.push("/dashboard/owner?tab=baux")}
       />
     </div>
   );

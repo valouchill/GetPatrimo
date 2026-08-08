@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
-import { withErrorHandler } from '@/lib/with-error-handler';
+import { withErrorHandler, withFeatureGuard } from '@/lib/with-error-handler';
 
  
 const User = require('@/models/User');
@@ -15,7 +15,40 @@ const Lease = require('@/models/Lease');
  * GET /api/inspections/[id]/compare
  * Compare an EXIT inspection with its matching ENTRY inspection.
  */
-export const GET = withErrorHandler(async (
+
+/**
+ * Échelle de vétusté normalisée (0 = neuf → 4 = hors service).
+ *
+ * Le modèle accepte DEUX vocabulaires (nouveau + legacy) mais la comparaison ne
+ * connaissait que le legacy : un état saisi « MAUVAIS_ETAT » / « HORS_SERVICE »
+ * dans le wizard n'était JAMAIS remonté comme dégradation → retenues sur dépôt
+ * silencieusement perdues.
+ */
+const CONDITION_RANK: Record<string, number> = {
+  TRES_BON: 0, GOOD: 0,
+  BON: 1,
+  USAGE_NORMAL: 2, NORMAL_WEAR: 2,
+  MAUVAIS_ETAT: 3, DEGRADED: 3,
+  HORS_SERVICE: 4, NEEDS_RENOVATION: 4,
+};
+const CONDITION_LABEL: Record<string, string> = {
+  TRES_BON: 'Très bon état', GOOD: 'Bon état',
+  BON: 'Bon état',
+  USAGE_NORMAL: 'Usage normal', NORMAL_WEAR: 'Usage normal',
+  MAUVAIS_ETAT: 'Mauvais état', DEGRADED: 'Dégradé',
+  HORS_SERVICE: 'Hors service', NEEDS_RENOVATION: 'À rénover',
+};
+function conditionRank(value?: string): number {
+  return CONDITION_RANK[String(value || 'BON').toUpperCase()] ?? 1;
+}
+/** Dégradation imputable = état détérioré ET au-delà de l'usure normale. */
+function isDegradation(entryVal?: string, exitVal?: string): boolean {
+  const from = conditionRank(entryVal);
+  const to = conditionRank(exitVal);
+  return to > from && to >= 3;
+}
+
+const _GET = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
@@ -64,16 +97,17 @@ export const GET = withErrorHandler(async (
     comment?: string;
   }) => {
     const entryRoom = entryRooms.find((r: { name: string }) => r.name === exitRoom.name);
-    const degradations: { item: string; entry: string; exit: string }[] = [];
+    const degradations: { item: string; entry: string; exit: string ; severity?: 'MEDIUM' | 'HIGH' }[] = [];
 
     for (const field of ['wallCondition', 'floorCondition', 'ceilingCondition'] as const) {
-      const entryVal = entryRoom?.[field] || 'GOOD';
-      const exitVal = exitRoom[field] || 'GOOD';
-      if (exitVal !== entryVal && (exitVal === 'DEGRADED' || exitVal === 'NEEDS_RENOVATION')) {
+      const entryVal = entryRoom?.[field] || 'BON';
+      const exitVal = exitRoom[field] || 'BON';
+      if (isDegradation(entryVal, exitVal)) {
         degradations.push({
           item: field === 'wallCondition' ? 'Murs' : field === 'floorCondition' ? 'Sol' : 'Plafond',
-          entry: entryVal,
-          exit: exitVal,
+          entry: CONDITION_LABEL[String(entryVal).toUpperCase()] || entryVal,
+          exit: CONDITION_LABEL[String(exitVal).toUpperCase()] || exitVal,
+          severity: conditionRank(exitVal) >= 4 ? 'HIGH' : 'MEDIUM',
         });
       }
     }
@@ -117,3 +151,7 @@ export const GET = withErrorHandler(async (
     },
   });
 });
+
+// Le module EDL est gaté par le flag EDL : les routes renvoient 404 s'il est off
+// (helper withFeatureGuard, jusqu'ici jamais câblé → API ouvertes malgré le flag).
+export const GET = withFeatureGuard('EDL', _GET);

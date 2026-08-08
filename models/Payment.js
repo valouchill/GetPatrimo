@@ -2,7 +2,14 @@ const mongoose = require('mongoose');
 
 const ReminderSchema = new mongoose.Schema({
   date: { type: Date, required: true, default: Date.now },
-  type: { type: String, enum: ['EMAIL', 'SMS'], required: true },
+  // Niveau d'escalade de la relance (lib/templates/rent-reminders.ts).
+  // 'EMAIL'/'SMS' conservés pour les données historiques : l'API poussait déjà
+  // les niveaux, qui étaient rejetés/hors-enum → escalade cassée.
+  type: {
+    type: String,
+    enum: ['friendly', 'formal', 'formal_notice', 'critical_alert', 'EMAIL', 'SMS'],
+    required: true,
+  },
 }, { _id: false });
 
 const PaymentSchema = new mongoose.Schema({

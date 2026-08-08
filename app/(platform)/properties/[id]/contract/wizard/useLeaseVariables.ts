@@ -4,8 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TemplateParagraph, PreviewData, LeaseFormData, CompileMeta } from './types';
 
 // Client-side mapping: form fields → template variable names
-// This allows instant preview updates without server roundtrip
-const FORM_TO_VARS: Record<string, string[]> = {
+// This allows instant preview updates without server roundtrip.
+// Exporté : LeaseWizard s'en sert pour traduire les champs obligatoires
+// manquants (useFormCompletion) en noms de variables à surligner en rouge
+// dans l'aperçu.
+export const FORM_TO_VARS: Record<string, string[]> = {
   // Core
   rentHC: ['loyer_mensuel', 'loyer_principal_chiffres', 'loyer_chiffres', 'mention_loyer_chiffres'],
   charges: ['forfait_charges_mensuel', 'charges_chiffres', 'mention_charges_chiffres', 'montant_provisions_charges'],
@@ -171,10 +174,17 @@ interface UseLeaseVariablesResult {
   rawData: Record<string, string>;
   filledCount: number;
   totalCount: number;
+  /** Compteur AVANT toute édition : « N champs remplis depuis le dossier ». */
+  initialFilledCount: number;
+  /** Variables issues d'une identité certifiée eIDAS (Didit) → badge ✓. */
+  verifiedVariables: string[];
+  /** Garant du dossier, résolu côté serveur (affiché en « Auto-rempli »). */
+  resolvedGuarantor: { firstName: string; lastName: string; email: string; birthDate: string; profession: string; verified: boolean } | null;
   warnings: string[];
   compileMeta: CompileMeta | null;
   isLoading: boolean;
   error: string;
+  refetch: () => void;
 }
 
 export function useLeaseVariables({
@@ -194,8 +204,12 @@ export function useLeaseVariables({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [verifiedVariables, setVerifiedVariables] = useState<string[]>([]);
+  const [resolvedGuarantor, setResolvedGuarantor] = useState<UseLeaseVariablesResult['resolvedGuarantor']>(null);
+  const [initialFilledCount, setInitialFilledCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFetchKeyRef = useRef('');
+  const initialCountCapturedRef = useRef('');
 
   // Full server fetch
   const fetchPreview = useCallback(async (fd: LeaseFormData) => {
@@ -229,6 +243,14 @@ export function useLeaseVariables({
       setRawData(data.rawData || {});
       setTotalCount(data.totalVariables || 0);
       setServerFilledCount(data.filledVariables || 0);
+      setVerifiedVariables((data as { verifiedVariables?: string[] }).verifiedVariables || []);
+      setResolvedGuarantor((data as { resolvedGuarantor?: UseLeaseVariablesResult['resolvedGuarantor'] }).resolvedGuarantor || null);
+      // Le compteur « pré-rempli automatiquement » est celui de la PREMIÈRE
+      // réponse pour ce locataire (avant toute édition du bailleur).
+      if (initialCountCapturedRef.current !== fetchKey) {
+        initialCountCapturedRef.current = fetchKey;
+        setInitialFilledCount(data.filledVariables || 0);
+      }
       setWarnings(data.warnings || []);
       setCompileMeta(data.compileMeta || null);
       lastFetchKeyRef.current = fetchKey;
@@ -280,9 +302,13 @@ export function useLeaseVariables({
     rawData,
     filledCount,
     totalCount,
+    initialFilledCount,
+    verifiedVariables,
+    resolvedGuarantor,
     warnings,
     compileMeta,
     isLoading,
     error,
+    refetch: () => fetchPreview(formData),
   };
 }

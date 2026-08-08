@@ -89,22 +89,17 @@ function mapStatusToAudit(status?: string, flagged?: boolean): string {
 
 function extractAiInsights(doc: AppDocument) {
   const ai = doc.aiAnalysis || {};
-  let extractedFields: Record<string, unknown> = {};
-  const raw = ai.extractedFields as unknown;
-  if (raw && typeof raw === 'object') {
-    if (raw instanceof Map) {
-      extractedFields = Object.fromEntries(raw);
-    } else {
-      extractedFields = raw as Record<string, unknown>;
-    }
-  }
+  // Sécurité (audit sécu) : cet endpoint est PUBLIC (jeton porteur partagé avec
+  // les bailleurs, intégré dans le PDF passeport). On N'EXPOSE PAS les champs
+  // OCR bruts (`extractedFields` : salaire, employeur, n° fiscal, identité) —
+  // même politique que la route document/[docId]. Seules les métadonnées de
+  // confiance/fraude sont retournées.
   return {
     documentType: typeof ai.documentType === 'string' ? ai.documentType : null,
     confidence: typeof ai.confidence === 'number' ? ai.confidence : null,
     summary: typeof ai.summary === 'string' ? ai.summary : null,
     fraudScore: typeof ai.fraudScore === 'number' ? ai.fraudScore : null,
     flags: Array.isArray(ai.flags) ? ai.flags.filter((f) => typeof f === 'string') : [],
-    extractedFields,
   };
 }
 

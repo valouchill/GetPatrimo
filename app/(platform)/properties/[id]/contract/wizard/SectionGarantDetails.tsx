@@ -2,13 +2,24 @@
 
 import type { ApplicationRecord, LeaseFormData } from "./types";
 
+export interface ResolvedGuarantor {
+  firstName: string;
+  lastName: string;
+  email: string;
+  birthDate: string;
+  profession: string;
+  verified: boolean;
+}
+
 interface Props {
   formData: LeaseFormData;
   selectedApplication: ApplicationRecord | null;
   onFieldChange: (field: string, value: string | number | boolean) => void;
+  /** Garant résolu depuis le dossier (preview serveur) — évite la re-saisie. */
+  resolvedGuarantor?: ResolvedGuarantor | null;
 }
 
-export function SectionGarantDetails({ formData, selectedApplication, onFieldChange }: Props) {
+export function SectionGarantDetails({ formData, selectedApplication, onFieldChange, resolvedGuarantor }: Props) {
   const guaranteeLabel = selectedApplication?.ownerInsights?.guarantee?.label;
   const guaranteeSummary = selectedApplication?.ownerInsights?.guarantee?.summary;
   const overrides = formData.guarantorOverrides ?? {};
@@ -36,6 +47,30 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
         </div>
       )}
 
+      {/* Identité du garant depuis le dossier : le bailleur n'a rien à re-saisir */}
+      {resolvedGuarantor && (resolvedGuarantor.firstName || resolvedGuarantor.email) && (
+        <div className="rounded-lg bg-slate-50 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase">Garant du dossier</span>
+            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+              Auto-rempli
+            </span>
+            {resolvedGuarantor.verified && (
+              <span className="text-xs font-medium text-emerald-700">✓ Identité vérifiée</span>
+            )}
+          </div>
+          <p className="text-sm font-medium text-slate-800 mt-1">
+            {[resolvedGuarantor.firstName, resolvedGuarantor.lastName].filter(Boolean).join(' ') || resolvedGuarantor.email}
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {[
+              resolvedGuarantor.birthDate ? `Né(e) le ${new Date(resolvedGuarantor.birthDate).toLocaleDateString('fr-FR')}` : '',
+              resolvedGuarantor.profession,
+            ].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      )}
+
       {/* Email & Téléphone (requis pour la signature électronique) */}
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
@@ -44,7 +79,7 @@ export function SectionGarantDetails({ formData, selectedApplication, onFieldCha
           </span>
           <input
             type="email"
-            value={overrides.email ?? ""}
+            value={overrides.email ?? resolvedGuarantor?.email ?? ""}
             onChange={(e) => handleOverride("email", e.target.value)}
             placeholder="garant@email.com"
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
