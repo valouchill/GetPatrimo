@@ -1,3 +1,4 @@
+import { COMPANY, HOST, legalValue } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata = {
@@ -18,24 +19,25 @@ export default function MentionsLegales() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Éditeur du site</h2>
           <ul className="list-none space-y-1">
-            <li><strong>Raison sociale :</strong> Maison Patrimo SAS [À COMPLÉTER]</li>
-            <li><strong>Forme juridique :</strong> Société par Actions Simplifiée (SAS) [À COMPLÉTER]</li>
-            <li><strong>Capital social :</strong> [À COMPLÉTER] €</li>
-            <li><strong>SIRET :</strong> [À COMPLÉTER]</li>
-            <li><strong>RCS :</strong> [À COMPLÉTER]</li>
-            <li><strong>Siège social :</strong> [À COMPLÉTER]</li>
-            <li><strong>Directeur de la publication :</strong> [À COMPLÉTER]</li>
-            <li><strong>Email :</strong> contact@maisonpatrimo.com [À COMPLÉTER]</li>
-            <li><strong>Téléphone :</strong> [À COMPLÉTER]</li>
+            <li><strong>Raison sociale :</strong> {legalValue(COMPANY.legalName)}</li>
+            <li><strong>Forme juridique :</strong> {legalValue(COMPANY.legalForm)}</li>
+            <li><strong>Capital social :</strong> {legalValue(COMPANY.capital)}</li>
+            <li><strong>SIRET :</strong> {legalValue(COMPANY.siret)}</li>
+            <li><strong>RCS :</strong> {legalValue(COMPANY.rcs)}</li>
+            <li><strong>Siège social :</strong> {legalValue(COMPANY.headquarters)}</li>
+            <li><strong>Directeur de la publication :</strong> {legalValue(COMPANY.publicationDirector)}</li>
+            <li><strong>Email :</strong> {COMPANY.email}</li>
+            <li><strong>Téléphone :</strong> {legalValue(COMPANY.phone)}</li>
           </ul>
         </div>
 
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">2. Hébergeur</h2>
           <ul className="list-none space-y-1">
-            <li><strong>Raison sociale :</strong> [À COMPLÉTER]</li>
-            <li><strong>Adresse :</strong> [À COMPLÉTER]</li>
-            <li><strong>Téléphone :</strong> [À COMPLÉTER]</li>
+            <li><strong>Raison sociale :</strong> {HOST.legalName}</li>
+            <li><strong>Adresse :</strong> {HOST.address}</li>
+            <li><strong>Téléphone :</strong> {HOST.phone}</li>
+            <li><strong>Site :</strong> {HOST.website}</li>
           </ul>
         </div>
 

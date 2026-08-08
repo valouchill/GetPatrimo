@@ -9,6 +9,7 @@
 // déjà stockés en BDD côté owner.
 
 const { extractPDFMetadata, convertPDFToImages } = require('./pdfDocumentService');
+const { applyPayslipArithmeticVerdict } = require('../utils/payslipArithmetic');
 const { getExtractionPrompt } = require('./documentPromptService');
 const { analyzeWithVision, buildLegacyCompatibilityPayload, normalizeAndValidateAnalysis } = require('./visionAnalysisService');
 const { logger } = require('../../lib/logger');
@@ -160,29 +161,14 @@ async function analyzeDocumentBuffer({
     result.trust_and_security.forensic_alerts.push('PDF créé ou modifié avec un logiciel de design – analyse sous doute renforcé.');
   }
 
-  // Audit mathématique brut/cotisations/net
+  // Audit mathématique brut/cotisations/net — contrôle serveur partagé (le
+  // verdict du modèle sur sa propre cohérence n'est jamais opposable).
   const extra = result.financial_data?.extra_details;
-  if (
-    extra &&
-    typeof extra.salaire_brut_mensuel === 'number' &&
-    typeof extra.cotisations_mensuelles === 'number' &&
-    typeof result.financial_data.monthly_net_income === 'number'
-  ) {
-    const diff = Math.abs(
-      extra.salaire_brut_mensuel - extra.cotisations_mensuelles - result.financial_data.monthly_net_income,
-    );
-    if (Number.isFinite(diff)) {
-      if (diff > 0.5) {
-        result.trust_and_security.math_validation = false;
-        result.trust_and_security.fraud_score = Math.min(100, (result.trust_and_security.fraud_score || 0) + 30);
-        result.trust_and_security.forensic_alerts.push(
-          `Écart de ${diff.toFixed(2).replace('.', ',')}€ entre Brut - Cotisations et Net (>0,50€ de tolérance).`,
-        );
-      } else if (result.trust_and_security.math_validation === undefined) {
-        result.trust_and_security.math_validation = true;
-      }
-    }
-  }
+  applyPayslipArithmeticVerdict(result.trust_and_security, {
+    gross: extra?.salaire_brut_mensuel,
+    deductions: extra?.cotisations_mensuelles,
+    net: result.financial_data?.monthly_net_income,
+  });
 
   const needsHumanReview = result.trust_and_security.needs_human_review ||
     result.trust_and_security.partial_extraction ||

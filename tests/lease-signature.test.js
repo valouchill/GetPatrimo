@@ -108,7 +108,7 @@ describe('certificat de signature (piste d’audit)', () => {
     assert.match(html, /1367 du Code civil/);
     assert.match(html, /eIDAS/);
     assert.match(html, /a{64}/); // empreinte SHA-256
-    assert.match(html, /Identité vérifiée eIDAS/); // valorise la vérif Didit
+    assert.match(html, /Identité vérifiée par contrôle biométrique/); // valorise la vérif Didit, sans amalgame
     assert.match(html, /203\.0\.113\.9/);
   });
 

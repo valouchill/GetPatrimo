@@ -1,3 +1,4 @@
+import { COMPANY, HOST, legalValue } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata = {
@@ -18,12 +19,27 @@ export default function Privacy() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">1. Responsable du traitement</h2>
           <p>
-            Maison Patrimo SAS [À COMPLÉTER], dont le siège social est situé au [À COMPLÉTER],
-            immatriculée au RCS de [À COMPLÉTER] sous le numéro [À COMPLÉTER].
+            {legalValue(COMPANY.legalName)}, dont le siège social est situé au{' '}
+            {legalValue(COMPANY.headquarters)}, immatriculée au RCS sous le numéro{' '}
+            {legalValue(COMPANY.rcs)}.
           </p>
           <p className="mt-2">
-            <strong>Délégué à la protection des données (DPO) :</strong> [À COMPLÉTER]<br />
-            <strong>Contact :</strong> dpo@maisonpatrimo.com [À COMPLÉTER]
+            {COMPANY.dpo ? (
+              <>
+                <strong>Délégué à la protection des données (DPO) :</strong> {COMPANY.dpo.name}<br />
+                <strong>Contact :</strong> {COMPANY.dpo.email}
+              </>
+            ) : (
+              <>
+                <strong>Contact pour toute question relative à vos données :</strong>{' '}
+                dpo@maisonpatrimo.com<br />
+                <span className="text-sm text-slate-500">
+                  Aucun délégué à la protection des données n&apos;est désigné à ce jour&nbsp;: la
+                  désignation n&apos;est pas obligatoire pour notre activité (RGPD art. 37), vos
+                  demandes sont traitées directement par le responsable du traitement.
+                </span>
+              </>
+            )}
           </p>
         </div>
 
@@ -138,7 +154,7 @@ export default function Privacy() {
           <h2 className="text-lg font-semibold text-slate-900 mb-2">5. Destinataires des données</h2>
           <ul className="list-disc pl-6 space-y-2">
             <li>Personnel habilité de Maison Patrimo SAS</li>
-            <li>Sous-traitants techniques : hébergement [À COMPLÉTER], base de données MongoDB Atlas, Stripe (paiements), Didit (vérification d&apos;identité), OpenAI (analyse documentaire)</li>
+            <li>Sous-traitants techniques : hébergement {HOST.legalName} (France), base de données MongoDB hébergée sur ce même serveur, Stripe (paiements), Didit (vérification d&apos;identité), OpenAI et Microsoft Azure (analyse documentaire), Brevo (envoi d&apos;emails)</li>
             <li>Les données ne sont pas transférées hors de l&apos;Union européenne, sauf vers des prestataires disposant de garanties appropriées (clauses contractuelles types, décision d&apos;adéquation)</li>
           </ul>
         </div>
@@ -162,7 +178,7 @@ export default function Privacy() {
             <a href="mailto:dpo@maisonpatrimo.com" className="text-cobalt hover:underline">
               dpo@maisonpatrimo.com
             </a>{' '}
-            [À COMPLÉTER] ou par courrier au siège social.
+            dpo@maisonpatrimo.com ou par courrier au siège social.
           </p>
           <p className="mt-2">
             En cas de désaccord, vous pouvez introduire une réclamation auprès de la{' '}

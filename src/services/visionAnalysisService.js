@@ -25,6 +25,8 @@ const AI_TIMEOUT_MS = 55_000;
  * @param {string|number|undefined|null} value
  * @returns {number}
  */
+const { applyPayslipArithmeticVerdict } = require('../utils/payslipArithmetic');
+
 function normalizeAmount(value) {
   if (value === null || value === undefined) return 0;
   if (typeof value === 'number') return value;
@@ -231,7 +233,23 @@ function normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName) {
   }
   if (legacy.fraudIndicators?.reasons) forensicAlerts.push(...legacy.fraudIndicators.reasons);
 
+  // `mathematicalAudit` est la conclusion du MODÈLE sur un document non fiable :
+  // on la reprend comme point de départ, puis le contrôle serveur tranche.
   const mathValidation = legacy.fraudAudit?.mathematicalAudit?.calculationErrors === false;
+
+  // Contrôle arithmétique DÉTERMINISTE (anti prompt-injection) : ce chemin
+  // (/api/analyze-document-v2, Azure) reprenait fraud_score et math_validation
+  // tels que déclarés par le modèle, sans jamais refaire le calcul.
+  const trustAndSecurity = {
+    fraud_score: legacy.fraudScore || 0,
+    forensic_alerts: forensicAlerts,
+    math_validation: mathValidation,
+  };
+  applyPayslipArithmeticVerdict(trustAndSecurity, {
+    gross: normalizeAmount(legacy.extractedData?.salaireBrut),
+    deductions: normalizeAmount(legacy.extractedData?.cotisations),
+    net: monthlyNetIncome,
+  });
 
   return {
     document_metadata: {
@@ -265,11 +283,7 @@ function normalizeAndValidateAnalysis(rawResult, diditIdentity, fileName) {
           undefined,
       },
     },
-    trust_and_security: {
-      fraud_score: legacy.fraudScore || 0,
-      forensic_alerts: forensicAlerts,
-      math_validation: mathValidation,
-    },
+    trust_and_security: trustAndSecurity,
     ai_analysis: {
       detected_profile: detectedProfile,
       impact_on_patrimometer: legacy.fraudScore && legacy.fraudScore > 30 ? -15 : 10,

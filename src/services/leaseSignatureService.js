@@ -574,7 +574,7 @@ function buildCertificateHtml(lease, signatures) {
         <span style="color:#64748b;font-size:11px;">${escapeHtml(s.email)} · ${
           s.role === 'OWNER' ? 'Bailleur' : s.role === 'GUARANTOR' ? 'Garant' : 'Locataire'
         }</span>
-        ${s.diditVerified ? '<br/><span style="color:#047857;font-size:11px;">✔ Identité vérifiée eIDAS (biométrie)</span>' : ''}
+        ${s.diditVerified ? '<br/><span style="color:#047857;font-size:11px;">✔ Identité vérifiée par contrôle biométrique lors de la candidature</span>' : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:11px;color:#334155;">
         ${s.signedAt ? new Date(s.signedAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : '—'}<br/>
@@ -598,9 +598,19 @@ function buildCertificateHtml(lease, signatures) {
     <p style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;margin:0 0 18px;">Maison Patrimo · Piste d'audit</p>
     <p style="font-size:12px;line-height:1.7;">
       Contrat de location — ${escapeHtml(lease.tenantFirstName || '')} ${escapeHtml(lease.tenantLastName || '')}<br/>
-      Signature électronique simple au sens du règlement (UE) n° 910/2014 (eIDAS) et de
-      l'article 1367 du Code civil. Le consentement de chaque signataire a été recueilli par
+      Signature électronique <strong>simple</strong> au sens du règlement (UE) n° 910/2014 (eIDAS)
+      et de l'article 1367 du Code civil. Le consentement de chaque signataire a été recueilli par
       code à usage unique envoyé sur son adresse email.
+    </p>
+    <p style="font-size:10px;line-height:1.6;color:#475569;background:#f8fafc;padding:9px 11px;border-radius:6px;margin:10px 0 0;">
+      <strong>Portée de la preuve.</strong> Ce certificat établit&nbsp;: la maîtrise de l'adresse
+      email du signataire (code à usage unique), la date et l'heure de signature, l'adresse IP,
+      et l'intégrité du document au moment de la signature (empreinte SHA-256 ci-dessous).
+      La mention « identité vérifiée » atteste d'un contrôle biométrique réalisé
+      <strong>lors de la candidature</strong>, sur la personne titulaire de cette adresse email&nbsp;;
+      elle ne constitue pas une vérification d'identité au moment même de la signature.
+      S'agissant d'une signature électronique simple, la charge de la preuve en cas de
+      contestation incombe à celui qui s'en prévaut (art. 1367 C. civ.).
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">
       <thead><tr style="background:#f1f5f9;">
