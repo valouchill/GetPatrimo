@@ -155,6 +155,24 @@ export async function POST(request: NextRequest) {
       verifiedVariables.push('caution_nom_prenom', 'caution_date_naissance', 'garant_nom_adresse');
     }
 
+    // Garant résolu depuis le dossier : évite au bailleur de re-saisir ce qui
+    // existe déjà (l'UI l'affiche en « Auto-rempli », modifiable).
+    const tenantNorm = prepared.tenant as {
+      guarantor?: { firstName?: string; lastName?: string; email?: string; birthDate?: string; profession?: string } | null;
+      guaranteeType?: string;
+      visaleNumber?: string;
+    } | null;
+    const resolvedGuarantor = tenantNorm?.guarantor
+      ? {
+          firstName: tenantNorm.guarantor.firstName || '',
+          lastName: tenantNorm.guarantor.lastName || '',
+          email: tenantNorm.guarantor.email || '',
+          birthDate: tenantNorm.guarantor.birthDate || '',
+          profession: tenantNorm.guarantor.profession || '',
+          verified: Boolean(guarantorKyc?.firstName || guarantorKyc?.birthDate),
+        }
+      : null;
+
     return NextResponse.json({
       paragraphs,
       mergeData: prepared.mergeData || {},
@@ -162,6 +180,8 @@ export async function POST(request: NextRequest) {
       totalVariables: allVarNames.length,
       filledVariables,
       verifiedVariables,
+      resolvedGuarantor,
+      guaranteeType: tenantNorm?.guaranteeType || '',
       warnings: prepared.warnings || [],
       compileMeta: prepared.compileMeta || null,
     });

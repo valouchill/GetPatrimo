@@ -444,6 +444,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             formData={formData}
             hasGuarantor={hasGuarantor}
             mergeData={preview.mergeData}
+            resolvedGuarantor={preview.resolvedGuarantor}
             onFieldChange={handleFieldChange}
             onDepositChange={handleDepositChange}
             onReturnToComparison={handleReturnToComparison}
@@ -470,6 +471,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
             onFieldChange={handleFieldChange}
             requiredVarNames={requiredVarNames}
             verifiedVarNames={verifiedVarNames}
+            warnings={preview.warnings}
             error={preview.error}
             onRetry={preview.refetch}
           />
@@ -519,6 +521,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
                 formData={formData}
                 hasGuarantor={hasGuarantor}
                 mergeData={preview.mergeData}
+                resolvedGuarantor={preview.resolvedGuarantor}
                 onFieldChange={handleFieldChange}
                 onDepositChange={handleDepositChange}
                 onReturnToComparison={handleReturnToComparison}
@@ -544,6 +547,7 @@ export default function LeaseWizard({ propertyId, returnUrl: returnUrlProp }: Le
                 onFieldChange={handleFieldChange}
                 requiredVarNames={requiredVarNames}
                 verifiedVarNames={verifiedVarNames}
+                warnings={preview.warnings}
                 error={preview.error}
                 onRetry={preview.refetch}
               />

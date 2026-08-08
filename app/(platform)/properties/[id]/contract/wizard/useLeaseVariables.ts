@@ -178,6 +178,8 @@ interface UseLeaseVariablesResult {
   initialFilledCount: number;
   /** Variables issues d'une identité certifiée eIDAS (Didit) → badge ✓. */
   verifiedVariables: string[];
+  /** Garant du dossier, résolu côté serveur (affiché en « Auto-rempli »). */
+  resolvedGuarantor: { firstName: string; lastName: string; email: string; birthDate: string; profession: string; verified: boolean } | null;
   warnings: string[];
   compileMeta: CompileMeta | null;
   isLoading: boolean;
@@ -203,6 +205,7 @@ export function useLeaseVariables({
   const [error, setError] = useState('');
 
   const [verifiedVariables, setVerifiedVariables] = useState<string[]>([]);
+  const [resolvedGuarantor, setResolvedGuarantor] = useState<UseLeaseVariablesResult['resolvedGuarantor']>(null);
   const [initialFilledCount, setInitialFilledCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFetchKeyRef = useRef('');
@@ -241,6 +244,7 @@ export function useLeaseVariables({
       setTotalCount(data.totalVariables || 0);
       setServerFilledCount(data.filledVariables || 0);
       setVerifiedVariables((data as { verifiedVariables?: string[] }).verifiedVariables || []);
+      setResolvedGuarantor((data as { resolvedGuarantor?: UseLeaseVariablesResult['resolvedGuarantor'] }).resolvedGuarantor || null);
       // Le compteur « pré-rempli automatiquement » est celui de la PREMIÈRE
       // réponse pour ce locataire (avant toute édition du bailleur).
       if (initialCountCapturedRef.current !== fetchKey) {
@@ -300,6 +304,7 @@ export function useLeaseVariables({
     totalCount,
     initialFilledCount,
     verifiedVariables,
+    resolvedGuarantor,
     warnings,
     compileMeta,
     isLoading,

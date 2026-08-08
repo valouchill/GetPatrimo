@@ -190,3 +190,37 @@ describe('UX signature & wizard (garde-fous de source)', () => {
     assert.match(src, /visaleNumber: appVisaleNumber/);
   });
 });
+
+describe('backlog audit — finitions wizard', () => {
+  const ROOT2 = path.join(__dirname, '..');
+  const read2 = (rel) => fs.readFileSync(path.join(ROOT2, rel), 'utf8');
+
+  it('le garant du dossier est exposé par la preview et affiché « Auto-rempli »', () => {
+    const route = read2('app/api/owner/leases/preview/route.ts');
+    assert.match(route, /resolvedGuarantor/);
+    const section = read2('app/(platform)/properties/[id]/contract/wizard/SectionGarantDetails.tsx');
+    assert.match(section, /Garant du dossier/);
+    // l'email du dossier pré-remplit le champ, l'override du bailleur garde la main
+    assert.match(section, /overrides\.email \?\? resolvedGuarantor\?\.email/);
+  });
+
+  it('les avertissements serveur de la preview sont enfin affichés', () => {
+    const preview = read2('app/(platform)/properties/[id]/contract/wizard/ContractPreview.tsx');
+    assert.match(preview, /À vérifier avant de générer/);
+    const wizard = read2('app/(platform)/properties/[id]/contract/LeaseWizard.tsx');
+    assert.match(wizard, /warnings=\{preview\.warnings\}/);
+  });
+
+  it('les erreurs de compilation sont traduites en français actionnable', () => {
+    const footer = read2('app/(platform)/properties/[id]/contract/wizard/LeaseFooter.tsx');
+    assert.match(footer, /humanizeCompileError/);
+    assert.match(footer, /La génération a échoué/);
+    assert.match(footer, /Réessayer/);
+  });
+
+  it('le header mobile montre locataire, type de bail et compteur', () => {
+    const header = read2('app/(platform)/properties/[id]/contract/wizard/CompactHeader.tsx');
+    assert.match(header, /sm:hidden/);
+    assert.match(header, /champs du bail remplis sur/); // aria-label du ring
+  });
+});

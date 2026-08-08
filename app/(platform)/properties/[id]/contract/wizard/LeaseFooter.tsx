@@ -24,6 +24,21 @@ interface LeaseFooterProps {
   onGoToBaux?: () => void;
 }
 
+/** Les erreurs serveur brutes (ENOENT, soffice…) ne parlent pas au bailleur. */
+function humanizeCompileError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('enoent') || m.includes('template')) {
+    return 'Le modèle de bail est momentanément indisponible. Réessayez, puis contactez le support si le problème persiste.';
+  }
+  if (m.includes('soffice') || m.includes('libreoffice') || m.includes('pdf')) {
+    return 'La conversion en PDF a échoué — réessayez dans quelques secondes.';
+  }
+  if (m.includes('timeout') || m.includes('econn') || m.includes('fetch')) {
+    return 'Le serveur a mis trop de temps à répondre. Vérifiez votre connexion et réessayez.';
+  }
+  return message;
+}
+
 export function LeaseFooter({
   canCompile,
   compileStatus,
@@ -177,7 +192,20 @@ export function LeaseFooter({
 
       {/* Errors */}
       {compileStatus === "error" && compileError && (
-        <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">{compileError}</div>
+        <div className="flex items-start gap-2 border-t border-red-100 bg-red-50 px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-red-800">La génération a échoué</p>
+            <p className="text-xs text-red-700">{humanizeCompileError(compileError)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCompile}
+            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
       )}
       {saveStatus === "error" && saveError && (
         <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">{saveError}</div>

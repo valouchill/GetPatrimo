@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback, useRef } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { TemplateParagraph, LeaseFormData } from './types';
 import { resolveFieldForVariable, isReadonlyVariable } from './fieldRegistry';
 import type { FieldMeta } from './fieldRegistry';
@@ -18,6 +18,8 @@ interface ContractPreviewProps {
   requiredVarNames?: Set<string>;
   /** Variables issues d'une identité certifiée eIDAS (Didit) → pastille ✓. */
   verifiedVarNames?: Set<string>;
+  /** Avertissements serveur (diagnostics expirés, données douteuses…). */
+  warnings?: string[];
   error?: string;
   onRetry?: () => void;
 }
@@ -86,6 +88,7 @@ export function ContractPreview({
   onFieldChange,
   requiredVarNames,
   verifiedVarNames,
+  warnings,
   error,
   onRetry,
 }: ContractPreviewProps) {
@@ -322,6 +325,21 @@ export function ContractPreview({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10 lg:py-10">
+      {/* Avertissements serveur (ex. diagnostic expiré) : calculés par la
+          preview mais jamais montrés au bailleur jusqu'ici. */}
+      {warnings && warnings.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            À vérifier avant de générer
+          </p>
+          <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+            {warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className={`rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-opacity ${isLoading ? 'opacity-60' : ''}`}>
         <div className="prose prose-sm max-w-none font-serif text-[13px] leading-relaxed">
           {rendered}
