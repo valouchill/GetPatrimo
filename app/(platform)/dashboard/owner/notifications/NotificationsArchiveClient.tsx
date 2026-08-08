@@ -14,8 +14,10 @@ import * as React from 'react';
 import {
   Bell,
   CheckCheck,
+  BellRing,
   FileCheck,
   ShieldAlert,
+  Wallet,
   ShieldCheck,
   Sparkles,
   Star,
@@ -32,6 +34,8 @@ const ICON_MAP: Record<NotificationIcon, LucideIcon> = {
   ShieldAlert,
   FileCheck,
   Star,
+  Wallet,
+  BellRing,
 };
 
 const TYPE_LABEL: Record<NotificationType, string> = {

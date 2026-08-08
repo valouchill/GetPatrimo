@@ -9,7 +9,9 @@ const IdentitySessionSchema = new mongoose.Schema({
   lastName: { type: String, default: '' },
   birthDate: { type: String, default: '' },
   humanVerified: { type: Boolean, default: false },
-  verifiedAt: { type: Date }
+  verifiedAt: { type: Date },
+  /** Horodatage de purge RGPD de l'identité en clair (nom/date de naissance). */
+  biometricPurgedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 IdentitySessionSchema.index({ applyToken: 1 });

@@ -20,6 +20,9 @@ const Lease = require('@/models/Lease');
 const Document = require('@/models/Document');
 
 const Event = require('@/models/Event');
+const IdentitySession = require('@/models/IdentitySession');
+const Guarantor = require('@/models/Guarantor');
+const CoTenant = require('@/models/CoTenant');
 
 const ANON_EMAIL = 'supprime@anonymise.rgpd';
 const ANON_STRING = '[SUPPRIMÉ]';
@@ -135,6 +138,33 @@ export async function DELETE(request: NextRequest) {
       // Best-effort : on continue l'anonymisation même si un fichier résiste.
       logger.warn('[RGPD] Nettoyage fichiers partiel', { error: err instanceof Error ? err.message : String(err) });
     }
+
+    // 0. Collecter les applyToken du user AVANT toute suppression : c'est la clé
+    //    de jointure vers l'identité KYC (IdentitySession/Guarantor/CoTenant),
+    //    qui n'étaient JAMAIS effacées → droit à l'effacement (art. 17) inopérant.
+    const [userApps, userProps] = await Promise.all([
+      Application.find({ $or: [{ user: userId }, { userEmail }] }).select('_id applyToken').lean(),
+      Property.find({ user: userId }).select('applyToken').lean(),
+    ]);
+    const applyTokens = [
+      ...userApps.map((a: { applyToken?: string }) => a.applyToken),
+      ...userProps.map((p: { applyToken?: string }) => p.applyToken),
+    ].filter((t): t is string => Boolean(t));
+    const appIds = userApps.map((a: { _id: unknown }) => a._id);
+
+    // 0 bis. Purge de l'identité vérifiée (nom, prénom, date de naissance) :
+    //   - IdentitySession et Guarantor par applyToken,
+    //   - CoTenant par applicationId (ou applyToken).
+    if (applyTokens.length > 0) {
+      await IdentitySession.deleteMany({ applyToken: { $in: applyTokens } });
+      await Guarantor.deleteMany({ applyToken: { $in: applyTokens } });
+    }
+    await CoTenant.deleteMany({
+      $or: [
+        ...(appIds.length ? [{ applicationId: { $in: appIds } }] : []),
+        ...(applyTokens.length ? [{ applyToken: { $in: applyTokens } }] : []),
+      ],
+    });
 
     // 1. Supprimer les candidatures
     await Candidature.deleteMany({ user: userId });

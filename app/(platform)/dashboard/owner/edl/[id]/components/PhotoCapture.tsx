@@ -36,7 +36,9 @@ export default function PhotoCapture({
       const res = await fetch(`/api/inspections/${inspectionId}/photos`, { method: 'POST', body: fd });
       if (res.ok) {
         const data = await res.json();
-        onPhotoAdded({ url: data.url, caption: '' });
+        // La route renvoie { success, data: { url, fileName } } — `data.url`
+        // était undefined : aucune miniature ne s'affichait jamais.
+        onPhotoAdded({ url: data?.data?.url || data?.url, caption: '' });
       }
     } finally {
       setUploading(false);

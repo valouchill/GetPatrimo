@@ -80,7 +80,7 @@ export const GET = withErrorHandler(async (_request: NextRequest, ctx: any) => {
   if (error) return error;
 
   const signatures = await LeaseSignature.find({ lease: lease._id })
-    .select('role slot fullName email status signedAt otpVerifiedAt diditVerified order')
+    .select('role slot fullName email status signedAt viewedAt otpVerifiedAt diditVerified order inviteSentAt inviteError remindersSentAt')
     .sort({ order: 1 })
     .lean();
 

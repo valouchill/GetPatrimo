@@ -332,7 +332,7 @@ export function PricingTiers({
 
         <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-          Paiement unique sécurisé par Stripe · Sans abonnement · Crédits cumulés, jamais perdus
+          Paiement unique sécurisé par Stripe · Audits sans abonnement · Crédits cumulés, jamais perdus
           {variant === 'page' && (
             <>
               {' · '}

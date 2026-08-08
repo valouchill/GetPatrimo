@@ -136,12 +136,52 @@ export async function POST(request: NextRequest) {
       (v: string) => !isMissingValue(prepared.rawData?.[v])
     ).length;
 
+    // Variables issues d'une identité VÉRIFIÉE biométriquement (eIDAS Didit) :
+    // l'UI les badge — c'est l'argument différenciant du bail Maison Patrimo.
+    const rawApp = (prepared.tenant as { raw?: Record<string, any> } | null)?.raw;
+    const diditVerified = String(rawApp?.didit?.status || '').toUpperCase() === 'VERIFIED';
+    const guarantorKyc = rawApp?.guarantor?.guarantorId?.identityVerification;
+    const verifiedVariables: string[] = [];
+    if (diditVerified) {
+      verifiedVariables.push(
+        'locataire_nom_prenom',
+        'locataire_identite_ligne_1',
+        'locataire_identite_ligne_2',
+        'locataires_nom_prenoms_emails',
+        'locataires_nom_prenoms_emails_ligne_1',
+      );
+    }
+    if (guarantorKyc?.firstName || guarantorKyc?.birthDate) {
+      verifiedVariables.push('caution_nom_prenom', 'caution_date_naissance', 'garant_nom_adresse');
+    }
+
+    // Garant résolu depuis le dossier : évite au bailleur de re-saisir ce qui
+    // existe déjà (l'UI l'affiche en « Auto-rempli », modifiable).
+    const tenantNorm = prepared.tenant as {
+      guarantor?: { firstName?: string; lastName?: string; email?: string; birthDate?: string; profession?: string } | null;
+      guaranteeType?: string;
+      visaleNumber?: string;
+    } | null;
+    const resolvedGuarantor = tenantNorm?.guarantor
+      ? {
+          firstName: tenantNorm.guarantor.firstName || '',
+          lastName: tenantNorm.guarantor.lastName || '',
+          email: tenantNorm.guarantor.email || '',
+          birthDate: tenantNorm.guarantor.birthDate || '',
+          profession: tenantNorm.guarantor.profession || '',
+          verified: Boolean(guarantorKyc?.firstName || guarantorKyc?.birthDate),
+        }
+      : null;
+
     return NextResponse.json({
       paragraphs,
       mergeData: prepared.mergeData || {},
       rawData: prepared.rawData || {},
       totalVariables: allVarNames.length,
       filledVariables,
+      verifiedVariables,
+      resolvedGuarantor,
+      guaranteeType: tenantNorm?.guaranteeType || '',
       warnings: prepared.warnings || [],
       compileMeta: prepared.compileMeta || null,
     });

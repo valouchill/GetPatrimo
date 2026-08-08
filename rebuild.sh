@@ -7,7 +7,6 @@ sudo docker run -d \
   --name doc2loc \
   --restart unless-stopped \
   --env-file /opt/doc2loc/.env \
-  --env MONGO_URI=mongodb://admin:password123@mongodb:27017/doc2loc?authSource=admin \
   --network doc2loc-net \
   --network-alias getpatrimo-app \
   -p 3000:3000 \

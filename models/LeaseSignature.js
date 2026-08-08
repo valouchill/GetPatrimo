@@ -71,6 +71,8 @@ const LeaseSignatureSchema = new mongoose.Schema(
     inviteError: { type: String, default: '' },
 
     remindersSentAt: [{ type: Date }],
+    /** Alerte « signataire muet » envoyée au bailleur (une seule fois). */
+    ownerAlertedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

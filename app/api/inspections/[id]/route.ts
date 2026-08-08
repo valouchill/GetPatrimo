@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
-import { withErrorHandler } from '@/lib/with-error-handler';
+import { withErrorHandler, withFeatureGuard } from '@/lib/with-error-handler';
 import { logger } from '@/lib/server-logger';
 import crypto from 'crypto';
 import fsSync from 'fs';
@@ -20,7 +20,7 @@ const Property = require('@/models/Property');
 /**
  * GET /api/inspections/[id]
  */
-export const GET = withErrorHandler(async (
+const _GET = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
@@ -51,7 +51,7 @@ export const GET = withErrorHandler(async (
  * PATCH /api/inspections/[id]
  * Update an inspection (add rooms, signatures, status, etc.)
  */
-export const PATCH = withErrorHandler(async (
+const _PATCH = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
@@ -135,3 +135,8 @@ export const PATCH = withErrorHandler(async (
     ...(pdfError && { pdfError }),
   });
 });
+
+// Le module EDL est gaté par le flag EDL : les routes renvoient 404 s'il est off
+// (helper withFeatureGuard, jusqu'ici jamais câblé → API ouvertes malgré le flag).
+export const GET = withFeatureGuard('EDL', _GET);
+export const PATCH = withFeatureGuard('EDL', _PATCH);

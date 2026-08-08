@@ -1,5 +1,7 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
+import { getLatestIrl, ZONE_TENDUE_SIMULATOR_URL } from "@/lib/lease/irl";
 import type { LeaseFormData } from "./types";
 
 interface Props {
@@ -44,13 +46,27 @@ function Toggle({
 }
 
 export function SectionRevision({ formData, onFieldChange }: Props) {
+  const latestIrl = getLatestIrl();
+
+  // À l'activation de la révision, on pré-remplit le dernier IRL publié par
+  // l'INSEE : chaque bailleur devait le chercher sur Google. Prefill uniquement
+  // si les champs sont vides — un choix explicite garde toujours la main.
+  const handleReviseToggle = (v: boolean) => {
+    onFieldChange("loyerRevise", v);
+    if (v && latestIrl && !formData.irlReference) {
+      onFieldChange("irlReference", latestIrl.value);
+      onFieldChange("irlQuarterReference", latestIrl.quarter);
+      onFieldChange("irlReferenceDate", latestIrl.quarter);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Révision IRL */}
       <Toggle
         label="Révision annuelle du loyer (IRL)"
         checked={formData.loyerRevise === true}
-        onChange={(v) => onFieldChange("loyerRevise", v)}
+        onChange={handleReviseToggle}
         hint="Indexation sur l’Indice de Référence des Loyers"
       />
 
@@ -63,9 +79,14 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
                 type="text"
                 value={formData.irlReference ?? ""}
                 onChange={(e) => onFieldChange("irlReference", e.target.value)}
-                placeholder="Ex: 142.06"
+                placeholder={latestIrl ? `Ex: ${latestIrl.value}` : "Ex: 148,37"}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none"
               />
+              {latestIrl && formData.irlReference === latestIrl.value && (
+                <p className="text-[10px] text-emerald-600 mt-0.5">
+                  ✓ Dernier indice publié par l&apos;INSEE ({latestIrl.quarter})
+                </p>
+              )}
             </label>
             <label className="block">
               <span className="text-xs font-medium text-slate-600 mb-1 block">Date de référence IRL</span>
@@ -99,6 +120,15 @@ export function SectionRevision({ formData, onFieldChange }: Props) {
           onChange={(v) => onFieldChange("soumisDecretRelocation", v)}
           hint="Décret de référence des loyers (zones tendues)"
         />
+        <a
+          href={ZONE_TENDUE_SIMULATOR_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-12 mt-1.5 inline-flex items-center gap-1 text-xs text-slate-500 underline decoration-slate-300 hover:text-emerald-700"
+        >
+          Vérifier si ma commune est en zone tendue (simulateur officiel)
+          <ExternalLink className="h-3 w-3" />
+        </a>
 
         {formData.soumisDecretRelocation && (
           <div className="ml-12 mt-3 space-y-3 animate-in slide-in-from-top-2 duration-200">

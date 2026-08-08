@@ -2,6 +2,8 @@
 
 import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RentReconciliation } from './RentReconciliation';
+import { ManagementUpsell } from './ManagementUpsell';
 import {
   AlertTriangle,
   Bell,
@@ -248,7 +250,12 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
 
 // ─── Main Panel ─────────────────────────────────────────────────
 
-const LoyersPanel = memo(function LoyersPanel() {
+interface LoyersPanelProps {
+  /** État de l'offre Gestion (vient de /api/dashboard) : pilote l'upsell. */
+  management?: { offerLive?: boolean; anyActive?: boolean; upsellPropertyId?: string | null };
+}
+
+const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps = {}) {
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -407,6 +414,32 @@ const LoyersPanel = memo(function LoyersPanel() {
             Générer les loyers
           </button>
         </div>
+      </div>
+
+      {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto.
+          Si l'offre Gestion est ouverte et non souscrite, on vend d'abord. */}
+      <div className="mb-5">
+        {management?.offerLive && !management?.anyActive && management?.upsellPropertyId ? (
+          <ManagementUpsell propertyId={management.upsellPropertyId} />
+        ) : (
+          <RentReconciliation onDone={fetchPayments} />
+        )}
+        {management?.anyActive && (
+          /* Résiliation en ligne : promesse des CGV art. 2 bis (L215-1-1) */
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/billing/portal', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data?.url) window.location.href = data.url as string;
+              } catch { /* silent */ }
+            }}
+            className="mt-2 text-[11px] text-slate-400 underline decoration-slate-300 hover:text-slate-600 transition-colors"
+          >
+            Abonnement Gestion actif · gérer ou résilier
+          </button>
+        )}
       </div>
 
       {/* Banner: génération suggérée */}

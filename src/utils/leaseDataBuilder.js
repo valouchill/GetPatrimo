@@ -246,7 +246,14 @@ function normalizeProperty(property, formData) {
     complementLoyer: firstNonEmpty(formData?.complementLoyer, ''),
     guaranteeType: firstNonEmpty(formData?.guaranteeType, formData?.guarantorType, ''),
     clauses: firstNonEmpty(formData?.clauses, formData?.additionalClauses, ''),
-    equipments: firstNonEmpty(formData?.equipments, property?.equipments),
+    // Le champ Property s'appelle `equipment` (tableau) — l'ancien nom
+    // `equipments` n'existait pas : la liste saisie par le bailleur existait en
+    // base mais le bail sortait toujours « [ A COMPLETER ] ».
+    equipments: firstNonEmpty(
+      formData?.equipments,
+      Array.isArray(property?.equipment) ? property.equipment.filter(Boolean).join(', ') : property?.equipment,
+      property?.equipments,
+    ),
     ticEquipments: firstNonEmpty(formData?.ticEquipments, formData?.equipementsTic),
     otherParts: firstNonEmpty(formData?.otherParts, formData?.autresPartiesLogement),
     privatePremises: firstNonEmpty(formData?.privatePremises, property?.privatePremises),
@@ -285,6 +292,8 @@ function normalizeGuarantor(tenant, formData) {
     ...(tenant?.guarantor || {}),
     ...((formData && formData.guarantorOverrides) || {}),
   };
+  // Le n° Visale vit au niveau du dossier (guarantee), pas du garant physique.
+  if (!source.visaleNumber && tenant?.visaleNumber) source.visaleNumber = tenant.visaleNumber;
 
   const fullName = [source.firstName, source.lastName].filter(Boolean).join(' ').trim();
   return {
@@ -320,12 +329,39 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     formData.mandataireNomPrenom || formData.mandataireDenomination,
     formData.mandataireAdresse,
   ].filter(Boolean);
+  // DPE : la date vit dans property.diagnostics, jamais lue jusqu'ici.
+  const dpeDiagnostic = Array.isArray(property?.diagnostics)
+    ? property.diagnostics.find((d) => String(d?.type || '').toUpperCase() === 'DPE' && d?.isValid !== false)
+    : null;
   const localDescription = [
-    formData.localDescription,
+    formData.localDescription || property?.description || property?.name,
     formData.parkingType,
     formData.parkingNumber || formData.garageNumero || property?.parkingNumber,
   ].filter(Boolean).join(' - ');
-  const tenantIdentity = [normalizedTenant.fullName, normalizedTenant.email, normalizedTenant.phone].filter(Boolean).join(' - ');
+  // Colocation : le bail liste TOUS les locataires (principal + colocataires),
+  // pas seulement le premier.
+  const coTenantsList = Array.isArray(tenant?.coTenants) ? tenant.coTenants : [];
+  const coTenantIdentities = coTenantsList
+    .map((ct) => [[ct.firstName, ct.lastName].filter(Boolean).join(' ').trim(), ct.email, ct.phone].filter(Boolean).join(' - '))
+    .filter(Boolean);
+  const tenantIdentity = [
+    [normalizedTenant.fullName, normalizedTenant.email, normalizedTenant.phone].filter(Boolean).join(' - '),
+    ...coTenantIdentities,
+  ].filter(Boolean).join(' ; ');
+  const allTenantsNamesEmails = [
+    [normalizedTenant.fullName, normalizedTenant.email].filter(Boolean).join(' - '),
+    ...coTenantsList
+      .map((ct) => [[ct.firstName, ct.lastName].filter(Boolean).join(' ').trim(), ct.email].filter(Boolean).join(' - '))
+      .filter(Boolean),
+  ].filter(Boolean).join(' ; ');
+  // Bail mobilité : seul le statut « étudiant » est pré-coché automatiquement
+  // (cas sans ambiguïté) ; les autres situations restent au choix du bailleur.
+  const mobilitySituation = String(
+    formData.mobilityReason
+      || (String(tenant?.profileStatus || tenant?.raw?.profile?.status || '').toLowerCase().startsWith('etudiant')
+        || String(tenant?.profileStatus || tenant?.raw?.profile?.status || '').toLowerCase().startsWith('étudiant')
+        ? 'etudes superieures' : ''),
+  ).toLowerCase();
   const localDescriptionLines = splitIntoLines(localDescription, 3);
   const tenantIdentityLines = splitIntoLines(tenantIdentity, 3);
 
@@ -343,7 +379,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     caution_code_postal: normalizedGuarantor.zipCode,
     caution_ville: normalizedGuarantor.city,
     caution_date_naissance: formatDate(normalizedGuarantor.birthDate),
-    date_dpe: formatDate(firstNonEmpty(formData.dpeDate, property?.dpeDate, property?.dpe?.date, property?.energyReportDate)),
+    date_dpe: formatDate(firstNonEmpty(formData.dpeDate, property?.dpeDate, property?.dpe?.date, property?.energyReportDate, dpeDiagnostic?.uploadedAt)),
     date_debut_location: formatDate(normalizedProperty.startDate),
     date_effet_bail: formatDate(normalizedProperty.startDate),
     date_prise_effet: formatDate(normalizedProperty.startDate),
@@ -367,7 +403,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     equipements_logement: String(normalizedProperty.equipments || ''),
     equipements_tic: String(normalizedProperty.ticEquipments || ''),
     forfait_charges_mensuel: amount(normalizedProperty.charges),
-    garantie_type: String(normalizedProperty.guaranteeType || ''),
+    garantie_type: String(normalizedProperty.guaranteeType || tenant?.guaranteeType || ''),
     garant_nom_adresse: [normalizedGuarantor.fullName, normalizedGuarantor.address].filter(Boolean).join(' - '),
     honoraires_bailleur_autres_prestations: amount(formData.honorairesBailleurAutresPrestations),
     honoraires_bailleur_edl: amount(formData.honorairesBailleurEdl),
@@ -382,7 +418,7 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     locataire_nom_prenom: normalizedTenant.fullName,
     locataire_identite_ligne_1: normalizedTenant.fullName,
     locataire_identite_ligne_2: [normalizedTenant.email, normalizedTenant.phone].filter(Boolean).join(' - '),
-    locataires_nom_prenoms_emails: [normalizedTenant.fullName, normalizedTenant.email].filter(Boolean).join(' - '),
+    locataires_nom_prenoms_emails: allTenantsNamesEmails,
     locataires_nom_prenoms_emails_ligne_1: tenantIdentityLines[0],
     locataires_nom_prenoms_emails_ligne_2: tenantIdentityLines[1],
     locataires_nom_prenoms_emails_ligne_3: tenantIdentityLines[2],
@@ -521,13 +557,13 @@ function buildLeaseData(property, tenant, landlord, formData = {}) {
     coche_autres_parties: checkbox(Boolean(normalizedProperty.otherParts)),
     coche_parties_communes_autres: checkbox(Boolean(formData.partiesCommunesAutres)),
     coche_accessoire_autre: checkbox(Boolean(formData.accessoireAutre)),
-    coche_situation_stage: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('stage')),
-    coche_situation_contrat_apprentissage: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('apprentissage')),
-    coche_situation_formation_professionnelle: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('formation')),
-    coche_situation_mutation_professionnelle: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('mutation')),
-    coche_situation_mission_temporaire: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('mission')),
-    coche_situation_service_civique: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('service civique')),
-    coche_situation_etudes_superieures: checkbox(String(formData.mobilityReason || '').toLowerCase().includes('etude')),
+    coche_situation_stage: checkbox(mobilitySituation.includes('stage')),
+    coche_situation_contrat_apprentissage: checkbox(mobilitySituation.includes('apprentissage')),
+    coche_situation_formation_professionnelle: checkbox(mobilitySituation.includes('formation')),
+    coche_situation_mutation_professionnelle: checkbox(mobilitySituation.includes('mutation')),
+    coche_situation_mission_temporaire: checkbox(mobilitySituation.includes('mission')),
+    coche_situation_service_civique: checkbox(mobilitySituation.includes('service civique')),
+    coche_situation_etudes_superieures: checkbox(mobilitySituation.includes('etude')),
   };
 
   // Boolean flags for conditional template sections (docxtemplater {{#flag}}...{{/flag}})

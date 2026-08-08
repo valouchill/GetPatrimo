@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
-import { withErrorHandler } from '@/lib/with-error-handler';
+import { withErrorHandler, withFeatureGuard } from '@/lib/with-error-handler';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,7 +15,7 @@ const Inspection = require('@/models/Inspection');
  * GET /api/inspections/[id]/pdf
  * Download the generated inspection PDF.
  */
-export const GET = withErrorHandler(async (
+const _GET = withErrorHandler(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
@@ -67,3 +67,7 @@ export const GET = withErrorHandler(async (
     },
   });
 });
+
+// Le module EDL est gaté par le flag EDL : les routes renvoient 404 s'il est off
+// (helper withFeatureGuard, jusqu'ici jamais câblé → API ouvertes malgré le flag).
+export const GET = withFeatureGuard('EDL', _GET);

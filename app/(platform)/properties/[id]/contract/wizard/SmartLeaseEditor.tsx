@@ -29,6 +29,7 @@ import type { ApplicationRecord, CandidatureRecord, LeaseFormData, PropertyRecor
 const { computeSmartDeposit, getTomorrowDateInputValue } = require("@/src/utils/leaseWizardShared");
 
 interface SmartLeaseEditorProps {
+  resolvedGuarantor?: import('./SectionGarantDetails').ResolvedGuarantor | null;
   property: PropertyRecord | null;
   selectedApplication: ApplicationRecord | null;
   legacyCandidature: CandidatureRecord | null;
@@ -105,6 +106,7 @@ export function SmartLeaseEditor({
   formData,
   hasGuarantor,
   mergeData,
+  resolvedGuarantor,
   onFieldChange,
   onDepositChange,
   onReturnToComparison,
@@ -333,7 +335,7 @@ export function SmartLeaseEditor({
                     <SectionGarant selectedApplication={selectedApplication} />
                     {isSectionVisible("garant") && (
                       <CollapsibleSection icon={<Shield className="h-4 w-4" />} title="D\u00e9tails du garant" subtitle="Informations compl\u00e9mentaires">
-                        <SectionGarantDetails formData={formData} selectedApplication={selectedApplication} onFieldChange={onFieldChange} />
+                        <SectionGarantDetails formData={formData} selectedApplication={selectedApplication} onFieldChange={onFieldChange} resolvedGuarantor={resolvedGuarantor} />
                       </CollapsibleSection>
                     )}
                   </>

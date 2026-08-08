@@ -25,10 +25,45 @@ async function markEventProcessed(eventId: string, eventType: string) {
 // ── Handlers ────────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { propertyId, userId, tier, quota } = session.metadata || {};
+  const { propertyId, userId, tier, quota, kind } = session.metadata || {};
 
   if (!propertyId) {
     logger.warn('[stripe-webhook] Pas de propertyId dans les metadata.');
+    return;
+  }
+
+  // Abonnement « Gestion locative » : n'affecte QUE le bloc management —
+  // surtout pas tier/dossiersQuota (crédits d'audit payés en one-time).
+  if (kind === 'management') {
+    // Un paiement asynchrone (SEPA) peut arriver `unpaid` : on n'ouvre pas
+    // l'accès tant qu'il n'est pas réglé. Et sans identifiant d'abonnement,
+    // aucune résiliation ne pourrait plus retrouver le bien → accès à vie.
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : '';
+    if (session.payment_status === 'unpaid' || !subscriptionId) {
+      logger.warn('[stripe-webhook] Gestion NON activée', {
+        propertyId,
+        paymentStatus: session.payment_status,
+        hasSubscription: Boolean(subscriptionId),
+      });
+      return;
+    }
+    await Property.findByIdAndUpdate(propertyId, {
+      $set: {
+        'management.active': true,
+        'management.subscriptionId': subscriptionId,
+        'management.since': new Date(),
+        'management.canceledAt': null,
+        stripeCustomerId: session.customer as string,
+      },
+    });
+    if (userId && session.customer) {
+      await User.findByIdAndUpdate(userId, { stripeCustomerId: session.customer as string });
+    }
+    captureServer('management_subscribed', userId || propertyId, {
+      property_id: propertyId,
+      amount: typeof session.amount_total === 'number' ? session.amount_total / 100 : null,
+    });
+    logger.info(`[stripe-webhook] Gestion activée sur le bien ${propertyId} (sub ${session.subscription}).`);
     return;
   }
 
@@ -48,26 +83,34 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   //  - rachat payant→payant → CUMUL des crédits restants + niveau le plus élevé ;
   //    les analyses déjà faites ne sont jamais recomptées.
   let wasFree = false;
+  let current: { tier?: string; dossiersQuota?: number } | null = null;
   if (tier) {
-    const current = (await Property.findById(propertyId)
+    current = (await Property.findById(propertyId)
       .select('tier dossiersQuota')
       .lean()) as { tier?: string; dossiersQuota?: number } | null;
-    const newPackQuota = Number(quota || 0);
     wasFree = !current?.tier || current.tier === 'FREE';
+    // Le niveau d'offre est un SET idempotent (higherTier(x, x) === x au rejeu).
     update.tier = higherTier(current?.tier, tier);
-    if (wasFree) {
-      update.dossiersQuota = newPackQuota;
-      update.dossiersAnalyzedCount = 0;
-      // On CONSERVE analyzedApplicationIds : les dossiers déjà audités pendant
-      // l'essai gratuit restent ALREADY_COUNTED (ré-analyse gratuite) et ne
-      // consomment pas les crédits fraîchement payés — critique avec les petits
-      // quotas (3/10/20) où re-payer son finaliste coûterait 1/3 du pack.
-    } else {
-      update.dossiersQuota = Number(current?.dossiersQuota || 0) + newPackQuota;
-    }
   }
 
+  // Champs de base : tous idempotents (SET) → sûrs même en cas de rejeu.
   await Property.findByIdAndUpdate(propertyId, update);
+
+  // Octroi du QUOTA : la seule opération additive, donc la seule à risque de
+  // double-octroi si le handler échoue après coup (marqueur global retiré →
+  // Stripe rejoue). On la rend idempotente PAR SESSION Stripe : le guard
+  // `checkoutSessionsApplied != session.id` empêche toute ré-application, quel
+  // que soit le chemin (fresh ou cumul) emprunté au rejeu.
+  if (tier) {
+    const newPackQuota = Number(quota || 0);
+    const quotaUpdate = wasFree
+      ? { $set: { dossiersQuota: newPackQuota, dossiersAnalyzedCount: 0 } }
+      : { $inc: { dossiersQuota: newPackQuota } };
+    await Property.updateOne(
+      { _id: propertyId, checkoutSessionsApplied: { $ne: session.id } },
+      { ...quotaUpdate, $push: { checkoutSessionsApplied: session.id } },
+    );
+  }
 
   captureServer(
     'purchase_completed',
@@ -97,6 +140,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const subscriptionId = subscription.id;
 
+  // Abonnement GESTION : on coupe l'accès aux modules, JAMAIS les crédits
+  // d'audit (achetés séparément en paiement unique). Sans ce test, résilier
+  // la gestion à 4,99 € effaçait tier + dossiersQuota du bien.
+  const managed = await Property.findOne({ 'management.subscriptionId': subscriptionId });
+  if (managed) {
+    await Property.findByIdAndUpdate(managed._id, {
+      $set: { 'management.active': false, 'management.canceledAt': new Date() },
+    });
+    logger.info(`[stripe-webhook] Gestion résiliée sur le bien ${managed._id} (crédits d'audit conservés).`);
+    return;
+  }
+
+  // Abonnement d'audit legacy (modèle pré-V8) : retour à l'offre Gratuite.
   const property = await Property.findOne({ stripeSubscriptionId: subscriptionId });
   if (!property) {
     logger.warn(`[stripe-webhook] Aucun bien trouvé pour subscription ${subscriptionId}`);
@@ -106,13 +162,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await Property.findByIdAndUpdate(property._id, {
     managed: false,
     stripeSubscriptionId: null,
-    // V8.0 — Retour à l'offre Gratuite (plus d'analyses IA incluses)
     tier: 'FREE',
     dossiersQuota: 0,
     stripeUsageItemId: '',
   });
 
-  logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription annulée).`);
+  logger.info(`[stripe-webhook] Bien ${property._id} désactivé → FREE (subscription audit legacy annulée).`);
 }
 
 /**
@@ -182,6 +237,37 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   );
 }
 
+/**
+ * customer.subscription.updated — suspension et reprise de l'abonnement Gestion.
+ *
+ * Sans ce handler, une carte en échec laissait l'accès ouvert indéfiniment :
+ * Stripe passe l'abonnement en past_due/unpaid pendant le dunning et n'émet
+ * `deleted` qu'à la toute fin (voire jamais selon la configuration). Symétrique :
+ * un paiement récupéré réactive l'accès sans intervention.
+ * Ne concerne QUE le bloc management — jamais les crédits d'audit.
+ */
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const property = await Property.findOne({ 'management.subscriptionId': subscription.id });
+  if (!property) return; // abonnement d'audit legacy ou inconnu : rien à faire ici
+
+  const suspended = ['past_due', 'unpaid', 'incomplete_expired', 'canceled'].includes(subscription.status);
+  const active = ['active', 'trialing'].includes(subscription.status);
+  if (!suspended && !active) return; // états transitoires (incomplete…) : on ne bouge pas
+
+  const wasActive = Boolean(property.management?.active);
+  if (suspended && wasActive) {
+    await Property.findByIdAndUpdate(property._id, {
+      $set: { 'management.active': false, 'management.canceledAt': new Date() },
+    });
+    logger.warn(`[stripe-webhook] Gestion SUSPENDUE sur le bien ${property._id} (subscription ${subscription.status}).`);
+  } else if (active && !wasActive) {
+    await Property.findByIdAndUpdate(property._id, {
+      $set: { 'management.active': true, 'management.canceledAt': null },
+    });
+    logger.info(`[stripe-webhook] Gestion RÉACTIVÉE sur le bien ${property._id} (paiement récupéré).`);
+  }
+}
+
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
@@ -246,6 +332,9 @@ export async function POST(request: NextRequest) {
       switch (event.type) {
         case 'checkout.session.completed':
           await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
           break;
         case 'customer.subscription.deleted':
           await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
