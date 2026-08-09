@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/app/components/ui/Modal';
+import { LoadingSpinner } from '@/app/components/ui/LoadingSpinner';
 import { Overlay } from '@/app/components/ui/Overlay';
 import {
   AlertTriangle,
@@ -285,7 +286,11 @@ export function EdlPanel() {
   const entries = inspections.filter((i) => i.type === 'ENTRY').length;
 
   if (loading) {
-    return <div className="py-16 text-center text-sm text-slate-500">Chargement des EDL…</div>;
+    return (
+      <div className="flex items-center justify-center py-16">
+        <LoadingSpinner size="lg" color="amber" label="Chargement des états des lieux" />
+      </div>
+    );
   }
 
   return (

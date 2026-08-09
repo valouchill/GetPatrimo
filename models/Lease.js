@@ -33,7 +33,16 @@ const LeaseSchema = new mongoose.Schema({
   rentAmount: { type: Number, required: [true, 'Le loyer est obligatoire'], min: [0, 'Le loyer ne peut pas être négatif'] },
   chargesAmount: { type: Number, default: 0, min: [0, 'Les charges ne peuvent pas être négatives'] },
   depositAmount: { type: Number, default: 0, min: [0, 'Le dépôt ne peut pas être négatif'] },
+  /**
+   * @deprecated Doublon historique de `leaseType`, avec un vocabulaire divergent
+   * (« NU » ici, « VIDE » là) pour désigner la même chose — source d'incohérence
+   * silencieuse. Conservé pour les documents existants et les lecteurs legacy,
+   * mais DÉRIVÉ automatiquement de `leaseType` (hook pre-save) : ne plus l'écrire
+   * directement. À ne pas confondre avec `Property.propertyType`
+   * (APPARTEMENT/MAISON/STUDIO…), qui décrit le bien, pas le régime du bail.
+   */
   propertyType: { type: String, enum: ['MEUBLE', 'NU', 'MOBILITE', 'GARAGE_PARKING'], default: 'NU' },
+  /** Régime du bail — champ de référence. */
   leaseType: { type: String, enum: ['VIDE', 'MEUBLE', 'MOBILITE', 'GARAGE_PARKING'], default: 'VIDE' },
   paymentDay: { type: Number, default: 5, min: [1, 'Jour de paiement minimum 1'], max: [31, 'Jour de paiement maximum 31'] },
   durationMonths: { type: Number, default: 12, min: [1, 'Durée minimum 1 mois'] },
@@ -182,10 +191,16 @@ LeaseSchema.pre('save', function(next) {
 });
 
 // Validation: dépôt de garantie selon le type de bail (loi ALUR / loi ELAN)
+/** Traduction du régime de bail vers le vocabulaire legacy de `propertyType`. */
+const LEASE_TYPE_TO_LEGACY = { VIDE: 'NU', MEUBLE: 'MEUBLE', MOBILITE: 'MOBILITE', GARAGE_PARKING: 'GARAGE_PARKING' };
+
 LeaseSchema.pre('save', function(next) {
   const deposit = this.depositAmount || 0;
   const rent = this.rentAmount || 0;
   const type = (this.leaseType || '').toUpperCase();
+
+  // `propertyType` est dérivé : il ne peut plus diverger de `leaseType`.
+  if (LEASE_TYPE_TO_LEGACY[type]) this.propertyType = LEASE_TYPE_TO_LEGACY[type];
 
   if (type === 'MOBILITE' && deposit !== 0) {
     return next(new Error('Le dépôt de garantie doit être de 0 € pour un bail mobilité.'));

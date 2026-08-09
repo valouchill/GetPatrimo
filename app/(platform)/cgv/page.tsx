@@ -1,3 +1,4 @@
+import { LEGAL_VERSIONS, formatLegalDate } from '@/lib/legal/versions';
 import { MEDIATOR } from '@/lib/legal/company';
 import Link from 'next/link';
 
@@ -253,7 +254,7 @@ export default function CGV() {
       </section>
 
       <p className="text-xs text-slate-400 mt-12">
-        Version du 3 juillet 2026. Voir aussi les{' '}
+        Version du {formatLegalDate(LEGAL_VERSIONS.cgv.date)}. Voir aussi les{' '}
         <Link href="/terms" className="text-cobalt hover:underline">CGU</Link> et les{' '}
         <Link href="/mentions-legales" className="text-cobalt hover:underline">mentions légales</Link>.
       </p>

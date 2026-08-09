@@ -330,7 +330,23 @@ export function PricingTiers({
           </Link>
         </p>
 
-        <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
+        {/* Réassurance : uniquement des engagements VÉRIFIABLES (pas de faux
+            témoignages ni de compteurs inventés — le produit se vend sur la
+            confiance, un chiffre non tenu la détruirait). */}
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          {[
+            { title: 'Essayez avant de payer', text: 'Le premier audit forensic est offert, sans carte bancaire.' },
+            { title: 'Aucun engagement', text: 'Paiement unique par logement. Vos crédits ne périment jamais.' },
+            { title: 'Vos données restent en France', text: 'Hébergement français, pièces d’identité supprimées après la sélection.' },
+          ].map((item) => (
+            <div key={item.title} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left">
+              <p className="text-sm font-semibold text-emerald-900">{item.title}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{item.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
           Paiement unique sécurisé par Stripe · Audits sans abonnement · Crédits cumulés, jamais perdus
           {variant === 'page' && (
