@@ -1,3 +1,4 @@
+import { LEGAL_VERSIONS, formatLegalDate } from '@/lib/legal/versions';
 import { COMPANY, HOST, legalValue } from '@/lib/legal/company';
 import Link from 'next/link';
 
@@ -94,7 +95,7 @@ export default function MentionsLegales() {
       </section>
 
       <div className="mt-12 pt-6 border-t border-slate-200 text-sm text-slate-500">
-        Dernière mise à jour : avril 2026
+        Dernière mise à jour : {formatLegalDate(LEGAL_VERSIONS.mentions.date)}
       </div>
     </div>
   );

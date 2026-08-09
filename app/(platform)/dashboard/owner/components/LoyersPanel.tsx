@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RentReconciliation } from './RentReconciliation';
 import { ManagementUpsell } from './ManagementUpsell';
 import { Modal } from '@/app/components/ui/Modal';
+import { LoadingSpinner } from '@/app/components/ui/LoadingSpinner';
 import {
   AlertTriangle,
   Bell,
@@ -611,7 +612,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
       {/* Table (desktop) / Cards (mobile) */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          <LoadingSpinner size="lg" color="amber" label="Chargement des loyers" />
         </div>
       ) : monthPayments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">

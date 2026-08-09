@@ -699,6 +699,17 @@ export default function OwnerDashboardClient() {
                 </div>
               )
             )}
+            {/* Cross-sell au moment le plus chaud : le bailleur vient de payer,
+                son offre est active, et la suite naturelle du parcours (bail →
+                loyers → EDL) est précisément ce que vend l'abonnement Gestion. */}
+            {checkoutSuccess && !activationPending && dashData.hasPaidProperty
+              && dashData.management?.offerLive && !dashData.management?.anyActive
+              && dashData.management?.upsellPropertyId && (
+              <div className="mb-6">
+                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} />
+              </div>
+            )}
+
             {/* V5.5 — Vue "Portefeuille d'Actifs" Banque Privée.
                 Remplace l'ancien design tableau + grille mixte par un seul
                 composant <PropertiesPortfolio> cohérent avec le reste de l'UI

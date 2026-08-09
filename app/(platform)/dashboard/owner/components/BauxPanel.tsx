@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, Clock, FileSignature, FileText, PenLine, Plus, RefreshCw, UserCheck, UserX, X } from 'lucide-react';
 import { SignatureQueue } from './SignatureQueue';
 import { Modal } from '@/app/components/ui/Modal';
+import { LoadingSpinner } from '@/app/components/ui/LoadingSpinner';
 import { Btn, Tag, Avatar, StatCard } from './ui';
 import type { TagType } from './ui';
 
@@ -155,7 +156,9 @@ export function BauxPanel({
 
   if (loading) {
     return (
-      <div className="py-16 text-center text-sm text-slate-500">Chargement des baux...</div>
+      <div className="flex items-center justify-center py-16">
+        <LoadingSpinner size="lg" color="amber" label="Chargement des baux" />
+      </div>
     );
   }
 
