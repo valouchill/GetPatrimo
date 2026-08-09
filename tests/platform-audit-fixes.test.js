@@ -72,8 +72,11 @@ describe('conversion — on ne vend plus comme « bientôt » ce qui est livré'
     assert.match(landing, /Signature électronique en ligne/);
   });
 
-  it('la gestion locative est vendue (prix + CTA) tant que MANAGEMENT est actif', () => {
-    assert.match(landing, /isEnabled\('MANAGEMENT'\) \?/);
+  it('la gestion locative est vendue UNIQUEMENT si elle est achetable', () => {
+    // Ce test affirmait auparavant qu'il suffisait du flag de feature — ce qui
+    // encodait le bug : la landing annonçait 4,99 € alors que la souscription
+    // répondait 503 faute de prix Stripe.
+    assert.match(landing, /isEnabled\('MANAGEMENT'\) && managementPurchasable \?/);
     assert.match(landing, /4,99 € \/ mois/);
     assert.match(landing, /Activer la gestion locative/);
   });

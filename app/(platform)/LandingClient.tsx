@@ -450,7 +450,10 @@ function Pillar({
 /* ──────────────────────────────────────────────────────────────
  * Page
  * ────────────────────────────────────────────────────────────── */
-export default function LandingClient() {
+export default function LandingClient({
+  /** true seulement si l'abonnement Gestion est réellement achetable (prix Stripe configuré). */
+  managementPurchasable = false,
+}: { managementPurchasable?: boolean } = {}) {
   return (
     <div className="overflow-hidden bg-slate-50 text-slate-900">
       {/* ============================ HERO ============================ */}
@@ -760,7 +763,7 @@ export default function LandingClient() {
       {/* ============ GESTION LOCATIVE (offre en vente) ============ */}
       {/* Le module est LIVE et l'abonnement est vendable : on vend, on ne
           collecte plus d'adresses pour un lancement déjà eu lieu. */}
-      {isEnabled('MANAGEMENT') ? (
+      {isEnabled('MANAGEMENT') && managementPurchasable ? (
         <section id="gestion-locative" className="px-6 py-16 md:py-20">
           <Reveal className="mx-auto max-w-3xl rounded-[2rem] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 to-white p-8 text-center sm:p-12">
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">

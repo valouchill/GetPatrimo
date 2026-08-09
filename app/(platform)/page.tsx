@@ -38,5 +38,11 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <LandingClient />;
+  // L'offre Gestion n'est annonçable que si elle est réellement ACHETABLE :
+  // sans prix Stripe configuré, /api/billing/management répond 503. Afficher un
+  // tarif et un bouton menant à une erreur est le pire résultat possible sur une
+  // page publique. Le flag de feature ne suffit donc pas : on transmet la
+  // disponibilité réelle, que seul le serveur peut connaître.
+  const managementPurchasable = Boolean(process.env.PRICE_ID_MANAGEMENT_MONTHLY);
+  return <LandingClient managementPurchasable={managementPurchasable} />;
 }
