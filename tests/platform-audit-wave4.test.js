@@ -115,3 +115,25 @@ describe('vague 4b — UX, accessibilité, onboarding', () => {
     assert.match(fn, /safeUploadsPath\(refDoc\.pdfPath\)/);
   });
 });
+
+describe('vague 5 — overlays sur la primitive partagée', () => {
+  it('les modules gestion ne re-codent plus d’overlay à la main', () => {
+    // Un `fixed inset-0` artisanal n'a ni piège de focus, ni fermeture au
+    // clavier, ni verrouillage du scroll, ni rendu mobile en feuille.
+    for (const rel of [
+      'app/(platform)/dashboard/owner/components/BauxPanel.tsx',
+      'app/(platform)/dashboard/owner/components/EdlPanel.tsx',
+      'app/(platform)/dashboard/owner/components/LoyersPanel.tsx',
+    ]) {
+      assert.ok(!read(rel).includes('fixed inset-0'), `${rel} doit utiliser <Modal>/<Overlay>`);
+    }
+  });
+
+  it('chacun importe bien la primitive', () => {
+    assert.match(read('app/(platform)/dashboard/owner/components/BauxPanel.tsx'), /components\/ui\/Modal/);
+    assert.match(read('app/(platform)/dashboard/owner/components/LoyersPanel.tsx'), /components\/ui\/Modal/);
+    const edl = read('app/(platform)/dashboard/owner/components/EdlPanel.tsx');
+    assert.match(edl, /components\/ui\/Modal/);
+    assert.match(edl, /components\/ui\/Overlay/);
+  });
+});

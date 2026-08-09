@@ -106,12 +106,11 @@ function ConfirmModal({ payment, onClose, onDone }: {
     } finally { setLoading(false); }
   }, [payment._id, amount, method, notes]);
 
+  // Primitive partagée <Modal> plutôt qu'un overlay re-codé : elle apporte le
+  // piège de focus, la fermeture au clavier et le rendu mobile en feuille.
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={onClose}>
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <Modal open onClose={onClose} size="md" ariaLabel="Confirmer le paiement">
+      <div>
 
         <AnimatePresence mode="wait">
           {step === 'form' ? (
@@ -180,8 +179,8 @@ function ConfirmModal({ payment, onClose, onDone }: {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </motion.div>
+      </div>
+    </Modal>
   );
 }
 
