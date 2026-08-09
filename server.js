@@ -171,7 +171,10 @@ app.use((req, res, next) => {
 // elles-mêmes ; si Express consomme le flux d'abord, le handler Next PEND à jamais).
 // Liste UNIQUE partagée json+urlencoded — elle était dupliquée et /api/tenant/ +
 // /api/admin/ manquaient : POST /api/tenant/contest et les PATCH admin pendaient (504).
-const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/public/sign/', '/api/inspections', '/api/leases', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password'];
+const NEXT_SELF_PARSED_PREFIXES = ['/api/didit/', '/api/webhooks/', '/api/analyze-document', '/api/guarantor/', '/api/cotenant/', '/api/owner-tunnel/', '/api/analyze-photos', '/api/passport/', '/api/properties/', '/api/scoring/', '/api/verify/', '/api/owner/', '/api/admin/', '/api/tenant/', '/api/billing/', '/api/public/apply/', '/api/public/dossier/', '/api/public/sign/', '/api/inspections', '/api/leases', '/api/dashboard', '/api/user/', '/api/payments', '/api/receipts', '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers', '/api/auth/session', '/api/auth/signout', '/api/auth/signin/', '/api/auth/error', '/api/auth/totp', '/api/auth/send-otp', '/api/auth/verify-otp', '/api/auth/register', '/api/auth/login-password', '/api/auth/forgot-password', '/api/auth/reset-password',
+  // Détectés par le garde-fou tests/next-express-parsing.test.js : ces routes
+  // lisent request.json() mais n'étaient couvertes par aucun préfixe → hang 504.
+  '/api/applications', '/api/documents'];
 const isNextSelfParsedRoute = (url) => NEXT_SELF_PARSED_PREFIXES.some((p) => url.startsWith(p));
 
 app.use((req, res, next) => {
@@ -1640,7 +1643,12 @@ const cron = require('node-cron');
 const { cleanupExpiredTokens } = require('./src/cron/cleanupExpiredTokens');
 const { generateAllMonthlyPayments, sendLateReminders } = require('./src/cron/monthlyPayments');
 const { runRGPDPurge } = require('./src/cron/rgpdPurge');
-const { runMongoBackup } = require('./src/cron/mongoBackup');
+// NB : la sauvegarde Mongo n'est PAS faite depuis le conteneur applicatif.
+// `mongodump` n'est pas présent dans l'image Next, et le répertoire de sortie y
+// serait éphémère (détruit à chaque redéploiement). La vraie sauvegarde est un
+// cron HÔTE — /opt/doc2loc/scripts/mongo-backup.sh, quotidien à 03h15 : dump
+// chiffré, rétention 7 jours, réplication offsite (rclone) à 03h45.
+// Le cron interne, qui échouait silencieusement chaque nuit, est retiré.
 const { runSignatureReminders } = require('./src/services/leaseSignatureService');
 
 // Wrap cron handler to catch errors without crashing the process
@@ -1649,7 +1657,21 @@ function safeCron(name, fn) {
     try {
       logger.info(`[cron] ${name} — démarrage`);
       const result = await fn();
-      logger.info(`[cron] ${name} — terminé`, { result });
+      // Trou d'observabilité corrigé : les crons attrapent leurs erreurs en
+      // interne et RETOURNENT un rapport { errors: [...] } sans lever. Ce
+      // rapport n'était loggé qu'en `info` → jamais remonté dans Sentry. Un
+      // backup en échec ou une génération de loyers totalement inopérante
+      // restaient donc invisibles. On escalade désormais explicitement.
+      const errors = Array.isArray(result?.errors) ? result.errors : [];
+      if (errors.length > 0) {
+        logger.error(`[cron] ${name} — terminé AVEC ERREURS`, {
+          errorCount: errors.length,
+          errors: errors.slice(0, 20),
+          result,
+        });
+      } else {
+        logger.info(`[cron] ${name} — terminé`, { result });
+      }
     } catch (err) {
       logger.error(`[cron] ${name} — erreur`, { error: err?.message || err });
     }
@@ -1674,9 +1696,6 @@ cron.schedule('30 9 * * *', safeCron('signature-reminders', runSignatureReminder
 
 // Tous les jours à 2h : purge RGPD
 cron.schedule('0 2 * * *', safeCron('rgpd-purge', runRGPDPurge));
-
-// Tous les jours à 3h : backup MongoDB
-cron.schedule('0 3 * * *', safeCron('mongo-backup', runMongoBackup));
 
 logger.info('[cron] Tâches planifiées enregistrées');
 

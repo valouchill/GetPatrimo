@@ -1,22 +1,16 @@
 /**
- * /dashboard/owner/lease — Module de contractualisation V1.
+ * /dashboard/owner/lease — route héritée.
  *
- * Auth : déjà gérée par app/(platform)/dashboard/owner/layout.tsx
- * (redirect vers /auth/login si non connecté).
- *
- * V1 : données démo hardcodées (cf. DEMO_LEASE_DATA). En V2, la page
- * acceptera un applicationId via query param ou route dynamique pour
- * charger les vraies données du dossier sélectionné.
+ * Elle servait une page de préparation de bail alimentée par des DONNÉES DÉMO
+ * codées en dur (noms d'apparence réelle), accessible en production à toute
+ * personne connectée. Le module réel existe désormais :
+ * `/dashboard/owner/contracts` liste les baux à préparer et mène au wizard
+ * `/properties/[id]/contract` (pré-remplissage depuis le dossier vérifié +
+ * signature électronique). On redirige au lieu d'afficher du faux.
  */
 
-import { LeasePreparationPage } from '../components/LeasePreparationPage';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Préparation de bail · Maison Patrimo',
-  description:
-    'Téléchargez le modèle ALUR officiel et reportez les informations du dossier en un clic.',
-};
-
-export default function OwnerLeasePreparationPage(): React.ReactElement {
-  return <LeasePreparationPage />;
+export default function OwnerLeasePreparationPage(): never {
+  redirect('/dashboard/owner/contracts');
 }

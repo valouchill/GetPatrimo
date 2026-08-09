@@ -15,6 +15,8 @@ interface GuarantorInfo {
 }
 
 interface AuditDocument {
+  /** Message d'échec affiché sur la carte (l'échec était totalement muet). */
+  uploadError?: string;
   file: File;
   type: 'CNI' | 'AVIS_IMPOSITION' | 'BULLETIN_SALAIRE';
   uploading: boolean;
@@ -143,6 +145,25 @@ export default function GuarantorVerificationClient({ token }: { token: string }
 
   // Gestion upload de document pour l'audit
   const handleAuditDocumentUpload = async (file: File, type: AuditDocument['type']) => {
+    // Validation client : sans elle, un fichier trop lourd ou d'un mauvais type
+    // partait au serveur pour revenir en erreur… silencieuse.
+    const MAX_MB = 10;
+    const isAccepted = /^(image\/|application\/pdf)/.test(file.type);
+    if (!isAccepted) {
+      setAuditDocuments(prev => [
+        ...prev.filter(d => d.type !== type),
+        { file, type, uploading: false, uploadError: 'Format non accepté — envoyez une photo (JPG, PNG) ou un PDF.' },
+      ]);
+      return;
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setAuditDocuments(prev => [
+        ...prev.filter(d => d.type !== type),
+        { file, type, uploading: false, uploadError: `Fichier trop lourd (${MAX_MB} Mo maximum).` },
+      ]);
+      return;
+    }
+
     const newDoc: AuditDocument = { file, type, uploading: true };
     setAuditDocuments(prev => [...prev.filter(d => d.type !== type), newDoc]);
 
@@ -166,13 +187,18 @@ export default function GuarantorVerificationClient({ token }: { token: string }
           )
         );
       } else {
-        setAuditDocuments(prev => 
-          prev.map(d => d.type === type ? { ...d, uploading: false } : d)
+        const data = await response.json().catch(() => ({}));
+        setAuditDocuments(prev =>
+          prev.map(d => d.type === type
+            ? { ...d, uploading: false, uploadError: data?.error || "L'analyse a échoué — réessayez." }
+            : d)
         );
       }
     } catch {
-      setAuditDocuments(prev => 
-        prev.map(d => d.type === type ? { ...d, uploading: false } : d)
+      setAuditDocuments(prev =>
+        prev.map(d => d.type === type
+          ? { ...d, uploading: false, uploadError: 'Envoi impossible — vérifiez votre connexion et réessayez.' }
+          : d)
       );
     }
   };
@@ -670,18 +696,23 @@ function DocumentUploadCard({ label, description, icon, document, onUpload, requ
     }
   };
 
-  const isUploaded = document && !document.uploading;
+  // Un échec affichait la carte en VERT avec une coche « ✓ » (isUploaded ne
+  // tenait pas compte de l'erreur) : le garant croyait avoir réussi.
+  const hasError = Boolean(document?.uploadError);
+  const isUploaded = document && !document.uploading && !hasError;
   const isUploading = document?.uploading;
 
   return (
     <label className={`block p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-      isUploaded 
-        ? 'border-emerald-300 bg-emerald-50' 
-        : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
+      hasError
+        ? 'border-red-300 bg-red-50'
+        : isUploaded
+          ? 'border-emerald-300 bg-emerald-50'
+          : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/30'
     }`}>
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${
-          isUploaded ? 'bg-emerald-100' : 'bg-slate-100'
+          hasError ? 'bg-red-100' : isUploaded ? 'bg-emerald-100' : 'bg-slate-100'
         }`}>
           {isUploading ? (
             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -700,6 +731,11 @@ function DocumentUploadCard({ label, description, icon, document, onUpload, requ
           {isUploaded && document?.file && (
             <p className="text-xs text-emerald-600 mt-1">
               ✓ {document.file.name}
+            </p>
+          )}
+          {hasError && (
+            <p className="text-xs font-medium text-red-600 mt-1" role="alert">
+              {document?.uploadError} <span className="underline">Touchez pour réessayer.</span>
             </p>
           )}
         </div>

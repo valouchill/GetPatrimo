@@ -54,10 +54,28 @@ export const POST = withErrorHandler(async (request: NextRequest, ctx: any) => {
 
   // Identité déjà vérifiée eIDAS (Didit) lors de la candidature → mise en avant
   // dans le certificat de signature.
+  //
+  // Non-répudiation : `tenantEmail` est saisi par le BAILLEUR. Sans contrôle, il
+  // pouvait pointer une adresse qu'il contrôle et obtenir un certificat affirmant
+  // « identité vérifiée » pour une signature n'ayant subi aucun contrôle Didit.
+  // On n'appose donc le badge QUE si le signataire est bien la personne dont le
+  // dossier a été vérifié (même adresse email).
   let diditVerified = false;
   if (lease.applicationId) {
-    const app = await Application.findById(lease.applicationId).select('didit').lean();
-    diditVerified = (app as any)?.didit?.status === 'VERIFIED';
+    const app = await Application.findById(lease.applicationId)
+      .select('didit userEmail')
+      .lean();
+    const verifiedEmail = String((app as any)?.userEmail || '').trim().toLowerCase();
+    const signerEmail = String(lease.tenantEmail || '').trim().toLowerCase();
+    diditVerified =
+      (app as any)?.didit?.status === 'VERIFIED'
+      && Boolean(verifiedEmail)
+      && verifiedEmail === signerEmail;
+    if ((app as any)?.didit?.status === 'VERIFIED' && verifiedEmail !== signerEmail) {
+      logger.warn('[lease-signature] badge identité NON apposé : email signataire != dossier vérifié', {
+        leaseId: String(lease._id),
+      });
+    }
   }
 
   const ownerFullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || 'Le bailleur';

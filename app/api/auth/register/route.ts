@@ -8,6 +8,7 @@ import { RegisterSchema } from '@/lib/validations/auth';
 import { logger } from '@/lib/server-logger';
 import { CONSENT_VERSION } from '@/lib/legal/consent';
 import { captureServer } from '@/lib/analytics/posthog-server';
+import { sendWelcomeEmail } from '@/lib/emails/welcome';
  
 const User = require('@/models/User');
  
@@ -85,6 +86,16 @@ export async function POST(req: NextRequest) {
     captureServer('signup_completed', String(user._id), {
       role,
       marketing_consent: marketingConsent,
+    });
+
+    // Email de bienvenue : aucun message ne partait après l'inscription — le
+    // nouvel inscrit se retrouvait seul devant un dashboard vide, sans savoir
+    // quelle est la première action utile. Best-effort : ne bloque jamais
+    // l'inscription (l'accès au compte ne dépend pas de l'email).
+    void sendWelcomeEmail({ email, role }).catch((err) => {
+      logger.warn('[register] email de bienvenue non envoyé', {
+        error: err instanceof Error ? err.message : err,
+      });
     });
 
     return NextResponse.json({

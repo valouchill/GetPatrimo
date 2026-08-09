@@ -8,6 +8,7 @@ const Lease = require('@/models/Lease');
 const Property = require('@/models/Property');
 const LeaseSignature = require('@/models/LeaseSignature');
 const {
+  computeGuaranteeAmount,
   resolveSignatureByToken,
   sendSignatureOtp,
   verifySignatureOtp,
@@ -100,6 +101,11 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ token: 
         role: signature.role,
         otpVerified: Boolean(signature.otpVerifiedAt),
       },
+      // Art. 2297 C. civ. : la caution doit écrire elle-même sa mention. On lui
+      // indique le montant à porter, sans jamais pré-remplir le texte.
+      guarantee: signature.role === 'GUARANTOR'
+        ? { amount: computeGuaranteeAmount(lease), durationMonths: lease.durationMonths }
+        : null,
       lease: {
         tenantName: [lease.tenantFirstName, lease.tenantLastName].filter(Boolean).join(' '),
         address: property?.address || property?.name || '',
@@ -159,6 +165,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
       }
       const result = await recordSignature(signature, {
         signatureImage: image,
+        guaranteeMention: typeof body?.guaranteeMention === 'string' ? body.guaranteeMention : '',
         ip,
         userAgent: request.headers.get('user-agent') || '',
       });

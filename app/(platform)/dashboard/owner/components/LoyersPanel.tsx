@@ -4,6 +4,7 @@ import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RentReconciliation } from './RentReconciliation';
 import { ManagementUpsell } from './ManagementUpsell';
+import { Modal } from '@/app/components/ui/Modal';
 import {
   AlertTriangle,
   Bell,
@@ -105,12 +106,11 @@ function ConfirmModal({ payment, onClose, onDone }: {
     } finally { setLoading(false); }
   }, [payment._id, amount, method, notes]);
 
+  // Primitive partagée <Modal> plutôt qu'un overlay re-codé : elle apporte le
+  // piège de focus, la fermeture au clavier et le rendu mobile en feuille.
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={onClose}>
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <Modal open onClose={onClose} size="md" ariaLabel="Confirmer le paiement">
+      <div>
 
         <AnimatePresence mode="wait">
           {step === 'form' ? (
@@ -145,7 +145,7 @@ function ConfirmModal({ payment, onClose, onDone }: {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Notes <span className="font-normal text-slate-400">optionnel</span></label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Notes <span className="font-normal text-slate-500">optionnel</span></label>
                   <input type="text" className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-amber-300 focus:ring-2 focus:ring-amber-100 outline-none"
                     placeholder="Ex: reçu le 03/03" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
@@ -173,14 +173,14 @@ function ConfirmModal({ payment, onClose, onDone }: {
                 Quittance générée pour <span className="font-semibold text-slate-700">{tenantLabel}</span>
               </p>
               <QuittanceActions paymentId={payment._id} period={payment.period} variant="modal" />
-              <button onClick={onDone} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={onDone} className="mt-4 text-sm text-slate-500 hover:text-slate-600 transition-colors">
                 Fermer
               </button>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </motion.div>
+      </div>
+    </Modal>
   );
 }
 
@@ -210,7 +210,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
           <div className="font-semibold text-slate-900 text-sm">{tenantLabel}</div>
           <div className="text-xs text-slate-500">{p.property?.name || p.property?.address?.split(',')[0] || '—'}</div>
           {lastReminder && (
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-[11px] text-slate-500 mt-0.5">
               Relancé le {new Date(lastReminder.date).toLocaleDateString('fr-FR')}
             </div>
           )}
@@ -327,7 +327,12 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
     finally { setGenerating(false); }
   }, [fetchPayments]);
 
+  // Une relance en masse envoie de VRAIS emails à des locataires : action
+  // sortante et irréversible, elle ne doit jamais partir sur un clic isolé.
+  const [confirmRemindAll, setConfirmRemindAll] = useState(false);
+
   const handleRemindAll = useCallback(async () => {
+    setConfirmRemindAll(false);
     setReminding(true); setMessage('');
     try {
       const res = await fetch('/api/payments/remind', { method: 'POST' });
@@ -403,7 +408,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             <Download className="h-4 w-4" /> Export
           </button>
-          <button onClick={handleRemindAll} disabled={reminding || lateCount === 0}
+          <button onClick={() => setConfirmRemindAll(true)} disabled={reminding || lateCount === 0}
             className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-40 transition-colors">
             {reminding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
             Relancer ({lateCount})
@@ -415,6 +420,36 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
           </button>
         </div>
       </div>
+
+      <Modal
+        open={confirmRemindAll}
+        onClose={() => setConfirmRemindAll(false)}
+        title="Envoyer les relances ?"
+        description={`${lateCount} locataire${lateCount > 1 ? 's' : ''} en retard ${lateCount > 1 ? 'vont' : 'va'} recevoir un email de relance. Le niveau du message (rappel, relance, mise en demeure) dépend de l'ancienneté de l'impayé.`}
+        size="sm"
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmRemindAll(false)}
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleRemindAll}
+              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700"
+            >
+              Envoyer {lateCount} relance{lateCount > 1 ? 's' : ''}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Cette action est irréversible : les emails partent immédiatement.
+        </p>
+      </Modal>
 
       {/* Rapprochement bancaire assisté : relevé → propositions → quittance auto.
           Si l'offre Gestion est ouverte et non souscrite, on vend d'abord. */}
@@ -435,7 +470,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                 if (res.ok && data?.url) window.location.href = data.url as string;
               } catch { /* silent */ }
             }}
-            className="mt-2 text-[11px] text-slate-400 underline decoration-slate-300 hover:text-slate-600 transition-colors"
+            className="mt-2 text-[11px] text-slate-500 underline decoration-slate-300 hover:text-slate-600 transition-colors"
           >
             Abonnement Gestion actif · gérer ou résilier
           </button>
@@ -477,7 +512,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
             Encaissement — {MONTHS[viewMonth - 1]} {viewYear}
           </span>
           <span className="text-sm font-bold text-slate-900">
-            {fmt(totalPaid)} <span className="font-normal text-slate-400">/ {fmt(totalDue)}</span>
+            {fmt(totalPaid)} <span className="font-normal text-slate-500">/ {fmt(totalDue)}</span>
           </span>
         </div>
         <Bar value={collectionRate} color={barColor} />
@@ -485,7 +520,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
           <span className="font-bold text-slate-700">{collectionRate}%</span>
           <span>encaissé</span>
           {totalDue - totalPaid > 0 && (
-            <span className="text-slate-400">— Reste : {fmt(totalDue - totalPaid)}</span>
+            <span className="text-slate-500">— Reste : {fmt(totalDue - totalPaid)}</span>
           )}
         </div>
         {monthPayments.length > 0 && (
@@ -537,7 +572,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
               <option value="LATE">En retard</option>
               <option value="UNPAID">Impayé</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
           {properties.length > 1 && (
             <div className="relative">
@@ -548,7 +583,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                   <option key={id} value={id}>{label}</option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             </div>
           )}
         </div>
@@ -556,7 +591,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
 
       {/* Légende statuts */}
       {monthPayments.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400">
+        <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
           <span><span className="font-semibold text-blue-600">En attente</span> = non encore échu ou paiement non reçu</span>
           <span><span className="font-semibold text-red-600">En retard</span> = impayé depuis &gt;5 jours</span>
           <span><span className="font-semibold text-red-800">Impayé</span> = relance formelle envoyée (&gt;30 jours)</span>
@@ -581,7 +616,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
       ) : monthPayments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
-            <Wallet className="h-6 w-6 text-slate-400" />
+            <Wallet className="h-6 w-6 text-slate-500" />
           </div>
           <p className="font-medium text-slate-700">Aucun loyer pour {MONTHS[viewMonth - 1]} {viewYear}</p>
           <p className="mt-1 text-sm text-slate-500">
@@ -624,12 +659,12 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                         <td className="px-4 py-3.5">
                           <div className="text-sm font-semibold text-slate-900">{tenantLabel}</div>
                           {p.confirmedAt && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
+                            <div className="text-[11px] text-slate-500 mt-0.5">
                               payé le {new Date(p.confirmedAt).toLocaleDateString('fr-FR')}
                             </div>
                           )}
                           {lastReminder && !p.confirmedAt && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
+                            <div className="text-[11px] text-slate-500 mt-0.5">
                               Relancé le {new Date(lastReminder.date).toLocaleDateString('fr-FR')}
                             </div>
                           )}
@@ -712,7 +747,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="font-semibold text-emerald-600">{fmt(totalPaid)}</span>
-                      <span className="text-slate-400"> encaissé</span>
+                      <span className="text-slate-500"> encaissé</span>
                     </td>
                     <td />
                   </tr>

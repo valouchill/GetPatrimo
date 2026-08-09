@@ -14,6 +14,7 @@
  * stripeCustomerId. Cf. docs/BILLING.md (rapport méthode).
  */
 
+import { captureServer } from '@/lib/analytics/posthog-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
@@ -98,6 +99,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // (custom_text.submit ci-dessous). Tracé dans Stripe + webhook.
       retractationWaiver: 'accepted',
     };
+
+    // Funnel : event à l'ENTRÉE du checkout (l'achat seul était tracé, donc le
+    // taux de conversion checkout → achat était incalculable).
+    captureServer('checkout_started', session.user.id, {
+      kind: 'audit_pack',
+      property_id: propertyId,
+      tier,
+    });
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'payment',

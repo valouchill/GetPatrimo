@@ -26,6 +26,10 @@ interface SignerInfo {
   role: 'OWNER' | 'TENANT' | 'COTENANT' | 'GUARANTOR';
   otpVerified: boolean;
 }
+interface GuaranteeInfo {
+  amount: number;
+  durationMonths?: number;
+}
 interface PartyInfo {
   role: 'OWNER' | 'TENANT' | 'COTENANT' | 'GUARANTOR';
   signed: boolean;
@@ -71,6 +75,9 @@ export function SignClient({ token }: { token: string }) {
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [done, setDone] = useState<{ complete: boolean } | null>(null);
   const [parties, setParties] = useState<PartyInfo[]>([]);
+  // Art. 2297 C. civ. : la caution écrit elle-même sa mention d'engagement.
+  const [guarantee, setGuarantee] = useState<GuaranteeInfo | null>(null);
+  const [guaranteeMention, setGuaranteeMention] = useState('');
   const [expiredLink, setExpiredLink] = useState(false);
 
   const [step, setStep] = useState<'read' | 'otp' | 'sign'>('read');
@@ -102,6 +109,7 @@ export function SignClient({ token }: { token: string }) {
         setSigner(data.signer);
         setLease(data.lease);
         setParties(Array.isArray(data.parties) ? data.parties : []);
+        setGuarantee(data.guarantee || null);
         if (data.signer?.otpVerified) setStep('sign');
       }
     } catch {
@@ -171,7 +179,7 @@ export function SignClient({ token }: { token: string }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await post('sign', { signatureImage: image });
+      const r = await post('sign', { signatureImage: image, guaranteeMention });
       setDone({ complete: Boolean(r.complete) });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
@@ -492,6 +500,32 @@ export function SignClient({ token }: { token: string }) {
         {/* Étape 3 : signature */}
         {step === 'sign' && (
           <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+            {guarantee && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">
+                  Recopiez cette mention de votre main
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                  La loi exige que vous écriviez vous-même l&rsquo;étendue de votre engagement
+                  (art. 2297 du Code civil) — une mention pré-remplie rendrait votre
+                  cautionnement <strong>nul</strong>.
+                </p>
+                <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-700">
+                  Votre engagement porte sur <strong>{guarantee.amount.toLocaleString('fr-FR')} €</strong>
+                  {guarantee.durationMonths ? ` (loyer et charges sur ${guarantee.durationMonths} mois)` : ''}.
+                  Écrivez une phrase qui l&rsquo;exprime clairement et mentionnez ce montant.
+                </p>
+                <textarea
+                  value={guaranteeMention}
+                  onChange={(e) => setGuaranteeMention(e.target.value)}
+                  rows={3}
+                  aria-label="Mention d'engagement de la caution"
+                  placeholder={`Exemple : je me porte caution solidaire dans la limite de ${guarantee.amount.toLocaleString('fr-FR')} €, couvrant le paiement des loyers et charges.`}
+                  className="mt-2 w-full rounded-xl border-2 border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400"
+                />
+              </div>
+            )}
+
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <PenLine className="h-4 w-4 text-emerald-700" />
               Signez dans le cadre
@@ -518,7 +552,7 @@ export function SignClient({ token }: { token: string }) {
             <button
               type="button"
               onClick={handleSign}
-              disabled={busy || !hasDrawn}
+              disabled={busy || !hasDrawn || (Boolean(guarantee) && guaranteeMention.trim().length < 20)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-4 text-sm font-bold text-emerald-950 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}

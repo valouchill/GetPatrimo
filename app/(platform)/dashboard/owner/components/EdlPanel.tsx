@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Modal } from '@/app/components/ui/Modal';
+import { Overlay } from '@/app/components/ui/Overlay';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -150,15 +152,24 @@ function CreateEdlModal({
     }
   };
 
+  // Primitive partagée : piège de focus, Échap, scroll verrouillé, feuille mobile.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Nouvel état des lieux</h3>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      open
+      onClose={onClose}
+      title="Nouvel état des lieux"
+      size="lg"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Btn variant="secondary" onClick={onClose}>Annuler</Btn>
+          <Btn variant="amber" disabled={!leaseId || loading} onClick={handleCreate}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Créer l&apos;EDL
+          </Btn>
         </div>
+      }
+    >
+      <div>
 
         <div className="space-y-4">
           {/* Lease selection */}
@@ -212,7 +223,7 @@ function CreateEdlModal({
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 text-xs text-slate-500">
               Pièces : {(ROOM_TEMPLATES[template] || []).join(', ')}
             </p>
           </div>
@@ -229,15 +240,8 @@ function CreateEdlModal({
           </div>
         )}
 
-        <div className="mt-5 flex justify-end gap-2">
-          <Btn variant="secondary" onClick={onClose}>Annuler</Btn>
-          <Btn variant="amber" disabled={!leaseId || loading} onClick={handleCreate}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Créer l&apos;EDL
-          </Btn>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -304,10 +308,10 @@ export function EdlPanel() {
       {inspections.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
-            <ClipboardCheck className="h-6 w-6 text-slate-400" />
+            <ClipboardCheck className="h-6 w-6 text-slate-500" />
           </div>
           <p className="mb-2 text-slate-500">Aucun état des lieux.</p>
-          <p className="text-xs text-slate-400">Créez un EDL pour documenter l&apos;état de vos biens.</p>
+          <p className="text-xs text-slate-500">Créez un EDL pour documenter l&apos;état de vos biens.</p>
         </div>
       ) : (
         <>
@@ -584,18 +588,23 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="ml-auto flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <Overlay
+      open
+      onClose={onClose}
+      variant="drawer"
+      size="xl"
+      title="Comparaison Entrée ↔ Sortie"
+    >
+      <div className="flex h-full w-full flex-col">
         <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900">Comparaison Entrée ↔ Sortie</h3>
             {data?.entryInspection && (
               <p className="text-xs text-slate-500">
                 Entrée : {new Date(data.entryInspection.date).toLocaleDateString('fr-FR')} · Sortie : {new Date(data.exitInspection.date).toLocaleDateString('fr-FR')}
               </p>
             )}
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -609,13 +618,15 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
             <div className="py-16 text-center">
               <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
               <p className="text-sm text-slate-600">Aucun EDL d&apos;entrée trouvé pour ce bail.</p>
-              <p className="mt-1 text-xs text-slate-400">La comparaison nécessite un EDL d&apos;entrée complété.</p>
+              <p className="mt-1 text-xs text-slate-500">La comparaison nécessite un EDL d&apos;entrée complété.</p>
             </div>
           ) : (
             <>
-              {/* Room comparison table */}
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <table className="w-full text-sm">
+              {/* Room comparison table — scroll horizontal sur mobile : sans lui,
+                  les colonnes (pièce, entrée, sortie, montant) débordaient hors
+                  écran sans moyen d'y accéder. */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full min-w-[34rem] text-sm">
                   <thead>
                     <tr className="bg-slate-50">
                       <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Pièce / Élément</th>
@@ -718,7 +729,7 @@ function ComparisonDrawer({ inspectionId, onClose }: { inspectionId: string; onC
           )}
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }
 

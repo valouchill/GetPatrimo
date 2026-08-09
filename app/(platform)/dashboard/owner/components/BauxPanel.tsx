@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, Clock, FileSignature, FileText, PenLine, Plus, RefreshCw, UserCheck, UserX, X } from 'lucide-react';
 import { SignatureQueue } from './SignatureQueue';
+import { Modal } from '@/app/components/ui/Modal';
 import { Btn, Tag, Avatar, StatCard } from './ui';
 import type { TagType } from './ui';
 
@@ -84,6 +85,9 @@ export function BauxPanel({
   const [renewingId, setRenewingId] = useState<string | null>(null);
   const [terminateId, setTerminateId] = useState<string | null>(null);
   const [showPropertyPicker, setShowPropertyPicker] = useState(false);
+  // Les échecs de renouvellement/résiliation étaient totalement muets : le
+  // bailleur cliquait, rien ne se passait, il ne savait pas pourquoi.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchLeases = useCallback(async () => {
     try {
@@ -91,8 +95,12 @@ export function BauxPanel({
       if (res.ok) {
         const json = await res.json();
         setLeases(json.data || []);
+      } else {
+        setActionError('Impossible de charger vos baux — rechargez la page.');
       }
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — vérifiez votre réseau.');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -100,25 +108,39 @@ export function BauxPanel({
 
   const handleRenew = async (leaseId: string) => {
     setRenewingId(leaseId);
+    setActionError(null);
     try {
       const res = await fetch(`/api/leases/${leaseId}/renew`, { method: 'POST' });
       if (res.ok) {
         await fetchLeases();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setActionError(json?.error || 'Le renouvellement a échoué. Réessayez.');
       }
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — le renouvellement n\'a pas été enregistré.');
+    }
     finally { setRenewingId(null); }
   };
 
   const handleTerminate = async (leaseId: string, initiatedBy: string) => {
+    setActionError(null);
     try {
-      await fetch(`/api/leases/${leaseId}/terminate`, {
+      const res = await fetch(`/api/leases/${leaseId}/terminate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ initiatedBy }),
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setActionError(json?.error || 'La résiliation a échoué. Réessayez.');
+        return;
+      }
       setTerminateId(null);
       await fetchLeases();
-    } catch { /* silent */ }
+    } catch {
+      setActionError('Connexion impossible — la résiliation n\'a pas été enregistrée.');
+    }
   };
 
   // Compute KPIs
@@ -139,6 +161,15 @@ export function BauxPanel({
 
   return (
     <div>
+      {actionError && (
+        <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
+          <span className="flex-1">{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="shrink-0 text-xs font-semibold underline">
+            Fermer
+          </button>
+        </div>
+      )}
+
       {/* KPI row */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} value={active} label="Baux actifs" bg="bg-emerald-50" />
@@ -207,10 +238,10 @@ export function BauxPanel({
       {leases.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-slate-100">
-            <FileText className="h-6 w-6 text-slate-400" />
+            <FileText className="h-6 w-6 text-slate-500" />
           </div>
           <p className="mb-2 text-slate-500">Aucun bail généré pour le moment.</p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             {contractsToPrepare.length > 0
               ? 'Reprenez un contrat à préparer ci-dessus pour lancer la génération.'
               : 'Sélectionnez un locataire depuis vos candidatures pour créer un bail.'}
@@ -263,7 +294,7 @@ export function BauxPanel({
                       <td className="px-4 py-3.5 text-right">
                         <span className="text-sm font-semibold text-slate-900">{lease.rentAmount.toLocaleString('fr-FR')} €</span>
                         {lease.chargesAmount > 0 && (
-                          <span className="text-xs text-slate-400 ml-1">+ {lease.chargesAmount} €</span>
+                          <span className="text-xs text-slate-500 ml-1">+ {lease.chargesAmount} €</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-sm text-slate-600">
@@ -406,9 +437,9 @@ export function BauxPanel({
                 <div className="mb-3 flex items-baseline gap-1">
                   <span className="text-sm font-semibold text-slate-900">{lease.rentAmount.toLocaleString('fr-FR')} €</span>
                   {lease.chargesAmount > 0 && (
-                    <span className="text-xs text-slate-400">+ {lease.chargesAmount} €</span>
+                    <span className="text-xs text-slate-500">+ {lease.chargesAmount} €</span>
                   )}
-                  <span className="text-xs text-slate-400">/ mois</span>
+                  <span className="text-xs text-slate-500">/ mois</span>
                 </div>
 
                 {/* Dates */}
@@ -468,14 +499,13 @@ export function BauxPanel({
 
       {/* Property picker modal */}
       {showPropertyPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPropertyPicker(false)}>
-          <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Sélectionner un bien</h3>
-              <button type="button" onClick={() => setShowPropertyPicker(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <Modal
+          open
+          onClose={() => setShowPropertyPicker(false)}
+          title="Sélectionner un bien"
+          size="md"
+        >
+          <div>
             {pickerProperties.length === 0 ? (
               <p className="py-4 text-center text-sm text-slate-500">Aucun bien disponible. Ajoutez un bien d&apos;abord.</p>
             ) : (
@@ -499,7 +529,7 @@ export function BauxPanel({
               </div>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Terminate modal */}
@@ -526,16 +556,34 @@ function TerminateModal({
   const [initiatedBy, setInitiatedBy] = useState<'OWNER' | 'TENANT'>('TENANT');
   const [loading, setLoading] = useState(false);
 
+  // Primitive partagée <Modal> : elle apporte le piège de focus, la fermeture au
+  // clavier (Échap), le verrouillage du scroll et le rendu mobile en feuille.
+  // L'overlay re-codé à la main n'avait aucun de ces comportements.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Résiliation du bail</h3>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-            <X className="h-5 w-5" />
+    <Modal
+      open
+      onClose={onClose}
+      title="Résiliation du bail"
+      size="md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Btn variant="secondary" onClick={onClose}>Annuler</Btn>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              await onConfirm(leaseId, initiatedBy);
+              setLoading(false);
+            }}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'En cours…' : 'Confirmer la résiliation'}
           </button>
         </div>
-
+      }
+    >
+      <div>
         <div className="mb-5">
           <label className="mb-2 block text-sm font-semibold text-slate-700">Qui initie la résiliation ?</label>
           <div className="flex gap-3">
@@ -563,23 +611,8 @@ function TerminateModal({
             : 'Préavis propriétaire : 6 mois avant la fin du bail. Motif obligatoire (reprise, vente, motif légitime).'}
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Btn variant="secondary" onClick={onClose}>Annuler</Btn>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              await onConfirm(leaseId, initiatedBy);
-              setLoading(false);
-            }}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'En cours…' : 'Confirmer la résiliation'}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

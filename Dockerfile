@@ -139,7 +139,12 @@ USER nodejs
 EXPOSE 3000
 
 # Health check
+# LIVENESS, pas readiness : /healthz répond 200 tant que le process sert. /health
+# (qui renvoie 503 si MongoDB est déconnecté) marquait le conteneur « unhealthy »
+# sur un simple hoquet de la base — or redémarrer l'app ne répare pas MongoDB, et
+# un orchestrateur pourrait tuer une application parfaitement saine.
+# /health reste l'endpoint de supervision (readiness).
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+  CMD curl -f http://localhost:3000/healthz || exit 1
 
 CMD ["node", "server.js"]

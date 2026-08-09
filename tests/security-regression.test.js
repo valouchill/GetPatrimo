@@ -156,11 +156,21 @@ describe('Webhook didit idempotent (webhooks-3)', () => {
 
 // ─────────────────────────── AUDIT PASSE-4 (angles morts) ───────────────────────────
 describe('Route EDL — path traversal + IDOR (passe-4 C-1, CRITICAL)', () => {
-  it('confine sous uploads + vérifie la propriété du bail', () => {
-    assertContains('src/routes/leaseRoutes.js',
-      ['Lease.findOne({ _id: req.params.id, user: req.user', 'uploadsRoot + path.sep', 'path.resolve(uploadsRoot, relPath)'],
-      'C-1 EDL');
-    assertNotContains('src/routes/leaseRoutes.js', "path.join(__dirname, '../../uploads', relPath)", 'C-1 ancien join');
+  it('la surface Express legacy du bail n’existe plus du tout', () => {
+    // Garantie PLUS FORTE que les garde-fous d'origine : les routes Express
+    // (leaseRoutes/leaseController) montaient les mêmes chemins que app/api/leases
+    // et prenaient le pas dessus. Elles ont été démontées puis supprimées ; leur
+    // absence supprime la classe de vulnérabilité (traversal + IDOR) à la racine.
+    const fs = require('fs');
+    const path = require('path');
+    for (const rel of ['src/routes/leaseRoutes.js', 'src/controllers/leaseController.js']) {
+      assert.ok(
+        !fs.existsSync(path.join(__dirname, '..', rel)),
+        `${rel} doit rester supprimé (surface Express legacy du bail)`,
+      );
+    }
+    // et rien ne doit le remonter dans le serveur
+    assertNotContains('server.js', "app.use('/api/leases'", 'C-1 remontage Express');
   });
 });
 describe('JWT — anti token-confusion + suspended (passe-4 jwt-session-1/express-surface-2)', () => {
