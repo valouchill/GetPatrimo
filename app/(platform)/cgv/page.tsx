@@ -1,3 +1,4 @@
+import { MANAGEMENT_PRICES, VOLUME_THRESHOLD, formatEuro } from '@/lib/billing/management-pricing';
 import { LEGAL_VERSIONS, formatLegalDate } from '@/lib/legal/versions';
 import { MEDIATOR } from '@/lib/legal/company';
 import Link from 'next/link';
@@ -93,11 +94,29 @@ export default function CGV() {
           </h2>
           <p>
             En complément des offres à paiement unique, l&apos;utilisateur peut souscrire un
-            abonnement <strong>« Gestion locative » au prix de 4,99 € TTC par mois et par
-            logement</strong> (toutes taxes comprises). Il donne accès aux modules de
+            abonnement <strong>« Sérénité »</strong> couvrant l&apos;ensemble des services de
             gestion : génération et signature électronique du contrat de bail, suivi des loyers,
-            quittances et relances automatiques, états des lieux d&apos;entrée et de sortie.
+            quittances et relances automatiques, états des lieux d&apos;entrée et de sortie,
+            stockage et archivage des documents de location.
           </p>
+          <p className="mt-2">
+            <strong>Prix (toutes taxes comprises), par logement :</strong>
+          </p>
+          <ul className="list-disc pl-6 space-y-1 mt-2">
+            <li>
+              <strong>{formatEuro(MANAGEMENT_PRICES.monthly.standard)} par mois</strong>, ou{' '}
+              <strong>{formatEuro(MANAGEMENT_PRICES.yearly.standard)} par an</strong> (soit deux
+              mois offerts par rapport au tarif mensuel).
+            </li>
+            <li>
+              <strong>Tarif dégressif multi-biens :</strong> à compter du{' '}
+              {VOLUME_THRESHOLD}ᵉ logement souscrit par un même titulaire, le prix est de{' '}
+              {formatEuro(MANAGEMENT_PRICES.monthly.volume)} par mois ou{' '}
+              {formatEuro(MANAGEMENT_PRICES.yearly.volume)} par an et par logement. La réduction
+              s&apos;applique aux logements souscrits à partir de ce rang ; elle ne modifie pas
+              rétroactivement les abonnements en cours.
+            </li>
+          </ul>
           <p className="mt-2">
             <strong>Durée et reconduction.</strong> L&apos;abonnement est conclu pour une durée
             d&apos;un mois, <strong>reconduit tacitement</strong> chaque mois par prélèvement

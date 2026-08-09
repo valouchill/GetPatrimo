@@ -253,7 +253,7 @@ function PaymentCard({ payment: p, onConfirm, onRemind, remindingId }: {
 
 interface LoyersPanelProps {
   /** État de l'offre Gestion (vient de /api/dashboard) : pilote l'upsell. */
-  management?: { offerLive?: boolean; anyActive?: boolean; upsellPropertyId?: string | null };
+  management?: { offerLive?: boolean; anyActive?: boolean; activeCount?: number; upsellPropertyId?: string | null };
 }
 
 const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps = {}) {
@@ -456,7 +456,7 @@ const LoyersPanel = memo(function LoyersPanel({ management }: LoyersPanelProps =
           Si l'offre Gestion est ouverte et non souscrite, on vend d'abord. */}
       <div className="mb-5">
         {management?.offerLive && !management?.anyActive && management?.upsellPropertyId ? (
-          <ManagementUpsell propertyId={management.upsellPropertyId} />
+          <ManagementUpsell propertyId={management.upsellPropertyId} activeSubscriptions={management.activeCount ?? 0} />
         ) : (
           <RentReconciliation onDone={fetchPayments} />
         )}

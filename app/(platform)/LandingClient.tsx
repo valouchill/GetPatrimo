@@ -12,6 +12,12 @@
  * Cette page contient : Hero · Réassurance · 3 Piliers · Tarifs · CTA · Footer.
  */
 
+import {
+  MANAGEMENT_INCLUDES,
+  MANAGEMENT_PRICES,
+  VOLUME_THRESHOLD,
+  formatEuro,
+} from '@/lib/billing/management-pricing';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
@@ -773,12 +779,24 @@ export default function LandingClient({
               La gestion locative, en autonomie
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-slate-600">
-              Bail signé en ligne, quittances envoyées automatiquement, relances d’impayés,
-              états des lieux photo et retenues sur dépôt calculées — au même endroit, une fois
-              votre locataire choisi.
+              Tout ce qui suit la signature, automatisé — au même endroit, une fois votre
+              locataire choisi.
             </p>
-            <p className="mt-4 font-serif text-2xl font-bold text-emerald-900">
-              4,99 € / mois <span className="text-base font-normal text-slate-500">par logement</span>
+            <ul className="mx-auto mt-5 max-w-md space-y-1.5 text-left text-sm text-slate-700">
+              {MANAGEMENT_INCLUDES.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-0.5 text-emerald-700" aria-hidden="true">✓</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 font-serif text-2xl font-bold text-emerald-900">
+              {formatEuro(MANAGEMENT_PRICES.monthly.standard)} / mois{' '}
+              <span className="text-base font-normal text-slate-500">par logement</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              ou {formatEuro(MANAGEMENT_PRICES.yearly.standard)} par an (2 mois offerts) ·
+              {' '}{formatEuro(MANAGEMENT_PRICES.monthly.volume)} dès le {VOLUME_THRESHOLD}ᵉ logement
             </p>
             <p className="mt-1 text-xs text-slate-500">Sans engagement · résiliable en un clic</p>
             <Link

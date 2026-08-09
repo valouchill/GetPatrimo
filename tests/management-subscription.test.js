@@ -60,9 +60,10 @@ describe('cloisonnement abonnement gestion / crédits d’audit', () => {
 describe('route de souscription', () => {
   const route = read('app/api/billing/management/route.ts');
 
-  it('utilise le mode subscription et un prix dédié', () => {
+  it('utilise le mode subscription et résout le prix via la source unique', () => {
     assert.match(route, /mode: 'subscription'/);
-    assert.match(route, /PRICE_ID_MANAGEMENT_MONTHLY/);
+    // le prix n'est plus lu en dur : il vient de management-pricing (mensuel/annuel + dégressif)
+    assert.match(route, /resolvePriceId\(billingCycle, activeSubscriptions\)/);
   });
 
   it('marque les metadata kind=management (lues par le webhook)', () => {
@@ -86,7 +87,8 @@ describe('conformité CGV de l’offre récurrente', () => {
 
   it('décrit l’abonnement, sa reconduction et son prix', () => {
     assert.match(cgv, /2 bis/);
-    assert.match(cgv, /4,99 € TTC par mois/);
+    // le montant vient désormais de la source unique, plus d'un texte figé
+    assert.match(cgv, /MANAGEMENT_PRICES\.monthly\.standard/);
     assert.match(cgv, /reconduit tacitement/);
   });
 

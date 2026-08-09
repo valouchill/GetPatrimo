@@ -2,7 +2,7 @@
 
 /**
  * <ManagementUpsell> — point de vente de l'abonnement « Gestion locative »
- * (4,99 €/mois par logement).
+ * (tarification : lib/billing/management-pricing.ts).
  *
  * Affiché tant que le logement n'est pas abonné. Ne s'affiche pas du tout si
  * l'offre n'est pas encore ouverte à la vente (prix Stripe non configuré) :
@@ -11,20 +11,27 @@
  */
 
 import { useState } from 'react';
-import { ClipboardCheck, FileSignature, Loader2, Receipt, Sparkles } from 'lucide-react';
+import { Archive, ClipboardCheck, FileSignature, Loader2, Receipt, Sparkles } from 'lucide-react';
+import {
+  MANAGEMENT_INCLUDES,
+  formatEuro,
+  priceFor,
+  yearlySavings,
+} from '@/lib/billing/management-pricing';
 
-const BENEFITS = [
-  { Icon: FileSignature, text: 'Bail pré-rempli depuis le dossier vérifié, signé en ligne' },
-  { Icon: Receipt, text: 'Quittances envoyées toutes seules, relances automatiques' },
-  { Icon: ClipboardCheck, text: 'États des lieux photo, retenues sur dépôt calculées' },
-];
+// Les inclusions viennent de la source unique : landing, upsell et CGV ne
+// peuvent plus annoncer des périmètres différents.
+const BENEFIT_ICONS = [FileSignature, Receipt, ClipboardCheck, Archive];
 
 export function ManagementUpsell({
   propertyId,
   propertyLabel,
+  activeSubscriptions = 0,
 }: {
   propertyId: string;
   propertyLabel?: string;
+  /** Abonnements déjà actifs du bailleur : au 3e logement, le tarif baisse. */
+  activeSubscriptions?: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +39,9 @@ export function ManagementUpsell({
   // rétention. Si le prix Stripe annuel n'existe pas encore, le serveur
   // retombe automatiquement sur le mensuel.
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const monthly = priceFor('monthly', activeSubscriptions);
+  const yearly = priceFor('yearly', activeSubscriptions);
+  const isVolume = monthly < 4.99;
 
   async function subscribe() {
     setBusy(true);
@@ -62,16 +72,24 @@ export function ManagementUpsell({
       </h3>
       <p className="mt-1 text-sm text-slate-600">
         {propertyLabel ? <>Pour <strong>{propertyLabel}</strong> : t</> : 'T'}out ce qui suit la
-        signature, automatisé — <strong>4,99 € par mois</strong>, sans engagement.
+        signature, automatisé — sans engagement, résiliable en un clic.
       </p>
+      {isVolume && (
+        <p className="mt-2 inline-block rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+          Tarif multi-biens appliqué (à partir du 3ᵉ logement)
+        </p>
+      )}
 
       <ul className="mt-4 space-y-2">
-        {BENEFITS.map(({ Icon, text }) => (
-          <li key={text} className="flex items-start gap-2.5 text-sm text-slate-700">
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-            <span>{text}</span>
-          </li>
-        ))}
+        {MANAGEMENT_INCLUDES.map((text, i) => {
+          const Icon = BENEFIT_ICONS[i] || FileSignature;
+          return (
+            <li key={text} className="flex items-start gap-2.5 text-sm text-slate-700">
+              <Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+              <span>{text}</span>
+            </li>
+          );
+        })}
       </ul>
 
       {error && (
@@ -90,7 +108,7 @@ export function ManagementUpsell({
             cycle === 'monthly' ? 'border-emerald-700 bg-emerald-50' : 'border-slate-200 bg-white'
           }`}
         >
-          <span className="block text-sm font-bold text-emerald-950">4,99 €</span>
+          <span className="block text-sm font-bold text-emerald-950">{formatEuro(monthly)}</span>
           <span className="block text-[11px] text-slate-500">par mois</span>
         </button>
         <button
@@ -105,8 +123,10 @@ export function ManagementUpsell({
           <span className="absolute -top-2 right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-950">
             2 mois offerts
           </span>
-          <span className="block text-sm font-bold text-emerald-950">49,90 €</span>
-          <span className="block text-[11px] text-slate-500">par an</span>
+          <span className="block text-sm font-bold text-emerald-950">{formatEuro(yearly)}</span>
+          <span className="block text-[11px] text-slate-500">
+            par an · soit {formatEuro(yearlySavings(activeSubscriptions))} économisés
+          </span>
         </button>
       </div>
 
@@ -117,7 +137,7 @@ export function ManagementUpsell({
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Activer la gestion — {cycle === 'yearly' ? '49,90 €/an' : '4,99 €/mois'}
+        Activer la gestion — {cycle === 'yearly' ? `${formatEuro(yearly)}/an` : `${formatEuro(monthly)}/mois`}
       </button>
       <p className="mt-2 text-center text-[11px] text-slate-500">
         Résiliable en un clic à tout moment · vos crédits d&rsquo;audit ne sont jamais affectés

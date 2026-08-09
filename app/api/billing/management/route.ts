@@ -6,6 +6,12 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
 import { captureServer } from '@/lib/analytics/posthog-server';
 import { getStripeClient } from '@/lib/admin-stripe';
+import {
+  isVolumeRate,
+  priceFor,
+  resolvePriceId,
+  type BillingCycle,
+} from '@/lib/billing/management-pricing';
 
 const Property = require('@/models/Property');
 const User = require('@/models/User');
@@ -33,21 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bien non précisé.' }, { status: 400 });
     }
 
-    // Deux cadences : mensuel (4,99 €) et annuel (2 mois offerts). L'annuel
-    // aligne le prix face au concurrent direct (49 €/an) tout en améliorant la
-    // trésorerie et la rétention. L'annuel est optionnel : si le prix Stripe
-    // n'existe pas, on retombe silencieusement sur le mensuel.
-    const billingCycle = body?.billingCycle === 'yearly' ? 'yearly' : 'monthly';
-    const yearlyPriceId = process.env.PRICE_ID_MANAGEMENT_YEARLY;
-    const monthlyPriceId = process.env.PRICE_ID_MANAGEMENT_MONTHLY;
-    const priceId = billingCycle === 'yearly' && yearlyPriceId ? yearlyPriceId : monthlyPriceId;
-    if (!priceId) {
-      logger.error('[management] PRICE_ID_MANAGEMENT_MONTHLY non configuré');
-      return NextResponse.json(
-        { error: "L'offre Gestion n'est pas encore ouverte. Réessayez plus tard." },
-        { status: 503 },
-      );
-    }
+    const billingCycle: BillingCycle = body?.billingCycle === 'yearly' ? 'yearly' : 'monthly';
 
     await connectDiditDb();
     const user = await User.findOne({ email: session.user.email }).select('_id email stripeCustomerId').lean();
@@ -64,6 +56,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'La gestion est déjà active sur ce bien.' }, { status: 409 });
     }
 
+    // Tarif dégressif : compté sur les abonnements DÉJÀ actifs du bailleur, pas
+    // sur son nombre de biens — on ne récompense que l'engagement réel.
+    const activeSubscriptions = await Property.countDocuments({
+      user: user._id,
+      'management.active': true,
+    });
+    const priceId = resolvePriceId(billingCycle, activeSubscriptions);
+    if (!priceId) {
+      logger.error('[management] prix Stripe non configuré', { cycle: billingCycle });
+      return NextResponse.json(
+        { error: "L'offre Gestion n'est pas encore ouverte. Réessayez plus tard." },
+        { status: 503 },
+      );
+    }
+
     const baseUrl = (
       process.env.NEXTAUTH_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
@@ -75,7 +82,8 @@ export async function POST(request: NextRequest) {
       kind: 'management',
       propertyId,
       userId: String(user._id),
-      billingCycle: priceId === yearlyPriceId ? 'yearly' : 'monthly',
+      billingCycle,
+      volumeRate: String(isVolumeRate(activeSubscriptions)),
     };
 
     // Instrumentation du funnel : sans event à l'ENTRÉE du checkout, le taux de
@@ -83,7 +91,9 @@ export async function POST(request: NextRequest) {
     captureServer('checkout_started', String(user._id), {
       kind: 'management',
       property_id: propertyId,
-      billing_cycle: metadata.billingCycle,
+      billing_cycle: billingCycle,
+      volume_rate: isVolumeRate(activeSubscriptions),
+      unit_price: priceFor(billingCycle, activeSubscriptions),
     });
 
     const checkoutSession = await stripe.checkout.sessions.create({

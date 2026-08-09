@@ -117,7 +117,7 @@ export default function OwnerDashboardClient() {
     freeTrial?: { used: number; limit: number } | null;
     pilotPendingAudits?: number;
     accountType?: 'B2C' | 'B2B';
-    management?: { offerLive?: boolean; anyActive?: boolean; upsellPropertyId?: string | null };
+    management?: { offerLive?: boolean; anyActive?: boolean; activeCount?: number; upsellPropertyId?: string | null };
     hasPaidProperty?: boolean;
   }>({ financial: null, kpis: null, alerts: [], recentEvents: [], freeTrial: null, hasPaidProperty: false });
 
@@ -706,7 +706,7 @@ export default function OwnerDashboardClient() {
               && dashData.management?.offerLive && !dashData.management?.anyActive
               && dashData.management?.upsellPropertyId && (
               <div className="mb-6">
-                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} />
+                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} activeSubscriptions={dashData.management.activeCount ?? 0} />
               </div>
             )}
 
@@ -812,7 +812,7 @@ export default function OwnerDashboardClient() {
               && !dashData.management?.anyActive
               && dashData.management?.upsellPropertyId && (
               <div className="mb-6">
-                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} />
+                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} activeSubscriptions={dashData.management.activeCount ?? 0} />
               </div>
             )}
             <BauxPanel

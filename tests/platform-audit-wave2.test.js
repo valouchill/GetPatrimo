@@ -114,11 +114,13 @@ describe('monétisation — funnel mesurable et prix compétitif', () => {
     assert.match(read('app/api/billing/subscribe/route.ts'), /checkout_started/);
   });
 
-  it('un plan annuel existe, avec repli automatique sur le mensuel', () => {
+  it('un plan annuel existe, avec repli automatique sur le tarif standard', () => {
     const route = read('app/api/billing/management/route.ts');
-    assert.match(route, /PRICE_ID_MANAGEMENT_YEARLY/);
-    assert.match(route, /billingCycle === 'yearly' && yearlyPriceId \? yearlyPriceId : monthlyPriceId/);
-    assert.match(read('app/(platform)/dashboard/owner/components/ManagementUpsell.tsx'), /49,90 €/);
+    assert.match(route, /billingCycle: BillingCycle/);
+    assert.match(route, /resolvePriceId\(billingCycle, activeSubscriptions\)/);
+    // le repli mensuel/standard est désormais testé dans tests/management-pricing.test.js
+    const upsell = read('app/(platform)/dashboard/owner/components/ManagementUpsell.tsx');
+    assert.match(upsell, /priceFor\('yearly', activeSubscriptions\)/);
   });
 });
 

@@ -77,7 +77,8 @@ describe('conversion — on ne vend plus comme « bientôt » ce qui est livré'
     // encodait le bug : la landing annonçait 4,99 € alors que la souscription
     // répondait 503 faute de prix Stripe.
     assert.match(landing, /isEnabled\('MANAGEMENT'\) && managementPurchasable \?/);
-    assert.match(landing, /4,99 € \/ mois/);
+    // le prix vient de la source unique — on vérifie le branchement, pas un texte figé
+    assert.match(landing, /MANAGEMENT_PRICES\.monthly\.standard/);
     assert.match(landing, /Activer la gestion locative/);
   });
 

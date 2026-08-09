@@ -224,6 +224,9 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       management: {
         offerLive: Boolean(process.env.PRICE_ID_MANAGEMENT_MONTHLY),
         anyActive: properties.some((p: { management?: { active?: boolean } }) => p.management?.active === true),
+        // Nombre d'abonnements DÉJÀ actifs : au 3e logement le tarif devient dégressif,
+        // l'UI doit donc annoncer le bon prix avant même le clic.
+        activeCount: properties.filter((p: { management?: { active?: boolean } }) => p.management?.active === true).length,
         upsellPropertyId: (() => {
           const candidate = properties.find((p: { management?: { active?: boolean }; _id?: unknown }) => !p.management?.active);
           return candidate ? String((candidate as { _id: unknown })._id) : null;
