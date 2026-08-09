@@ -3401,7 +3401,15 @@ export default function ApplyClient({ token }: { token: string }) {
                 return (
                   <React.Fragment key={item.step}>
                     {/* Step Item */}
-                    <motion.div
+                    {/* Accessibilité : c'était un motion.div cliquable — les étapes
+                        étaient donc inatteignables au clavier, et le message
+                        expliquant un verrouillage n'était jamais lisible sans
+                        souris, sur le parcours le plus critique du produit. */}
+                    <motion.button
+                      type="button"
+                      aria-current={isActive ? 'step' : undefined}
+                      aria-disabled={isLocked || undefined}
+                      aria-label={`Chapitre ${item.step}${isLocked ? ' (verrouillé)' : ''}`}
                       onClick={() => {
                         if (isLocked) {
                           setAiFeedback({
@@ -3416,7 +3424,7 @@ export default function ApplyClient({ token }: { token: string }) {
                         }
                         setCurrentStep(item.step);
                       }}
-                      className={`relative flex items-center gap-3 cursor-pointer group ${isLocked ? 'cursor-not-allowed' : ''}`}
+                      className={`relative flex items-center gap-3 text-left cursor-pointer group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 ${isLocked ? 'cursor-not-allowed' : ''}`}
                       whileHover={!isLocked ? { y: -2 } : {}}
                     >
                       {/* Point de la timeline */}
@@ -3468,7 +3476,7 @@ export default function ApplyClient({ token }: { token: string }) {
                           <span className="text-[8px] text-slate-300">Verrouillé</span>
                         )}
                       </div>
-                    </motion.div>
+                    </motion.button>
                     
                     {/* Ligne de connexion */}
                     {index < arr.length - 1 && (
@@ -3524,13 +3532,13 @@ export default function ApplyClient({ token }: { token: string }) {
       {/* Main Content */}
       <main className="pt-28 md:pt-32 pb-32 md:pb-20 px-4 md:px-6 min-h-[100dvh] md:min-h-screen">
         {/* Background - Image exacte comme HTML statique */}
-        <div className="fixed inset-0 z-[-1] opacity-5">
-          <img 
-            src="https://images.unsplash.com/photo-1600607687940-467f4b566873?q=80&w=2000" 
-            className="w-full h-full object-cover" 
-            alt=""
-          />
-        </div>
+        {/* Fond décoratif en CSS : l'image externe (Unsplash) sur le funnel de
+            candidature créait une dépendance tierce, une fuite de referrer vers
+            un domaine externe et un coût de chargement inutile (opacité 5 %). */}
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-[-1] bg-gradient-to-br from-emerald-50 via-white to-amber-50/40"
+        />
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-8">
           

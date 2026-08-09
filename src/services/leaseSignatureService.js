@@ -240,6 +240,16 @@ async function sendSignatureInvite(lease, signature, rawToken) {
   });
 }
 
+/**
+ * Montant d'engagement de la caution : loyer + charges × durée du bail.
+ * Sert à VÉRIFIER la mention saisie par la caution, jamais à la pré-remplir.
+ */
+function computeGuaranteeAmount(lease) {
+  const monthly = Number(lease?.rentAmount || 0) + Number(lease?.chargesAmount || 0);
+  const months = Math.max(Number(lease?.durationMonths || 12), 1);
+  return Math.round(monthly * months * 100) / 100;
+}
+
 /** Résout un token brut → document de signature (null si invalide/expiré). */
 async function resolveSignatureByToken(rawToken) {
   if (!rawToken || typeof rawToken !== 'string' || rawToken.length < 32) return null;
@@ -315,7 +325,7 @@ async function verifySignatureOtp(signature, code) {
  * Enregistre la signature (après OTP validé) et fait avancer la file.
  * @returns {Promise<{complete:boolean, nextSentTo:string|null}>}
  */
-async function recordSignature(signature, { signatureImage, ip, userAgent }) {
+async function recordSignature(signature, { signatureImage, ip, userAgent, guaranteeMention }) {
   if (!signature.otpVerifiedAt) throw new Error('Code de confirmation non validé');
   // Revue F3 : le consentement OTP expire — le seul lien ne suffit pas à signer
   // des jours plus tard (lien transféré, navigateur partagé).
@@ -348,6 +358,30 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
     throw new Error(
       'Le contrat a été modifié depuis l’envoi en signature. Le bailleur doit relancer une nouvelle campagne.',
     );
+  }
+
+  // Art. 2297 C. civ. : la caution personne physique appose ELLE-MÊME la mention
+  // exprimant la nature et l'étendue de son engagement, à peine de NULLITÉ.
+  // Une mention pré-imprimée par le système ne vaut pas engagement.
+  if (signature.role === 'GUARANTOR') {
+    const expected = computeGuaranteeAmount(lease);
+    const mention = String(guaranteeMention || '').trim();
+    if (mention.length < 20) {
+      throw new Error(
+        'La caution doit écrire elle-même la mention d’engagement (art. 2297 du Code civil).',
+      );
+    }
+    // La mention doit porter le montant : on vérifie que le nombre y figure,
+    // en tolérant les séparateurs (1 234,56 / 1234.56 / 1 234).
+    const digitsOnly = mention.replace(/[^0-9]/g, '');
+    const expectedDigits = String(Math.round(expected));
+    if (!digitsOnly.includes(expectedDigits)) {
+      throw new Error(
+        `La mention doit indiquer le montant exact de votre engagement : ${expected.toLocaleString('fr-FR')} €.`,
+      );
+    }
+    signature.guaranteeMention = mention.slice(0, 1000);
+    signature.guaranteeAmount = expected;
   }
 
   signature.signatureImage = String(signatureImage || '').slice(0, 400000);
@@ -389,7 +423,16 @@ async function recordSignature(signature, { signatureImage, ip, userAgent }) {
     }
     // Remise d'un exemplaire à chaque partie (art. 3, loi du 6/7/1989) :
     // le PDF signé + certificat part en pièce jointe à tous les signataires.
-    await sendFinalPdfToParties(String(lease._id)).catch(() => {});
+    // Best-effort MAIS tracé : l'échec était totalement avalé, or c'est une
+    // obligation de remise (art. 3, loi du 6/7/1989). Le bail reste actif — on
+    // ne défait pas une signature valide pour un email —, mais l'incident
+    // remonte pour permettre un renvoi manuel.
+    await sendFinalPdfToParties(String(lease._id)).catch((err) => {
+      console.error('[lease-signature] livraison du bail signé échouée', {
+        leaseId: String(lease._id),
+        error: err?.message || err,
+      });
+    });
     return { complete: true, nextSentTo: null };
   }
 
@@ -437,6 +480,15 @@ async function resendInviteToCurrentSigner(leaseId) {
   if (!lease) throw new Error('Bail introuvable');
   if (lease.leaseStatus !== 'PENDING_SIGNATURE') {
     throw new Error("Ce bail n'est pas en cours de signature.");
+  }
+  // Relancer vers un bail dont le PDF est absent enverrait le signataire sur un
+  // document introuvable : on bloque en amont plutôt qu'à l'ouverture du lien.
+  const leaseDocs = Array.isArray(lease.generatedDocuments) ? lease.generatedDocuments : [];
+  const refDoc = leaseDocs.find((d) => d.kind === 'LEASE') || leaseDocs[0];
+  if (!refDoc?.pdfPath || !safeUploadsPath(refDoc.pdfPath)) {
+    throw new Error(
+      'Le document du bail est introuvable — régénérez-le avant de relancer les signataires.',
+    );
   }
   const signer = await getCurrentSigner(lease._id);
   if (!signer) throw new Error('Aucun signataire en attente.');
@@ -574,7 +626,8 @@ function buildCertificateHtml(lease, signatures) {
         <span style="color:#64748b;font-size:11px;">${escapeHtml(s.email)} · ${
           s.role === 'OWNER' ? 'Bailleur' : s.role === 'GUARANTOR' ? 'Garant' : 'Locataire'
         }</span>
-        ${s.diditVerified ? '<br/><span style="color:#047857;font-size:11px;">✔ Identité vérifiée eIDAS (biométrie)</span>' : ''}
+        ${s.diditVerified ? '<br/><span style="color:#047857;font-size:11px;">✔ Identité vérifiée par contrôle biométrique lors de la candidature</span>' : ''}
+        ${s.guaranteeMention ? `<br/><span style="color:#334155;font-size:10px;font-style:italic;">Mention apposée par la caution (art. 2297 C. civ.) :<br/>« ${escapeHtml(s.guaranteeMention)} »</span>` : ''}
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:11px;color:#334155;">
         ${s.signedAt ? new Date(s.signedAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : '—'}<br/>
@@ -598,9 +651,19 @@ function buildCertificateHtml(lease, signatures) {
     <p style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;margin:0 0 18px;">Maison Patrimo · Piste d'audit</p>
     <p style="font-size:12px;line-height:1.7;">
       Contrat de location — ${escapeHtml(lease.tenantFirstName || '')} ${escapeHtml(lease.tenantLastName || '')}<br/>
-      Signature électronique simple au sens du règlement (UE) n° 910/2014 (eIDAS) et de
-      l'article 1367 du Code civil. Le consentement de chaque signataire a été recueilli par
+      Signature électronique <strong>simple</strong> au sens du règlement (UE) n° 910/2014 (eIDAS)
+      et de l'article 1367 du Code civil. Le consentement de chaque signataire a été recueilli par
       code à usage unique envoyé sur son adresse email.
+    </p>
+    <p style="font-size:10px;line-height:1.6;color:#475569;background:#f8fafc;padding:9px 11px;border-radius:6px;margin:10px 0 0;">
+      <strong>Portée de la preuve.</strong> Ce certificat établit&nbsp;: la maîtrise de l'adresse
+      email du signataire (code à usage unique), la date et l'heure de signature, l'adresse IP,
+      et l'intégrité du document au moment de la signature (empreinte SHA-256 ci-dessous).
+      La mention « identité vérifiée » atteste d'un contrôle biométrique réalisé
+      <strong>lors de la candidature</strong>, sur la personne titulaire de cette adresse email&nbsp;;
+      elle ne constitue pas une vérification d'identité au moment même de la signature.
+      S'agissant d'une signature électronique simple, la charge de la preuve en cas de
+      contestation incombe à celui qui s'en prévaut (art. 1367 C. civ.).
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">
       <thead><tr style="background:#f1f5f9;">
@@ -670,6 +733,7 @@ async function finalizeSignedPdf(leaseId) {
 
 module.exports = {
   buildSignerList,
+  computeGuaranteeAmount,
   finalizeSignedPdf,
   getCurrentSigner,
   openSignatureCampaign,

@@ -42,7 +42,14 @@ async function purgeRejectedCandidatures(report) {
   const candidates = await Candidature.find({
     rgpdPurged: { $ne: true },
     status: { $in: ['REJECTED', 'ARCHIVED_REFUSED', 'REFUSED'] },
-    updatedAt: { $lt: cutoffDate },
+    // Un document sans `updatedAt` (créé avant l'activation des timestamps) ne
+    // matche PAS `$lt` et échappait donc à la purge indéfiniment. On retombe sur
+    // `createdAt`, puis sur l'horodatage embarqué dans l'ObjectId.
+    $or: [
+      { updatedAt: { $lt: cutoffDate } },
+      { updatedAt: { $in: [null, undefined] }, createdAt: { $lt: cutoffDate } },
+      { updatedAt: { $exists: false }, _id: { $lt: objectIdFromDate(cutoffDate) } },
+    ],
   });
 
   for (const candidature of candidates) {
@@ -158,7 +165,14 @@ async function purgeNonSelectedApplications(report) {
       property: prop._id,
       _id: { $ne: prop.acceptedTenantId },
       rgpdPurged: { $ne: true },
-      updatedAt: { $lt: cutoffDate },
+      // Un document sans `updatedAt` (créé avant l'activation des timestamps) ne
+    // matche PAS `$lt` et échappait donc à la purge indéfiniment. On retombe sur
+    // `createdAt`, puis sur l'horodatage embarqué dans l'ObjectId.
+    $or: [
+      { updatedAt: { $lt: cutoffDate } },
+      { updatedAt: { $in: [null, undefined] }, createdAt: { $lt: cutoffDate } },
+      { updatedAt: { $exists: false }, _id: { $lt: objectIdFromDate(cutoffDate) } },
+    ],
     });
 
     for (const app of nonSelected) {
@@ -258,7 +272,14 @@ async function purgeInactiveLeads(report) {
   const cutoffDate = new Date(Date.now() - THREE_YEARS_MS);
 
   const result = await Lead.deleteMany({
-    updatedAt: { $lt: cutoffDate },
+    // Un document sans `updatedAt` (créé avant l'activation des timestamps) ne
+    // matche PAS `$lt` et échappait donc à la purge indéfiniment. On retombe sur
+    // `createdAt`, puis sur l'horodatage embarqué dans l'ObjectId.
+    $or: [
+      { updatedAt: { $lt: cutoffDate } },
+      { updatedAt: { $in: [null, undefined] }, createdAt: { $lt: cutoffDate } },
+      { updatedAt: { $exists: false }, _id: { $lt: objectIdFromDate(cutoffDate) } },
+    ],
   });
 
   report.leadsPurged = result.deletedCount || 0;

@@ -160,7 +160,7 @@ export function DashboardEmptyState({
 
         <div className="mt-8 inline-flex items-center gap-2 rounded-pill bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
           <Sparkles className="h-3 w-3" aria-hidden="true" />
-          En 24h, 78 % des dossiers reçoivent un Grade A ou B
+          Chaque dossier reçu est pré-trié automatiquement et noté sous 24 h
         </div>
       </div>
     </motion.section>

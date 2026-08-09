@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
-import { CheckCircle2, ClipboardCheck, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList, Wallet, UserCog } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, CreditCard, LayoutDashboard, Users, Building2, Plus, FileSignature, ScrollText, ClipboardList, Wallet, UserCog, FilePlus2 } from 'lucide-react';
 import type { Candidature as RealCandidature, PropertyWithCandidatures } from '../OwnerContext';
 
 // ── Stage labels ──────────────────────────────────────────────────────────────
@@ -368,8 +368,10 @@ export const NAV: { id: NavId; label: string; Icon: React.ElementType; group: st
   // V7.4 — Baux & Contrats : hub de preparation (route reelle, pas SPA).
   // Page intelligente : empty state si aucun candidat retenu, sinon affiche
   // le plan de travail bail pour le(s) candidat(s) selectionne(s).
-  { id: 'contrats',     label: 'Baux & Contrats',    Icon: FileSignature,    group: 'Location',    href: '/dashboard/owner/contracts' },
-  { id: 'baux',         label: 'Baux signés',        Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
+  // Deux entrées « Baux » côte à côte, même icône, même groupe : le bailleur ne
+  // savait pas laquelle ouvrir. On distingue l'ACTION (préparer) du SUIVI (gérer).
+  { id: 'contrats',     label: 'Préparer un bail',   Icon: FilePlus2,        group: 'Location',    href: '/dashboard/owner/contracts' },
+  { id: 'baux',         label: 'Mes baux',           Icon: FileSignature,    group: 'Location',    feature: 'LEASES' },
   { id: 'edl',          label: 'États des lieux',    Icon: ClipboardCheck,   group: 'Location',    feature: 'EDL' },
   { id: 'loyers',       label: 'Loyers & Quittances', Icon: Wallet,          group: 'Finances',    feature: 'RECEIPTS' },
   // V8.0 — Pay-per-Listing : onglet interne (reste dans le shell → menu latéral conservé).

@@ -5,6 +5,7 @@
  */
 
 const fs = require('fs');
+const { openaiFetch } = require('../utils/openaiFetch');
 const path = require('path');
 const OpenAI = require('openai');
 
@@ -36,7 +37,7 @@ async function extractWithCustomPrompt(filePath, prompt) {
 
   const base64Image = await fileToBase64(filePath);
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,

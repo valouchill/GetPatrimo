@@ -23,11 +23,15 @@ async function generateAllMonthlyPayments() {
 
   logger.info('Cron: génération des paiements mensuels', { month, year });
 
-  // Trouver tous les baux actifs
-  const leases = await Lease.find({
-    startDate: { $lte: now },
-    $or: [{ endDate: null }, { endDate: { $gte: now } }],
-  }).populate('property').lean();
+  const {
+    billableLeaseFilter,
+    createMonthlyPaymentForLease,
+  } = require('../services/rentGenerationService');
+
+  // Seuls les baux SIGNÉS et en cours sont facturés (cf. BILLABLE_LEASE_STATUSES) :
+  // un bail en brouillon ou non signé générait des loyers, donc des relances, et
+  // jusqu'à une mise en demeure à J+30 sur un contrat inexistant.
+  const leases = await Lease.find(billableLeaseFilter(now)).populate('property', '_id user').lean();
 
   let created = 0;
   let skipped = 0;
@@ -35,83 +39,25 @@ async function generateAllMonthlyPayments() {
 
   for (const lease of leases) {
     try {
-      // Vérifier si paiement existe déjà
-      const existing = await Payment.findOne({
-        lease: lease._id,
-        'period.month': month,
-        'period.year': year,
-      });
-
-      if (existing) {
-        skipped++;
-        continue;
-      }
-
-      const property = lease.property;
-      if (!property) {
-        errors.push(`Bail ${lease._id}: bien introuvable`);
-        continue;
-      }
-
-      const totalDays = new Date(year, month, 0).getDate();
-      const leaseStart = new Date(lease.startDate);
-      const leaseEnd = lease.endDate ? new Date(lease.endDate) : null;
-      const monthStart = new Date(year, month - 1, 1);
-      const monthEnd = new Date(year, month - 1, totalDays);
-
-      let isProrata = false;
-      let occupiedStart = monthStart;
-      let occupiedEnd = monthEnd;
-
-      if (leaseStart > monthStart && leaseStart <= monthEnd) {
-        occupiedStart = leaseStart;
-        isProrata = true;
-      }
-      if (leaseEnd && leaseEnd >= monthStart && leaseEnd < monthEnd) {
-        occupiedEnd = leaseEnd;
-        isProrata = true;
-      }
-
-      const daysOccupied = isProrata
-        ? Math.max(0, Math.ceil((occupiedEnd - occupiedStart) / (1000 * 60 * 60 * 24)) + 1)
-        : totalDays;
-      const ratio = Math.round((daysOccupied / totalDays) * 10000) / 10000;
-
-      const rentHC = isProrata
-        ? Math.round(lease.rentAmount * ratio * 100) / 100
-        : lease.rentAmount;
-      const charges = isProrata
-        ? Math.round((lease.chargesAmount || 0) * ratio * 100) / 100
-        : (lease.chargesAmount || 0);
-      const totalTTC = Math.round((rentHC + charges) * 100) / 100;
-
-      await Payment.create({
-        lease: lease._id,
-        tenant: lease.tenantId || lease.tenant,
-        owner: property.user,
-        property: property._id,
-        period: { month, year },
-        amounts: { rentHC, charges, totalTTC, paidAmount: 0 },
-        prorata: isProrata ? {
-          isProrata: true,
-          startDate: occupiedStart,
-          endDate: occupiedEnd,
-          daysInMonth: totalDays,
-          daysOccupied,
-          ratio,
-        } : { isProrata: false, daysInMonth: totalDays, daysOccupied: totalDays, ratio: 1 },
-        status: 'PENDING',
-      });
-
-      created++;
+      const r = await createMonthlyPaymentForLease(lease, { month, year });
+      created += r.created;
+      skipped += r.skipped;
+      errors.push(...r.errors);
     } catch (err) {
       errors.push(`Bail ${lease._id}: ${err?.message || err}`);
     }
   }
 
-  const report = { created, skipped, errors: errors.length, total: leases.length };
-  logger.info('Cron: génération terminée', report);
-  return report;
+  // Remontée d'erreur EXPLICITE : ces rapports étaient loggés en `info`, donc
+  // invisibles dans Sentry — c'est ce qui a permis à la génération d'être
+  // totalement inopérante sans que personne ne le voie.
+  if (errors.length > 0) {
+    logger.error('Cron: génération des loyers — erreurs', {
+      month, year, created, skipped, errorCount: errors.length, errors: errors.slice(0, 20),
+    });
+  }
+  logger.info('Cron: paiements générés', { created, skipped, errors: errors.length, leases: leases.length });
+  return { created, skipped, errors, leasesConsidered: leases.length };
 }
 
 /**

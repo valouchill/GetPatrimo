@@ -213,7 +213,6 @@ const LEASE_TYPES = [
   { value: 'meuble', label: 'Location meublée', file: 'bail-meuble' },
   { value: 'mobilite', label: 'Bail mobilité', file: 'bail-mobilite' },
   { value: 'garage', label: 'Garage / Parking', file: 'bail-garage' },
-  { value: 'civil', label: 'Bail civil (droit commun)', file: 'bail-civil' },
 ] as const;
 
 export function LeasePreparationPage({
@@ -294,14 +293,7 @@ export function LeasePreparationPage({
               filename={`${activeType.file}.docx`}
               variant="emerald"
             />
-            <TemplateCard
-              format="PDF"
-              title={`Modèle ${activeType.label} (PDF)`}
-              subtitle="Format PDF · prêt à imprimer (si déposé)"
-              href={`/templates/${activeType.file}.docx`}
-              filename={`${activeType.file}.pdf`}
-              variant="gold"
-            />
+
           </div>
         </section>
 

@@ -12,7 +12,10 @@ const LeadSchema = new mongoose.Schema(
       content: { type: String, default: '' },
     },
     ip: { type: String, default: '' },
-    userAgent: { type: String, default: '' }
+    userAgent: { type: String, default: '' },
+    /** Annonce d'ouverture envoyée (idempotence : jamais deux fois le même lead). */
+    notifiedAt: { type: Date, default: null, index: true },
+    notifiedCampaign: { type: String, default: '' }
   },
   { timestamps: true }
 );

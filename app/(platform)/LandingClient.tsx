@@ -654,13 +654,13 @@ export default function LandingClient() {
 
             {/* Pilier 3 */}
             <Pillar
-              eyebrow="Le Scellement — bientôt disponible"
+              eyebrow="Le Scellement"
               title="De la sélection à la signature en 3 minutes."
               visual={<SealMockup />}
               bullets={[
-                'Bail ALUR pré-rempli automatiquement',
-                'Export PDF & DOCX prêts à signer',
-                'Conforme à la réglementation en vigueur',
+                'Bail ALUR pré-rempli depuis le dossier vérifié',
+                'Signature électronique en ligne (eIDAS, art. 1367 C. civ.)',
+                'Certificat de preuve horodaté annexé au contrat',
               ]}
             >
               Une fois votre locataire choisi, Maison Patrimo génère un bail conforme
@@ -757,8 +757,36 @@ export default function LandingClient() {
         </div>
       </section>
 
-      {/* ============ WAITLIST GESTION LOCATIVE ============ */}
-      {isEnabled('WAITLIST_MANAGEMENT') && (
+      {/* ============ GESTION LOCATIVE (offre en vente) ============ */}
+      {/* Le module est LIVE et l'abonnement est vendable : on vend, on ne
+          collecte plus d'adresses pour un lancement déjà eu lieu. */}
+      {isEnabled('MANAGEMENT') ? (
+        <section id="gestion-locative" className="px-6 py-16 md:py-20">
+          <Reveal className="mx-auto max-w-3xl rounded-[2rem] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 to-white p-8 text-center sm:p-12">
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              Disponible
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-emerald-900 sm:text-4xl">
+              La gestion locative, en autonomie
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-slate-600">
+              Bail signé en ligne, quittances envoyées automatiquement, relances d’impayés,
+              états des lieux photo et retenues sur dépôt calculées — au même endroit, une fois
+              votre locataire choisi.
+            </p>
+            <p className="mt-4 font-serif text-2xl font-bold text-emerald-900">
+              4,99 € / mois <span className="text-base font-normal text-slate-500">par logement</span>
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Sans engagement · résiliable en un clic</p>
+            <Link
+              href="/auth/register?role=owner"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-900 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-emerald-800"
+            >
+              Activer la gestion locative
+            </Link>
+          </Reveal>
+        </section>
+      ) : isEnabled('WAITLIST_MANAGEMENT') ? (
         <section id="waitlist-gestion" className="px-6 py-16 md:py-20">
           <Reveal className="mx-auto max-w-3xl rounded-[2rem] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 to-white p-8 text-center sm:p-12">
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
@@ -777,7 +805,7 @@ export default function LandingClient() {
             </div>
           </Reveal>
         </section>
-      )}
+      ) : null}
 
       {/* ====================== CTA FINAL (dark) ===================== */}
       <section className="px-6 py-20 md:py-24">

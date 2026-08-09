@@ -54,6 +54,15 @@ const LeaseSignatureSchema = new mongoose.Schema(
     documentHash: { type: String, default: '' },
     /** Image manuscrite (data URL PNG du canvas), apposée sur le document. */
     signatureImage: { type: String, default: '' },
+    /**
+     * Mention d'engagement SAISIE par la caution elle-même (art. 2297 C. civ.,
+     * réforme 2022) : « à peine de nullité de son engagement, la caution
+     * personne physique appose ELLE-MÊME la mention qui exprime de façon
+     * explicite et non équivoque la nature et l'étendue de son engagement ».
+     * Une mention pré-remplie par le système ne satisfait pas cette exigence.
+     */
+    guaranteeMention: { type: String, default: '' },
+    guaranteeAmount: { type: Number, default: 0 },
 
     signedAt: { type: Date, default: null },
     viewedAt: { type: Date, default: null },

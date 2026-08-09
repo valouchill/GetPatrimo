@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { connectDiditDb } from '@/app/api/didit/db';
 import { logger } from '@/lib/server-logger';
+import { captureServer } from '@/lib/analytics/posthog-server';
 import { getStripeClient } from '@/lib/admin-stripe';
 
 const Property = require('@/models/Property');
@@ -32,7 +33,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bien non précisé.' }, { status: 400 });
     }
 
-    const priceId = process.env.PRICE_ID_MANAGEMENT_MONTHLY;
+    // Deux cadences : mensuel (4,99 €) et annuel (2 mois offerts). L'annuel
+    // aligne le prix face au concurrent direct (49 €/an) tout en améliorant la
+    // trésorerie et la rétention. L'annuel est optionnel : si le prix Stripe
+    // n'existe pas, on retombe silencieusement sur le mensuel.
+    const billingCycle = body?.billingCycle === 'yearly' ? 'yearly' : 'monthly';
+    const yearlyPriceId = process.env.PRICE_ID_MANAGEMENT_YEARLY;
+    const monthlyPriceId = process.env.PRICE_ID_MANAGEMENT_MONTHLY;
+    const priceId = billingCycle === 'yearly' && yearlyPriceId ? yearlyPriceId : monthlyPriceId;
     if (!priceId) {
       logger.error('[management] PRICE_ID_MANAGEMENT_MONTHLY non configuré');
       return NextResponse.json(
@@ -67,7 +75,16 @@ export async function POST(request: NextRequest) {
       kind: 'management',
       propertyId,
       userId: String(user._id),
+      billingCycle: priceId === yearlyPriceId ? 'yearly' : 'monthly',
     };
+
+    // Instrumentation du funnel : sans event à l'ENTRÉE du checkout, le taux de
+    // conversion checkout → achat est incalculable (seuls les achats étaient tracés).
+    captureServer('checkout_started', String(user._id), {
+      kind: 'management',
+      property_id: propertyId,
+      billing_cycle: metadata.billingCycle,
+    });
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',

@@ -44,6 +44,7 @@ import { PropertiesPortfolio, type PortfolioAsset, type AssetStatus } from '@/ap
 import { PricingTiers } from '../../pricing/PricingTiers';
 import { ProOfferPanel } from '../../pricing/ProOfferPanel';
 import { BauxPanel } from './components/BauxPanel';
+import { ManagementUpsell } from './components/ManagementUpsell';
 import { EdlPanel } from './components/EdlPanel';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { TopCandidateCard } from './components/TopCandidateCard';
@@ -69,12 +70,21 @@ export default function OwnerDashboardClient() {
   // arriver juste après le redirect. On rafraîchit une fois en léger différé pour
   // afficher l'offre + le quota à jour sur la carte du bien.
   const checkoutSuccess = searchParams?.get('checkout') === 'success';
+  // Le webhook Stripe peut tarder de quelques secondes. Un refresh unique à 2,5 s
+  // laissait le bailleur devant une carte inchangée, sans explication ni recours,
+  // au moment le plus sensible du produit (juste après avoir payé). On sonde
+  // plusieurs fois et on affiche un état « activation en cours » explicite.
+  const [activationPending, setActivationPending] = useState(false);
   useEffect(() => {
     if (!checkoutSuccess) return;
-    const t = setTimeout(() => { refresh(); }, 2500);
-    return () => clearTimeout(t);
+    setActivationPending(true);
+    const delays = [1500, 3000, 5000, 8000, 12000];
+    const timers = delays.map((d) => setTimeout(() => { refresh(); }, d));
+    const done = setTimeout(() => setActivationPending(false), 13000);
+    return () => { timers.forEach(clearTimeout); clearTimeout(done); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkoutSuccess]);
+
   const [selBienId, setSelBienId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -122,6 +132,10 @@ export default function OwnerDashboardClient() {
   }, []);
 
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+  // Dès que l'offre est visible côté données, on arrête de signaler l'attente.
+  useEffect(() => {
+    if (activationPending && dashData.hasPaidProperty) setActivationPending(false);
+  }, [activationPending, dashData.hasPaidProperty]);
 
   // ── Derived ────────────────────────────────────────────────────
   const biens = data.map(toBien);
@@ -660,11 +674,30 @@ export default function OwnerDashboardClient() {
         {page === 'biens' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             {checkoutSuccess && (
-              <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-                <span aria-hidden="true">✓</span>
-                Paiement reçu — votre offre s’active à l’instant. Le quota d’analyses IA de
-                votre bien apparaît sur sa carte ci-dessous.
-              </div>
+              activationPending ? (
+                <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                  <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" aria-hidden="true" />
+                  Paiement reçu — activation de votre offre en cours…
+                </div>
+              ) : (
+                <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                  <span aria-hidden="true">✓</span>
+                  {dashData.hasPaidProperty ? (
+                    <>Offre activée — le quota d’analyses de votre bien apparaît sur sa carte ci-dessous.</>
+                  ) : (
+                    <>
+                      Paiement reçu. L’activation prend parfois quelques instants.
+                      <button
+                        type="button"
+                        onClick={() => refresh()}
+                        className="underline decoration-emerald-400 hover:text-emerald-900"
+                      >
+                        Actualiser
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
             )}
             {/* V5.5 — Vue "Portefeuille d'Actifs" Banque Privée.
                 Remplace l'ancien design tableau + grille mixte par un seul
@@ -761,6 +794,16 @@ export default function OwnerDashboardClient() {
               <h1 className="font-serif text-2xl md:text-3xl font-bold text-emerald-900">Baux &amp; Signatures</h1>
               <p className="mt-1 text-sm text-slate-500">Suivi des contrats · Renouvellement · Résiliation</p>
             </div>
+            {/* L'abonnement Gestion n'était proposé que dans l'onglet Loyers. Le
+                moment le plus propice est ici : le bail vient d'être signé et le
+                bailleur cherche précisément « et maintenant ? ». */}
+            {dashData.management?.offerLive
+              && !dashData.management?.anyActive
+              && dashData.management?.upsellPropertyId && (
+              <div className="mb-6">
+                <ManagementUpsell propertyId={dashData.management.upsellPropertyId} />
+              </div>
+            )}
             <BauxPanel
               properties={biens.map((b) => {
                 const selApp = allDossiers.find((d) => d.bien_id === b.id && d.statut === 'selectionne');
