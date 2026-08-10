@@ -1,5 +1,6 @@
 import type { VisionAtouts } from './schemas';
 import { fetchBaseMarketPrice } from './pricing-engine';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 export interface PrimeValorisation {
   raison: string;
@@ -54,7 +55,7 @@ export async function computeDossierStrategique(
   const atoutsStr = JSON.stringify(atouts);
   const ctxStr = JSON.stringify(context);
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({

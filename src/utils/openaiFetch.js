@@ -12,6 +12,54 @@
  * retarder l'échec.
  */
 
+/**
+ * ROUTAGE UE — Azure OpenAI.
+ *
+ * Les appels partent par défaut vers api.openai.com, donc hors Union
+ * européenne, alors que des bulletins de salaire et des avis d'imposition y
+ * transitent. C'est incompatible avec l'hébergement européen annoncé, et c'est
+ * la première question que pose le DPO d'un assureur.
+ *
+ * Dès que ces trois variables existent, TOUT le trafic bascule vers une
+ * ressource Azure OpenAI en région française/européenne, sans autre changement
+ * de code :
+ *   AZURE_OPENAI_ENDPOINT    ex. https://patrimo.openai.azure.com
+ *   AZURE_OPENAI_KEY
+ *   AZURE_OPENAI_DEPLOYMENT  nom du déploiement (ex. gpt-4o)
+ * Absentes → comportement inchangé. Aucun risque à déployer avant de les créer.
+ */
+function azureRoute(url, options) {
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const key = process.env.AZURE_OPENAI_KEY;
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+  if (!endpoint || !key || !deployment) return null;
+  if (!String(url).includes('api.openai.com')) return null;
+
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-10-21';
+  const base = String(endpoint).replace(/\/$/, '');
+  const path = String(url).includes('/chat/completions') ? 'chat/completions' : 'chat/completions';
+
+  // Azure attend `api-key` et non `Authorization: Bearer`.
+  const headers = { ...(options.headers || {}) };
+  delete headers.Authorization;
+  delete headers.authorization;
+  headers['api-key'] = key;
+
+  return {
+    url: `${base}/openai/deployments/${deployment}/${path}?api-version=${apiVersion}`,
+    options: { ...options, headers },
+  };
+}
+
+/** L'inférence part-elle bien d'une région européenne ? (supervision/DPA) */
+function isEuInferenceConfigured() {
+  return Boolean(
+    process.env.AZURE_OPENAI_ENDPOINT
+    && process.env.AZURE_OPENAI_KEY
+    && process.env.AZURE_OPENAI_DEPLOYMENT,
+  );
+}
+
 const DEFAULT_TIMEOUT_MS = 45000;
 const DEFAULT_MAX_ATTEMPTS = 2;
 
@@ -35,6 +83,12 @@ function isRetryableNetworkError(error) {
  * @throws {Error} `OpenAI timeout` si la limite de temps est atteinte
  */
 async function openaiFetch(url, options = {}, config = {}) {
+  // Bascule UE transparente si Azure OpenAI est configuré.
+  const routed = azureRoute(url, options);
+  if (routed) {
+    url = routed.url;
+    options = routed.options;
+  }
   const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
   const maxAttempts = config.maxAttempts || DEFAULT_MAX_ATTEMPTS;
   const label = config.label || 'openai';
@@ -72,5 +126,6 @@ async function openaiFetch(url, options = {}, config = {}) {
 
 module.exports = {
   openaiFetch,
-  _internals: { DEFAULT_TIMEOUT_MS, DEFAULT_MAX_ATTEMPTS, isRetryableStatus, isRetryableNetworkError },
+  isEuInferenceConfigured,
+  _internals: { DEFAULT_TIMEOUT_MS, DEFAULT_MAX_ATTEMPTS, isRetryableStatus, isRetryableNetworkError, azureRoute },
 };

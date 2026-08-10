@@ -19,6 +19,7 @@
  */
 
 const { recordLlmCost } = require('./api-cost-logger');
+const { openaiFetch } = require('../utils/openaiFetch');
 
 const SUPERVISOR_TIMEOUT_MS = Number(process.env.OPENAI_DOC_SUPERVISOR_TIMEOUT_MS || 20_000);
 const SUPERVISOR_MODEL = process.env.OPENAI_DOC_SUPERVISOR_MODEL || 'gpt-4o-mini';
@@ -261,7 +262,7 @@ async function superviseDocument(result, forensic, opts = {}) {
     const timer = setTimeout(() => controller.abort(), SUPERVISOR_TIMEOUT_MS);
     let response;
     try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
+      response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({

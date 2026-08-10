@@ -156,3 +156,40 @@ describe('conformité — documents légaux exacts', () => {
     assert.match(cgv, /293 B du CGI/); // franchise en base mentionnée
   });
 });
+
+describe('souveraineté des données — inférence IA', () => {
+  const { _internals, isEuInferenceConfigured } = require('../src/utils/openaiFetch');
+
+  it('TOUT appel OpenAI passe par le point unique (aucun fetch direct)', () => {
+    const { execSync } = require('child_process');
+    const out = execSync(
+      `grep -rn "await fetch('https://api.openai.com" --include=*.ts --include=*.js app src lib 2>/dev/null | grep -v node_modules | wc -l`,
+      { cwd: path.join(__dirname, '..'), shell: '/bin/bash' },
+    ).toString().trim();
+    assert.equal(out, '0', 'des bulletins de salaire partiraient hors UE sans passer par le routage');
+  });
+
+  it('bascule vers Azure OpenAI (UE) dès que la ressource est configurée', () => {
+    const before = { ...process.env };
+    process.env.AZURE_OPENAI_ENDPOINT = 'https://x.openai.azure.com';
+    process.env.AZURE_OPENAI_KEY = 'k';
+    process.env.AZURE_OPENAI_DEPLOYMENT = 'gpt-4o';
+    const r = _internals.azureRoute('https://api.openai.com/v1/chat/completions', {
+      headers: { Authorization: 'Bearer sk-x', 'Content-Type': 'application/json' },
+    });
+    assert.match(r.url, /openai\.azure\.com\/openai\/deployments\/gpt-4o/);
+    // Azure attend api-key ; laisser le Bearer fuiterait la clé OpenAI
+    assert.equal(r.options.headers['api-key'], 'k');
+    assert.equal(r.options.headers.Authorization, undefined);
+    assert.equal(isEuInferenceConfigured(), true);
+    process.env = before;
+  });
+
+  it('reste totalement inerte tant que rien n’est configuré', () => {
+    const before = { ...process.env };
+    delete process.env.AZURE_OPENAI_ENDPOINT;
+    assert.equal(_internals.azureRoute('https://api.openai.com/v1/chat/completions', {}), null);
+    assert.equal(isEuInferenceConfigured(), false);
+    process.env = before;
+  });
+});

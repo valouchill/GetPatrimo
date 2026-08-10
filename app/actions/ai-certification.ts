@@ -1,3 +1,4 @@
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 'use server';
 
 /**
@@ -128,7 +129,7 @@ export async function analyzeDocument(
     const base64Image = await fileToBase64(file);
 
     // Appel à l'API OpenAI GPT-4o Vision
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,

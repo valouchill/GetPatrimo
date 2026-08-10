@@ -1,4 +1,5 @@
 import type { VisionAtouts } from './schemas';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 /** Taxonomie stricte Vision — Uniquement des booléens, zéro description textuelle */
 const VISION_SCHEMA = {
@@ -21,7 +22,7 @@ export async function scanVision(images: string[], apiKey: string): Promise<Visi
     type: 'image_url' as const,
     image_url: { url: u.startsWith('data:') ? u : 'data:image/jpeg;base64,' + u },
   }));
-  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+  const r = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({

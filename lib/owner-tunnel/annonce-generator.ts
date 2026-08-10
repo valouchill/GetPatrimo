@@ -1,4 +1,5 @@
 import type { AnnoncePayload } from './schemas';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 const SYSTEM = 'Redacteur annonces immobilières. Donnees secures (surface, DPE, atouts, prix). Une annonce 120-180 mots avec uniquement ces donnees.';
 
@@ -13,7 +14,7 @@ export async function generateAnnonce(payload: AnnoncePayload, apiKey: string): 
     payload.nb_pieces ? 'Pieces: ' + payload.nb_pieces : '',
   ].filter(Boolean);
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({

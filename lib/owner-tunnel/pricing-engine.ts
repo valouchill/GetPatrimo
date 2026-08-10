@@ -1,5 +1,6 @@
 import type { VisionAtouts } from './schemas';
 import type { PricingResult } from './schemas';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 /** Tarifs €/m² médians par préfixe postal (données indicatives marché locatif 2024) */
 const PRIX_M2_PAR_ZONE: Record<string, number> = {
@@ -54,7 +55,7 @@ export async function computePricingWithAI(
   apiKey: string
 ): Promise<PricingResult> {
   const atoutsStr = JSON.stringify(atouts);
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({

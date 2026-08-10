@@ -26,6 +26,7 @@ const AI_TIMEOUT_MS = 55_000;
  * @returns {number}
  */
 const { applyPayslipArithmeticVerdict } = require('../utils/payslipArithmetic');
+const { openaiFetch } = require('../utils/openaiFetch');
 
 function normalizeAmount(value) {
   if (value === null || value === undefined) return 0;
@@ -324,7 +325,7 @@ async function analyzeWithVision(images, prompt, openaiApiKey, pdfMetadata, didi
 
   let response;
   try {
-    response = await fetch('https://api.openai.com/v1/chat/completions', {
+    response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openaiApiKey}`,

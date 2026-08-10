@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/server-logger';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 const SYSTEM = `Rédacteur d'annonces immobilières. Tu rédiges une annonce 120-180 mots en intégrant UNIQUEMENT les variables fournies.
 Surface et DPE viennent du JSON DPE. Atouts viennent du JSON Vision. Prix et justification viennent du Pricing Engine.
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     ];
     if (payload.adresse) lignes.push('Adresse: ' + payload.adresse);
     if (payload.nb_pieces) lignes.push('Pièces: ' + payload.nb_pieces);
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const r = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({

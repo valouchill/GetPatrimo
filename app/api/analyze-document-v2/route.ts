@@ -8,6 +8,7 @@ import { connectDiditDb } from '@/app/api/didit/db';
 import Property from '@/models/Property';
  
 const { buildCategoryMismatchMessage } = require('@/src/utils/documentCertificationRules');
+const { openaiFetch } = require('@/src/utils/openaiFetch');
  
 const { getPdfConversionUserMessage, isDetachedArrayBufferError, toStableBuffer } = require('@/src/utils/pdfBufferUtils');
  
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
               { firstName: diditFirstName, lastName: diditLastName, birthDate: diditBirthDate },
               documentCategory || undefined
             );
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({

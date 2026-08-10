@@ -1,4 +1,5 @@
 import type { DPEResult } from './schemas';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 /** Schéma JSON strict pour extraction DPE — Zéro hallucination */
 const DPE_JSON_SCHEMA = {
@@ -45,7 +46,7 @@ export async function scanDPE(input: ScanDPEInput, apiKey: string): Promise<DPER
         { type: 'image_url', image_url: { url: dataUrl } },
       ];
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await openaiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({

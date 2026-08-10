@@ -5,6 +5,7 @@ import { logger } from '@/lib/server-logger';
 import { trackUsage, checkUserLimit } from '@/lib/services/openai-usage';
 import { scanDPE } from '@/lib/owner-tunnel/dpe-scanner';
 import { checkRateLimit } from '@/lib/rate-limit';
+const { openaiFetch } = require('@/src/utils/openaiFetch');
 
 /**
  * API Route pour l'analyse de documents avec GPT-4o Vision (images) et GPT-4 (PDF texte)
@@ -373,7 +374,7 @@ export async function POST(request: NextRequest) {
 
     // Appel à l'API OpenAI
     logger.info('Appel OpenAI', { model });
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await openaiFetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
